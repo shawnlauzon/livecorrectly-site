@@ -18,9 +18,23 @@ export default function AdminPage() {
     const savedPassword = sessionStorage.getItem('adminPassword');
     if (savedPassword) {
       setPassword(savedPassword);
-      // Auto-load subscribers if we have a saved password
       loadSubscribers(savedPassword);
     }
+  }, []);
+
+  // Reload subscribers when returning via back navigation (bfcache restore)
+  useEffect(() => {
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        const savedPassword = sessionStorage.getItem('adminPassword');
+        if (savedPassword) {
+          setPassword(savedPassword);
+          loadSubscribers(savedPassword);
+        }
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
   }, []);
 
   const loadSubscribers = async (pwd: string) => {
@@ -141,7 +155,7 @@ export default function AdminPage() {
                 <td>
                   {subscriber.chart
                     ? ['Generator', 'MG', 'Manifestor', 'Projector', 'Reflector'][
-                        subscriber.chart.type
+                        subscriber.chart.chart.type
                       ]
                     : '-'}
                 </td>

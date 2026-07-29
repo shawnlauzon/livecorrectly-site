@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Subscriber } from '@/lib/types/subscriber';
 import ChartDisplay from '@/components/admin/chart-display';
+import ChartImage from '@/components/admin/chart-image';
 import styles from './detail.module.css';
 
 export default function AdminDetailPage({
@@ -76,18 +77,20 @@ export default function AdminDetailPage({
         <p className={styles.error}>{error || 'Subscriber not found'}</p>
         <div style={{ textAlign: 'center' }}>
           <Link href="/admin" className={styles.backLink}>
-            ← Back to list
+            &larr; Back to list
           </Link>
         </div>
       </div>
     );
   }
 
+  const birthTimeUtc = subscriber.chart?.meta?.birthData?.time?.utc;
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <Link href="/admin" className={styles.backLink}>
-          ← Back to list
+          &larr; Back to list
         </Link>
         <h1 className={styles.title}>
           {subscriber.first_name}{' '}
@@ -96,8 +99,16 @@ export default function AdminDetailPage({
         <p className={styles.subtitle}>{subscriber.email}</p>
       </div>
 
-      <div className={styles.card}>
-        <ChartDisplay subscriber={subscriber} />
+      <div className={styles.grid}>
+        <div className={styles.card}>
+          <ChartDisplay subscriber={subscriber} />
+        </div>
+
+        {birthTimeUtc && (
+          <div className={styles.card}>
+            <ChartImage birthTimeUtc={birthTimeUtc} />
+          </div>
+        )}
       </div>
     </div>
   );

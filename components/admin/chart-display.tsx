@@ -18,7 +18,7 @@ export default function ChartDisplay({
   subscriber,
   showBirthInfo = true
 }: ChartDisplayProps) {
-  const hd = hdChart(subscriber.chart);
+  const hd = hdChart(subscriber.chart.chart);
 
   return (
     <div className={styles.container}>

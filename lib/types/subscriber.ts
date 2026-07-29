@@ -1,4 +1,4 @@
-import { Chart } from './chart';
+import { ChartRecord } from './chart';
 
 // Subscriber interface matching the database schema
 export interface Subscriber {
@@ -13,7 +13,7 @@ export interface Subscriber {
   birth_lat: number | null;
   birth_lng: number | null;
   birth_tz: string | null;
-  chart: Chart;
+  chart: ChartRecord;
   seq_position: number;
   next_send_at: string | null; // ISO timestamp
   unsubscribed: boolean;
