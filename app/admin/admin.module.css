@@ -1,0 +1,139 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-family: var(--display);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 0.5rem 0;
+}
+
+.subtitle {
+  font-family: var(--body);
+  font-size: 1rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.passwordForm {
+  max-width: 400px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.passwordLabel {
+  display: block;
+  font-family: var(--body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+}
+
+.passwordInput {
+  width: 100%;
+  padding: 0.75rem;
+  font-family: var(--body);
+  font-size: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.passwordInput:focus {
+  outline: none;
+  border-color: var(--grape);
+}
+
+.submitButton {
+  width: 100%;
+  padding: 0.75rem;
+  font-family: var(--body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  background: var(--grape);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.submitButton:hover {
+  background: var(--grape-deep);
+}
+
+.error {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  color: var(--coral);
+  margin-top: 0.5rem;
+}
+
+.loading {
+  text-align: center;
+  font-family: var(--body);
+  color: var(--muted);
+  padding: 2rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.table thead {
+  background: var(--paper);
+}
+
+.table th {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: left;
+  padding: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.table td {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  color: var(--muted);
+  padding: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.table tbody tr:hover {
+  background: var(--paper);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.empty {
+  text-align: center;
+  padding: 3rem;
+  font-family: var(--body);
+  color: var(--muted);
+}

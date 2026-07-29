@@ -1,0 +1,59 @@
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.backLink {
+  display: inline-block;
+  font-family: var(--body);
+  font-size: 0.875rem;
+  color: var(--grape);
+  text-decoration: none;
+  margin-bottom: 1rem;
+}
+
+.backLink:hover {
+  color: var(--grape-deep);
+  text-decoration: underline;
+}
+
+.title {
+  font-family: var(--display);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 0.5rem 0;
+}
+
+.subtitle {
+  font-family: var(--body);
+  font-size: 1rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.loading {
+  text-align: center;
+  font-family: var(--body);
+  color: var(--muted);
+  padding: 2rem;
+}
+
+.error {
+  text-align: center;
+  font-family: var(--body);
+  color: var(--coral);
+  padding: 2rem;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}

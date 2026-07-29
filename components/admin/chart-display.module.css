@@ -1,0 +1,45 @@
+.container {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+@media (min-width: 640px) {
+  .item {
+    grid-template-columns: minmax(150px, 1fr) 2fr;
+  }
+}
+
+.label {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.value {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  .value {
+    margin-top: 0;
+  }
+}
