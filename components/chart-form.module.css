@@ -1,0 +1,261 @@
+/* Card / form */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: clamp(24px, 4vw, 38px);
+}
+
+.field {
+  margin-bottom: 22px;
+}
+.field:last-of-type {
+  margin-bottom: 0;
+}
+
+.label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+}
+
+.hint {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.input {
+  width: 100%;
+  font-family: var(--body);
+  font-size: 1rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1.5px solid var(--line);
+  border-radius: 11px;
+  padding: 13px 15px;
+  transition: border-color 0.18s ease;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--grape);
+}
+
+.checkrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--grape);
+  flex: none;
+}
+
+.checkLabel {
+  font-weight: 500;
+  font-size: 0.92rem;
+  margin: 0;
+  color: var(--muted);
+}
+
+.note {
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-top: 10px;
+  display: none;
+}
+.noteShow {
+  display: block;
+}
+
+.btn {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  cursor: pointer;
+  font-family: var(--body);
+  font-weight: 600;
+  font-size: 1.02rem;
+  color: #fff;
+  background: var(--grape);
+  border: none;
+  padding: 16px 26px;
+  border-radius: 12px;
+  box-shadow: 0 8px 22px -10px rgba(106, 75, 214, 0.7);
+  transition: transform 0.18s ease, background 0.2s ease;
+  margin-top: 28px;
+}
+.btn:hover {
+  background: var(--grape-deep);
+  transform: translateY(-2px);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+}
+
+/* Steps */
+.step {
+  display: none;
+}
+.stepActive {
+  display: block;
+  animation: rise 0.5s ease both;
+}
+
+/* Chart result */
+.resultHead {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.bodygraph {
+  width: 132px;
+  flex: none;
+  border-radius: 16px;
+  padding: 12px;
+  background:
+    radial-gradient(120% 100% at 20% 10%, rgba(255, 176, 32, 0.35), transparent 55%),
+    radial-gradient(120% 120% at 90% 95%, rgba(106, 75, 214, 0.4), transparent 60%),
+    var(--card);
+  border: 1px solid var(--line);
+}
+
+.typeLabel {
+  color: var(--grape);
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.typeName {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.9rem;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.readout {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.rowitem {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 16px;
+}
+
+.k {
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--grape);
+  padding-top: 3px;
+}
+
+.v {
+  font-family: var(--serif);
+  font-size: 1.12rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.stubFlag {
+  margin-top: 22px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  background: var(--paper);
+  border-radius: 10px;
+  padding: 12px 14px;
+  line-height: 1.5;
+}
+
+/* Email continuation */
+.emailBlock {
+  margin-top: 34px;
+  border-top: 1px solid var(--line);
+  padding-top: 30px;
+}
+
+.emailH3 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.45rem;
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+}
+
+.emailP {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  line-height: 1.5;
+  color: var(--ink);
+  max-width: 34em;
+  margin-bottom: 20px;
+}
+
+.msg {
+  font-size: 0.9rem;
+  margin-top: 14px;
+  min-height: 1.2em;
+}
+.msgErr {
+  color: var(--coral);
+}
+.msgOk {
+  color: var(--grape-deep);
+}
+
+/* Done */
+.doneCard {
+  text-align: center;
+}
+.doneH2 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 2rem;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+.doneP {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  color: var(--ink);
+  max-width: 28em;
+  margin: 0 auto;
+}
+
+@media (max-width: 560px) {
+  .rowitem {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .resultHead {
+    gap: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stepActive {
+    animation: none;
+  }
+}

@@ -1,0 +1,12 @@
+.close {
+  padding-top: clamp(64px, 9vw, 110px);
+  padding-bottom: 0;
+  text-align: center;
+}
+
+.ctaNote {
+  margin-top: 22px;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
