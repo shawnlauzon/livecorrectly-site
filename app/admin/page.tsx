@@ -7,10 +7,11 @@ import styles from './admin.module.css';
 
 export default function AdminPage() {
   const router = useRouter();
+  const hasSavedPassword = typeof window !== 'undefined' && !!sessionStorage.getItem('adminPassword');
   const [password, setPassword] = useState('');
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(hasSavedPassword);
   const [error, setError] = useState('');
 
   // Check for existing session on mount
@@ -84,6 +85,14 @@ export default function AdminPage() {
     });
   };
 
+  if (loading) {
+    return (
+      <div className={styles.container}>
+        <p className={styles.loading}>Loading subscribers...</p>
+      </div>
+    );
+  }
+
   if (!isAuthorized) {
     return (
       <div className={styles.container}>
@@ -108,14 +117,6 @@ export default function AdminPage() {
           </button>
           {error && <p className={styles.error}>{error}</p>}
         </form>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className={styles.container}>
-        <p className={styles.loading}>Loading subscribers...</p>
       </div>
     );
   }
