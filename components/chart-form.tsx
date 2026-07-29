@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import BodygraphPlaceholder from "./bodygraph-placeholder";
 import styles from "./chart-form.module.css";
+import { countries } from "@/lib/countries";
 
 /* ---- Analytics wrapper ---- */
 function track(name: string, params?: Record<string, unknown>) {
@@ -30,7 +31,14 @@ interface BirthDetails {
   date: string;
   time: string | null;
   timeUnknown: boolean;
-  place: string;
+  countryAbbr: string;
+  city: string;
+  timezone: string;
+}
+
+/** Shape returned by the Maia Mechanics places API: { [timezone]: city[] } */
+interface TimeZoneCities {
+  [timezone: string]: string[];
 }
 
 // Phase 2: replace stub with server action calling the chart engine
@@ -79,12 +87,143 @@ export default function ChartForm() {
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const formStarted = useRef(false);
 
+  /* ---- Place picker state ---- */
+  const [countryAbbr, setCountryAbbr] = useState("US");
+  const [cityQuery, setCityQuery] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [timezone, setTimezone] = useState("");
+  const [cities, setCities] = useState<string[]>([]);
+  const [timeZoneCities, setTimeZoneCities] = useState<TimeZoneCities | null>(
+    null
+  );
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+
+  const abortRef = useRef<AbortController | null>(null);
+  const cityWrapRef = useRef<HTMLDivElement>(null);
+  const cityInputRef = useRef<HTMLInputElement>(null);
+
   const handleFormFocus = useCallback(() => {
     if (!formStarted.current) {
       formStarted.current = true;
       track("form_start");
     }
   }, []);
+
+  /* ---- Fetch cities from Maia Mechanics API ---- */
+  useEffect(() => {
+    if (cityQuery.length < 2) {
+      setCities([]);
+      setTimeZoneCities(null);
+      setDropdownOpen(false);
+      return;
+    }
+
+    // Abort any in-flight request
+    if (abortRef.current) {
+      abortRef.current.abort("refetch");
+    }
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const params = new URLSearchParams([
+      ["country", countryAbbr],
+      ["search", cityQuery],
+    ]);
+
+    fetch(`https://app.maiamechanics.com/places-v1/cities?${params}`, {
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json",
+      },
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          console.error(`City search HTTP error: ${res.status}`);
+          return;
+        }
+        const data = (await res.json()) as TimeZoneCities;
+        setTimeZoneCities(data);
+        const flat = Object.values(data).flat();
+        setCities(flat);
+        setDropdownOpen(flat.length > 0);
+        setActiveIndex(-1);
+      })
+      .catch((err) => {
+        // AbortController.abort('refetch') throws — expected, ignore it
+        if (err === "refetch" || err?.name === "AbortError") return;
+        console.error("Error fetching cities:", err);
+      });
+  }, [cityQuery, countryAbbr]);
+
+  /* ---- Close dropdown on outside click ---- */
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        cityWrapRef.current &&
+        !cityWrapRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  /* ---- Select a city from the dropdown ---- */
+  function selectCity(city: string) {
+    setSelectedCity(city);
+    setCityQuery(city);
+    setDropdownOpen(false);
+
+    // Resolve timezone from the API response keys
+    if (timeZoneCities) {
+      const tz = Object.keys(timeZoneCities).find((key) =>
+        timeZoneCities[key].includes(city)
+      );
+      if (tz) setTimezone(tz);
+    }
+  }
+
+  /* ---- Clear city selection ---- */
+  function clearCity() {
+    setSelectedCity("");
+    setCityQuery("");
+    setTimezone("");
+    setCities([]);
+    setTimeZoneCities(null);
+    setDropdownOpen(false);
+    setActiveIndex(-1);
+    cityInputRef.current?.focus();
+  }
+
+  /* ---- Country change resets city ---- */
+  function handleCountryChange(abbr: string) {
+    setCountryAbbr(abbr);
+    clearCity();
+  }
+
+  /* ---- City input keyboard navigation ---- */
+  function handleCityKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!dropdownOpen || cities.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev < cities.length - 1 ? prev + 1 : 0));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev > 0 ? prev - 1 : cities.length - 1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (activeIndex >= 0 && activeIndex < cities.length) {
+        selectCity(cities[activeIndex]);
+      }
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setDropdownOpen(false);
+    }
+  }
 
   function showStep(s: Step) {
     setStep(s);
@@ -96,23 +235,23 @@ export default function ChartForm() {
     const form = e.currentTarget;
     const dateInput = form.elements.namedItem("bdate") as HTMLInputElement;
     const timeInput = form.elements.namedItem("btime") as HTMLInputElement;
-    const placeInput = form.elements.namedItem("bplace") as HTMLInputElement;
 
     const date = dateInput.value;
-    const place = placeInput.value.trim();
 
-    if (!date || !place) {
+    if (!date || !selectedCity || !timezone) {
       if (!date) dateInput.focus();
-      else placeInput.focus();
+      else if (!selectedCity) cityInputRef.current?.focus();
       return;
     }
 
     setSubmitting(true);
-    const details = {
+    const details: BirthDetails = {
       date,
       time: timeInput.value || null,
       timeUnknown,
-      place,
+      countryAbbr,
+      city: selectedCity,
+      timezone,
     };
     const result = await generateChart(details);
     setChart(result);
@@ -215,19 +354,81 @@ export default function ChartForm() {
             </p>
           </div>
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="bplace">
+            <label className={styles.label}>
               Birth place{" "}
-              <span className={styles.hint}>&mdash; city, country</span>
+              <span className={styles.hint}>
+                &mdash; country, then city
+              </span>
             </label>
-            <input
-              className={styles.input}
-              type="text"
-              id="bplace"
-              name="bplace"
-              placeholder="e.g. Austin, United States"
-              required
-              autoComplete="off"
-            />
+            <div className={styles.placeRow}>
+              <select
+                className={styles.input}
+                value={countryAbbr}
+                onChange={(e) => handleCountryChange(e.target.value)}
+                aria-label="Birth country"
+              >
+                {countries.map((c) => (
+                  <option key={c.abbr} value={c.abbr}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+
+              <div className={styles.cityWrap} ref={cityWrapRef}>
+                <input
+                  ref={cityInputRef}
+                  className={styles.input}
+                  type="text"
+                  placeholder={"Start typing a city\u2026"}
+                  value={cityQuery}
+                  onChange={(e) => {
+                    setCityQuery(e.target.value);
+                    setSelectedCity("");
+                    setTimezone("");
+                  }}
+                  onFocus={() => {
+                    if (cities.length > 0 && !selectedCity) {
+                      setDropdownOpen(true);
+                    }
+                  }}
+                  onKeyDown={handleCityKeyDown}
+                  autoComplete="off"
+                  aria-label="Birth city"
+                  aria-expanded={dropdownOpen}
+                  aria-autocomplete="list"
+                  role="combobox"
+                />
+                {selectedCity && (
+                  <button
+                    type="button"
+                    className={styles.clearBtn}
+                    onClick={clearCity}
+                    aria-label="Clear city"
+                  >
+                    &times;
+                  </button>
+                )}
+                {dropdownOpen && cities.length > 0 && (
+                  <ul className={styles.dropdown} role="listbox">
+                    {cities.map((city, i) => (
+                      <li
+                        key={i}
+                        className={`${styles.dropdownItem} ${i === activeIndex ? styles.dropdownItemActive : ""}`}
+                        role="option"
+                        aria-selected={i === activeIndex}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          selectCity(city);
+                        }}
+                        onMouseEnter={() => setActiveIndex(i)}
+                      >
+                        {city}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
           </div>
           <button className={styles.btn} type="submit" disabled={submitting}>
             {submitting ? "Reading your chart\u2026" : "See my design"}
