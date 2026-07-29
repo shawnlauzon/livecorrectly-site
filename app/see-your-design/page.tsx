@@ -53,8 +53,10 @@ export default function SeeYourDesign() {
         <p className={styles.eyebrow}>Human Design for solopreneurs</p>
         <h1 className={styles.h1}>See how you&rsquo;re designed.</h1>
         <p className={styles.lead}>
-          Enter your birth details and get your chart on the spot. No account,
-          no signup to see it.
+          Enter your birth details and see your chart right away. I&rsquo;ll
+          also send you a 5-day series on how you&rsquo;re specifically
+          designed &mdash; and how to work with it in your business and your
+          life.
         </p>
 
         <ChartForm />

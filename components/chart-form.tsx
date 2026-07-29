@@ -310,6 +310,35 @@ export default function ChartForm() {
           onFocus={handleFormFocus}
         >
           <div className={styles.field}>
+            <label className={styles.label} htmlFor="fname">
+              First name
+            </label>
+            <input
+              className={styles.input}
+              type="text"
+              id="fname"
+              name="fname"
+              required
+            />
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="email">
+              Email
+            </label>
+            <input
+              className={styles.input}
+              type="email"
+              id="email"
+              name="email"
+              placeholder="you@example.com"
+              required
+            />
+            <p className={styles.hint}>
+              A 5-day series, and the occasional email after that. Unsubscribe
+              anytime.
+            </p>
+          </div>
+          <div className={styles.field}>
             <label className={styles.label} htmlFor="bdate">
               Birth date
             </label>
@@ -481,13 +510,13 @@ export default function ChartForm() {
             </p>
             <form noValidate onSubmit={handleEmailSubmit}>
               <div className={styles.field}>
-                <label className={styles.label} htmlFor="email">
+                <label className={styles.label} htmlFor="email2">
                   Where should I send it?
                 </label>
                 <input
                   className={styles.input}
                   type="email"
-                  id="email"
+                  id="email2"
                   name="email"
                   placeholder="you@example.com"
                   required
