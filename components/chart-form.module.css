@@ -179,17 +179,7 @@
   color: var(--ink);
 }
 
-.stubFlag {
-  margin-top: 22px;
-  font-size: 0.82rem;
-  color: var(--muted);
-  background: var(--paper);
-  border-radius: 10px;
-  padding: 12px 14px;
-  line-height: 1.5;
-}
-
-/* Email continuation */
+/* Booking / continuation */
 .emailBlock {
   margin-top: 34px;
   border-top: 1px solid var(--line);
@@ -211,37 +201,6 @@
   color: var(--ink);
   max-width: 34em;
   margin-bottom: 20px;
-}
-
-.msg {
-  font-size: 0.9rem;
-  margin-top: 14px;
-  min-height: 1.2em;
-}
-.msgErr {
-  color: var(--coral);
-}
-.msgOk {
-  color: var(--grape-deep);
-}
-
-/* Done */
-.doneCard {
-  text-align: center;
-}
-.doneH2 {
-  font-family: var(--display);
-  font-weight: 800;
-  font-size: 2rem;
-  letter-spacing: -0.02em;
-  margin-bottom: 12px;
-}
-.doneP {
-  font-family: var(--serif);
-  font-size: 1.15rem;
-  color: var(--ink);
-  max-width: 28em;
-  margin: 0 auto;
 }
 
 /* Place picker — country + city row */

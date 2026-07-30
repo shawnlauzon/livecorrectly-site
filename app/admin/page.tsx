@@ -1,27 +1,82 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Subscriber } from '@/lib/types/subscriber';
 import styles from './admin.module.css';
 
+async function fetchSubscribers(pwd: string): Promise<{ ok: true; data: Subscriber[] } | { ok: false; error: string }> {
+  try {
+    const response = await fetch('/api/admin/subscribers', {
+      headers: {
+        Authorization: `Bearer ${pwd}`
+      }
+    });
+
+    if (!response.ok) {
+      sessionStorage.removeItem('adminPassword');
+      return { ok: false, error: 'Session expired' };
+    }
+
+    const data = await response.json();
+    return { ok: true, data };
+  } catch (err) {
+    console.error('Error loading subscribers:', err);
+    return { ok: false, error: `Failed to load subscribers: ${err instanceof Error ? err.message : 'Unknown error'}` };
+  }
+}
+
 export default function AdminPage() {
   const router = useRouter();
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('adminPassword') ?? '';
+    }
+    return '';
+  });
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !!sessionStorage.getItem('adminPassword');
+    }
+    return false;
+  });
   const [error, setError] = useState('');
+
+  const loadSubscribers = useCallback(async (pwd: string) => {
+    setLoading(true);
+    setError('');
+    const result = await fetchSubscribers(pwd);
+    if (result.ok) {
+      setSubscribers(result.data);
+      setIsAuthorized(true);
+    } else {
+      setError(result.error);
+    }
+    setLoading(false);
+  }, []);
 
   // Check for existing session on mount
   useEffect(() => {
     const savedPassword = sessionStorage.getItem('adminPassword');
-    if (savedPassword) {
-      setPassword(savedPassword);
-      loadSubscribers(savedPassword);
-    } else {
+    if (!savedPassword) return;
+
+    let cancelled = false;
+
+    (async () => {
+      const result = await fetchSubscribers(savedPassword);
+      if (cancelled) return;
+      if (result.ok) {
+        setSubscribers(result.data);
+        setIsAuthorized(true);
+      } else {
+        setError(result.error);
+      }
       setLoading(false);
-    }
+    })();
+
+    return () => { cancelled = true; };
   }, []);
 
   // Reload subscribers when returning via back navigation (bfcache restore)
@@ -30,42 +85,13 @@ export default function AdminPage() {
       if (e.persisted) {
         const savedPassword = sessionStorage.getItem('adminPassword');
         if (savedPassword) {
-          setPassword(savedPassword);
           loadSubscribers(savedPassword);
         }
       }
     };
     window.addEventListener('pageshow', handlePageShow);
     return () => window.removeEventListener('pageshow', handlePageShow);
-  }, []);
-
-  const loadSubscribers = async (pwd: string) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await fetch('/api/admin/subscribers', {
-        headers: {
-          Authorization: `Bearer ${pwd}`
-        }
-      });
-
-      if (!response.ok) {
-        sessionStorage.removeItem('adminPassword');
-        setError('Session expired');
-        setLoading(false);
-        return;
-      }
-
-      const data = await response.json();
-      setSubscribers(data);
-      setIsAuthorized(true);
-    } catch (err) {
-      console.error('Error loading subscribers:', err);
-      setError(`Failed to load subscribers: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [loadSubscribers]);
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

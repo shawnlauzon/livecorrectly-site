@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import BodygraphPlaceholder from "./bodygraph-placeholder";
+import { useRouter } from "next/navigation";
 import styles from "./chart-form.module.css";
 import { countries } from "@/lib/countries";
+import { ChartRecord } from "@/lib/types/chart";
+import hdChart from "@/lib/hd-chart";
 
 /* ---- Analytics wrapper ---- */
 function track(name: string, params?: Record<string, unknown>) {
@@ -19,14 +21,7 @@ function track(name: string, params?: Record<string, unknown>) {
   }
 }
 
-/* ---- Chart engine hook (stub — Phase 2 replaces with server action) ---- */
-interface ChartResult {
-  type: string;
-  strategy: string;
-  authority: string;
-  theme: string;
-}
-
+/* ---- Birth details ---- */
 interface BirthDetails {
   date: string;
   time: string | null;
@@ -41,50 +36,72 @@ interface TimeZoneCities {
   [timezone: string]: string[];
 }
 
-// Phase 2: replace stub with server action calling the chart engine
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function generateChart(_details: BirthDetails): Promise<ChartResult> {
-  return {
-    type: "Generator",
-    strategy:
-      "Wait to respond \u2014 let life bring things to you, then notice what lights you up.",
-    authority:
-      "Sacral \u2014 trust the gut yes/no in the moment, not the mind\u2019s pros-and-cons.",
-    theme:
-      "Frustration \u2014 usually a sign you\u2019re pushing at the wrong thing.",
-  };
-}
+/* ---- Chart generation via Maia Mechanics API ---- */
+async function generateChart(details: BirthDetails): Promise<ChartRecord> {
+  if (!process.env.NEXT_PUBLIC_MAIA_API_KEY) {
+    // Dev fallback: dynamically import the static fixture
+    const mod = await import("@/public/fake-mmi-response.json");
+    return mod.default as unknown as ChartRecord;
+  }
 
-/* ---- Kit opt-in hook (stub — Phase 2 replaces with own pipeline) ---- */
-async function subscribeToKit(email: string): Promise<boolean> {
-  const KIT_FORM_ID = "YOUR_KIT_FORM_ID";
-  if (KIT_FORM_ID === "YOUR_KIT_FORM_ID") return true;
-  const res = await fetch(
-    `https://app.kit.com/forms/${KIT_FORM_ID}/subscriptions`,
+  const time = details.time ?? "12:00";
+
+  const body = {
+    tzData: {
+      country: details.countryAbbr,
+      city: details.city,
+      timezone: details.timezone,
+      timeInUtc: false,
+      time: `${details.date}T${time}:00Z`,
+    },
+    data: {
+      city: {
+        name: details.city,
+        timezone: details.timezone,
+        tz: details.timezone,
+      },
+      country: {
+        id: details.countryAbbr,
+        name: countries.find((c) => c.abbr === details.countryAbbr)?.name,
+        tz: null,
+      },
+      date: `${details.date}T00:00:00.000Z`,
+      time: `1970-01-01T${time}:00.000Z`,
+    },
+  };
+
+  const response = await fetch(
+    "https://app.maiamechanics.com/api-v2/api/web-calculator/server-side-generation",
     {
       method: "POST",
       headers: {
+        "Calculator-Token": process.env.NEXT_PUBLIC_MAIA_API_KEY,
         "Content-Type": "application/json",
-        Accept: "application/json",
       },
-      body: JSON.stringify({ email_address: email }),
+      body: JSON.stringify(body),
     }
   );
-  return res.ok;
+
+  if (!response.ok) {
+    let errorBody: unknown;
+    try {
+      errorBody = await response.json();
+    } catch {
+      // Response body not JSON — ignore
+    }
+    throw new Error(
+      `Chart generation failed: ${response.status} ${response.statusText} ${JSON.stringify(errorBody)}`
+    );
+  }
+
+  return (await response.json()) as ChartRecord;
 }
 
-type Step = "form" | "chart" | "done";
-
 export default function ChartForm() {
-  const [step, setStep] = useState<Step>("form");
-  const [chart, setChart] = useState<ChartResult | null>(null);
+  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const [timeUnknown, setTimeUnknown] = useState(false);
-  const [emailMsg, setEmailMsg] = useState<{
-    text: string;
-    type: "err" | "ok";
-  } | null>(null);
-  const [emailSubmitting, setEmailSubmitting] = useState(false);
   const formStarted = useRef(false);
 
   /* ---- Place picker state ---- */
@@ -110,12 +127,16 @@ export default function ChartForm() {
     }
   }, []);
 
+  /* ---- Reset city results when query is too short ---- */
+  const resetCityResults = useCallback(() => {
+    setCities([]);
+    setTimeZoneCities(null);
+    setDropdownOpen(false);
+  }, []);
+
   /* ---- Fetch cities from Maia Mechanics API ---- */
   useEffect(() => {
     if (cityQuery.length < 2) {
-      setCities([]);
-      setTimeZoneCities(null);
-      setDropdownOpen(false);
       return;
     }
 
@@ -225,19 +246,26 @@ export default function ChartForm() {
     }
   }
 
-  function showStep(s: Step) {
-    setStep(s);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
   async function handleBirthSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
     const dateInput = form.elements.namedItem("bdate") as HTMLInputElement;
     const timeInput = form.elements.namedItem("btime") as HTMLInputElement;
+    const fnameInput = form.elements.namedItem("fname") as HTMLInputElement;
+    const emailInput = form.elements.namedItem("email") as HTMLInputElement;
 
     const date = dateInput.value;
+    const firstName = fnameInput.value.trim();
+    const email = emailInput.value.trim();
 
+    if (!firstName) {
+      fnameInput.focus();
+      return;
+    }
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      emailInput.focus();
+      return;
+    }
     if (!date || !selectedCity || !timezone) {
       if (!date) dateInput.focus();
       else if (!selectedCity) cityInputRef.current?.focus();
@@ -245,6 +273,7 @@ export default function ChartForm() {
     }
 
     setSubmitting(true);
+    setSaveError(false);
     const details: BirthDetails = {
       date,
       time: timeInput.value || null,
@@ -253,62 +282,50 @@ export default function ChartForm() {
       city: selectedCity,
       timezone,
     };
-    const result = await generateChart(details);
-    setChart(result);
-
-    track("chart_generated", {
-      type: result.type,
-      time_unknown: details.timeUnknown,
-    });
-    setSubmitting(false);
-    showStep("chart");
-  }
-
-  async function handleEmailSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const emailInput = form.elements.namedItem("email") as HTMLInputElement;
-    const email = emailInput.value.trim();
-
-    setEmailMsg(null);
-
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      setEmailMsg({
-        text: "That email doesn\u2019t look right \u2014 mind checking it?",
-        type: "err",
-      });
-      emailInput.focus();
-      return;
-    }
-
-    setEmailSubmitting(true);
     try {
-      const ok = await subscribeToKit(email);
-      if (ok) {
-        track("email_optin");
-        showStep("done");
-      } else {
-        throw new Error("failed");
-      }
-    } catch {
-      setEmailMsg({
-        text: "Something went wrong sending that. Try again in a moment.",
-        type: "err",
+      const result = await generateChart(details);
+
+      const hd = hdChart(result.chart);
+      track("chart_generated", {
+        type: hd.type(),
+        time_unknown: details.timeUnknown,
       });
-      setEmailSubmitting(false);
+
+      const saveRes = await fetch("/api/subscribers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          first_name: firstName,
+          birth_date: details.date,
+          birth_time: details.time,
+          time_unknown: details.timeUnknown,
+          birth_place: details.city,
+          chart: result,
+        }),
+      });
+
+      if (!saveRes.ok) {
+        throw new Error(`Save failed: ${saveRes.status}`);
+      }
+
+      const { id } = (await saveRes.json()) as { id: string };
+      router.push(`/see-your-design/${id}`);
+    } catch (err) {
+      console.error("Chart generation/save error:", err);
+      setSaveError(true);
+      setSubmitting(false);
     }
   }
 
   return (
     <>
-      {/* STEP 1: birth details */}
-      <section className={step === "form" ? styles.stepActive : styles.step}>
-        <form
-          className={styles.card}
-          noValidate
-          onSubmit={handleBirthSubmit}
-          onFocus={handleFormFocus}
-        >
+      <form
+        className={styles.card}
+        noValidate
+        onSubmit={handleBirthSubmit}
+        onFocus={handleFormFocus}
+      >
           <div className={styles.field}>
             <label className={styles.label} htmlFor="fname">
               First name
@@ -411,9 +428,11 @@ export default function ChartForm() {
                   placeholder={"Start typing a city\u2026"}
                   value={cityQuery}
                   onChange={(e) => {
-                    setCityQuery(e.target.value);
+                    const val = e.target.value;
+                    setCityQuery(val);
                     setSelectedCity("");
                     setTimezone("");
+                    if (val.length < 2) resetCityResults();
                   }}
                   onFocus={() => {
                     if (cities.length > 0 && !selectedCity) {
@@ -424,6 +443,7 @@ export default function ChartForm() {
                   autoComplete="off"
                   aria-label="Birth city"
                   aria-expanded={dropdownOpen}
+                  aria-controls="city-listbox"
                   aria-autocomplete="list"
                   role="combobox"
                 />
@@ -438,7 +458,7 @@ export default function ChartForm() {
                   </button>
                 )}
                 {dropdownOpen && cities.length > 0 && (
-                  <ul className={styles.dropdown} role="listbox">
+                  <ul className={styles.dropdown} role="listbox" id="city-listbox">
                     {cities.map((city, i) => (
                       <li
                         key={i}
@@ -459,101 +479,23 @@ export default function ChartForm() {
               </div>
             </div>
           </div>
-          <button className={styles.btn} type="submit" disabled={submitting}>
-            {submitting ? "Reading your chart\u2026" : "See my design"}
-          </button>
-        </form>
-      </section>
+        <button className={styles.btn} type="submit" disabled={submitting}>
+          {submitting ? "Reading your chart\u2026" : "See my design"}
+        </button>
 
-      {/* STEP 2: chart + email ask */}
-      <section className={step === "chart" ? styles.stepActive : styles.step}>
-        <div className={styles.card}>
-          <div className={styles.resultHead}>
-            <div className={styles.bodygraph}>
-              <BodygraphPlaceholder />
-            </div>
-            <div>
-              <p className={styles.typeLabel}>Your type</p>
-              <h2 className={styles.typeName}>{chart?.type ?? ""}</h2>
-            </div>
-          </div>
-
-          <div className={styles.readout}>
-            <div className={styles.rowitem}>
-              <div className={styles.k}>Strategy</div>
-              <div className={styles.v}>{chart?.strategy ?? ""}</div>
-            </div>
-            <div className={styles.rowitem}>
-              <div className={styles.k}>Authority</div>
-              <div className={styles.v}>{chart?.authority ?? ""}</div>
-            </div>
-            <div className={styles.rowitem}>
-              <div className={styles.k}>Not-self theme</div>
-              <div className={styles.v}>{chart?.theme ?? ""}</div>
-            </div>
-          </div>
-
-          <p className={styles.stubFlag}>
-            Sample reading shown. Wire your chart engine into{" "}
-            <code>generateChart()</code> to replace these values and render the
-            real bodygraph.
+        {saveError && (
+          <p
+            style={{
+              color: "var(--coral)",
+              fontSize: "0.92rem",
+              marginTop: 14,
+              textAlign: "center",
+            }}
+          >
+            Something went wrong saving your chart. Please try again.
           </p>
-
-          <div className={styles.emailBlock}>
-            <h3 className={styles.emailH3}>
-              That&rsquo;s the map. Now the how.
-            </h3>
-            <p className={styles.emailP}>
-              Knowing your type is the start. The series walks you through
-              actually using it &mdash; your decisions, your energy, where your
-              money comes from &mdash; one piece at a time.
-            </p>
-            <form noValidate onSubmit={handleEmailSubmit}>
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="email2">
-                  Where should I send it?
-                </label>
-                <input
-                  className={styles.input}
-                  type="email"
-                  id="email2"
-                  name="email"
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
-              <button
-                className={styles.btn}
-                type="submit"
-                disabled={emailSubmitting}
-              >
-                {emailSubmitting
-                  ? "Sending\u2026"
-                  : "Send me the series"}
-              </button>
-              {emailMsg && (
-                <div
-                  className={`${styles.msg} ${emailMsg.type === "err" ? styles.msgErr : styles.msgOk}`}
-                >
-                  {emailMsg.text}
-                </div>
-              )}
-            </form>
-          </div>
-        </div>
-      </section>
-
-      {/* STEP 3: done */}
-      <section className={step === "done" ? styles.stepActive : styles.step}>
-        <div className={`${styles.card} ${styles.doneCard}`}>
-          <h2 className={styles.doneH2}>Check your inbox.</h2>
-          <p className={styles.doneP}>
-            Your chart and the first email are on their way. If you don&rsquo;t
-            see it in a minute, check spam and drag it to your inbox &mdash;
-            that keeps the rest coming.
-          </p>
-        </div>
-      </section>
+        )}
+      </form>
     </>
   );
 }

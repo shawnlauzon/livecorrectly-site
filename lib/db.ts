@@ -38,3 +38,38 @@ export async function getSubscriberById(
   `;
   return result.length > 0 ? (result[0] as Subscriber) : null;
 }
+
+/**
+ * Create or update a subscriber (upsert on email).
+ * On conflict, updates birth/chart data but preserves email pipeline state.
+ */
+export async function createSubscriber(data: {
+  email: string;
+  first_name: string;
+  birth_date: string;
+  birth_time: string | null;
+  time_unknown: boolean;
+  birth_place: string;
+  chart: unknown;
+}): Promise<Subscriber> {
+  const db = getDb();
+  const result = await db`
+    INSERT INTO subscribers (
+      email, first_name, birth_date, birth_time, time_unknown,
+      birth_place, chart
+    ) VALUES (
+      ${data.email}, ${data.first_name}, ${data.birth_date},
+      ${data.birth_time}, ${data.time_unknown}, ${data.birth_place},
+      ${JSON.stringify(data.chart)}
+    )
+    ON CONFLICT (email) DO UPDATE SET
+      first_name = EXCLUDED.first_name,
+      birth_date = EXCLUDED.birth_date,
+      birth_time = EXCLUDED.birth_time,
+      time_unknown = EXCLUDED.time_unknown,
+      birth_place = EXCLUDED.birth_place,
+      chart = EXCLUDED.chart
+    RETURNING *
+  `;
+  return result[0] as Subscriber;
+}

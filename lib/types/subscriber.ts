@@ -12,7 +12,6 @@ export interface Subscriber {
   birth_place: string;
   birth_lat: number | null;
   birth_lng: number | null;
-  birth_tz: string | null;
   chart: ChartRecord;
   seq_position: number;
   next_send_at: string | null; // ISO timestamp

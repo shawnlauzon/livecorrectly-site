@@ -32,36 +32,41 @@ export default function AdminDetailPage({
       return;
     }
 
-    fetchSubscriber(password, subscriberId);
-  }, [subscriberId]);
+    let cancelled = false;
 
-  const fetchSubscriber = async (password: string, id: string) => {
-    try {
-      const response = await fetch(`/api/admin/subscribers/${id}`, {
-        headers: {
-          Authorization: `Bearer ${password}`
+    (async () => {
+      try {
+        const response = await fetch(`/api/admin/subscribers/${subscriberId}`, {
+          headers: {
+            Authorization: `Bearer ${password}`
+          }
+        });
+
+        if (cancelled) return;
+
+        if (response.status === 401) {
+          router.push('/admin');
+          return;
         }
-      });
 
-      if (response.status === 401) {
-        router.push('/admin');
-        return;
-      }
+        if (!response.ok) {
+          setError('Failed to load subscriber');
+          return;
+        }
 
-      if (!response.ok) {
+        const data = await response.json();
+        setSubscriber(data);
+      } catch (err) {
+        if (cancelled) return;
         setError('Failed to load subscriber');
-        return;
+        console.error(err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
+    })();
 
-      const data = await response.json();
-      setSubscriber(data);
-    } catch (err) {
-      setError('Failed to load subscriber');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => { cancelled = true; };
+  }, [subscriberId, router]);
 
   if (loading) {
     return (
