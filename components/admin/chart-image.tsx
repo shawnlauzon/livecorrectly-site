@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import styles from './chart-image.module.css';
 
 interface ChartImageProps {
@@ -9,21 +10,48 @@ interface ChartImageProps {
 
 /**
  * Renders the Jovian Archive bodygraph image for a given UTC birth time.
- * URL formula from fractalhumandesign ChartImage component.
+ * Tap/click to open full-screen in a lightbox.
  */
 export default function ChartImage({ birthTimeUtc }: ChartImageProps) {
+  const [open, setOpen] = useState(false);
+
   const time = new Date(birthTimeUtc).getTime();
   const timeId = 1e4 * time + 621355968e9;
   const url = `https://cdn.jovianarchive.com/RaveChartGenerator.php?Time=${timeId}`;
 
+  const close = useCallback(() => setOpen(false), []);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') close();
+    }
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [open, close]);
+
   return (
-    <div className={styles.container}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={url}
-        alt="Bodygraph chart"
-        className={styles.image}
-      />
-    </div>
+    <>
+      <div className={styles.container}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={url}
+          alt="Bodygraph chart"
+          className={styles.image}
+          onClick={() => setOpen(true)}
+        />
+      </div>
+
+      {open && (
+        <div className={styles.overlay} onClick={close}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={url}
+            alt="Bodygraph chart (full size)"
+            className={styles.overlayImage}
+          />
+        </div>
+      )}
+    </>
   );
 }

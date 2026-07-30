@@ -364,6 +364,7 @@ export default function ChartForm() {
               type="date"
               id="bdate"
               name="bdate"
+              autoComplete="bday"
               required
             />
           </div>

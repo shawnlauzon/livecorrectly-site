@@ -8,4 +8,29 @@
   max-width: 560px;
   height: auto;
   border-radius: 8px;
+  cursor: zoom-in;
+}
+
+/* Lightbox overlay */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+  animation: fadeIn 0.2s ease;
+}
+
+.overlayImage {
+  max-width: 92vw;
+  max-height: 92vh;
+  border-radius: 8px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
