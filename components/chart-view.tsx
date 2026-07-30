@@ -102,7 +102,7 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
         </p>
         <a
           className={styles.btn}
-          href="https://calendar.google.com/appointments/schedules/AcZssZ1kXUVAC-LNzJfVTRh5vOTKdXCDVuH1wAJvpXrgdjWLoq8XBGl5aYR3SJ1nTkN5pwwuuEnWzz8m"
+          href={process.env.NEXT_PUBLIC_BOOKING_URL ?? "#book"}
           target="_blank"
           rel="noopener noreferrer"
         >

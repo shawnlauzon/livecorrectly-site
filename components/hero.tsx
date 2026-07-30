@@ -26,7 +26,7 @@ export default function Hero() {
         </div>
         <p className={`${styles.ctaNote} reveal d4`}>
           Already have your chart, or want more depth?{" "}
-          <a className="link" href="#book">
+          <a className="link" href={process.env.NEXT_PUBLIC_BOOKING_URL ?? "#book"} target="_blank" rel="noopener noreferrer">
             Book a conversation
           </a>
         </p>
