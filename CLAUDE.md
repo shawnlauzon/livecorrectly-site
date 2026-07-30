@@ -18,11 +18,28 @@ Other hard rules:
 - **Reuse the existing chart engine.** Do not rewrite the Human Design calculation. Call the engine already in the repo.
 - **Match the existing design** (tokens below + the reference HTML). Do not fall back to generic shadcn/template defaults.
 
+## Development
+```bash
+pnpm dev          # Start dev server (Turbopack)
+pnpm build        # Production build
+pnpm lint         # ESLint
+pnpm start        # Serve production build locally
+```
+
+No test framework is configured. TypeScript strict mode is on; type-check with `npx tsc --noEmit`.
+
+Environment variables — copy `.env.example` to `.env.local` and fill in:
+- `DATABASE_URL` — Neon Postgres connection string (required)
+- `ADMIN_PASSWORD` — password for `/admin` (required)
+- `NEXT_PUBLIC_MAIA_API_KEY` — Maia Mechanics chart API key (optional; falls back to `public/fake-mmi-response.json` when unset)
+- `NEXT_PUBLIC_BOOKING_URL` — Google Calendar / Calendly link (checked into `.env`)
+
 ## Stack
-- **Next.js (React)** on **Vercel**.
-- **Neon** (serverless Postgres) for data. Connect with `@neondatabase/serverless` (Drizzle or Prisma on top is fine). Neon scales to zero when idle and wakes in ~1–2s — no keep-alive job needed.
-- **Resend** + **React Email** for sending.
-- Analytics: **GA4** via a `track()` wrapper. Funnel events: `form_start`, `chart_generated`, `email_optin`. The wrapper is the only place to edit if swapping tools (Plausible/Umami).
+- **Next.js 16** (React 19) on **Vercel**. Turbopack for dev.
+- **Neon** (serverless Postgres) for data. Raw SQL via `@neondatabase/serverless` — no ORM.
+- **Resend** + **React Email** for sending. *(Not yet implemented — see "Email pipeline" below.)*
+- **Vercel Analytics** (`@vercel/analytics`).
+- Analytics: **GA4** via a `track()` wrapper in `chart-form.tsx`. Funnel events: `form_start`, `chart_generated`, `email_optin`. The wrapper is the only place to edit if swapping tools (Plausible/Umami).
 
 ## Data model — ONE table
 Rename target: `subscribers` (the old name `charts` is misleading — a row is a person who has a chart, not a chart).
@@ -36,7 +53,9 @@ subscribers
   birth_date    date
   birth_time    time null
   time_unknown  boolean
-  birth_place   text               (+ lat, lng, tz)
+  birth_place   text
+  birth_lat     float null
+  birth_lng     float null
   chart         jsonb              -- engine output, VERBATIM. identity fields never go in here.
   seq_position  int default 0      -- email series progress
   next_send_at  timestamptz null
@@ -74,10 +93,16 @@ Reference files (place them in the repo, e.g. `/design-reference/`):
 
 ## Pages / structure
 - **Landing (`/`)**: hero *"A business designed around you"* → 3 outcome sections under *"What changes for you"* (Decisions / Marketing / Profit) → *"Hi, I'm Shawn"* bio → team hand-off band (*"Working together on a team?"* → workcorrectly.com) → closing CTA → footer.
-- **`/see-your-design`**: value-first chart flow — birth-details form (with an **"I'm not sure of my exact time"** escape hatch) → chart rendered **instantly on screen, no email required** → then the email continuation ask → opt-in. Fire the three analytics events.
-- **(future) full chart-display page** — a route rendering the full bodygraph from the entered data. No persistence required.
+- **`/see-your-design`**: birth-details form (name, email, date, time, city — with an **"I'm not sure of my exact time"** escape hatch). Email is checked for duplicates before chart generation; duplicate emails are blocked.
+- **`/see-your-design/[id]`**: chart display page — renders the bodygraph image and a 10-field readout (Type, Career Design, Strategy, Inner Authority, Decision-making Strategy, Profile, Definition, Assimilation Style, Signature/Not-Self themes).
+- **`/admin`**: password-protected subscriber list + `[id]` detail view.
 
 CTA hierarchy: **primary = "See how you're designed"** (free chart, low friction). **Secondary = "Book a conversation."** The free chart leads; booking is the deeper step.
+
+## Chart engine
+The chart is generated via the **Maia Mechanics API** (external HTTP call from the client). The `lib/hd-chart/` module is a read-only interpreter that extracts human-readable labels (type, strategy, authority, etc.) from the raw API response — it does **not** calculate anything itself. Do not rewrite it; call it.
+
+When `NEXT_PUBLIC_MAIA_API_KEY` is unset (local dev), the form falls back to `public/fake-mmi-response.json`.
 
 ## Copy / voice
 - Plain, direct, **outcome-framed**. Not cute, not stylized. Fewer, stronger items beat comprehensive lists.
@@ -85,7 +110,7 @@ CTA hierarchy: **primary = "See how you're designed"** (free chart, low friction
 - The three value props are **outcomes, not information** ("Make your own calls with confidence…", not "learn how decisions work").
 - Reminder: copy is authoritative — propose changes, don't overwrite.
 
-## Email pipeline
+## Email pipeline (not yet implemented)
 Own the pipeline; Kit is being retired in favor of this (it made per-chart personalization hard).
 - **List** = Neon. **Send** = Resend. **Templates** = React Email.
 - **Personalization is the point**: templates receive `subscriber` + `chart` and render arbitrary mechanics inline — branch on `chart.centers.Sacral.defined`, `chart.channels.includes("34-20")`, pull `chart.planets.personality.sun.gate` into a sentence. Build a small content library (TS objects/functions) keyed by chart facts that your written copy pulls from.
@@ -94,7 +119,21 @@ Own the pipeline; Kit is being retired in favor of this (it made per-chart perso
 - Free-tier notes: Resend = 3,000/mo, 100/day, 1 domain (sending individualized API emails is the transactional track, free at this scale — not the contact-based Marketing plan). Neon free = 0.5GB/branch, 6h restore window (thin backups — keep a migration script + occasional `pg_dump`, or upgrade when the data matters).
 
 ## Migration
-Existing charts (~150) migrate into the one-table model via a one-off Node script (`@neondatabase/serverless`): read old store → map to the schema → drop full chart into `chart` JSONB → upsert. CSV/SQL import works too at this size. Both old and new are Postgres, so nothing exotic.
+Existing charts (~150) migrate into the one-table model via a one-off Node script (`@neondatabase/serverless`): read old store → map to the schema → drop full chart into `chart` JSONB → upsert. CSV/SQL import works too at this size. Both old and new are Postgres, so nothing exotic. No migration script is checked into this repo; schema is managed manually.
+
+## Key paths
+```
+app/api/subscribers/route.ts        POST — create subscriber (upsert on email)
+app/api/subscribers/check-email/    GET  — email existence check
+app/api/subscribers/[id]/route.ts   GET  — fetch subscriber by ID
+app/api/admin/                      password-protected admin API
+lib/db.ts                           all database queries (raw SQL via Neon)
+lib/hd-chart/                       chart interpreter (constants + hdChart())
+lib/types/chart.ts                  ChartRecord type (Maia API response shape)
+lib/types/subscriber.ts             Subscriber interface
+components/chart-form.tsx           birth-details form + chart generation
+components/chart-readout.tsx        10-field chart interpretation display
+```
 
 ## Workflow
 - Commit at each working checkpoint so steps can be rolled back.
