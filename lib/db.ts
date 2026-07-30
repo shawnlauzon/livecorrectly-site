@@ -40,6 +40,21 @@ export async function getSubscriberById(
 }
 
 /**
+ * Check whether a subscriber with the given email already exists.
+ * Returns the subscriber if found, null otherwise.
+ */
+export async function getSubscriberByEmail(
+  email: string
+): Promise<Subscriber | null> {
+  const db = getDb();
+  const result = await db`
+    SELECT * FROM subscribers
+    WHERE email = ${email}
+  `;
+  return result.length > 0 ? (result[0] as Subscriber) : null;
+}
+
+/**
  * Create or update a subscriber (upsert on email).
  * On conflict, updates birth/chart data but preserves email pipeline state.
  */

@@ -101,6 +101,7 @@ export default function ChartForm() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  const [emailTaken, setEmailTaken] = useState(false);
   const [timeUnknown, setTimeUnknown] = useState(false);
   const formStarted = useRef(false);
 
@@ -274,6 +275,27 @@ export default function ChartForm() {
 
     setSubmitting(true);
     setSaveError(false);
+    setEmailTaken(false);
+
+    // Check for existing subscriber before calling the chart engine
+    try {
+      const checkRes = await fetch(
+        `/api/subscribers/check-email?email=${encodeURIComponent(email)}`
+      );
+      if (checkRes.ok) {
+        const { exists } = (await checkRes.json()) as { exists: boolean };
+        if (exists) {
+          setEmailTaken(true);
+          setSubmitting(false);
+          emailInput.focus();
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Email check failed:", err);
+      // If the check itself fails, let the flow continue rather than blocking
+    }
+
     const details: BirthDetails = {
       date,
       time: timeInput.value || null,
@@ -349,6 +371,7 @@ export default function ChartForm() {
               name="email"
               placeholder="you@example.com"
               required
+              onChange={() => emailTaken && setEmailTaken(false)}
             />
             <p className={styles.hint}>
               A 5-day series, and the occasional email after that. Unsubscribe
@@ -483,6 +506,20 @@ export default function ChartForm() {
         <button className={styles.btn} type="submit" disabled={submitting}>
           {submitting ? "Reading your chart\u2026" : "See my design"}
         </button>
+
+        {emailTaken && (
+          <p
+            style={{
+              color: "var(--coral)",
+              fontSize: "0.92rem",
+              marginTop: 14,
+              textAlign: "center",
+            }}
+          >
+            This email already has a chart on file. Please use a different email
+            address.
+          </p>
+        )}
 
         {saveError && (
           <p
