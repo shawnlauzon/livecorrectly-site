@@ -3,7 +3,8 @@ import { getSubscriberByEmailForWebhook, updateEmailStatus } from '@/lib/db';
 
 /**
  * Resend webhook endpoint.
- * Handles bounce and complaint events to update subscriber email status.
+ * Handles email failure events (bounce, complaint, failed, suppressed)
+ * and suppression list changes to update subscriber email status.
  *
  * Signature verification uses HMAC-SHA256 via crypto.subtle (no svix dependency).
  * Resend sends the signature in the `svix-signature` header.
@@ -66,10 +67,13 @@ async function verifySignature(
 interface ResendWebhookEvent {
   type: string;
   data: {
+    // Email events use `to` (string[]) for recipients
     email_id?: string;
     to?: string[];
     from?: string;
-    // Other fields vary by event type
+    // Suppression events use `email` (string) for the address
+    email?: string;
+    origin?: 'bounce' | 'complaint' | 'manual';
   };
 }
 
@@ -118,10 +122,54 @@ export async function POST(request: NextRequest) {
       break;
     }
 
+    case 'email.failed': {
+      if (recipientEmail) {
+        const subscriber = await getSubscriberByEmailForWebhook(recipientEmail);
+        if (subscriber) {
+          await updateEmailStatus(subscriber.id, 'failed');
+          console.log(
+            `[webhook] Failed: ${recipientEmail} (subscriber ${subscriber.id})`
+          );
+        }
+      }
+      break;
+    }
+
+    case 'email.suppressed':
+    case 'suppression.added': {
+      // email.suppressed uses data.to[], suppression.added uses data.email
+      const suppressedEmail = event.data?.email ?? recipientEmail;
+      if (suppressedEmail) {
+        const subscriber = await getSubscriberByEmailForWebhook(suppressedEmail);
+        if (subscriber) {
+          await updateEmailStatus(subscriber.id, 'suppressed');
+          console.log(
+            `[webhook] ${event.type}: ${suppressedEmail} (subscriber ${subscriber.id})`
+          );
+        }
+      }
+      break;
+    }
+
+    case 'suppression.removed': {
+      const removedEmail = event.data?.email;
+      if (removedEmail) {
+        const subscriber = await getSubscriberByEmailForWebhook(removedEmail);
+        if (subscriber && subscriber.email_status === 'suppressed') {
+          await updateEmailStatus(subscriber.id, 'active');
+          console.log(
+            `[webhook] Suppression removed, reactivated: ${removedEmail} (subscriber ${subscriber.id})`
+          );
+        }
+      }
+      break;
+    }
+
     // Acknowledge other events without action
     // case 'email.delivered':
     // case 'email.opened':
     // case 'email.clicked':
+    // case 'email.delivery_delayed': (transient — no status change)
     default:
       break;
   }

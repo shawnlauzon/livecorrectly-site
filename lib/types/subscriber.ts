@@ -1,6 +1,6 @@
 import { ChartRecord } from './chart';
 
-export type EmailStatus = 'active' | 'unsubscribed' | 'bounced' | 'complained';
+export type EmailStatus = 'active' | 'unsubscribed' | 'bounced' | 'complained' | 'failed' | 'suppressed';
 
 // Subscriber interface matching the database schema
 export interface Subscriber {

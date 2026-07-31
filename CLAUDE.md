@@ -65,7 +65,7 @@ subscribers
   chart           jsonb              -- engine output, VERBATIM. identity fields never go in here.
   seq_position    int default 0      -- email series progress (0 = no emails sent yet)
   next_send_at    timestamptz null
-  email_status    text default 'active'  -- active | unsubscribed | bounced | complained
+  email_status    text default 'active'  -- active | unsubscribed | bounced | complained | failed | suppressed
   email_status_at timestamptz null
   unsub_token     uuid default gen_random_uuid()
   created_at      timestamptz default now()
