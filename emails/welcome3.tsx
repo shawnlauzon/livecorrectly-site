@@ -16,7 +16,7 @@ interface Welcome3Props {
  * Ported from fractalhumandesign/email/templates/welcome3.html
  * Copy is verbatim from the original template.
  */
-export const Welcome3 = ({ firstName, chart, unsubscribeUrl }: Welcome3Props) => {
+export const Welcome3 = ({ chart, unsubscribeUrl }: Welcome3Props) => {
   const authorityWriteup = lookupByAuthority(authorityWriteups, chart.innerAuthority);
   const authorityTip = lookupByAuthority(authorityTips, chart.innerAuthority);
 

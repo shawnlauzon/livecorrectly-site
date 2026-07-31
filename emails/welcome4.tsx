@@ -14,7 +14,7 @@ interface Welcome4Props {
  * Welcome Email 4: Key Indicators (Signature & Not-Self Themes)
  * Copy provided directly by Shawn — no HTML template file exists in the old repo.
  */
-export const Welcome4 = ({ firstName, chart, unsubscribeUrl }: Welcome4Props) => {
+export const Welcome4 = ({ chart, unsubscribeUrl }: Welcome4Props) => {
   return (
     <EmailLayout
       preview={`Follow this advice for less ${chart.notSelfTheme} and more ${chart.signatureTheme}`}

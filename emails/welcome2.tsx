@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Heading, Text, Section, Link, Img, Row, Column } from 'react-email';
+import { Heading, Text, Section, Link, Img } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import { RaQuote } from './components/ra-quote';
 import { CareerTypeHighlight } from './components/career-type-table';
@@ -17,7 +17,7 @@ interface Welcome2Props {
  * Ported from fractalhumandesign/email/templates/welcome2.html
  * Copy is verbatim from the original template.
  */
-export const Welcome2 = ({ firstName, chart, unsubscribeUrl }: Welcome2Props) => {
+export const Welcome2 = ({ chart, unsubscribeUrl }: Welcome2Props) => {
   const strategyWriteup = strategyWriteups.get(chart.strategy) ?? '';
 
   return (

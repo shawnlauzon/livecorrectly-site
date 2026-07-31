@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Heading, Text, Section, Link, Img, Row, Column } from 'react-email';
+import { Heading, Text, Section, Link, Img } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import { RaQuote } from './components/ra-quote';
 import { EmailChartData } from '../lib/hd-chart/parse-for-email';
