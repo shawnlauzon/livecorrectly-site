@@ -12,7 +12,7 @@ export function Signature() {
         <Column className="w-[64px] align-top">
           <Img
             alt="Shawn Lauzon headshot"
-            src="https://fractalhumandesign.s3.amazonaws.com/site/images/shawn-headshot.jpg"
+            src="https://fractalhumandesign.s3.us-east-1.amazonaws.com/site/images/headshot-shawn.jpg"
             width={48}
             height={48}
             className="rounded-full"

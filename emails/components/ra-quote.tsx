@@ -7,7 +7,7 @@ import { Img, Text, Section, Row, Column } from 'react-email';
  */
 export function RaQuote({ children }: { children: React.ReactNode }) {
   return (
-    <Section className="ml-[32px] mt-[8px]">
+    <Section className="ml-[32px] mr-[32px] mt-[8px]">
       <Text className="font-serif text-[16px] leading-[24px] text-brown-900 italic">
         &ldquo;{children}&rdquo;
       </Text>

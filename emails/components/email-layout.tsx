@@ -47,7 +47,7 @@ export function EmailLayout({
 
             <Section>
               <Text className="m-0 text-[12px] leading-[18px] text-[#6E688A]">
-                Live Correctly · Lauzon Consulting LLC
+                Live Correctly
                 <br />
                 5305 Indio Drive, Austin, TX 78745
               </Text>

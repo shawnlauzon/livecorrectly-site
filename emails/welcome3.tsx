@@ -32,7 +32,7 @@ export const Welcome3 = ({ firstName, chart, unsubscribeUrl }: Welcome3Props) =>
         Success Code 3: Your Decision-Making Strategy
       </Heading>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         We all have decisions to make: should I work with this person or not,
         should I date or marry this person. By following the{' '}
         <em>decision-making strategy</em>, we let go of the old patterns which
@@ -49,7 +49,7 @@ export const Welcome3 = ({ firstName, chart, unsubscribeUrl }: Welcome3Props) =>
         description={`Your way to make decisions is to ${chart.innerAuthorityDescription}.`}
       />
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         {authorityWriteup}
       </Text>
 
@@ -68,7 +68,7 @@ export const Welcome3 = ({ firstName, chart, unsubscribeUrl }: Welcome3Props) =>
         </Link>
       </Section>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         {authorityTip}
       </Text>
 
@@ -91,7 +91,7 @@ export const Welcome3 = ({ firstName, chart, unsubscribeUrl }: Welcome3Props) =>
         </Text>
       </Section>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         This brings us to a core teaching of Human Design: the mind is never the
         way to make decisions. It is a tool, and this tool is ideal for
         processing information and considering different options. But not for
@@ -100,14 +100,14 @@ export const Welcome3 = ({ firstName, chart, unsubscribeUrl }: Welcome3Props) =>
         logical&quot;. Just let it go.
       </Text>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         Remember, your mind is the result of decades of conditioning from
         parents, teachers, coaches, society, advertising: everyone telling you
         what <em>they think</em> you should do, when they don&apos;t even know
         you. And aren&apos;t you just sick of it?!?
       </Text>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         That&apos;s where Human Design fits in. This simple decision-making
         strategy, to {chart.decisionMakingStrategy}, you will let go of the
         mental chatter and begin to hear your true nature. Because this is
@@ -115,7 +115,7 @@ export const Welcome3 = ({ firstName, chart, unsubscribeUrl }: Welcome3Props) =>
         always depend on begin to make <b>decisions you can trust</b>.
       </Text>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         Congratulations! We&apos;ve covered a lot in a short amount of time. You
         now know how you can make decisions you can trust, and can begin to let
         go of depending on others for guidance. Tomorrow we&apos;ll give you

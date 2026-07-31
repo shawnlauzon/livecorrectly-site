@@ -29,14 +29,14 @@ export const Welcome1 = ({ firstName, chart, unsubscribeUrl }: Welcome1Props) =>
         Welcome, {firstName}!
       </Heading>
 
-      <Text className="mt-[6px] mb-[5px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         We start with a look at the type of career which most aligns with your
         unique nature. Broadly speaking there are four different types of
         careers. None of them are more important than others, and each is
         critical to the process of creation.
       </Text>
 
-      <Text className="mt-[6px] mb-[5px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         Each career type has positive and more challenging aspects, based on
         their individual nonverbal energy. Since it is based on what is
         intrinsically you, rather than personal skills or preferences, it&apos;s
@@ -45,7 +45,7 @@ export const Welcome1 = ({ firstName, chart, unsubscribeUrl }: Welcome1Props) =>
         career type, you&apos;re more likely to feel in flow.
       </Text>
 
-      <Text className="mt-[6px] mb-[5px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         Unfortunately people try to be a type they are not. For example, the
         coaching industry (an Advisor-style career) has seen massive growth,
         leading some Builders (myself included) to try to teach others rather
@@ -55,7 +55,7 @@ export const Welcome1 = ({ firstName, chart, unsubscribeUrl }: Welcome1Props) =>
         they will tend to feel exhausted.
       </Text>
 
-      <Text className="mt-[6px] mb-[5px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         Now that you have a general sense of the types, we can talk about you
         specifically:
       </Text>
@@ -75,7 +75,7 @@ export const Welcome1 = ({ firstName, chart, unsubscribeUrl }: Welcome1Props) =>
       </Section>
 
       {/* Type-specific copy */}
-      <Text className="mt-[6px] mb-[5px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         {chart.isGenerator &&
           'You are designed to find your greatest pleasure in doing work that you love. You have a continually regenerated source of energy (this is why they are called Generators). A perfect day is to get up in the morning, spend the day creating what you love, and then come home and rest, feeling completely satisfied.'}
         {chart.isProjector &&
@@ -99,7 +99,7 @@ export const Welcome1 = ({ firstName, chart, unsubscribeUrl }: Welcome1Props) =>
       </RaQuote>
 
       {/* Not-self writeup */}
-      <Text className="mt-[6px] mb-[5px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         {chart.isGenerator &&
           "Unfortunately, most Builders in the world have not found the work that they love to do. These people get up in the morning already exhausted, and do their best to avoid doing work. Most quiet quitters are frustrated Builders, because they don't see a way to get out of the system. If this is you, then Human Design will give you the tools to begin to break out of your rut and find a career which is satisfying."}
         {chart.isProjector &&
@@ -126,7 +126,7 @@ export const Welcome1 = ({ firstName, chart, unsubscribeUrl }: Welcome1Props) =>
       </Section>
 
       {/* Career tip */}
-      <Text className="mt-[6px] mb-[5px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         {chart.isGenerator &&
           "Doing what you love is super important. The world is full of burnt out Builders, slaving away doing what other people want them to do. Your energy is attractive to both people who want to utilize it for good or to take advantage of it for their own purposes. If you're doing what you love, amazing! If not, then start taking time to do what you love. Even if you're working a lot in a job you dislike, you might find that doing something as a side hustle can bring you even more energy rather than drain you even further!"}
         {chart.isProjector &&
@@ -140,7 +140,7 @@ export const Welcome1 = ({ firstName, chart, unsubscribeUrl }: Welcome1Props) =>
       {/* Manifesting Generator addendum */}
       {chart.isManifestingGenerator && (
         <>
-          <Text className="mt-[6px] mb-[5px] text-[16px] leading-[24px] text-[#4A4A4A]">
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
             BTW, many people are confused by what exactly is a
             &quot;Manifesting Generator&quot;, which is why we use
             &quot;Express Builder&quot; instead. Just to be clear:
@@ -153,7 +153,7 @@ export const Welcome1 = ({ firstName, chart, unsubscribeUrl }: Welcome1Props) =>
               quality of energy that they can put to any task.
             </Text>
           </Section>
-          <Text className="mt-[6px] mb-[5px] text-[16px] leading-[24px] text-[#4A4A4A]">
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
             The biggest difference in practice is that when building, Express
             Builders tend to skip steps while Classic Builders are more
             methodical.
@@ -175,7 +175,7 @@ export const Welcome1 = ({ firstName, chart, unsubscribeUrl }: Welcome1Props) =>
         </>
       )}
 
-      <Text className="mt-[6px] mb-[5px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         That&apos;s it for today. Tomorrow you&apos;ll learn your personal way
         to make decisions that you can trust. See you then!
       </Text>

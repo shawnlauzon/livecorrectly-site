@@ -35,7 +35,7 @@ export const Welcome5 = ({
         In conclusion
       </Heading>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         We&apos;ve gone through a bunch of stuff. Boiling it all down to a
         single statement gives us this:
       </Text>
@@ -55,7 +55,7 @@ export const Welcome5 = ({
             <Text className="m-0 text-[20px] font-serif leading-[28px] text-[#221B3D]">
               On a bumper sticker
             </Text>
-            <Text className="m-0 mt-[8px] text-[16px] leading-[24px] text-[#4A4A4A]">
+            <Text className="m-0 mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
               Pause - observe - {chart.decisionMakingStrategy}. This brings more{' '}
               {chart.signatureTheme} and less {chart.notSelfTheme}.
             </Text>
@@ -63,7 +63,7 @@ export const Welcome5 = ({
         </Row>
       </Section>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         Simple, but not always easy. It takes a lifetime to fully integrate this
         into your way of being. The effort is totally worth it! You&apos;ll find
         yourself moving through life with more ease and flow, and less
@@ -89,7 +89,7 @@ export const Welcome5 = ({
         </Text>
       </Section>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         You have the strengths needed to be successful. Your strengths are
         different from other people&apos;s, and so it can be easy to compare
         with others and want what they have. But Human Design shows us how we
@@ -98,7 +98,7 @@ export const Welcome5 = ({
         it&apos;s not your fault that you can&apos;t run as fast.
       </Text>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         Human Design teaches that in order to release accumulated energy, people
         should sleep alone. This is especially true for non-energy types, but
         applies to all types. Check out this video for more information.
@@ -125,13 +125,13 @@ export const Welcome5 = ({
         What&apos;s next?
       </Heading>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         You could continue to experiment on your own; that&apos;s the purpose of
         this mini-course! However, some people get massive value by hearing it
         directly from someone who has been practicing it for years.
       </Text>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         If you&apos;d like to go deeper into your design and understand how to
         apply it to your business and career, I&apos;d love to have a
         conversation with you. No pressure, no pitch — just an honest

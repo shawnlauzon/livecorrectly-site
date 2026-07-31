@@ -32,7 +32,7 @@ export const Welcome2 = ({ firstName, chart, unsubscribeUrl }: Welcome2Props) =>
         Success Code 2: Personal Interaction Style
       </Heading>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         Each of the types has a different way of moving though life. Living
         according to your design means to stop trying to make things happen from
         the <em>mind</em> (&quot;I should ...&quot;), and instead allow the
@@ -45,14 +45,14 @@ export const Welcome2 = ({ firstName, chart, unsubscribeUrl }: Welcome2Props) =>
         description={`Your personal style is to ${chart.strategy}.`}
       />
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         {strategyWriteup}
       </Text>
 
       {/* Waiting section — shown for all types except Manifestor */}
       {!chart.isManifestor && (
         <>
-          <Text className="mt-[8px] text-[16px] leading-[24px]">
+          <Text className="mb-[16px] text-[16px] leading-[24px]">
             You&apos;re probably not used to so much waiting. You might even feel
             that if you&apos;re not actively doing something, you&apos;re
             falling behind. Or maybe even feel like you&apos;re being lazy! But
@@ -91,16 +91,16 @@ export const Welcome2 = ({ firstName, chart, unsubscribeUrl }: Welcome2Props) =>
       </Section>
 
       {/* Strategy writeup repeated (matches original template) */}
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         {strategyWriteup}
       </Text>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         After you {chart.strategy}, you still need to determine if this is
         something to take action on. That&apos;s next.
       </Text>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         That&apos;ll do it for the first part of the decision-making strategy.
         Tomorrow we&apos;ll cover the second part, which is how to know if you
         should take action on something. See you then!

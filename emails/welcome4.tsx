@@ -27,13 +27,13 @@ export const Welcome4 = ({ firstName, chart, unsubscribeUrl }: Welcome4Props) =>
         Success Code 4: Your Key Indicators
       </Heading>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         For many people, all this talk about decision making process can feel a
         bit ungrounded. How do you see progress? How do you know if these
         changes that you&apos;re making have an impact?
       </Text>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         Thankfully, there&apos;s a simple way of knowing whether you are
         on-track or off-track. Look back at your day and notice if you have more{' '}
         {chart.notSelfTheme} than {chart.signatureTheme}.
@@ -46,7 +46,7 @@ export const Welcome4 = ({ firstName, chart, unsubscribeUrl }: Welcome4Props) =>
         description={`You're off-track when feeling ${chart.notSelfTheme}.`}
       />
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         You might have had a lot of {chart.notSelfTheme} in your life. This is a
         sign that you are attempting to do something that{' '}
         <b>doesn&apos;t align with your core nature</b>. When you consistently
@@ -54,7 +54,7 @@ export const Welcome4 = ({ firstName, chart, unsubscribeUrl }: Welcome4Props) =>
         yourself increasingly drained of energy.
       </Text>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         When you find yourself {chart.notSelfThemeAdjective}, think about how
         you decided to do this activity: is it something that you thought you{' '}
         <i>should do</i>? Or is it something you actually wanted to do?
@@ -62,7 +62,7 @@ export const Welcome4 = ({ firstName, chart, unsubscribeUrl }: Welcome4Props) =>
         language) is never the right way.
       </Text>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         Interestingly, actively attempting to avoid being{' '}
         {chart.notSelfThemeAdjective} can itself cause it! When you think to
         yourself &quot;oh, I don&apos;t want to feel{' '}
@@ -79,7 +79,7 @@ export const Welcome4 = ({ firstName, chart, unsubscribeUrl }: Welcome4Props) =>
         description={`You're on-track when feeling ${chart.signatureTheme}.`}
       />
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         On the other hand, when you feel {chart.signatureThemeAdjective}, you
         are doing something right. You likely feel in the flow, like things are
         going your way. Rather than focusing on money, fame, or power, look for
@@ -104,7 +104,7 @@ export const Welcome4 = ({ firstName, chart, unsubscribeUrl }: Welcome4Props) =>
         </Link>
       </Section>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         If you can only remember one thing, this is it. By living life in this
         manner, you will{' '}
         <b>
@@ -115,7 +115,7 @@ export const Welcome4 = ({ firstName, chart, unsubscribeUrl }: Welcome4Props) =>
         or did you make a decision based on what your mind thought you should do?
       </Text>
 
-      <Text className="mt-[8px] text-[16px] leading-[24px]">
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
         And that wraps up the teaching content for this series. Tomorrow
         we&apos;ll wrap things up with some final words of wisdom, and what are
         the next steps if you&apos;d like to consider the journey.
