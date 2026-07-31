@@ -1,5 +1,7 @@
 import { ChartRecord } from './chart';
 
+export type EmailStatus = 'active' | 'unsubscribed' | 'bounced' | 'complained';
+
 // Subscriber interface matching the database schema
 export interface Subscriber {
   id: string;
@@ -15,6 +17,8 @@ export interface Subscriber {
   chart: ChartRecord;
   seq_position: number;
   next_send_at: string | null; // ISO timestamp
-  unsubscribed: boolean;
+  email_status: EmailStatus;
+  email_status_at: string | null; // ISO timestamp
+  unsub_token: string;
   created_at: string; // ISO timestamp
 }

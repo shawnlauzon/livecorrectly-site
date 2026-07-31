@@ -33,11 +33,17 @@ Environment variables — copy `.env.example` to `.env.local` and fill in:
 - `ADMIN_PASSWORD` — password for `/admin` (required)
 - `NEXT_PUBLIC_MAIA_API_KEY` — Maia Mechanics chart API key (optional; falls back to `public/fake-mmi-response.json` when unset)
 - `NEXT_PUBLIC_BOOKING_URL` — Google Calendar / Calendly link (checked into `.env`)
+- `RESEND_API_KEY` — Resend API key for sending email
+- `RESEND_WEBHOOK_SECRET` — Resend webhook signing secret (for bounce/complaint handling)
+- `EMAIL_SENDING_ENABLED` — set to `true` to enable sending; anything else = dry-run logging only
+- `EMAIL_FROM` — sender address (default: `Live Correctly <hello@livecorrectly.com>`)
+- `APP_URL` — public URL for unsubscribe links (default: `https://livecorrectly.com`)
+- `CRON_SECRET` — Vercel cron authorization secret
 
 ## Stack
 - **Next.js 16** (React 19) on **Vercel**. Turbopack for dev.
 - **Neon** (serverless Postgres) for data. Raw SQL via `@neondatabase/serverless` — no ORM.
-- **Resend** + **React Email** for sending. *(Not yet implemented — see "Email pipeline" below.)*
+- **Resend** + **React Email** for sending.
 - **Vercel Analytics** (`@vercel/analytics`).
 - Analytics: **GA4** via a `track()` wrapper in `chart-form.tsx`. Funnel events: `form_start`, `chart_generated`, `email_optin`. The wrapper is the only place to edit if swapping tools (Plausible/Umami).
 
@@ -46,21 +52,23 @@ Rename target: `subscribers` (the old name `charts` is misleading — a row is a
 
 ```
 subscribers
-  id            uuid pk
-  email         text unique
-  first_name    text
-  last_name     text null          -- optional; don't gate anything on it
-  birth_date    date
-  birth_time    time null
-  time_unknown  boolean
-  birth_place   text
-  birth_lat     float null
-  birth_lng     float null
-  chart         jsonb              -- engine output, VERBATIM. identity fields never go in here.
-  seq_position  int default 0      -- email series progress
-  next_send_at  timestamptz null
-  unsubscribed  boolean default false
-  created_at    timestamptz default now()
+  id              uuid pk
+  email           text unique
+  first_name      text
+  last_name       text null          -- optional; don't gate anything on it
+  birth_date      date
+  birth_time      time null
+  time_unknown    boolean
+  birth_place     text
+  birth_lat       float null
+  birth_lng       float null
+  chart           jsonb              -- engine output, VERBATIM. identity fields never go in here.
+  seq_position    int default 0      -- email series progress (0 = no emails sent yet)
+  next_send_at    timestamptz null
+  email_status    text default 'active'  -- active | unsubscribed | bounced | complained
+  email_status_at timestamptz null
+  unsub_token     uuid default gen_random_uuid()
+  created_at      timestamptz default now()
 ```
 
 Rules:
@@ -110,13 +118,17 @@ When `NEXT_PUBLIC_MAIA_API_KEY` is unset (local dev), the form falls back to `pu
 - The three value props are **outcomes, not information** ("Make your own calls with confidence…", not "learn how decisions work").
 - Reminder: copy is authoritative — propose changes, don't overwrite.
 
-## Email pipeline (not yet implemented)
-Own the pipeline; Kit is being retired in favor of this (it made per-chart personalization hard).
-- **List** = Neon. **Send** = Resend. **Templates** = React Email.
-- **Personalization is the point**: templates receive `subscriber` + `chart` and render arbitrary mechanics inline — branch on `chart.centers.Sacral.defined`, `chart.channels.includes("34-20")`, pull `chart.planets.personality.sun.gate` into a sentence. Build a small content library (TS objects/functions) keyed by chart facts that your written copy pulls from.
-- **Scheduler (decide)**: either a daily **Vercel Cron** hitting `/api/tick` (select `next_send_at <= now()` and not unsubscribed, send, advance position) — which also keeps Neon awake — or **Resend scheduled sends** queued per-subscriber at signup. Low volume; pick one.
-- **Compliance (required once you own sending)**: verify the sending domain in Resend (SPF/DKIM/DMARC); a working **unsubscribe** link in every email that sets `unsubscribed = true` (send loop skips those); a **physical postal address** in the footer; a one-line **consent disclosure** under the email field ("I'll send your chart plus a short series on using it. Unsubscribe anytime.").
-- Free-tier notes: Resend = 3,000/mo, 100/day, 1 domain (sending individualized API emails is the transactional track, free at this scale — not the contact-based Marketing plan). Neon free = 0.5GB/branch, 6h restore window (thin backups — keep a migration script + occasional `pg_dump`, or upgrade when the data matters).
+## Email pipeline
+**List** = Neon. **Send** = Resend. **Templates** = React Email (`emails/` directory).
+
+- **Kill switch**: nothing sends unless `EMAIL_SENDING_ENABLED=true`. Without it, `sendEmail()` logs what it would send and returns.
+- **Sole call site**: `lib/email.ts` is the only file that calls `resend.emails.send()`. All emails go through `sendEmail()`, which checks `canSendTo()` (subscriber must be `active`), sets `List-Unsubscribe` / `List-Unsubscribe-Post` headers, and renders the React component to HTML.
+- **Welcome series**: 5-day drip (career type → strategy → authority → indicators → conclusion+CTA). Templates are in `emails/welcome[1-5].tsx`. Each receives `firstName`, `chart` (flat `EmailChartData` from `parseChartForEmail()`), and `unsubscribeUrl`.
+- **Scheduler**: daily Vercel Cron at 14:00 UTC (`/api/cron/newsletter`, configured in `vercel.json`). Queries `next_send_at <= now()` where `email_status = 'active'`, sends the next email in the series, advances `seq_position`, sets `next_send_at` to tomorrow.
+- **Personalization**: templates branch on chart type booleans (`isGenerator`, `isProjector`, etc.) and pull content from maps in `lib/email-content.ts` (strategy writeups, authority writeups/tips keyed by authority type).
+- **Compliance**: `List-Unsubscribe` header + footer link in every email; `GET /api/unsubscribe?token=<uuid>` and `POST` (RFC 8058 one-click); physical address in footer; bounce/complaint webhook at `/api/webhooks/resend` updates `email_status`.
+- **Content maps**: `lib/email-content.ts` holds `strategyWriteups`, `authorityWriteups`, `authorityTips` — ported from the old `WelcomeCampaignText.tsx`. Use `lookupByAuthority()` to handle casing normalization.
+- Free-tier notes: Resend = 3,000/mo, 100/day, 1 domain. Neon free = 0.5GB/branch.
 
 ## Migration
 Existing charts (~150) migrate into the one-table model via a one-off Node script (`@neondatabase/serverless`): read old store → map to the schema → drop full chart into `chart` JSONB → upsert. CSV/SQL import works too at this size. Both old and new are Postgres, so nothing exotic. No migration script is checked into this repo; schema is managed manually.
@@ -127,13 +139,27 @@ app/api/subscribers/route.ts        POST — create subscriber (upsert on email)
 app/api/subscribers/check-email/    GET  — email existence check
 app/api/subscribers/[id]/route.ts   GET  — fetch subscriber by ID
 app/api/admin/                      password-protected admin API
+app/api/unsubscribe/route.ts        GET/POST — unsubscribe (token-based)
+app/api/webhooks/resend/route.ts    POST — Resend bounce/complaint webhook
+app/api/cron/newsletter/route.ts    GET  — daily cron: send due welcome emails
 lib/db.ts                           all database queries (raw SQL via Neon)
+lib/email.ts                        sole Resend call site (sendEmail + canSendTo)
+lib/email-content.ts                content maps (strategy/authority writeups)
+lib/email-subjects.ts               subject line generator per welcome step
 lib/hd-chart/                       chart interpreter (constants + hdChart())
+lib/hd-chart/parse-for-email.ts     flat chart data for email templates
 lib/types/chart.ts                  ChartRecord type (Maia API response shape)
-lib/types/subscriber.ts             Subscriber interface
+lib/types/subscriber.ts             Subscriber interface + EmailStatus type
+emails/components/                  shared email layout, signature, Ra quote
+emails/welcome[1-5].tsx             welcome series templates
 components/chart-form.tsx           birth-details form + chart generation
 components/chart-readout.tsx        10-field chart interpretation display
+migrations/                         SQL migration files (run manually)
+vercel.json                         cron schedule config
 ```
+
+## Old repo
+The old app repo is at `/Users/shawn/Development/github/fractalhumandesign`. Reference it when migrating templates, copy, or logic from the previous system.
 
 ## Workflow
 - Commit at each working checkpoint so steps can be rolled back.

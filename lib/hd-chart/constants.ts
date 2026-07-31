@@ -76,3 +76,72 @@ export const assimilationStyles = [
   'synthesizing',
   'subjective'
 ];
+
+// --- Email-specific constants (ported from fractalhumandesign/utils/parse-chart.ts) ---
+
+// GIF button images per type — used in email video links
+export const typeButtonGifs = [
+  'https://fractalhumandesign.s3.us-east-1.amazonaws.com/site/images/generator-button.gif',
+  'https://fractalhumandesign.s3.us-east-1.amazonaws.com/site/images/generator-button.gif',
+  'https://fractalhumandesign.s3.us-east-1.amazonaws.com/site/images/manifestor-button.gif',
+  'https://fractalhumandesign.s3.us-east-1.amazonaws.com/site/images/projector-button.gif',
+  'https://fractalhumandesign.s3.us-east-1.amazonaws.com/site/images/reflector-button.gif'
+];
+
+// YouTube video links per type
+export const typeVideos = [
+  'https://youtu.be/9PVgkBzpPqs',
+  'https://youtu.be/9PVgkBzpPqs',
+  'https://youtu.be/qvnRU2tdNXM',
+  'https://youtu.be/Od8wVEL5b5w',
+  'https://youtu.be/bgdaZBB2wCo'
+];
+
+export const strategyVideos = [
+  'https://youtu.be/_g3cx77EeLs',
+  'https://youtu.be/_g3cx77EeLs',
+  'https://youtu.be/YTTm9Ziyi-8',
+  'https://youtu.be/vypbRJShWyM',
+  'https://youtu.be/924KXvH3mv4'
+];
+
+// Per-authority video links
+export const innerAuthorityVideos = [
+  'https://youtu.be/e9g6q1pKJeo',
+  'https://youtu.be/0sUPwjp025M',
+  'https://youtu.be/7S552VXC1tk',
+  'https://youtu.be/8Nu3WvcQ0jA',
+  'https://youtu.be/cF6CxUTGmfU',
+  'https://youtu.be/8Nu3WvcQ0jA',
+  'https://youtu.be/OvSo9Aa2XCc'
+];
+
+// Per-type signature/not-self videos
+export const signatureVideos = [
+  'https://youtu.be/fHGRdJSyE34',
+  'https://youtu.be/fHGRdJSyE34',
+  'https://youtu.be/UfkIprGbdHw',
+  'https://youtu.be/eHWeVZIMrTw',
+  'https://youtu.be/ltxpSWRx5t4'
+];
+
+// Adjective forms of themes (used in welcome4)
+export const signatureThemeAdjectives = [
+  'satisfied',
+  'satisfied',
+  'peaceful',
+  'successful',
+  'surprised'
+];
+
+export const notSelfThemeAdjectives = [
+  'frustrated',
+  'frustrated',
+  'angry',
+  'bitter',
+  'disappointed'
+];
+
+// Standalone video URLs used in specific emails
+export const strategyVideoMG = 'https://youtu.be/OkRewoajREQ';
+export const sleepAloneProjectors = 'https://youtu.be/A1PBKKAJslo';
