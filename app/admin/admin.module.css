@@ -131,6 +131,23 @@
   border-bottom: none;
 }
 
+.statusOk {
+  color: #1a7a3a;
+  text-align: center;
+  font-weight: 700;
+}
+
+.statusBad {
+  color: var(--coral);
+  text-align: center;
+  font-weight: 700;
+}
+
+.nextEmail {
+  color: var(--muted);
+  text-align: center;
+}
+
 .empty {
   text-align: center;
   padding: 3rem;

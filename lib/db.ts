@@ -180,3 +180,23 @@ export async function getSubscriberByEmailForWebhook(
   `;
   return result.length > 0 ? (result[0] as Subscriber) : null;
 }
+
+/**
+ * Update a subscriber's email series position and next send time.
+ * Used by admin to manually adjust pipeline position.
+ */
+export async function updateEmailSeries(
+  id: string,
+  seqPosition: number,
+  nextSendAt: string | null
+): Promise<Subscriber> {
+  const db = getDb();
+  const result = await db`
+    UPDATE subscribers
+    SET seq_position = ${seqPosition},
+        next_send_at = ${nextSendAt}
+    WHERE id = ${id}
+    RETURNING *
+  `;
+  return result[0] as Subscriber;
+}

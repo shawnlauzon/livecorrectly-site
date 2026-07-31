@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Subscriber } from '@/lib/types/subscriber';
+import { WELCOME_SERIES_LENGTH } from '@/lib/welcome-email';
 import styles from './admin.module.css';
 
 async function fetchSubscribers(pwd: string): Promise<{ ok: true; data: Subscriber[] } | { ok: false; error: string }> {
@@ -112,6 +113,14 @@ export default function AdminPage() {
     });
   };
 
+  const getNextEmailLabel = (sub: Subscriber): string => {
+    if (sub.email_status !== 'active') return '—';
+    if (sub.seq_position >= WELCOME_SERIES_LENGTH) return 'Done';
+    if (sub.next_send_at) return `Day ${sub.seq_position + 1}`;
+    if (sub.seq_position === 0) return 'Welcome';
+    return `Paused @ ${sub.seq_position}`;
+  };
+
   if (loading) {
     return (
       <div className={styles.container}>
@@ -165,6 +174,8 @@ export default function AdminPage() {
               <th>Name</th>
               <th>Birth Date</th>
               <th>Type</th>
+              <th style={{ textAlign: 'center', width: '4rem' }}>Status</th>
+              <th style={{ textAlign: 'center' }}>Next Email</th>
               <th>Created</th>
             </tr>
           </thead>
@@ -186,6 +197,16 @@ export default function AdminPage() {
                         subscriber.chart.chart.type
                       ]
                     : '-'}
+                </td>
+                <td className={subscriber.email_status === 'active' ? styles.statusOk : styles.statusBad}>
+                  {subscriber.email_status === 'active' ? (
+                    '✓'
+                  ) : (
+                    <span title={subscriber.email_status}>✗</span>
+                  )}
+                </td>
+                <td className={styles.nextEmail}>
+                  {getNextEmailLabel(subscriber)}
                 </td>
                 <td>{formatDate(subscriber.created_at)}</td>
               </tr>
