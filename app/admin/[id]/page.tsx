@@ -155,7 +155,10 @@ function WelcomeSeries({ subscriber }: { subscriber: Subscriber }) {
         return;
       }
 
-      setFeedback({ type: 'success', message: `Day ${step} email sent successfully` });
+      setFeedback({
+        type: 'success',
+        message: step === 0 ? 'Welcome email sent successfully' : `Day ${step} email sent successfully`
+      });
     } catch (err) {
       console.error('Error sending welcome email:', err);
       setFeedback({ type: 'error', message: 'Network error — could not send email' });
@@ -199,6 +202,13 @@ function WelcomeSeries({ subscriber }: { subscriber: Subscriber }) {
 
         {isActive ? (
           <div className={styles.welcomeButtons}>
+            <button
+              className={styles.dayButton}
+              disabled={sendingStep !== null}
+              onClick={() => handleSend(0)}
+            >
+              {sendingStep === 0 ? 'Sending...' : 'Welcome'}
+            </button>
             {DAY_LABELS.map((label, i) => {
               const step = i + 1;
               const isSending = sendingStep === step;

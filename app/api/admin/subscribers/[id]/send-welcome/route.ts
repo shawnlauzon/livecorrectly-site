@@ -38,9 +38,9 @@ export async function POST(
     const body = await request.json();
     const step = body.step;
 
-    if (typeof step !== 'number' || step < 1 || step > WELCOME_SERIES_LENGTH) {
+    if (typeof step !== 'number' || step < 0 || step > WELCOME_SERIES_LENGTH) {
       return NextResponse.json(
-        { error: `step must be a number between 1 and ${WELCOME_SERIES_LENGTH}` },
+        { error: `step must be a number between 0 and ${WELCOME_SERIES_LENGTH}` },
         { status: 400 }
       );
     }
@@ -70,7 +70,8 @@ export async function POST(
     const bookingUrl =
       process.env.NEXT_PUBLIC_BOOKING_URL ?? 'https://livecorrectly.com';
 
-    const emailComponent = getWelcomeEmail(step, subscriber, chart, unsubscribeUrl, bookingUrl);
+    const chartUrl = `${appUrl}/see-your-design/${id}`;
+    const emailComponent = getWelcomeEmail(step, subscriber, chart, unsubscribeUrl, bookingUrl, chartUrl);
 
     if (!emailComponent) {
       return NextResponse.json(

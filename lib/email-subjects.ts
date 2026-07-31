@@ -6,6 +6,8 @@ export function getWelcomeSubject(
   chart: EmailChartData
 ): string {
   switch (step) {
+    case 0:
+      return `${firstName}, your Human Design chart is ready`;
     case 1:
       return `[Day 1] ${firstName}, you are designed to be a ${chart.careerDesign}`;
     case 2:
