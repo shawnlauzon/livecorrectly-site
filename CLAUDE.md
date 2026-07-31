@@ -35,7 +35,7 @@ Environment variables — copy `.env.example` to `.env.local` and fill in:
 - `NEXT_PUBLIC_BOOKING_URL` — Google Calendar / Calendly link (checked into `.env`)
 - `RESEND_API_KEY` — Resend API key for sending email
 - `RESEND_WEBHOOK_SECRET` — Resend webhook signing secret (for bounce/complaint handling)
-- `EMAIL_SENDING_ENABLED` — set to `true` to enable sending; anything else = dry-run logging only
+- `CRON_EMAIL_ENABLED` — set to `true` to enable the automated cron; anything else = cron returns early. Admin manual sends are always live (they bypass this flag). Omit `RESEND_API_KEY` in `.env.local` to prevent any sends during local development.
 - `EMAIL_FROM` — sender address (default: `Live Correctly <hello@livecorrectly.com>`)
 - `APP_URL` — public URL for unsubscribe links (default: `https://livecorrectly.com`)
 - `CRON_SECRET` — Vercel cron authorization secret
@@ -121,10 +121,11 @@ When `NEXT_PUBLIC_MAIA_API_KEY` is unset (local dev), the form falls back to `pu
 ## Email pipeline
 **List** = Neon. **Send** = Resend. **Templates** = React Email (`emails/` directory).
 
-- **Kill switch**: nothing sends unless `EMAIL_SENDING_ENABLED=true`. Without it, `sendEmail()` logs what it would send and returns.
+- **Kill switch**: the automated cron only runs when `CRON_EMAIL_ENABLED=true`. Admin manual sends (from `/admin/[id]`) bypass this flag — they always send if `RESEND_API_KEY` is set. Omit `RESEND_API_KEY` in `.env.local` to prevent any sends during local development.
 - **Sole call site**: `lib/email.ts` is the only file that calls `resend.emails.send()`. All emails go through `sendEmail()`, which checks `canSendTo()` (subscriber must be `active`), sets `List-Unsubscribe` / `List-Unsubscribe-Post` headers, and renders the React component to HTML.
 - **Welcome series**: 5-day drip (career type → strategy → authority → indicators → conclusion+CTA). Templates are in `emails/welcome[1-5].tsx`. Each receives `firstName`, `chart` (flat `EmailChartData` from `parseChartForEmail()`), and `unsubscribeUrl`.
-- **Scheduler**: daily Vercel Cron at 14:00 UTC (`/api/cron/newsletter`, configured in `vercel.json`). Queries `next_send_at <= now()` where `email_status = 'active'`, sends the next email in the series, advances `seq_position`, sets `next_send_at` to tomorrow.
+- **Scheduler**: daily Vercel Cron at 14:00 UTC (`/api/cron/welcome-series`, configured in `vercel.json`). Queries `next_send_at <= now()` where `email_status = 'active'`, sends the next email in the series, advances `seq_position`, sets `next_send_at` to tomorrow.
+- **Admin manual send**: `POST /api/admin/subscribers/[id]/send-welcome` with `{ step: 1-5 }`. Sends a specific welcome email without advancing `seq_position` or `next_send_at`. Requires admin auth. Returns 422 if subscriber is not active.
 - **Personalization**: templates branch on chart type booleans (`isGenerator`, `isProjector`, etc.) and pull content from maps in `lib/email-content.ts` (strategy writeups, authority writeups/tips keyed by authority type).
 - **Compliance**: `List-Unsubscribe` header + footer link in every email; `GET /api/unsubscribe?token=<uuid>` and `POST` (RFC 8058 one-click); physical address in footer; bounce/complaint webhook at `/api/webhooks/resend` updates `email_status`.
 - **Content maps**: `lib/email-content.ts` holds `strategyWriteups`, `authorityWriteups`, `authorityTips` — ported from the old `WelcomeCampaignText.tsx`. Use `lookupByAuthority()` to handle casing normalization.
@@ -139,11 +140,13 @@ app/api/subscribers/route.ts        POST — create subscriber (upsert on email)
 app/api/subscribers/check-email/    GET  — email existence check
 app/api/subscribers/[id]/route.ts   GET  — fetch subscriber by ID
 app/api/admin/                      password-protected admin API
+app/api/admin/subscribers/[id]/send-welcome/  POST — manual welcome email send
 app/api/unsubscribe/route.ts        GET/POST — unsubscribe (token-based)
 app/api/webhooks/resend/route.ts    POST — Resend bounce/complaint webhook
-app/api/cron/newsletter/route.ts    GET  — daily cron: send due welcome emails
+app/api/cron/welcome-series/route.ts GET — daily cron: send due welcome emails
 lib/db.ts                           all database queries (raw SQL via Neon)
 lib/email.ts                        sole Resend call site (sendEmail + canSendTo)
+lib/welcome-email.ts                shared getWelcomeEmail() + WELCOME_SERIES_LENGTH
 lib/email-content.ts                content maps (strategy/authority writeups)
 lib/email-subjects.ts               subject line generator per welcome step
 lib/hd-chart/                       chart interpreter (constants + hdChart())

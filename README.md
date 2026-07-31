@@ -20,7 +20,7 @@ pnpm dev                      # http://localhost:3000
 | `NEXT_PUBLIC_BOOKING_URL` | No | Booking link (checked into `.env`) |
 | `RESEND_API_KEY` | No | Resend API key for sending email |
 | `RESEND_WEBHOOK_SECRET` | No | Resend webhook signing secret |
-| `EMAIL_SENDING_ENABLED` | No | Set to `true` to send; otherwise dry-run logs only |
+| `CRON_EMAIL_ENABLED` | No | Set to `true` to enable the automated cron; admin manual sends bypass this flag |
 | `EMAIL_FROM` | No | Sender address (default: `Live Correctly <hello@livecorrectly.com>`) |
 | `APP_URL` | No | Public URL for unsubscribe links (default: `https://livecorrectly.com`) |
 | `CRON_SECRET` | No | Vercel cron authorization secret |
@@ -47,12 +47,12 @@ Or paste the file contents into the Neon dashboard SQL Editor.
 
 ## Email system
 
-A 5-day welcome series sent via Resend with React Email templates. Nothing sends unless `EMAIL_SENDING_ENABLED=true`.
+A 5-day welcome series sent via Resend with React Email templates. The automated cron only runs when `CRON_EMAIL_ENABLED=true`. Admin manual sends (from `/admin/[id]`) bypass this flag.
 
 ### How it works
 
 1. Subscriber fills out the chart form and is inserted into the `subscribers` table
-2. A daily Vercel cron (`/api/cron/newsletter`, 14:00 UTC) queries subscribers where `next_send_at <= now()`
+2. A daily Vercel cron (`/api/cron/welcome-series`, 14:00 UTC) queries subscribers where `next_send_at <= now()`
 3. For each due subscriber, it renders the next welcome email with their personalized chart data and calls Resend
 4. After sending, it advances `seq_position` and sets `next_send_at` to the next day
 
@@ -69,7 +69,8 @@ A 5-day welcome series sent via Resend with React Email templates. Nothing sends
 ### Key files
 
 ```
-lib/email.ts                     Sole Resend call site (send wrapper + kill switch)
+lib/email.ts                     Sole Resend call site (send wrapper)
+lib/welcome-email.ts             Shared getWelcomeEmail() + WELCOME_SERIES_LENGTH
 lib/email-content.ts             Content maps (strategy/authority writeups)
 lib/email-subjects.ts            Subject line generator
 lib/hd-chart/parse-for-email.ts  Flat chart data for templates
@@ -99,7 +100,7 @@ Opens the React Email dev server with preview props for all 5 templates.
 3. Verify your sending domain in Resend (SPF/DKIM/DMARC)
 4. Set `CRON_SECRET` in Vercel and configure it in the project settings
 5. Optionally configure `RESEND_WEBHOOK_SECRET` and register the webhook URL in Resend
-6. Set `EMAIL_SENDING_ENABLED=true` when ready to go live
+6. Set `CRON_EMAIL_ENABLED=true` when ready to go live
 
 ## Stack
 

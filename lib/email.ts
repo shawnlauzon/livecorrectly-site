@@ -35,10 +35,14 @@ interface SendEmailOptions {
  *
  * Checks:
  * 1. canSendTo() — skips if subscriber is not active
- * 2. EMAIL_SENDING_ENABLED kill switch — logs and returns if not 'true'
- * 3. Renders React component to HTML
- * 4. Sets List-Unsubscribe headers for one-click unsubscribe (RFC 8058)
- * 5. Calls resend.emails.send()
+ * 2. Renders React component to HTML
+ * 3. Sets List-Unsubscribe headers for one-click unsubscribe (RFC 8058)
+ * 4. Calls resend.emails.send()
+ *
+ * Note: The CRON_EMAIL_ENABLED kill switch is checked in the cron route,
+ * not here. This function always sends if the subscriber is active and
+ * RESEND_API_KEY is set. Omit RESEND_API_KEY in .env.local to prevent
+ * sends during local development.
  */
 export async function sendEmail({
   to,
@@ -54,13 +58,6 @@ export async function sendEmail({
 
   const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
   const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${unsubToken}`;
-
-  if (process.env.EMAIL_SENDING_ENABLED !== 'true') {
-    console.log(
-      `[email] Sending disabled. Would send to=${to} subject="${subject}" unsub=${unsubscribeUrl}`
-    );
-    return { success: false };
-  }
 
   const from = process.env.EMAIL_FROM ?? 'Live Correctly <hello@livecorrectly.com>';
   const html = await render(react);

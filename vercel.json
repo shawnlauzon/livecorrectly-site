@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/newsletter",
+      "path": "/api/cron/welcome-series",
       "schedule": "0 14 * * *"
     }
   ]

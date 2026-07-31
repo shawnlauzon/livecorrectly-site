@@ -69,3 +69,112 @@
   padding: 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
+
+/* Welcome series section — spans full width below the grid */
+.welcomeSection {
+  margin-top: 1.5rem;
+}
+
+.welcomeCard {
+  background: var(--card);
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.welcomeHeading {
+  font-family: var(--display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 1rem 0;
+}
+
+.welcomeMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 1.25rem;
+  font-family: var(--body);
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.welcomeMetaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.welcomeMetaLabel {
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.welcomeButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.dayButton {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--grape);
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.dayButton:hover:not(:disabled) {
+  background: var(--paper);
+  border-color: var(--grape);
+}
+
+.dayButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dayButtonSent {
+  border-color: var(--grape);
+  background: var(--paper);
+}
+
+.dayButtonSending {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.welcomeFeedback {
+  margin-top: 0.75rem;
+  font-family: var(--body);
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+}
+
+.feedbackSuccess {
+  color: #1a7a3a;
+  background: #e8f5e9;
+}
+
+.feedbackError {
+  color: var(--coral);
+  background: #fff3f0;
+}
+
+.welcomeDisabled {
+  margin-top: 0.75rem;
+  font-family: var(--body);
+  font-size: 0.875rem;
+  color: var(--muted);
+  font-style: italic;
+}

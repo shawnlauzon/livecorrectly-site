@@ -3,23 +3,15 @@ import { getDueSubscribers, advanceEmailSeries } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/lib/email-subjects';
-import { Welcome1 } from '@/emails/welcome1';
-import { Welcome2 } from '@/emails/welcome2';
-import { Welcome3 } from '@/emails/welcome3';
-import { Welcome4 } from '@/emails/welcome4';
-import { Welcome5 } from '@/emails/welcome5';
-import { Subscriber } from '@/lib/types/subscriber';
-import React from 'react';
-
-const WELCOME_SERIES_LENGTH = 5;
+import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/lib/welcome-email';
 
 /**
  * Cron endpoint: sends due welcome series emails.
  * Secured by CRON_SECRET (Vercel sends Authorization: Bearer <CRON_SECRET>).
  * Runs daily at 14:00 UTC (configured in vercel.json).
  *
- * The EMAIL_SENDING_ENABLED kill switch in sendEmail() makes this safe
- * even if the route is hit — emails are logged but not sent.
+ * The CRON_EMAIL_ENABLED kill switch is checked here — when not 'true',
+ * the route returns early without querying or sending anything.
  */
 export async function GET(request: NextRequest) {
   // Verify cron secret
@@ -31,7 +23,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  console.log(`[cron] Newsletter tick at ${new Date().toISOString()}`);
+  // Kill switch: only the automated cron respects this flag.
+  // Admin manual sends bypass it intentionally.
+  if (process.env.CRON_EMAIL_ENABLED !== 'true') {
+    console.log('[cron] Welcome series disabled (CRON_EMAIL_ENABLED !== true)');
+    return NextResponse.json({ disabled: true });
+  }
+
+  console.log(`[cron] Welcome series tick at ${new Date().toISOString()}`);
 
   const dueSubscribers = await getDueSubscribers();
   console.log(`[cron] Found ${dueSubscribers.length} due subscriber(s)`);
@@ -85,33 +84,4 @@ export async function GET(request: NextRequest) {
 
   console.log(`[cron] Done: sent=${sent} skipped=${skipped}`);
   return NextResponse.json({ ok: true, sent, skipped });
-}
-
-function getWelcomeEmail(
-  step: number,
-  subscriber: Subscriber,
-  chart: ReturnType<typeof parseChartForEmail>,
-  unsubscribeUrl: string,
-  bookingUrl: string
-): React.ReactElement | null {
-  const props = {
-    firstName: subscriber.first_name,
-    chart,
-    unsubscribeUrl
-  };
-
-  switch (step) {
-    case 1:
-      return React.createElement(Welcome1, props);
-    case 2:
-      return React.createElement(Welcome2, props);
-    case 3:
-      return React.createElement(Welcome3, props);
-    case 4:
-      return React.createElement(Welcome4, props);
-    case 5:
-      return React.createElement(Welcome5, { ...props, bookingUrl });
-    default:
-      return null;
-  }
 }

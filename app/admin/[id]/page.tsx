@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Subscriber } from '@/lib/types/subscriber';
 import ChartDisplay from '@/components/admin/chart-display';
 import ChartImage from '@/components/admin/chart-image';
 import styles from './detail.module.css';
+
+const WELCOME_SERIES_LENGTH = 5;
+const DAY_LABELS = ['Day 1: Career Type', 'Day 2: Strategy', 'Day 3: Authority', 'Day 4: Indicators', 'Day 5: Conclusion'];
 
 export default function AdminDetailPage({
   params
@@ -112,6 +115,121 @@ export default function AdminDetailPage({
         {birthTimeUtc && (
           <div className={styles.card}>
             <ChartImage birthTimeUtc={birthTimeUtc} />
+          </div>
+        )}
+      </div>
+
+      <WelcomeSeries subscriber={subscriber} />
+    </div>
+  );
+}
+
+function WelcomeSeries({ subscriber }: { subscriber: Subscriber }) {
+  const [sendingStep, setSendingStep] = useState<number | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const isActive = subscriber.email_status === 'active';
+  const emailsSent = subscriber.seq_position;
+
+  const handleSend = useCallback(async (step: number) => {
+    const password = sessionStorage.getItem('adminPassword');
+    if (!password) return;
+
+    setSendingStep(step);
+    setFeedback(null);
+
+    try {
+      const response = await fetch(`/api/admin/subscribers/${subscriber.id}/send-welcome`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${password}`
+        },
+        body: JSON.stringify({ step })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setFeedback({ type: 'error', message: data.error || 'Failed to send email' });
+        return;
+      }
+
+      setFeedback({ type: 'success', message: `Day ${step} email sent successfully` });
+    } catch (err) {
+      console.error('Error sending welcome email:', err);
+      setFeedback({ type: 'error', message: 'Network error — could not send email' });
+    } finally {
+      setSendingStep(null);
+    }
+  }, [subscriber.id]);
+
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <div className={styles.welcomeSection}>
+      <div className={styles.welcomeCard}>
+        <h2 className={styles.welcomeHeading}>Welcome Series</h2>
+
+        <div className={styles.welcomeMeta}>
+          <div className={styles.welcomeMetaItem}>
+            <span className={styles.welcomeMetaLabel}>Emails sent</span>
+            <span>{emailsSent} of {WELCOME_SERIES_LENGTH}</span>
+          </div>
+          <div className={styles.welcomeMetaItem}>
+            <span className={styles.welcomeMetaLabel}>Email status</span>
+            <span>{subscriber.email_status}</span>
+          </div>
+          {subscriber.next_send_at && (
+            <div className={styles.welcomeMetaItem}>
+              <span className={styles.welcomeMetaLabel}>Next scheduled</span>
+              <span>{formatDate(subscriber.next_send_at)}</span>
+            </div>
+          )}
+        </div>
+
+        {isActive ? (
+          <div className={styles.welcomeButtons}>
+            {DAY_LABELS.map((label, i) => {
+              const step = i + 1;
+              const isSending = sendingStep === step;
+              const alreadySent = step <= emailsSent;
+              const buttonClass = [
+                styles.dayButton,
+                alreadySent ? styles.dayButtonSent : '',
+                isSending ? styles.dayButtonSending : ''
+              ].filter(Boolean).join(' ');
+
+              return (
+                <button
+                  key={step}
+                  className={buttonClass}
+                  disabled={sendingStep !== null}
+                  onClick={() => handleSend(step)}
+                >
+                  {isSending ? 'Sending...' : label}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className={styles.welcomeDisabled}>
+            Cannot send emails — subscriber status is &ldquo;{subscriber.email_status}&rdquo;
+          </p>
+        )}
+
+        {feedback && (
+          <div className={`${styles.welcomeFeedback} ${feedback.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}`}>
+            {feedback.message}
           </div>
         )}
       </div>
