@@ -53,9 +53,16 @@ export default function SeeYourDesign() {
         <p className={styles.eyebrow}>Human Design</p>
         <h1 className={styles.h1}>See how you&rsquo;re designed.</h1>
         <p className={styles.lead}>
-          Enter your birth details and see your chart right away. I&rsquo;ll
-          also send you a 5-day series on how you&rsquo;re specifically
-          designed &mdash; and how to work with it at work and in your life.
+          Enter your birth details and see your chart right away.{' '}
+          <s style={{ opacity: 0.5 }}>
+            I&rsquo;ll also send you a 5-day series on how you&rsquo;re
+            specifically designed &mdash; and how to work with it at work and
+            in your life.
+          </s>
+        </p>
+        <p className={styles.lead}>
+          The email series is currently being rewritten and improved.
+          You&rsquo;ll receive it once it&rsquo;s ready.
         </p>
 
         <ChartForm />

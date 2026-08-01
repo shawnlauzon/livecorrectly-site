@@ -374,7 +374,7 @@ export default function ChartForm() {
               onChange={() => emailTaken && setEmailTaken(false)}
             />
             <p className={styles.hint}>
-              A 5-day series, and the occasional email after that. Unsubscribe
+              We&rsquo;ll email you when the new series is ready. Unsubscribe
               anytime.
             </p>
           </div>

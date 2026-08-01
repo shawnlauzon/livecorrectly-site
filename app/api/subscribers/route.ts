@@ -28,9 +28,14 @@ export async function POST(request: NextRequest) {
       chart,
     });
 
+    // Welcome email series is paused while being rewritten.
+    // Subscribers are still created; emails will be sent once the series is re-enabled.
+    // To re-enable: set this to true.
+    const WELCOME_SERIES_ENABLED = false;
+
     // Send immediate welcome email for fresh subscribers
     const isFresh = subscriber.seq_position === 0 && subscriber.next_send_at === null;
-    if (isFresh && process.env.RESEND_API_KEY) {
+    if (WELCOME_SERIES_ENABLED && isFresh && process.env.RESEND_API_KEY) {
       // Set next_send_at to tomorrow so the cron picks up Day 1 —
       // do this regardless of whether the welcome email send succeeds.
       const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
@@ -65,8 +70,11 @@ export async function POST(request: NextRequest) {
         // and next_send_at is already set so the drip series will still start.
         console.error(`[subscribe] Failed to send welcome email to ${subscriber.email}:`, emailError);
       }
+    }
 
-      // Admin notification — fire-and-forget, failure must never block registration
+    // Admin notification — fire-and-forget, failure must never block registration
+    if (isFresh && process.env.RESEND_API_KEY) {
+      const chartData = parseChartForEmail(subscriber.chart.chart);
       sendAdminNotification(subscriber, chartData.type).catch((err) => {
         console.error(`[subscribe] Failed to send admin notification for ${subscriber.email}:`, err);
       });
