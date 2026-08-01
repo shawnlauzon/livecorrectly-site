@@ -6,7 +6,7 @@ import styles from "./page.module.css";
 export const metadata: Metadata = {
   title: "See how you\u2019re designed \u2014 Live Correctly",
   description:
-    "Generate your Human Design chart, then learn how to actually use it.",
+    "Get your Human Design chart, then learn how to actually use it.",
 };
 
 export default function SeeYourDesign() {
@@ -50,13 +50,12 @@ export default function SeeYourDesign() {
       </header>
 
       <main className={`${styles.wrap} ${styles.main}`}>
-        <p className={styles.eyebrow}>Human Design for solopreneurs</p>
+        <p className={styles.eyebrow}>Human Design</p>
         <h1 className={styles.h1}>See how you&rsquo;re designed.</h1>
         <p className={styles.lead}>
           Enter your birth details and see your chart right away. I&rsquo;ll
           also send you a 5-day series on how you&rsquo;re specifically
-          designed &mdash; and how to work with it in your business and your
-          life.
+          designed &mdash; and how to work with it at work and in your life.
         </p>
 
         <ChartForm />
