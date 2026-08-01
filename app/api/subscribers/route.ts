@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSubscriber, advanceEmailSeries } from '@/lib/db';
-import { sendEmail } from '@/lib/email';
+import { sendEmail, sendAdminNotification } from '@/lib/email';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/lib/email-subjects';
 import { getWelcomeEmail } from '@/lib/welcome-email';
@@ -36,11 +36,12 @@ export async function POST(request: NextRequest) {
       const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
       await advanceEmailSeries(subscriber.id, 0, tomorrow);
 
+      const chartData = parseChartForEmail(subscriber.chart.chart);
+
       try {
         const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
         const chartUrl = `${appUrl}/see-your-design/${subscriber.id}`;
         const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${subscriber.unsub_token}`;
-        const chartData = parseChartForEmail(subscriber.chart.chart);
         const subject = getWelcomeSubject(0, subscriber.first_name, chartData);
         const emailComponent = getWelcomeEmail(
           0, subscriber, chartData, unsubscribeUrl, '', chartUrl
@@ -64,6 +65,11 @@ export async function POST(request: NextRequest) {
         // and next_send_at is already set so the drip series will still start.
         console.error(`[subscribe] Failed to send welcome email to ${subscriber.email}:`, emailError);
       }
+
+      // Admin notification — fire-and-forget, failure must never block registration
+      sendAdminNotification(subscriber, chartData.type).catch((err) => {
+        console.error(`[subscribe] Failed to send admin notification for ${subscriber.email}:`, err);
+      });
     }
 
     return NextResponse.json({ id: subscriber.id }, { status: 201 });

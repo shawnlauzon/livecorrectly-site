@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import { render } from 'react-email';
 import { getActiveSubscriberByEmail } from './db';
+import type { Subscriber } from './types/subscriber';
 
 let resend: Resend | null = null;
 
@@ -81,4 +82,37 @@ export async function sendEmail({
 
   console.log(`[email] Sent to=${to} subject="${subject}" id=${data?.id}`);
   return { success: true, id: data?.id };
+}
+
+/**
+ * Send a plain-text admin notification when a new subscriber signs up.
+ * This bypasses canSendTo() and unsubscribe headers — it's an internal notification,
+ * not a marketing email. Failures are logged but should never block registration.
+ */
+export async function sendAdminNotification(
+  subscriber: Subscriber,
+  chartType: string
+): Promise<void> {
+  const from = process.env.EMAIL_FROM ?? 'Live Correctly <hello@livecorrectly.com>';
+  const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
+  const adminUrl = `${appUrl}/admin/${subscriber.id}`;
+
+  const client = getResend();
+  const { error } = await client.emails.send({
+    from,
+    to: from,
+    subject: `New signup: ${subscriber.first_name} (${chartType})`,
+    text: [
+      `New subscriber: ${subscriber.first_name} (${subscriber.email})`,
+      `Type: ${chartType}`,
+      ``,
+      `Admin: ${adminUrl}`,
+    ].join('\n'),
+  });
+
+  if (error) {
+    console.error('[email] Failed to send admin notification:', error);
+  } else {
+    console.log(`[email] Admin notification sent for ${subscriber.email}`);
+  }
 }
