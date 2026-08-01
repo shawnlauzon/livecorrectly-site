@@ -1,117 +1,147 @@
 .hero {
-  min-height: 82vh;
-  display: flex;
+  padding-top: clamp(2rem, 4vh, 4rem);
+  padding-bottom: clamp(3rem, 6vh, 5rem);
+}
+
+.grid {
+  display: grid;
+  gap: clamp(2.5rem, 5vw, 4rem);
   align-items: center;
+}
+
+.copy {
+  max-width: 38rem;
+}
+
+/* ---- Advice strikethrough list ---- */
+.advice {
+  list-style: none;
+  margin-bottom: 1.75rem;
+}
+
+.adviceLine {
+  display: inline-block;
   position: relative;
-  padding-top: 40px;
-  padding-bottom: 56px;
-}
-
-.heroInner {
-  position: relative;
-  z-index: 2;
-  max-width: 760px;
-}
-
-.eyebrow {
-  font-family: var(--body);
-  font-weight: 600;
-  font-size: 0.8rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--grape);
-  margin-bottom: 26px;
-}
-
-.h1 {
   font-family: var(--display);
-  font-weight: 800;
-  font-size: clamp(2.5rem, 6.4vw, 4.6rem);
-  line-height: 1.02;
-  letter-spacing: -0.03em;
-  color: var(--ink);
-  margin-bottom: 28px;
+  font-size: clamp(1.35rem, 1.1rem + 1.5vw, 2rem);
+  font-weight: 300;
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  color: var(--ink-soft);
 }
 
-.swipe {
-  position: relative;
-  white-space: nowrap;
-}
-.swipe::after {
+.adviceLine::after {
   content: "";
   position: absolute;
-  left: -4px;
-  right: -4px;
-  bottom: 0.08em;
-  height: 0.42em;
-  background: var(--marigold);
-  z-index: -1;
-  transform: rotate(-1.4deg);
-  border-radius: 2px;
-  opacity: 0.92;
+  left: -0.08em;
+  top: 56%;
+  height: 2px;
+  width: 0;
+  background: var(--pulse);
+  animation: strike 0.8s cubic-bezier(0.6, 0.05, 0.3, 1) forwards;
 }
 
-.sub {
-  font-size: clamp(1.05rem, 1.7vw, 1.28rem);
-  line-height: 1.55;
-  color: var(--muted);
-  max-width: 33em;
-  margin-bottom: 38px;
+.strike1::after { animation-delay: 0.6s; }
+.strike2::after { animation-delay: 1.8s; }
+.strike3::after { animation-delay: 3.0s; }
+
+@keyframes strike {
+  to { width: calc(100% + 0.16em); }
 }
 
-.ctaRow {
+/* ---- H1 ---- */
+.h1 {
+  font-size: clamp(2.5rem, 1.7rem + 4vw, 4.25rem);
+  color: var(--ink);
+  margin-bottom: 1.5rem;
+}
+
+.turnClip {
+  display: block;
+  overflow: hidden;
+  text-align: center;
+  padding-top: 1rem;
+  padding-bottom: 0.5rem;
+}
+
+.turn {
+  display: block;
+  font-family: var(--font-cinzel), Georgia, serif;
+  font-style: normal;
+  font-weight: 900;
+  font-size: clamp(1.4rem, 1rem + 2vw, 2.25rem);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--pulse);
+  transform: translateY(110%);
+  animation: rollup 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+  animation-delay: 4.0s;
+}
+
+@keyframes rollup {
+  from { transform: translateY(110%); }
+  to { transform: translateY(0); }
+}
+
+/* ---- Lede ---- */
+.lede {
+  font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+  line-height: 1.65;
+  color: var(--ink-soft);
+  max-width: var(--measure);
+  margin-bottom: 2.25rem;
+}
+
+/* ---- CTA group ---- */
+.ctaGroup {
   display: flex;
-  align-items: center;
-  gap: 26px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.ctaNote {
-  margin-top: 22px;
-  font-size: 0.98rem;
+.ctaSub {
+  font-size: 0.9375rem;
   line-height: 1.5;
-  color: var(--muted);
+  color: var(--ink-soft);
 }
 
-/* Aura orb */
-.aura {
-  position: absolute;
-  z-index: 1;
-  top: 50%;
-  right: -90px;
-  width: min(46vw, 540px);
-  aspect-ratio: 1;
-  transform: translateY(-50%);
-  background:
-    radial-gradient(circle at 34% 32%, rgba(255, 176, 32, 0.85), transparent 55%),
-    radial-gradient(circle at 68% 40%, rgba(255, 107, 87, 0.8), transparent 58%),
-    radial-gradient(circle at 50% 70%, rgba(106, 75, 214, 0.9), transparent 62%);
-  filter: blur(46px);
-  opacity: 0.62;
-  border-radius: 50%;
-  animation: breathe 9s ease-in-out infinite;
-  pointer-events: none;
+/* ---- Hero photo ---- */
+.photo {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 2px;
+  overflow: hidden;
 }
 
-@media (max-width: 640px) {
-  .aura {
-    right: -40%;
-    top: 22%;
-    opacity: 0.5;
-    width: 88vw;
-  }
-  .hero {
-    min-height: auto;
-    padding-top: 24px;
-    padding-bottom: 40px;
-  }
-  .ctaRow {
-    gap: 20px;
+.photo img {
+  object-fit: cover;
+  object-position: center;
+}
+
+/* ---- Two-column at wider viewports ---- */
+@media (min-width: 56rem) {
+  .grid {
+    grid-template-columns: 1.05fr 0.95fr;
   }
 }
 
+/* ---- Already seen: skip to final state ---- */
+.done.adviceLine::after {
+  animation: none;
+  width: calc(100% + 0.16em);
+}
+
+.done.turn {
+  animation: none;
+  transform: translateY(0);
+}
+
+/* ---- Reduced motion: strikes at full width, turn visible immediately ---- */
 @media (prefers-reduced-motion: reduce) {
-  .aura {
-    animation: none;
+  .adviceLine::after {
+    width: calc(100% + 0.16em);
+  }
+  .turn {
+    transform: translateY(0);
   }
 }

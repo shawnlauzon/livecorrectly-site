@@ -1,35 +1,35 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Hanken_Grotesk, Newsreader } from "next/font/google";
+import { Fraunces, Karla, Cinzel } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import Script from "next/script";
 import "./globals.css";
 
-const bricolage = Bricolage_Grotesque({
+const fraunces = Fraunces({
   subsets: ["latin"],
-  weight: ["600", "700", "800"],
+  weight: ["300", "400", "600"],
+  style: ["normal", "italic"],
   variable: "--font-display",
   display: "swap",
 });
 
-const hanken = Hanken_Grotesk({
+const cinzel = Cinzel({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["700", "900"],
+  variable: "--font-cinzel",
+  display: "swap",
+});
+
+const karla = Karla({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
   variable: "--font-body",
   display: "swap",
 });
 
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  style: ["normal", "italic"],
-  variable: "--font-serif",
-  display: "swap",
-});
-
 export const metadata: Metadata = {
-  title: "Live Correctly — Human Design for solopreneurs",
+  title: "Live Correctly — Human Design",
   description:
-    "Human Design for solopreneurs — build your business around the way you're actually wired to work.",
+    "Advice built for someone else's wiring won't hold. Human Design shows you how yours actually works.",
 };
 
 export default function RootLayout({
@@ -40,7 +40,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bricolage.variable} ${hanken.variable} ${newsreader.variable}`}
+      className={`${fraunces.variable} ${karla.variable} ${cinzel.variable}`}
     >
       <body>
         {children}

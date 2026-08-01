@@ -8,12 +8,12 @@ export default function SiteNav({
   variant?: "landing" | "back";
 }) {
   return (
-    <Wrap as="header" className={`${styles.nav} reveal d1`}>
+    <Wrap as="header" className={styles.nav}>
       <Link className={styles.mark} href="/">
-        Live <span className={styles.markAccent}>Correctly</span>
+        Live <em className={styles.markAccent}>Correctly</em>
       </Link>
       {variant === "landing" ? (
-        <Link className={styles.navCta} href="/see-your-design">
+        <Link className={styles.quiet} href="/see-your-design">
           See how you&rsquo;re designed
         </Link>
       ) : (

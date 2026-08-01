@@ -1,6 +1,6 @@
 .nav {
-  padding-top: 30px;
-  padding-bottom: 30px;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -8,7 +8,7 @@
 
 .mark {
   font-family: var(--display);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 1.28rem;
   letter-spacing: -0.02em;
   color: var(--ink);
@@ -16,42 +16,39 @@
 }
 
 .markAccent {
-  color: var(--grape);
+  font-style: italic;
+  color: var(--pulse);
 }
 
-.navCta {
-  font-weight: 500;
-  font-size: 0.94rem;
+.quiet {
+  font-size: 0.9375rem;
   text-decoration: none;
   color: var(--ink);
-  padding: 9px 16px;
-  border: 1.5px solid var(--line);
-  border-radius: 999px;
-  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
-  white-space: nowrap;
+  border-bottom: 1px solid var(--stone-line);
+  padding-bottom: 2px;
+  transition: color 0.2s ease, border-color 0.2s ease;
 }
-.navCta:hover {
-  border-color: var(--grape);
-  color: var(--grape-deep);
+.quiet:hover {
+  color: var(--pulse);
+  border-color: var(--pulse);
 }
 
 .back {
   font-weight: 500;
   font-size: 0.92rem;
   text-decoration: none;
-  color: var(--muted);
+  color: var(--ink-soft);
 }
 .back:hover {
-  color: var(--grape-deep);
+  color: var(--pulse);
 }
 
 @media (max-width: 640px) {
   .nav {
-    padding-top: 22px;
-    padding-bottom: 22px;
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
   }
-  .navCta {
-    font-size: 0.82rem;
-    padding: 8px 13px;
+  .quiet {
+    font-size: 0.8125rem;
   }
 }

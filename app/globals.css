@@ -1,18 +1,30 @@
 /* ========== Design tokens ========== */
 :root {
-  --ink: #221B3D;
-  --grape: #6A4BD6;
-  --grape-deep: #4A31A8;
-  --marigold: #FFB020;
-  --coral: #FF6B57;
-  --paper: #F6F3FC;
-  --card: #FFFFFF;
-  --muted: #6E688A;
-  --line: #E6E1F4;
+  /* New palette */
+  --ground: #FAF8F4;
+  --ink: #12262A;
+  --ink-soft: #45585B;
+  --stone: #D8D2C6;
+  --stone-line: #C9C2B4;
+  --pulse: #8C4A6B;
+  --pulse-soft: #F0E6EB;
 
-  --display: var(--font-display), system-ui, sans-serif;
-  --body: var(--font-body), system-ui, sans-serif;
-  --serif: var(--font-serif), Georgia, serif;
+  --display: var(--font-display), Georgia, serif;
+  --body: var(--font-body), system-ui, -apple-system, sans-serif;
+
+  --measure: 34rem;
+  --gutter: clamp(1.25rem, 5vw, 4rem);
+
+  /* Backward-compat aliases (admin, chart-form, see-your-design) */
+  --grape: var(--pulse);
+  --grape-deep: var(--pulse);
+  --paper: var(--ground);
+  --card: #FFFFFF;
+  --marigold: var(--pulse);
+  --coral: var(--pulse);
+  --muted: var(--ink-soft);
+  --line: var(--stone-line);
+  --serif: var(--display);
 }
 
 /* ========== Reset ========== */
@@ -25,9 +37,10 @@ html {
 
 body {
   font-family: var(--body);
+  font-size: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
   color: var(--ink);
-  background: var(--paper);
-  line-height: 1.5;
+  background: var(--ground);
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   min-height: 100vh;
@@ -38,48 +51,30 @@ body {
 
 a { color: inherit; }
 
-/* ========== Keyframes ========== */
-@keyframes breathe {
-  0%, 100% { transform: translateY(-50%) scale(1); }
-  50% { transform: translateY(-52%) scale(1.09); }
+h1, h2, h3 {
+  font-family: var(--display);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  margin: 0;
 }
-
-@keyframes rise {
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ========== Reveal animation ========== */
-.reveal {
-  opacity: 0;
-  transform: translateY(14px);
-  animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
-}
-.d1 { animation-delay: 0.05s; }
-.d2 { animation-delay: 0.16s; }
-.d3 { animation-delay: 0.28s; }
-.d4 { animation-delay: 0.4s; }
 
 /* ========== Shared ========== */
 .btn {
   display: inline-block;
+  background: var(--ink);
+  color: var(--ground);
+  text-decoration: none;
   font-family: var(--body);
   font-weight: 600;
   font-size: 1rem;
-  text-decoration: none;
-  color: #fff;
-  background: var(--grape);
-  padding: 15px 28px;
-  border-radius: 12px;
-  box-shadow: 0 8px 22px -10px rgba(106, 75, 214, 0.7);
-  transition: transform 0.18s ease, background 0.2s ease, box-shadow 0.2s ease;
+  padding: 1rem 2rem;
+  border-radius: 2px;
   border: none;
   cursor: pointer;
+  transition: background 0.18s ease, transform 0.18s ease;
 }
-.btn:hover {
-  background: var(--grape-deep);
-  transform: translateY(-2px);
-  box-shadow: 0 14px 28px -12px rgba(106, 75, 214, 0.75);
-}
+.btn:hover { background: var(--pulse); transform: translateY(-1px); }
 .btn:active { transform: translateY(0); }
 
 .link {
@@ -87,11 +82,26 @@ a { color: inherit; }
   font-size: 0.98rem;
   color: var(--ink);
   text-decoration: none;
-  border-bottom: 1.5px solid var(--marigold);
+  border-bottom: 1.5px solid var(--stone-line);
   padding-bottom: 2px;
   transition: color 0.2s ease;
 }
-.link:hover { color: var(--grape-deep); }
+.link:hover { color: var(--pulse); }
+
+.rule {
+  border: 0;
+  border-top: 1px solid var(--stone-line);
+  margin: 0;
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pulse);
+  margin: 0 0 1.75rem;
+}
 
 /* ========== Mobile ========== */
 @media (max-width: 640px) {
@@ -104,12 +114,11 @@ a { color: inherit; }
 /* ========== Reduced motion ========== */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .reveal { animation: none; opacity: 1; transform: none; }
+  *, *::after { animation: none !important; transition: none !important; }
 }
 
 /* ========== Focus ========== */
 :focus-visible {
-  outline: 3px solid var(--grape);
+  outline: 2px solid var(--pulse);
   outline-offset: 3px;
-  border-radius: 4px;
 }

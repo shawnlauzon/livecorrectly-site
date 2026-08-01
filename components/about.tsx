@@ -4,10 +4,19 @@ import styles from "./about.module.css";
 
 export default function About() {
   return (
-    <section className={styles.about}>
+    <section className={styles.section}>
       <Wrap>
-        <div className={styles.aboutGrid}>
-          <div>
+        <div className={styles.grid}>
+          <div className={styles.portrait}>
+            <Image
+              className={styles.portraitImg}
+              src="/shawn-lauzon.jpg"
+              alt="Shawn Lauzon"
+              fill
+              sizes="15rem"
+            />
+          </div>
+          <div className={styles.copy}>
             <h2 className={styles.h2}>Hi, I&rsquo;m Shawn.</h2>
             <p className={styles.prose}>
               I used to be frustrated constantly. I would compare myself to
@@ -24,16 +33,6 @@ export default function About() {
               theory which you&rsquo;ll immediately forget. Life will never be
               the same again.
             </p>
-          </div>
-          <div className={styles.portrait}>
-            <Image
-              className={styles.portraitImg}
-              src="/shawn-lauzon.jpg"
-              alt="Shawn Lauzon"
-              fill
-              sizes="(max-width: 640px) 300px, 40vw"
-            />
-            <span className={styles.ph}>Shawn Lauzon</span>
           </div>
         </div>
       </Wrap>

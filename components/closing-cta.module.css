@@ -1,12 +1,42 @@
-.close {
-  padding-top: clamp(64px, 9vw, 110px);
+.section {
+  padding-top: clamp(4rem, 9vh, 6.5rem);
   padding-bottom: 0;
+}
+
+.cta {
+  text-align: center;
+  padding-top: clamp(3rem, 7vh, 5rem);
+  padding-bottom: clamp(3rem, 7vh, 5rem);
+}
+
+.h2 {
+  font-size: clamp(1.75rem, 1.4rem + 1.4vw, 2.5rem);
+  color: var(--ink);
+  margin-bottom: 2rem;
+}
+
+.ctaSub {
+  margin-top: 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.team {
+  padding-top: clamp(2.5rem, 5vh, 4rem);
+  padding-bottom: clamp(1rem, 2vh, 2rem);
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
   text-align: center;
 }
 
-.ctaNote {
-  margin-top: 22px;
-  font-size: 0.98rem;
-  line-height: 1.5;
-  color: var(--muted);
+.teamLink {
+  color: var(--pulse);
+  text-decoration: none;
+  border-bottom: 1px solid var(--stone-line);
+  padding-bottom: 2px;
+  transition: border-color 0.2s ease;
+}
+.teamLink:hover {
+  border-color: var(--pulse);
 }
