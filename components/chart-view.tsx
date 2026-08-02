@@ -69,9 +69,9 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
         <ChartHero subscriber={subscriber} />
 
         <p className={styles.resultP} style={{ marginTop: 28 }}>
-          That&rsquo;s the data. If most of it doesn&rsquo;t mean much to you
-          yet, that&rsquo;s expected: these are terms without the description
-          behind them.
+          That&rsquo;s the data. If most of it doesn&rsquo;t mean much to you,
+          that&rsquo;s expected: these are terms without the description behind
+          them.
         </p>
         <p className={styles.resultP}>
           Check your inbox, I&rsquo;ve sent you the first email. Gmail sometimes
