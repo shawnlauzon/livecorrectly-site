@@ -374,3 +374,90 @@
 .bridgeDetailRow .bridgeDetailText {
   color: var(--ink);
 }
+
+/* Email preview sections */
+.emailPreviewList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.emailPreview {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.emailPreview[open] {
+  border-color: var(--grape);
+}
+
+.emailPreviewSummary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-family: var(--body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  user-select: none;
+}
+
+.emailPreviewSummary:hover {
+  background: var(--line);
+}
+
+.emailPreviewTag {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--grape);
+  background: var(--card);
+  padding: 0.125rem 0.5rem;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+}
+
+.emailPreviewContent {
+  padding: 0 1rem 1rem;
+}
+
+.emailPreviewSubject {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--grape-deep);
+  padding: 0.5rem 0.75rem;
+  background: var(--card);
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+}
+
+.emailPreviewParagraph {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  color: var(--ink);
+  line-height: 1.6;
+  margin: 0 0 0.5rem 0;
+}
+
+.emailPreviewParagraph:last-child {
+  margin-bottom: 0;
+}
+
+.emailPreviewError {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  color: var(--coral);
+  margin: 0 0 0.5rem 0;
+}
+
+.emailPreviewIframe {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: white;
+  min-height: 200px;
+}

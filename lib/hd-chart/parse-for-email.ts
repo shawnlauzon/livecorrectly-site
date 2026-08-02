@@ -15,6 +15,7 @@ import {
   innerAuthorityVideos,
   signatureVideos
 } from './constants';
+import hdChart from './index';
 
 /**
  * Flat chart data for email templates.
@@ -44,6 +45,13 @@ export interface EmailChartData {
   strategyVideo: string;
   innerAuthorityVideo: string;
   signatureVideo: string;
+  topShadow: string | null;
+  bridgeDescriptions: Array<{
+    trait: string;
+    harmonicTrait: string;
+    strength: string;
+    description: string;
+  }>;
 }
 
 /**
@@ -58,6 +66,11 @@ export function parseChartForEmail(chart: Chart): EmailChartData {
     typeIndex === 2
       ? `${innerAuthorityDescriptions[authorityIndex]}, and then ${strategies[typeIndex]}`
       : `${strategies[typeIndex]}, and then ${innerAuthorityDescriptions[authorityIndex]}`;
+
+  const hd = hdChart(chart);
+  const shadows = hd.getShadows();
+  const topShadow = shadows.length > 0 ? shadows[0] : null;
+  const bridgeDescriptions = hd.getBridgeDescriptions();
 
   return {
     type: types[typeIndex],
@@ -81,6 +94,8 @@ export function parseChartForEmail(chart: Chart): EmailChartData {
     typeButtonGif: typeButtonGifs[typeIndex],
     strategyVideo: strategyVideos[typeIndex],
     innerAuthorityVideo: innerAuthorityVideos[authorityIndex],
-    signatureVideo: signatureVideos[typeIndex]
+    signatureVideo: signatureVideos[typeIndex],
+    topShadow,
+    bridgeDescriptions
   };
 }

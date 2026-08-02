@@ -82,6 +82,35 @@ export const authorityTips = new Map<string, string>([
 ]);
 
 /**
+ * Shadow opening paragraphs for welcome0 email.
+ *
+ * Each shadow maps to an array of paragraphs that describe the conditioning
+ * pattern the subscriber will immediately recognize. These are rendered in
+ * the welcome0 email as the personalized hook before the common closing.
+ *
+ * "Bringing Traits/Strengths" is NOT in this map — it uses dynamic bridge
+ * descriptions generated from the subscriber's chart.
+ */
+export const shadowOpenings = new Map<string, string[]>([
+  ['Willpower', [
+    "You say yes to more than you can deliver. Not carelessly — you mean it every time. But somewhere between the promise and the deadline the arithmetic stops working, and you're scrambling to cover something you genuinely intended to do.",
+    "You've probably decided this makes you unreliable.",
+    "Here's what's actually happening. The yes arrives before you've decided anything — something in you measures itself against whoever's in the room and answers on your behalf. By the time your actual decision-making would have said not this one, you've already committed.",
+    "Which is also why you reach for things most people won't. It costs you, and it's not a character problem. It's a decision made before you were in the room for it.",
+    "You have nothing to prove."
+  ]],
+  // Remaining shadows — text to be provided by Shawn:
+  // 'Emotional Intelligence'
+  // 'Identity & Direction'
+  // 'Survival Instinct'
+  // 'Conceptualization'
+  // 'Inspiration'
+  // 'Drive & Stamina'
+  // 'Energy Resource'
+  // 'Communication & Action'
+]);
+
+/**
  * Look up a content map by inner authority type.
  * Normalizes the key to lowercase to handle casing differences.
  * Falls back to 'none' for Ego-Projected authority (same copy as Self-Projected for writeups,

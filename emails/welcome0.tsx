@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { Heading, Text, Section, Button } from 'react-email';
+import { Text, Section, Button } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import { EmailChartData } from '../lib/hd-chart/parse-for-email';
+import { shadowOpenings } from '../lib/email-content';
 
 interface Welcome0Props {
   firstName: string;
@@ -11,10 +12,12 @@ interface Welcome0Props {
 }
 
 /**
- * Welcome Email 0: Chart confirmation (sent immediately on registration)
+ * Welcome Email 0: Shadow hook (sent immediately on registration)
  *
- * This is NOT part of the 5-day drip series — it fires at registration time
- * to confirm the chart is ready and preview what's coming over the next 5 days.
+ * This is NOT part of the 5-day drip series — it fires at registration time.
+ * Opens with the subscriber's #1 shadow (a conditioning pattern they'll
+ * immediately recognize), then transitions to a common closing that
+ * introduces Shawn and the upcoming email series.
  */
 export const Welcome0 = ({
   firstName,
@@ -22,54 +25,69 @@ export const Welcome0 = ({
   unsubscribeUrl,
   chartUrl
 }: Welcome0Props) => {
+  const chartUrlWithUtm = `${chartUrl}?utm_source=email&utm_medium=email&utm_campaign=welcome0`;
+
+  // Determine which shadow content to render.
+  // For bridge shadows, limit to 2 descriptions to keep the email focused.
+  const hasBridgeShadow = chart.topShadow === 'Bringing Traits/Strengths';
+  const bridgesToShow = hasBridgeShadow
+    ? chart.bridgeDescriptions.slice(0, 2)
+    : [];
+  const shadowParagraphs = chart.topShadow && !hasBridgeShadow
+    ? shadowOpenings.get(chart.topShadow) ?? null
+    : null;
+  const hasShadowContent = hasBridgeShadow
+    ? bridgesToShow.length > 0
+    : shadowParagraphs !== null;
+
   return (
     <EmailLayout
-      preview={`${firstName}, your Human Design chart is ready`}
+      preview="Something your design says about you"
       unsubscribeUrl={unsubscribeUrl}
     >
-      <Heading
-        as="h1"
-        className="mt-0 text-[24px] font-bold text-left text-[#221B3D]"
-      >
-        {firstName}, your chart is ready!
-      </Heading>
+      {/* Shadow-specific opening */}
+      {hasBridgeShadow && bridgesToShow.map((bridge, i) => (
+        <Text
+          key={i}
+          className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]"
+        >
+          {bridge.description}
+        </Text>
+      ))}
 
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        Your Human Design chart has been generated. You are a{' '}
-        <strong>{chart.careerDesign}</strong> (also known as a {chart.type}).
-      </Text>
+      {shadowParagraphs && shadowParagraphs.map((paragraph, i) => (
+        <Text
+          key={i}
+          className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]"
+        >
+          {paragraph}
+        </Text>
+      ))}
+
+      {/* Common closing */}
+      {hasShadowContent && (
+        <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+          I didn&apos;t guess that. It came out of your birth time.
+        </Text>
+      )}
 
       <Section className="mt-[24px] mb-[24px] text-center">
         <Button
-          href={chartUrl}
+          href={chartUrlWithUtm}
           className="rounded-[8px] bg-[#6A4BD6] px-[24px] py-[12px] text-[16px] font-semibold text-white"
         >
-          View your chart
+          See your full chart
         </Button>
       </Section>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        Over the next five days, you&apos;ll receive a short email each day that
-        walks you through the most important parts of your design:
+        I&apos;m Shawn — certified BG5 Career &amp; Business Consultant. Over
+        the next few days: four short emails on how you&apos;re built to work.
       </Text>
 
-      <Section className="mb-[16px] bg-[#F6F3FC] p-[16px]">
-        <Text className="m-0 text-[16px] leading-[28px] text-[#221B3D]">
-          <strong>Day 1</strong> — Your career type
-          <br />
-          <strong>Day 2</strong> — Your strategy for making moves
-          <br />
-          <strong>Day 3</strong> — How to make decisions you can trust
-          <br />
-          <strong>Day 4</strong> — Signs you&apos;re on (or off) track
-          <br />
-          <strong>Day 5</strong> — Putting it all together
-        </Text>
-      </Section>
-
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        Day 1 arrives tomorrow. In the meantime, take a look at your chart —
-        you might be surprised by what you see.
+        Did I get that right? Hit reply and tell me. If I missed, tell me that
+        too.
       </Text>
     </EmailLayout>
   );
@@ -101,7 +119,9 @@ Welcome0.PreviewProps = {
       'https://fractalhumandesign.s3.us-east-1.amazonaws.com/site/images/generator-button.gif',
     strategyVideo: 'https://youtu.be/_g3cx77EeLs',
     innerAuthorityVideo: 'https://youtu.be/e9g6q1pKJeo',
-    signatureVideo: 'https://youtu.be/fHGRdJSyE34'
+    signatureVideo: 'https://youtu.be/fHGRdJSyE34',
+    topShadow: 'Willpower',
+    bridgeDescriptions: []
   },
   unsubscribeUrl: 'https://livecorrectly.com/api/unsubscribe?token=test',
   chartUrl: 'https://livecorrectly.com/see-your-design/test-id'

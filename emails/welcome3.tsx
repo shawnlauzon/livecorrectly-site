@@ -152,7 +152,9 @@ Welcome3.PreviewProps = {
       'https://fractalhumandesign.s3.us-east-1.amazonaws.com/site/images/generator-button.gif',
     strategyVideo: 'https://youtu.be/_g3cx77EeLs',
     innerAuthorityVideo: 'https://youtu.be/e9g6q1pKJeo',
-    signatureVideo: 'https://youtu.be/fHGRdJSyE34'
+    signatureVideo: 'https://youtu.be/fHGRdJSyE34',
+    topShadow: 'Willpower',
+    bridgeDescriptions: []
   },
   unsubscribeUrl: 'https://livecorrectly.com/api/unsubscribe?token=test'
 } satisfies Welcome3Props;

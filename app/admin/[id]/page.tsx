@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Subscriber } from '@/lib/types/subscriber';
@@ -9,6 +9,7 @@ import ChartHero from '@/components/chart-hero';
 import ChartImage from '@/components/admin/chart-image';
 import hdChart from '@/lib/hd-chart';
 import { shadowDescriptions, shadowThemes, shadowLessons, shadowPressures } from '@/lib/hd-chart/constants';
+import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import styles from './detail.module.css';
 
 const WELCOME_SERIES_LENGTH = 5;
@@ -125,6 +126,8 @@ export default function AdminDetailPage({
       <ShadowsDisplay subscriber={subscriber} />
 
       <WelcomeSeries subscriber={subscriber} onSubscriberUpdate={setSubscriber} />
+
+      <EmailPreviews subscriber={subscriber} />
     </div>
   );
 }
@@ -445,6 +448,127 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
             {feedback.message}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+const EMAIL_LABELS = [
+  'Welcome: Shadow hook',
+  'Day 1: Career Type',
+  'Day 2: Strategy',
+  'Day 3: Authority',
+  'Day 4: Indicators',
+  'Day 5: Conclusion'
+];
+
+function EmailPreviewItem({ subscriber, step, label }: { subscriber: Subscriber; step: number; label: string }) {
+  const [html, setHtml] = useState<string | null>(null);
+  const [subject, setSubject] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const chart = parseChartForEmail(subscriber.chart.chart);
+  const shadowTag = step === 0 ? chart.topShadow : null;
+
+  const handleToggle = useCallback((e: React.SyntheticEvent<HTMLDetailsElement>) => {
+    const open = (e.target as HTMLDetailsElement).open;
+
+    if (open && html === null && !loading) {
+      const password = sessionStorage.getItem('adminPassword');
+      if (!password) return;
+
+      setLoading(true);
+      setError(null);
+
+      fetch(`/api/admin/subscribers/${subscriber.id}/preview-email?step=${step}`, {
+        headers: { Authorization: `Bearer ${password}` }
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || 'Failed to load preview');
+          }
+          return res.json();
+        })
+        .then((data: { subject: string; html: string }) => {
+          setSubject(data.subject);
+          setHtml(data.html);
+        })
+        .catch((err: Error) => {
+          setError(err.message);
+          console.error(`[admin] Error loading email preview step ${step}:`, err);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [html, loading, subscriber.id, step]);
+
+  // Resize iframe to match content height once HTML is loaded
+  useEffect(() => {
+    if (!html || !iframeRef.current) return;
+    const iframe = iframeRef.current;
+    const onLoad = () => {
+      try {
+        const doc = iframe.contentDocument;
+        if (doc) {
+          iframe.style.height = doc.documentElement.scrollHeight + 'px';
+        }
+      } catch {
+        // Cross-origin — shouldn't happen with srcdoc but just in case
+      }
+    };
+    iframe.addEventListener('load', onLoad);
+    return () => iframe.removeEventListener('load', onLoad);
+  }, [html]);
+
+  return (
+    <details className={styles.emailPreview} onToggle={handleToggle}>
+      <summary className={styles.emailPreviewSummary}>
+        {label}
+        {shadowTag && (
+          <span className={styles.emailPreviewTag}>{shadowTag}</span>
+        )}
+      </summary>
+      <div className={styles.emailPreviewContent}>
+        {loading && (
+          <p className={styles.emailPreviewParagraph}>Loading preview...</p>
+        )}
+        {error && (
+          <p className={styles.emailPreviewError}>{error}</p>
+        )}
+        {subject && (
+          <div className={styles.emailPreviewSubject}>Subject: {subject}</div>
+        )}
+        {html && (
+          <iframe
+            ref={iframeRef}
+            srcDoc={html}
+            className={styles.emailPreviewIframe}
+            sandbox="allow-same-origin"
+            title={`${label} preview`}
+          />
+        )}
+      </div>
+    </details>
+  );
+}
+
+function EmailPreviews({ subscriber }: { subscriber: Subscriber }) {
+  return (
+    <div className={styles.welcomeSection}>
+      <div className={styles.welcomeCard}>
+        <h2 className={styles.welcomeHeading}>Email Previews</h2>
+        <div className={styles.emailPreviewList}>
+          {EMAIL_LABELS.map((label, step) => (
+            <EmailPreviewItem
+              key={step}
+              subscriber={subscriber}
+              step={step}
+              label={label}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
