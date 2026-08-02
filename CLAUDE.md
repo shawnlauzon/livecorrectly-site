@@ -112,6 +112,47 @@ The chart is generated via the **Maia Mechanics API** (external HTTP call from t
 
 When `NEXT_PUBLIC_MAIA_API_KEY` is unset (local dev), the form falls back to `public/fake-mmi-response.json`.
 
+## Shadows & Bridge Descriptions
+
+**Shadows** are BG5 (business-focused Human Design) concepts representing conditioning patterns based on undefined/open centers. The admin UI displays up to 10 shadows in priority order:
+
+1. **Bringing Traits/Strengths** (conditional) — only present if `chart.bridges` exists AND definition is 2 (split) or 4 (quadruple split)
+2. **Willpower** (Ego center undefined)
+3. **Emotional Intelligence** (Solar Plexus undefined)
+4. **Identity & Direction** (G Center undefined)
+5. **Survival Instinct** (Spleen undefined)
+6. **Conceptualization** (Ajna undefined)
+7. **Inspiration** (Head undefined)
+8. **Drive & Stamina** (Root undefined)
+9. **Energy Resource** (Sacral undefined)
+10. **Communication & Action** (Throat undefined)
+
+Shadow data is in `lib/hd-chart/constants.ts` (`shadowNames`, `shadowThemes`, `shadowLessons`, `shadowPressures`, `shadowDescriptions`).
+
+### Bridge Descriptions (Shadow #1)
+
+The **Bringing Traits/Strengths** shadow has unique logic. It's about **bridging gates** — gates the person has where they're missing the harmonic partner to complete a channel. This creates a feeling of incompleteness.
+
+**Critical concept**: `chart.bridges.bridgingGates` is an array of gate numbers the person **DOESN'T have** (wishes they had). These are the missing harmonic partners. The person HAS the other gate in each channel pair.
+
+Example:
+- `bridgingGates = [8]` means they're missing gate 8 (Contribution)
+- They DO have gate 1 (Creative Self-Expression)
+- They can't complete the 1-8 channel (Inspiration)
+- Description: "If only you contributed more, you believe you could really inspire. You worry that your natural ability to express yourself creatively isn't enough."
+
+**Implementation**:
+- `lib/hd-chart/bridge-descriptions.ts` — all 64 gate descriptions, indexed by the gate they HAVE (not the missing gate)
+- `lib/hd-chart/constants.ts` — `gateTraits` mapping (trait, harmonic gate, harmonic trait, strength)
+- `lib/hd-chart/index.ts` — `getBridgeDescriptions()` function:
+  1. Takes each gate from `bridgingGates` (the missing gate)
+  2. Finds its harmonic partner(s) in `gateTraits`
+  3. Checks which harmonic the person HAS in their chart
+  4. Returns the description indexed by the gate they HAVE
+- `app/admin/[id]/page.tsx` — displays bridge details in the Shadows section (only for shadow #1)
+
+**Multi-harmonic gates**: Gates 10, 20, 34, 57 each have 3 possible harmonic partners. The function checks which one the person has and returns the appropriate description from the array.
+
 ## Copy / voice
 - Plain, direct, **outcome-framed**. Not cute, not stylized. Fewer, stronger items beat comprehensive lists.
 - Human Design is **named explicitly** here (unlike Work Correctly, where it's unnamed on the front door).
@@ -150,6 +191,8 @@ lib/welcome-email.ts                shared getWelcomeEmail() + WELCOME_SERIES_LE
 lib/email-content.ts                content maps (strategy/authority writeups)
 lib/email-subjects.ts               subject line generator per welcome step
 lib/hd-chart/                       chart interpreter (constants + hdChart())
+lib/hd-chart/constants.ts           lookup tables: types, authorities, shadows, gateTraits
+lib/hd-chart/bridge-descriptions.ts bridge gate descriptions (shadow #1)
 lib/hd-chart/parse-for-email.ts     flat chart data for email templates
 lib/types/chart.ts                  ChartRecord type (Maia API response shape)
 lib/types/subscriber.ts             Subscriber interface + EmailStatus type

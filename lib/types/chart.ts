@@ -61,6 +61,13 @@ export interface ChartGroup {
   env: string[];
 }
 
+/** Bridges data for bringing traits/strengths shadow */
+export interface Bridges {
+  bridgingGates?: number[];
+  bridgingChannels?: string[];
+  bridgingFarGates?: number[];
+}
+
 /** The inner chart data — type, authority, centers, channels, planets, etc. */
 export interface Chart {
   type: number;
@@ -85,6 +92,8 @@ export interface Chart {
   determination: number;
   designBaseOrientation: number;
   personalityBaseOrientation: number;
+  /** Bridges field for bringing traits/strengths shadow - can be null */
+  bridges?: Bridges | null;
 }
 
 /** Timezone info from the engine */

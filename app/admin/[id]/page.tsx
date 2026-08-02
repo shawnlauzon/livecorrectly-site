@@ -7,6 +7,8 @@ import { Subscriber } from '@/lib/types/subscriber';
 import ChartDisplay from '@/components/admin/chart-display';
 import ChartHero from '@/components/chart-hero';
 import ChartImage from '@/components/admin/chart-image';
+import hdChart from '@/lib/hd-chart';
+import { shadowDescriptions, shadowThemes, shadowLessons, shadowPressures } from '@/lib/hd-chart/constants';
 import styles from './detail.module.css';
 
 const WELCOME_SERIES_LENGTH = 5;
@@ -112,7 +114,78 @@ export default function AdminDetailPage({
         <ChartHero subscriber={subscriber} />
       </div>
 
+      <ShadowsDisplay subscriber={subscriber} />
+
       <WelcomeSeries subscriber={subscriber} onSubscriberUpdate={setSubscriber} />
+    </div>
+  );
+}
+
+function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
+  const hd = hdChart(subscriber.chart.chart);
+  const shadows = hd.getShadows();
+
+  if (shadows.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className={styles.welcomeSection}>
+      <div className={styles.welcomeCard}>
+        <h2 className={styles.welcomeHeading}>Shadows ({shadows.length})</h2>
+        <div className={styles.shadowsList}>
+          {shadows.map((shadowName, index) => (
+            <div key={shadowName} className={styles.shadowItem}>
+              <div className={styles.shadowHeader}>
+                <span className={styles.shadowNumber}>{index + 1}</span>
+                <h3 className={styles.shadowName}>{shadowName}</h3>
+              </div>
+              {shadowName === 'Bringing Traits/Strengths' ? (
+                <div className={styles.bridgeGates}>
+                  {hd.getBridgeDescriptions().map((bridge) => (
+                    <div key={bridge.gate} className={styles.bridgeGate}>
+                      <span className={styles.bridgeGateNumber}>Gate {bridge.gate}</span>
+                      <p className={styles.bridgeDescription}>{bridge.description}</p>
+                      <div className={styles.bridgeDetails}>
+                        <div className={styles.bridgeDetailRow}>
+                          <span className={styles.bridgeDetailLabel}>Trait:</span>
+                          <span className={styles.bridgeDetailText}>{bridge.trait}</span>
+                        </div>
+                        <div className={styles.bridgeDetailRow}>
+                          <span className={styles.bridgeDetailLabel}>Harmonic Trait:</span>
+                          <span className={styles.bridgeDetailText}>{bridge.harmonicTrait}</span>
+                        </div>
+                        <div className={styles.bridgeDetailRow}>
+                          <span className={styles.bridgeDetailLabel}>Strength:</span>
+                          <span className={styles.bridgeDetailText}>{bridge.strength}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <p className={styles.shadowDescription}>{shadowDescriptions[shadowName]}</p>
+                  <div className={styles.shadowDetails}>
+                    <div className={styles.shadowDetail}>
+                      <span className={styles.shadowDetailLabel}>Theme:</span>
+                      <span className={styles.shadowDetailText}>{shadowThemes[shadowName]}</span>
+                    </div>
+                    <div className={styles.shadowDetail}>
+                      <span className={styles.shadowDetailLabel}>Lesson:</span>
+                      <span className={styles.shadowDetailText}>{shadowLessons[shadowName]}</span>
+                    </div>
+                    <div className={styles.shadowDetail}>
+                      <span className={styles.shadowDetailLabel}>Pressure:</span>
+                      <span className={styles.shadowDetailText}>{shadowPressures[shadowName]}</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

@@ -220,3 +220,138 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* Shadows section */
+.shadowsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.shadowItem {
+  padding: 1rem;
+  background: var(--paper);
+  border-radius: 6px;
+  border: 1px solid var(--line);
+}
+
+.shadowHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.shadowNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--grape);
+  color: white;
+  font-family: var(--body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.shadowName {
+  font-family: var(--display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.shadowDescription {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  color: var(--ink);
+  margin: 0 0 0.75rem 0;
+  padding-left: 2.25rem;
+}
+
+.shadowDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-left: 2.25rem;
+}
+
+.shadowDetail {
+  display: flex;
+  gap: 0.5rem;
+  font-family: var(--body);
+  font-size: 0.8125rem;
+}
+
+.shadowDetailLabel {
+  font-weight: 600;
+  color: var(--muted);
+  min-width: 5rem;
+  flex-shrink: 0;
+}
+
+.shadowDetailText {
+  color: var(--ink);
+}
+
+/* Bridge gates display (for Bringing Traits/Strengths shadow) */
+.bridgeGates {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.bridgeGate {
+  padding: 0.75rem;
+  background: var(--card);
+  border-radius: 4px;
+  border: 1px solid var(--line);
+}
+
+.bridgeGateNumber {
+  font-family: var(--body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--grape);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.bridgeDescription {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  color: var(--ink);
+  margin: 0 0 0.75rem 0;
+  line-height: 1.5;
+}
+
+.bridgeDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.bridgeDetailRow {
+  display: flex;
+  gap: 0.5rem;
+  font-family: var(--body);
+  font-size: 0.8125rem;
+}
+
+.bridgeDetailRow .bridgeDetailLabel {
+  font-weight: 600;
+  color: var(--muted);
+  min-width: 8rem;
+  flex-shrink: 0;
+}
+
+.bridgeDetailRow .bridgeDetailText {
+  color: var(--ink);
+}
