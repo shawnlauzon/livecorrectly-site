@@ -1,7 +1,6 @@
 'use client';
 
 import { Subscriber } from '@/lib/types/subscriber';
-import ChartReadout from '@/components/chart-readout';
 import styles from './chart-display.module.css';
 
 interface ChartDisplayProps {
@@ -42,16 +41,6 @@ export default function ChartDisplay({
           </div>
         )}
       </dl>
-
-      <ChartReadout
-        chart={subscriber.chart.chart}
-        classes={{
-          readout: styles.list,
-          rowitem: styles.item,
-          k: styles.label,
-          v: styles.value,
-        }}
-      />
     </div>
   );
 }

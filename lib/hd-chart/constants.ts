@@ -10,11 +10,28 @@ export const types = [
 ];
 
 export const careerDesigns = [
-  '🔥 Classic Builder',
-  '🔥 Express Builder',
-  '💡 Initiator',
-  '🔑 Advisor',
-  '🔍 Evaluator'
+  'Classic Builder',
+  'Express Builder',
+  'Initiator',
+  'Advisor',
+  'Evaluator'
+];
+
+export const profileLineNames: Record<number, string> = {
+  1: 'Investigator',
+  2: 'Natural',
+  3: 'Pioneer',
+  4: 'Networker',
+  5: 'Messenger',
+  6: 'Trailblazer',
+};
+
+export const careerDesignSubtitles = [
+  'You build things that last — one steady, satisfying step at a time.',
+  'You move fast, juggle well, and get more done than anyone expects.',
+  'You get things started that no one else would.',
+  'You see what others miss — and guide them to it.',
+  "You know what's working and what isn't before anyone else does.",
 ];
 
 export const innerAuthorityTypes = [

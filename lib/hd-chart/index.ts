@@ -6,6 +6,7 @@ import {
   innerAuthorityDescriptions,
   definitions,
   careerDesigns,
+  profileLineNames,
   signatureThemes,
   notSelfThemes,
   assimilationStyles
@@ -25,7 +26,11 @@ export default function hdChart(chart: Chart) {
   const profile = () => {
     if (!chart.profile) return undefined;
     const p = chart.profile.toString();
-    return `${p[0]}/${p[1]}`;
+    const line1 = Number(p[0]);
+    const line2 = Number(p[1]);
+    const name1 = profileLineNames[line1] ?? '';
+    const name2 = profileLineNames[line2] ?? '';
+    return `${name1} / ${name2} (${line1}/${line2})`;
   };
 
   const careerDesign = () => chart.type !== undefined ? careerDesigns[chart.type] : undefined;

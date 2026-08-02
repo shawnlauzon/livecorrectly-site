@@ -1,12 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import BodygraphPlaceholder from "./bodygraph-placeholder";
-import ChartReadout from "./chart-readout";
-import ChartImage from "./admin/chart-image";
+import ChartHero from "./chart-hero";
 import styles from "./chart-form.module.css";
 import { Subscriber } from "@/lib/types/subscriber";
-import hdChart from "@/lib/hd-chart";
 
 interface ChartViewProps {
   subscriberId: string;
@@ -61,44 +58,25 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
     );
   }
 
-  const chartRecord = subscriber.chart;
-  const hd = hdChart(chartRecord.chart);
-  const birthTimeUtc = chartRecord?.meta?.birthData?.time?.utc ?? null;
-  const showBodygraph = !!birthTimeUtc && !subscriber.time_unknown;
-
   return (
     <div className={styles.card}>
-      <div className={styles.resultHead}>
-        <div className={styles.bodygraph}>
-          {showBodygraph ? (
-            <ChartImage birthTimeUtc={birthTimeUtc} />
-          ) : (
-            <BodygraphPlaceholder />
-          )}
-        </div>
-        <div>
-          <p className={styles.typeLabel}>Your type</p>
-          <h2 className={styles.typeName}>{hd.type()}</h2>
-        </div>
-      </div>
+      <ChartHero subscriber={subscriber} />
 
-      <ChartReadout
-        chart={chartRecord.chart}
-        classes={{
-          readout: styles.readout,
-          rowitem: styles.rowitem,
-          k: styles.k,
-          v: styles.v,
-        }}
-      />
+      <p className={styles.emailP} style={{ marginTop: 28 }}>
+        That&rsquo;s the data. If most of it doesn&rsquo;t mean anything to you yet,
+        that&rsquo;s expected&nbsp;&mdash; it&rsquo;s a set of technical terms, not a reading.
+      </p>
+      <p className={styles.emailP}>
+        I&rsquo;ve sent you an email with the part that&rsquo;s actually about you.
+        Start there.
+      </p>
 
       <div className={styles.emailBlock}>
         <h3 className={styles.emailH3}>
-          In a hurry? Have questions right now?
+          Prefer to skip ahead?
         </h3>
         <p className={styles.emailP}>
-          Book a free 30-minute conversation and I&rsquo;ll walk you through
-          your chart live.
+          I&rsquo;ll walk you through it live.
         </p>
         <a
           className={styles.btn}

@@ -30,16 +30,11 @@ export default function ChartReadout({ chart, classes = {} }: ChartReadoutProps)
   const hd = hdChart(chart);
 
   const rows: { label: string; value: string }[] = [
-    { label: 'Type', value: hd.type() ?? '' },
-    { label: 'Career Design', value: hd.careerDesign() ?? '' },
-    { label: 'Strategy', value: capitalize(hd.strategy()) },
-    { label: 'Inner Authority', value: hd.innerAuthority() ?? '' },
-    { label: 'Decision-making Strategy', value: capitalize(hd.decisionMakingStrategy()) },
-    { label: 'Profile', value: hd.profile() ?? '' },
-    { label: 'Definition', value: capitalize(hd.definition()) },
-    { label: 'Assimilation Style', value: capitalize(hd.assimilationStyle()) },
-    { label: 'Signature Theme (on-track)', value: capitalize(hd.signatureTheme()) },
-    { label: 'Not-Self Theme (off-track)', value: capitalize(hd.notSelfTheme()) },
+{ label: 'Decision-making Strategy', value: capitalize(hd.decisionMakingStrategy()) },
+    { label: 'Public Role', value: hd.profile() ?? '' },
+{ label: 'Assimilation Style', value: capitalize(hd.assimilationStyle()) },
+    { label: 'On-Track Signal', value: capitalize(hd.signatureTheme()) },
+    { label: 'Off-Track Signal', value: capitalize(hd.notSelfTheme()) },
   ];
 
   return (

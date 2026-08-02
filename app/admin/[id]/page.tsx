@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Subscriber } from '@/lib/types/subscriber';
 import ChartDisplay from '@/components/admin/chart-display';
+import ChartHero from '@/components/chart-hero';
 import ChartImage from '@/components/admin/chart-image';
 import styles from './detail.module.css';
 
@@ -107,16 +108,8 @@ export default function AdminDetailPage({
         <p className={styles.subtitle}>{subscriber.email}</p>
       </div>
 
-      <div className={styles.grid}>
-        <div className={styles.card}>
-          <ChartDisplay subscriber={subscriber} />
-        </div>
-
-        {birthTimeUtc && (
-          <div className={styles.card}>
-            <ChartImage birthTimeUtc={birthTimeUtc} />
-          </div>
-        )}
+      <div className={styles.card}>
+        <ChartHero subscriber={subscriber} />
       </div>
 
       <WelcomeSeries subscriber={subscriber} onSubscriberUpdate={setSubscriber} />

@@ -6,6 +6,103 @@
   padding: clamp(24px, 4vw, 38px);
 }
 
+.hero {
+  position: relative;
+  margin: calc(-1 * clamp(24px, 4vw, 38px));
+  margin-bottom: clamp(24px, 4vw, 38px);
+  overflow: hidden;
+  border-radius: 20px 20px 0 0;
+}
+
+.heroImg {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: clamp(16px, 3vw, 28px);
+  background: linear-gradient(to top, rgba(34, 27, 61, 0.7) 0%, transparent 60%);
+}
+
+.heroTitle {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  color: #fff;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.heroBodygraph {
+  width: 100px;
+  flex: none;
+  border-radius: 12px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(6px);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.18s ease;
+}
+
+.heroBodygraph:hover {
+  transform: scale(1.05);
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(34, 27, 61, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.lightboxInner {
+  position: relative;
+  background: var(--card);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: min(90vw, 540px);
+  width: 100%;
+  box-shadow: 0 20px 60px -10px rgba(34, 27, 61, 0.5);
+}
+
+.lightboxClose {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--muted);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.lightboxClose:hover {
+  color: var(--ink);
+}
+
+.heroSubtitle {
+  font-family: var(--serif);
+  font-size: 1.12rem;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 0 0 24px;
+}
+
 .field {
   margin-bottom: 22px;
 }
@@ -125,10 +222,7 @@
   flex: none;
   border-radius: 16px;
   padding: 12px;
-  background:
-    radial-gradient(120% 100% at 20% 10%, rgba(255, 176, 32, 0.35), transparent 55%),
-    radial-gradient(120% 120% at 90% 95%, rgba(106, 75, 214, 0.4), transparent 60%),
-    var(--card);
+  background: var(--paper);
   border: 1px solid var(--line);
 }
 
@@ -159,7 +253,7 @@
   border-top: 1px solid var(--line);
   padding-top: 16px;
   display: grid;
-  grid-template-columns: 130px 1fr;
+  grid-template-columns: 200px 1fr;
   gap: 16px;
 }
 

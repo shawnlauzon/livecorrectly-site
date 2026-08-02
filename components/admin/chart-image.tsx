@@ -6,13 +6,15 @@ import styles from './chart-image.module.css';
 interface ChartImageProps {
   /** UTC birth time as ISO string, e.g. "1974-04-07T21:00:00Z" */
   birthTimeUtc: string;
+  /** When true, suppress the built-in tap-to-lightbox behavior */
+  disableLightbox?: boolean;
 }
 
 /**
  * Renders the Jovian Archive bodygraph image for a given UTC birth time.
  * Tap/click to open full-screen in a lightbox.
  */
-export default function ChartImage({ birthTimeUtc }: ChartImageProps) {
+export default function ChartImage({ birthTimeUtc, disableLightbox }: ChartImageProps) {
   const [open, setOpen] = useState(false);
 
   const time = new Date(birthTimeUtc).getTime();
@@ -38,11 +40,11 @@ export default function ChartImage({ birthTimeUtc }: ChartImageProps) {
           src={url}
           alt="Bodygraph chart"
           className={styles.image}
-          onClick={() => setOpen(true)}
+          onClick={disableLightbox ? undefined : () => setOpen(true)}
         />
       </div>
 
-      {open && (
+      {open && !disableLightbox && (
         <div className={styles.overlay} onClick={close}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
