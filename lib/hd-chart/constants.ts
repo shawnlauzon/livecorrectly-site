@@ -27,7 +27,7 @@ export const profileLineNames: Record<number, string> = {
 };
 
 export const careerDesignSubtitles = [
-  'You build things that last — one steady, satisfying step at a time.',
+  "When you're doing work you love, you can do it forever.",
   'You move fast, juggle well, and get more done than anyone expects.',
   'You get things started that no one else would.',
   'You see what others miss — and guide them to it.',
