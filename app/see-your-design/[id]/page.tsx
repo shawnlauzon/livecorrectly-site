@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import ChartView from "@/components/chart-view";
 import styles from "../page.module.css";
@@ -50,7 +51,9 @@ export default async function SeeYourDesignChart({
       <main className={`${styles.wrap} ${styles.main}`}>
         <p className={styles.eyebrow}>Human Design</p>
 
-        <ChartView subscriberId={id} />
+        <Suspense fallback={<div>Loading&hellip;</div>}>
+          <ChartView subscriberId={id} />
+        </Suspense>
       </main>
 
       <footer className={`${styles.wrap} ${styles.footer}`}>

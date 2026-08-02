@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import ChartHero from './chart-hero';
 import styles from './chart-form.module.css';
 import { Subscriber } from '@/lib/types/subscriber';
@@ -10,6 +11,8 @@ interface ChartViewProps {
 }
 
 export default function ChartView({ subscriberId }: ChartViewProps) {
+  const searchParams = useSearchParams();
+  const isFromForm = searchParams.get('utm_source') === 'form';
   const [subscriber, setSubscriber] = useState<Subscriber | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -73,11 +76,13 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
           that&rsquo;s expected: these are terms without the description behind
           them.
         </p>
-        <p className={styles.resultP}>
-          Check your inbox, I&rsquo;ve sent you the first email. Gmail sometimes
-          files it under Promotions, so drag it to Primary if you want to see
-          the rest.
-        </p>
+        {isFromForm && (
+          <p className={styles.resultP}>
+            Check your inbox, I&rsquo;ve sent you the first email. Gmail sometimes
+            files it under Promotions, so drag it to Primary if you want to see
+            the rest.
+          </p>
+        )}
       </div>
     </>
   );

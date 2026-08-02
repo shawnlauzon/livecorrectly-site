@@ -332,7 +332,7 @@ export default function ChartForm() {
       }
 
       const { id } = (await saveRes.json()) as { id: string };
-      router.push(`/see-your-design/${id}`);
+      router.push(`/see-your-design/${id}?utm_source=form`);
     } catch (err) {
       console.error("Chart generation/save error:", err);
       setSaveError(true);
