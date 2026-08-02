@@ -49,7 +49,6 @@ export default async function SeeYourDesignChart({
 
       <main className={`${styles.wrap} ${styles.main}`}>
         <p className={styles.eyebrow}>Human Design</p>
-        <h1 className={styles.h1}>Your design.</h1>
 
         <ChartView subscriberId={id} />
       </main>

@@ -1,3 +1,13 @@
+/* Chart name heading */
+.chartName {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(2.1rem, 5vw, 3.1rem);
+  line-height: 1.03;
+  letter-spacing: -0.03em;
+  margin-bottom: 18px;
+}
+
 /* Card / form */
 .card {
   background: var(--card);

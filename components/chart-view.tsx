@@ -59,13 +59,19 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
   }
 
   return (
-    <div className={styles.card}>
-      <ChartHero subscriber={subscriber} />
+    <>
+      <h1 className={styles.chartName}>
+        {subscriber.first_name}
+        {subscriber.last_name && ` ${subscriber.last_name}`}&rsquo;s design.
+      </h1>
 
-      <p className={styles.emailP} style={{ marginTop: 28 }}>
-        That&rsquo;s the data. If most of it doesn&rsquo;t mean anything to you yet,
-        that&rsquo;s expected&nbsp;&mdash; it&rsquo;s a set of technical terms, not a reading.
-      </p>
+      <div className={styles.card}>
+        <ChartHero subscriber={subscriber} />
+
+        <p className={styles.emailP} style={{ marginTop: 28 }}>
+          That&rsquo;s the data. If most of it doesn&rsquo;t mean anything to you yet,
+          that&rsquo;s expected&nbsp;&mdash; it&rsquo;s a set of technical terms, not a reading.
+        </p>
       <p className={styles.emailP}>
         I&rsquo;ve sent you an email with the part that&rsquo;s actually about you.
         Start there.
@@ -87,6 +93,7 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
           Book a conversation
         </a>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

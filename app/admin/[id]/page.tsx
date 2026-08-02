@@ -108,6 +108,14 @@ export default function AdminDetailPage({
           {subscriber.last_name ? subscriber.last_name : ''}
         </h1>
         <p className={styles.subtitle}>{subscriber.email}</p>
+        <Link
+          href={`/see-your-design/${subscriber.id}`}
+          className={styles.publicLink}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          View public chart →
+        </Link>
       </div>
 
       <div className={styles.card}>

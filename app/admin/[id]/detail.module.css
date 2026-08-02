@@ -37,6 +37,25 @@
   margin: 0;
 }
 
+.publicLink {
+  display: inline-block;
+  font-family: var(--body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--grape);
+  text-decoration: none;
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--grape);
+  border-radius: 6px;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.publicLink:hover {
+  background: var(--grape);
+  color: white;
+}
+
 .grid {
   display: grid;
   gap: 1.5rem;
