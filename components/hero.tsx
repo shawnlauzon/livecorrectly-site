@@ -6,18 +6,17 @@ import Image from "next/image";
 import Wrap from "./wrap";
 import styles from "./hero.module.css";
 
-const SEEN_KEY = "hero-animated";
+let hasAnimated = false;
 
 export default function Hero() {
   const [skipAnimation, setSkipAnimation] = useState(true);
 
   useEffect(() => {
-    const seen = sessionStorage.getItem(SEEN_KEY);
-    if (seen) {
+    if (hasAnimated) {
       setSkipAnimation(true);
     } else {
       setSkipAnimation(false);
-      sessionStorage.setItem(SEEN_KEY, "1");
+      hasAnimated = true;
     }
   }, []);
 
