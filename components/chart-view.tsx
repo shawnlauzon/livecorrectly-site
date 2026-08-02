@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import ChartHero from "./chart-hero";
-import styles from "./chart-form.module.css";
-import { Subscriber } from "@/lib/types/subscriber";
+import { useEffect, useState } from 'react';
+import ChartHero from './chart-hero';
+import styles from './chart-form.module.css';
+import { Subscriber } from '@/lib/types/subscriber';
 
 interface ChartViewProps {
   subscriberId: string;
@@ -29,7 +29,7 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
         const data = (await res.json()) as Subscriber;
         setSubscriber(data);
       } catch (err) {
-        console.error("Failed to load chart:", err);
+        console.error('Failed to load chart:', err);
         setNotFound(true);
       } finally {
         setLoading(false);
@@ -41,7 +41,7 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
   if (loading) {
     return (
       <div className={styles.card}>
-        <p style={{ textAlign: "center", color: "var(--muted)", padding: 40 }}>
+        <p style={{ textAlign: 'center', color: 'var(--muted)', padding: 40 }}>
           Loading your chart&hellip;
         </p>
       </div>
@@ -51,7 +51,7 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
   if (notFound || !subscriber) {
     return (
       <div className={styles.card}>
-        <p style={{ textAlign: "center", color: "var(--muted)", padding: 40 }}>
+        <p style={{ textAlign: 'center', color: 'var(--muted)', padding: 40 }}>
           Chart not found. The link may be incorrect.
         </p>
       </div>
@@ -68,31 +68,16 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
       <div className={styles.card}>
         <ChartHero subscriber={subscriber} />
 
-        <p className={styles.emailP} style={{ marginTop: 28 }}>
-          That&rsquo;s the data. If most of it doesn&rsquo;t mean anything to you yet,
-          that&rsquo;s expected&nbsp;&mdash; it&rsquo;s a set of technical terms, not a reading.
+        <p className={styles.resultP} style={{ marginTop: 28 }}>
+          That&rsquo;s the data. If most of it doesn&rsquo;t mean much to you
+          yet, that&rsquo;s expected: these are terms without the description
+          behind them.
         </p>
-      <p className={styles.emailP}>
-        I&rsquo;ve sent you an email with the part that&rsquo;s actually about you.
-        Start there.
-      </p>
-
-      <div className={styles.emailBlock}>
-        <h3 className={styles.emailH3}>
-          Prefer to skip ahead?
-        </h3>
-        <p className={styles.emailP}>
-          I&rsquo;ll walk you through it live.
+        <p className={styles.resultP}>
+          Check your inbox, I&rsquo;ve sent you the first email. Gmail sometimes
+          files it under Promotions, so drag it to Primary if you want to see
+          the rest.
         </p>
-        <a
-          className={styles.btn}
-          href={process.env.NEXT_PUBLIC_BOOKING_URL ?? "#book"}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Book a conversation
-        </a>
-      </div>
       </div>
     </>
   );

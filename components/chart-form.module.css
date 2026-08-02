@@ -307,6 +307,15 @@
   margin-bottom: 20px;
 }
 
+.resultP {
+  font-family: var(--body);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 34em;
+  margin-bottom: 16px;
+}
+
 /* Place picker — country + city row */
 .placeRow {
   display: grid;
