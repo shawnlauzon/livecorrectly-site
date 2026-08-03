@@ -54,10 +54,12 @@ export interface Cycles {
   secondSaturn: string;
 }
 
-/** Group/environment data */
+/** Group/environment data — API changed field names (lg→lb, th→theme) */
 export interface ChartGroup {
-  lg: number[];
-  th: number[];
+  lb?: boolean | number[];
+  lg?: boolean | number[];
+  theme?: number[];
+  th?: number[];
   env: string[];
 }
 

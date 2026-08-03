@@ -61,7 +61,7 @@
       { "gate": 62, "mode": 1 },
       { "gate": 64, "mode": 0 }
     ],
-    "group": { "lg": false, "th": [1, 2], "env": ["solo"] },
+    "group": { "lb": false, "theme": [1, 2], "env": ["solo"] },
     "sense": 4,
     "cycles": {
       "chiron": "2016-05-28T08:49:33Z",

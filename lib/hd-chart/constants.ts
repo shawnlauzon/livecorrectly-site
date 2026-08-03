@@ -94,6 +94,14 @@ export const assimilationStyles = [
   'subjective',
 ];
 
+/** Group thematics — indexed by value in chart.group.theme[] */
+export const groupThemes: Record<number, string> = {
+  0: 'Flexibility',
+  1: 'Empowerment',
+  2: 'Sharing',
+  3: 'Support',
+};
+
 // --- Email-specific constants (ported from fractalhumandesign/utils/parse-chart.ts) ---
 
 // GIF button images per type — used in email video links

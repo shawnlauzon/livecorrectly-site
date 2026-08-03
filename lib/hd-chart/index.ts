@@ -17,6 +17,7 @@ import {
   shadowNames,
   shadowToCenterIndex,
   gateTraits,
+  groupThemes,
   type CenterStatus
 } from './constants';
 import { bridgeDescriptions } from './bridge-descriptions';
@@ -46,6 +47,13 @@ export default function hdChart(chart: Chart) {
   const signatureTheme = () => chart.type !== undefined ? signatureThemes[chart.type] : undefined;
   const notSelfTheme = () => chart.type !== undefined ? notSelfThemes[chart.type] : undefined;
   const assimilationStyle = () => chart.definition !== undefined ? assimilationStyles[chart.definition] : undefined;
+
+  const themes = (): string[] => {
+    if (!chart.group?.theme || !Array.isArray(chart.group.theme)) return [];
+    return chart.group.theme
+      .map(t => groupThemes[t])
+      .filter((name): name is string => !!name);
+  };
 
   const decisionMakingStrategy = () => {
     if (chart.type === undefined || chart.authority === undefined) return undefined;
@@ -240,6 +248,7 @@ export default function hdChart(chart: Chart) {
     innerAuthority,
     definition,
     assimilationStyle,
+    themes,
     profile,
     signatureTheme,
     notSelfTheme,

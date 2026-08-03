@@ -1,5 +1,6 @@
 import { neon, NeonQueryFunction } from '@neondatabase/serverless';
 import { EmailStatus, Subscriber } from './types/subscriber';
+import type { ChartGroup } from './types/chart';
 
 let sql: NeonQueryFunction<false, false>;
 
@@ -14,6 +15,23 @@ function getDb(): NeonQueryFunction<false, false> {
 }
 
 /**
+ * Normalize old API field names in chart.group (th→theme, lg→lb).
+ * Old charts stored before the API rename still have the old names in JSONB.
+ */
+function normalizeSubscriber(row: Subscriber): Subscriber {
+  const group = row.chart?.chart?.group as ChartGroup | undefined;
+  if (group) {
+    if (!group.theme && group.th) {
+      group.theme = group.th;
+    }
+    if (group.lb === undefined && group.lg !== undefined) {
+      group.lb = group.lg;
+    }
+  }
+  return row;
+}
+
+/**
  * Get all subscribers ordered by creation date (newest first)
  */
 export async function getAllSubscribers(): Promise<Subscriber[]> {
@@ -22,7 +40,7 @@ export async function getAllSubscribers(): Promise<Subscriber[]> {
     SELECT * FROM subscribers
     ORDER BY created_at DESC
   `;
-  return result as Subscriber[];
+  return (result as Subscriber[]).map(normalizeSubscriber);
 }
 
 /**
@@ -36,7 +54,7 @@ export async function getSubscriberById(
     SELECT * FROM subscribers
     WHERE id = ${id}
   `;
-  return result.length > 0 ? (result[0] as Subscriber) : null;
+  return result.length > 0 ? normalizeSubscriber(result[0] as Subscriber) : null;
 }
 
 /**
@@ -51,7 +69,7 @@ export async function getSubscriberByEmail(
     SELECT * FROM subscribers
     WHERE email = ${email}
   `;
-  return result.length > 0 ? (result[0] as Subscriber) : null;
+  return result.length > 0 ? normalizeSubscriber(result[0] as Subscriber) : null;
 }
 
 /**
@@ -86,7 +104,7 @@ export async function createSubscriber(data: {
       chart = EXCLUDED.chart
     RETURNING *
   `;
-  return result[0] as Subscriber;
+  return normalizeSubscriber(result[0] as Subscriber);
 }
 
 /**
@@ -101,7 +119,7 @@ export async function getSubscriberByUnsubToken(
     SELECT * FROM subscribers
     WHERE unsub_token = ${token}
   `;
-  return result.length > 0 ? (result[0] as Subscriber) : null;
+  return result.length > 0 ? normalizeSubscriber(result[0] as Subscriber) : null;
 }
 
 /**
@@ -132,7 +150,7 @@ export async function getActiveSubscriberByEmail(
     WHERE email = ${email}
       AND email_status = 'active'
   `;
-  return result.length > 0 ? (result[0] as Subscriber) : null;
+  return result.length > 0 ? normalizeSubscriber(result[0] as Subscriber) : null;
 }
 
 /**
@@ -147,7 +165,7 @@ export async function getDueSubscribers(): Promise<Subscriber[]> {
       AND next_send_at <= now()
     ORDER BY next_send_at ASC
   `;
-  return result as Subscriber[];
+  return (result as Subscriber[]).map(normalizeSubscriber);
 }
 
 /**
@@ -178,7 +196,7 @@ export async function getSubscriberByEmailForWebhook(
     SELECT * FROM subscribers
     WHERE email = ${email}
   `;
-  return result.length > 0 ? (result[0] as Subscriber) : null;
+  return result.length > 0 ? normalizeSubscriber(result[0] as Subscriber) : null;
 }
 
 /**
@@ -198,5 +216,5 @@ export async function updateEmailSeries(
     WHERE id = ${id}
     RETURNING *
   `;
-  return result[0] as Subscriber;
+  return normalizeSubscriber(result[0] as Subscriber);
 }

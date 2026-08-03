@@ -33,6 +33,7 @@ export default function ChartReadout({ chart, classes = {} }: ChartReadoutProps)
 { label: 'Decision-making Strategy', value: capitalize(hd.decisionMakingStrategy()) },
     { label: 'Public Role', value: hd.profile() ?? '' },
 { label: 'Assimilation Style', value: capitalize(hd.assimilationStyle()) },
+    { label: 'Thematics', value: hd.themes().join(', ') },
     { label: 'On-Track Signal', value: capitalize(hd.signatureTheme()) },
     { label: 'Off-Track Signal', value: capitalize(hd.notSelfTheme()) },
   ];
