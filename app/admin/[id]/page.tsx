@@ -145,7 +145,7 @@ function StrengthsDisplay({ subscriber }: { subscriber: Subscriber }) {
     return null;
   }
 
-  // Group by thematic
+  // Group by thematic, then sort by count descending
   const grouped: Record<string, { name: string; index: number; gates: readonly number[] }[]> = {};
   strengths.forEach((s, i) => {
     if (!grouped[s.thematic]) grouped[s.thematic] = [];
@@ -157,14 +157,17 @@ function StrengthsDisplay({ subscriber }: { subscriber: Subscriber }) {
     });
   });
 
+  const sortedThematics = Object.entries(grouped).sort((a, b) => b[1].length - a[1].length);
+
   return (
     <div className={styles.welcomeSection}>
       <div className={styles.welcomeCard}>
         <h2 className={styles.welcomeHeading}>Strengths ({strengths.length})</h2>
         <div className={styles.shadowsList}>
-          {Object.entries(grouped).map(([thematic, items]) => (
+          {sortedThematics.map(([thematic, items]) => (
             <div key={thematic} className={styles.shadowItem}>
               <div className={styles.shadowHeader}>
+                <span className={styles.shadowNumber}>{items.length}</span>
                 <h3 className={styles.shadowName}>{thematic}</h3>
               </div>
               <div className={styles.shadowDetails}>
