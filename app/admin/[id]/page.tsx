@@ -8,7 +8,7 @@ import ChartDisplay from '@/components/admin/chart-display';
 import ChartHero from '@/components/chart-hero';
 import ChartImage from '@/components/admin/chart-image';
 import hdChart from '@/lib/hd-chart';
-import { shadowDescriptions, shadowThemes, shadowLessons, shadowPressures } from '@/lib/hd-chart/constants';
+import { shadowDescriptions, shadowThemes, shadowLessons, shadowPressures, channelStrengths } from '@/lib/hd-chart/constants';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import styles from './detail.module.css';
 
@@ -123,6 +123,8 @@ export default function AdminDetailPage({
         <ChartHero subscriber={subscriber} />
       </div>
 
+      <StrengthsDisplay subscriber={subscriber} />
+
       <ShadowsDisplay subscriber={subscriber} />
 
       <WelcomeSeries subscriber={subscriber} onSubscriberUpdate={setSubscriber} />
@@ -130,6 +132,55 @@ export default function AdminDetailPage({
       <EmailPreviews subscriber={subscriber} />
 
       <ChartJson chart={subscriber.chart} />
+    </div>
+  );
+}
+
+function StrengthsDisplay({ subscriber }: { subscriber: Subscriber }) {
+  const hd = hdChart(subscriber.chart.chart);
+  const strengths = hd.getStrengths();
+  const channels = subscriber.chart.chart.channels ?? [];
+
+  if (strengths.length === 0) {
+    return null;
+  }
+
+  // Group by thematic
+  const grouped: Record<string, { name: string; index: number; gates: readonly number[] }[]> = {};
+  strengths.forEach((s, i) => {
+    if (!grouped[s.thematic]) grouped[s.thematic] = [];
+    const channelIndex = channels[i];
+    grouped[s.thematic].push({
+      name: s.name,
+      index: channelIndex,
+      gates: channelStrengths[channelIndex]?.gates ?? [],
+    });
+  });
+
+  return (
+    <div className={styles.welcomeSection}>
+      <div className={styles.welcomeCard}>
+        <h2 className={styles.welcomeHeading}>Strengths ({strengths.length})</h2>
+        <div className={styles.shadowsList}>
+          {Object.entries(grouped).map(([thematic, items]) => (
+            <div key={thematic} className={styles.shadowItem}>
+              <div className={styles.shadowHeader}>
+                <h3 className={styles.shadowName}>{thematic}</h3>
+              </div>
+              <div className={styles.shadowDetails}>
+                {items.map((item) => (
+                  <div key={item.index} className={styles.shadowDetail}>
+                    <span className={styles.shadowDetailLabel}>{item.name}</span>
+                    <span className={styles.shadowDetailText}>
+                      Gates {item.gates.join('-')} (#{item.index})
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

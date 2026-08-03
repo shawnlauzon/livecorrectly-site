@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import ChartImage from "./admin/chart-image";
 import ChartReadout from "./chart-readout";
@@ -36,6 +36,16 @@ interface ChartHeroProps {
 
 export default function ChartHero({ subscriber }: ChartHeroProps) {
   const [chartOpen, setChartOpen] = useState(false);
+  const closeLightbox = useCallback(() => setChartOpen(false), []);
+
+  useEffect(() => {
+    if (!chartOpen) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') closeLightbox();
+    }
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [chartOpen, closeLightbox]);
 
   const chartRecord = subscriber.chart;
   const hd = hdChart(chartRecord.chart);

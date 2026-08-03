@@ -435,3 +435,46 @@ export const gateTraits: Record<number, {
   63: { trait: "Doubt", harmonicGate: 4, harmonicTrait: "Formulization", strength: "Logic Process" },
   64: { trait: "Abstraction", harmonicGate: 47, harmonicTrait: "Realization", strength: "Experiential Process" }
 };
+
+/**
+ * Channel strengths — indexed by the 0-based channel number from the Maia API.
+ * Each entry maps a channel index to its strength name, gate pair, and thematic group.
+ */
+export const channelStrengths = [
+  { name: 'Higher Principles', gates: [10, 20], thematic: 'Empowerment' },
+  { name: 'Charisma', gates: [20, 34], thematic: 'Empowerment' },
+  { name: 'Power', gates: [34, 57], thematic: 'Empowerment' },
+  { name: 'Perfected Form', gates: [10, 57], thematic: 'Empowerment' },
+  { name: 'Creative Process', gates: [24, 61], thematic: 'Empowerment' },
+  { name: 'Efficiency', gates: [23, 43], thematic: 'Empowerment' },
+  { name: 'Tenaciousness', gates: [28, 38], thematic: 'Empowerment' },
+  { name: 'Spontaneity', gates: [20, 57], thematic: 'Empowerment' },
+  { name: 'Provoking', gates: [39, 55], thematic: 'Empowerment' },
+  { name: 'Socialness', gates: [12, 22], thematic: 'Empowerment' },
+  { name: 'Innovation', gates: [3, 60], thematic: 'Empowerment' },
+  { name: 'Direction', gates: [2, 14], thematic: 'Empowerment' },
+  { name: 'Inspiration', gates: [1, 8], thematic: 'Empowerment' },
+  { name: 'Conviction', gates: [10, 34], thematic: 'Empowerment' },
+  { name: 'Competitiveness', gates: [25, 51], thematic: 'Empowerment' },
+  { name: 'Logic Process', gates: [4, 63], thematic: 'Sharing' },
+  { name: 'Organization', gates: [17, 62], thematic: 'Sharing' },
+  { name: 'Judgment', gates: [18, 58], thematic: 'Sharing' },
+  { name: 'Talent', gates: [16, 48], thematic: 'Sharing' },
+  { name: 'Concentration', gates: [9, 52], thematic: 'Sharing' },
+  { name: 'Patterns & Rhythms', gates: [5, 15], thematic: 'Sharing' },
+  { name: 'Leadership', gates: [7, 31], thematic: 'Sharing' },
+  { name: 'Imagination', gates: [30, 41], thematic: 'Sharing' },
+  { name: 'The Experiencer', gates: [35, 36], thematic: 'Sharing' },
+  { name: 'Experiential Process', gates: [47, 64], thematic: 'Sharing' },
+  { name: 'Curiosity', gates: [11, 56], thematic: 'Sharing' },
+  { name: 'Cycles', gates: [42, 53], thematic: 'Sharing' },
+  { name: 'Discovery', gates: [29, 46], thematic: 'Sharing' },
+  { name: 'Witnessing', gates: [13, 33], thematic: 'Sharing' },
+  { name: 'Ambition', gates: [32, 54], thematic: 'Support' },
+  { name: 'Transmitter', gates: [26, 44], thematic: 'Support' },
+  { name: 'Resources', gates: [19, 49], thematic: 'Support' },
+  { name: 'Community', gates: [37, 40], thematic: 'Support' },
+  { name: 'Management', gates: [21, 45], thematic: 'Support' },
+  { name: 'Interaction', gates: [6, 59], thematic: 'Support' },
+  { name: 'Custodianship', gates: [27, 50], thematic: 'Support' },
+] as const;

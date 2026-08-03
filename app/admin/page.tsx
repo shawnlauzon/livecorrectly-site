@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Subscriber } from '@/lib/types/subscriber';
 import { WELCOME_SERIES_LENGTH } from '@/lib/welcome-email';
+import { channelStrengths } from '@/lib/hd-chart/constants';
 import styles from './admin.module.css';
 
 async function fetchSubscribers(pwd: string): Promise<{ ok: true; data: Subscriber[] } | { ok: false; error: string }> {
@@ -172,8 +173,8 @@ export default function AdminPage() {
             <tr>
               <th>Email</th>
               <th>Name</th>
-              <th>Birth Date</th>
               <th>Type</th>
+              <th>Strengths</th>
               <th style={{ textAlign: 'center', width: '4rem' }}>Status</th>
               <th style={{ textAlign: 'center' }}>Next Email</th>
               <th>Created</th>
@@ -190,13 +191,19 @@ export default function AdminPage() {
                   {subscriber.first_name}{' '}
                   {subscriber.last_name ? subscriber.last_name : ''}
                 </td>
-                <td>{subscriber.birth_date}</td>
                 <td>
                   {subscriber.chart
                     ? ['Generator', 'MG', 'Manifestor', 'Projector', 'Reflector'][
                         subscriber.chart.chart.type
                       ]
                     : '-'}
+                </td>
+                <td>
+                  {subscriber.chart?.chart.channels?.length
+                    ? subscriber.chart.chart.channels
+                        .map(i => `${channelStrengths[i]?.name ?? '?'} (${i})`)
+                        .join(', ')
+                    : '—'}
                 </td>
                 <td className={subscriber.email_status === 'active' ? styles.statusOk : styles.statusBad}>
                   {subscriber.email_status === 'active' ? (

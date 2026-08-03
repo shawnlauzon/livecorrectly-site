@@ -18,6 +18,7 @@ import {
   shadowToCenterIndex,
   gateTraits,
   groupThemes,
+  channelStrengths,
   type CenterStatus
 } from './constants';
 import { bridgeDescriptions } from './bridge-descriptions';
@@ -238,6 +239,19 @@ export default function hdChart(chart: Chart) {
   };
 
   /**
+   * Get strengths (defined channels) for this chart.
+   * Returns strength name and thematic group for each channel index.
+   */
+  const getStrengths = (): { name: string; thematic: string }[] => {
+    return (chart.channels ?? [])
+      .filter(i => i >= 0 && i < channelStrengths.length)
+      .map(i => ({
+        name: channelStrengths[i].name,
+        thematic: channelStrengths[i].thematic,
+      }));
+  };
+
+  /**
    * Check if the chart has "near" bridging gates (specific per-gate descriptions).
    */
   const hasNearBridges = (): boolean => {
@@ -285,6 +299,9 @@ export default function hdChart(chart: Chart) {
     isThroatDefined: () => isCenterDefined(getCenterStatus(6) ?? 0),
     isAjnaDefined: () => isCenterDefined(getCenterStatus(7) ?? 0),
     isHeadDefined: () => isCenterDefined(getCenterStatus(8) ?? 0),
+
+    // Strength functions
+    getStrengths,
 
     // Shadow functions
     hasBringingTraitsShadow,
