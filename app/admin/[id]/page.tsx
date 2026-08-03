@@ -8,7 +8,7 @@ import ChartDisplay from '@/components/admin/chart-display';
 import ChartHero from '@/components/chart-hero';
 import ChartImage from '@/components/admin/chart-image';
 import hdChart from '@/lib/hd-chart';
-import { shadowNames, shadowDescriptions, shadowThemes, shadowLessons, shadowPressures, channelStrengths } from '@/lib/hd-chart/constants';
+import { shadowNames, shadowDescriptions, shadowThemes, shadowLessons, shadowPressures, channelStrengths, gateTraits } from '@/lib/hd-chart/constants';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import styles from './detail.module.css';
 
@@ -137,45 +137,73 @@ export default function AdminDetailPage({
 }
 
 function StrengthsDisplay({ subscriber }: { subscriber: Subscriber }) {
-  const hd = hdChart(subscriber.chart.chart);
+  const chart = subscriber.chart.chart;
+  const hd = hdChart(chart);
   const strengths = hd.getStrengths();
-  const channels = subscriber.chart.chart.channels ?? [];
+  const channels = chart.channels ?? [];
+  const planets = chart.planets ?? [];
 
   if (strengths.length === 0) {
     return null;
   }
 
-  // Group by thematic, then sort by count descending
-  const grouped: Record<string, { name: string; index: number; gates: readonly number[] }[]> = {};
+  // Group strengths by thematic
+  const grouped: Record<string, { name: string; gates: readonly number[] }[]> = {};
   strengths.forEach((s, i) => {
     if (!grouped[s.thematic]) grouped[s.thematic] = [];
     const channelIndex = channels[i];
     grouped[s.thematic].push({
       name: s.name,
-      index: channelIndex,
       gates: channelStrengths[channelIndex]?.gates ?? [],
     });
   });
 
-  const sortedThematics = Object.entries(grouped).sort((a, b) => b[1].length - a[1].length);
+  // Count planetary activations per gate
+  const gateActivationCount: Record<number, number> = {};
+  for (const p of planets) {
+    gateActivationCount[p.gate] = (gateActivationCount[p.gate] ?? 0) + 1;
+  }
+
+  // Count planetary activations per thematic:
+  // sum gate activation counts for all gates in a thematic's defined channels
+  const thematicActivations: Record<string, number> = {};
+  for (const [thematic, items] of Object.entries(grouped)) {
+    const thematicGates = new Set(items.flatMap(item => [...item.gates]));
+    thematicActivations[thematic] = [...thematicGates].reduce(
+      (sum, g) => sum + (gateActivationCount[g] ?? 0), 0
+    );
+  }
+
+  const sortedThematics = Object.entries(grouped)
+    .sort((a, b) => (thematicActivations[b[0]] ?? 0) - (thematicActivations[a[0]] ?? 0));
+
+  const totalActivations = Object.values(thematicActivations).reduce((sum, n) => sum + n, 0);
 
   return (
     <div className={styles.welcomeSection}>
       <div className={styles.welcomeCard}>
-        <h2 className={styles.welcomeHeading}>Strengths ({strengths.length})</h2>
+        <h2 className={styles.welcomeHeading}>Strengths — {totalActivations} activations</h2>
         <div className={styles.shadowsList}>
           {sortedThematics.map(([thematic, items]) => (
             <div key={thematic} className={styles.shadowItem}>
               <div className={styles.shadowHeader}>
-                <span className={styles.shadowNumber}>{items.length}</span>
+                <span className={styles.shadowNumber}>{thematicActivations[thematic]}</span>
                 <h3 className={styles.shadowName}>{thematic}</h3>
               </div>
               <div className={styles.shadowDetails}>
                 {items.map((item) => (
-                  <div key={item.index} className={styles.shadowDetail}>
+                  <div key={item.name} className={styles.shadowDetail}>
                     <span className={styles.shadowDetailLabel}>{item.name}</span>
                     <span className={styles.shadowDetailText}>
-                      Gates {item.gates.join('-')} (#{item.index})
+                      {item.gates.map(g => {
+                        const count = gateActivationCount[g] ?? 0;
+                        return (
+                          <span key={g}>
+                            {count > 0 && <span className={styles.traitActivationCount}>{count}</span>}
+                            {gateTraits[g]?.trait ?? 'Unknown'} ({g})
+                          </span>
+                        );
+                      }).reduce<React.ReactNode[]>((acc, el, i) => i === 0 ? [el] : [...acc, ' + ', el], [])}
                     </span>
                   </div>
                 ))}
@@ -199,7 +227,7 @@ function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
   return (
     <div className={styles.welcomeSection}>
       <div className={styles.welcomeCard}>
-        <h2 className={styles.welcomeHeading}>Shadows ({shadows.length})</h2>
+        <h2 className={styles.welcomeHeading}>Shadows</h2>
         <div className={styles.shadowsList}>
           {shadows.map((functionName, index) => {
             // Determine the shadow name for display
@@ -213,7 +241,7 @@ function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
             return (
             <div key={functionName} className={styles.shadowItem}>
               <div className={styles.shadowHeader}>
-                <span className={styles.shadowNumber}>{index + 1}</span>
+                <span className={styles.shadowOrdinal}>{index + 1}.</span>
                 <h3 className={styles.shadowName}>{displayShadowName || functionName}</h3>
               </div>
               {functionName === 'Bringing Traits/Strengths' ? (

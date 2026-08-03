@@ -276,6 +276,14 @@
   flex-shrink: 0;
 }
 
+.shadowOrdinal {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
 .shadowName {
   font-family: var(--display);
   font-size: 1rem;
@@ -311,6 +319,22 @@
   color: var(--muted);
   min-width: 5rem;
   flex-shrink: 0;
+}
+
+.traitActivationCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 50%;
+  background: var(--grape);
+  color: white;
+  font-family: var(--body);
+  font-size: 0.625rem;
+  font-weight: 700;
+  margin-right: 0.25rem;
+  vertical-align: middle;
 }
 
 .shadowDetailText {
