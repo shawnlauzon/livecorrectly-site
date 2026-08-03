@@ -461,3 +461,44 @@
   background: white;
   min-height: 200px;
 }
+
+/* Chart JSON section */
+.chartJsonDetails {
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.chartJsonButton {
+  display: block;
+  padding: 0.75rem 1rem;
+  font-family: var(--body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--grape);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.chartJsonButton::-webkit-details-marker {
+  display: none;
+}
+
+.chartJsonButton:hover {
+  background: var(--paper);
+}
+
+.chartJsonPre {
+  margin: 0;
+  padding: 1rem;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--ink);
+  overflow-x: auto;
+  max-height: 600px;
+  overflow-y: auto;
+}

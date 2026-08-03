@@ -128,6 +128,8 @@ export default function AdminDetailPage({
       <WelcomeSeries subscriber={subscriber} onSubscriberUpdate={setSubscriber} />
 
       <EmailPreviews subscriber={subscriber} />
+
+      <ChartJson chart={subscriber.chart} />
     </div>
   );
 }
@@ -570,6 +572,21 @@ function EmailPreviews({ subscriber }: { subscriber: Subscriber }) {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ChartJson({ chart }: { chart: import('@/lib/types/chart').ChartRecord }) {
+  return (
+    <div className={styles.welcomeSection}>
+      <details className={styles.chartJsonDetails}>
+        <summary className={styles.chartJsonButton}>
+          Show Chart JSON
+        </summary>
+        <pre className={styles.chartJsonPre}>
+          {JSON.stringify(chart, null, 2)}
+        </pre>
+      </details>
     </div>
   );
 }
