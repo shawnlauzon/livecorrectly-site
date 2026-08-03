@@ -102,14 +102,14 @@ export default function hdChart(chart: Chart) {
 
   /**
    * Check if "Bringing Traits/Strengths" shadow applies.
-   * This shadow is only present if:
-   * 1. bridges field is not null AND
-   * 2. definition is 2 (Collaborative) or 4 (Subjective)
+   * This shadow is present when definition is 2 (split/collaborative) or
+   * 4 (quadruple/subjective) — regardless of whether the bridges field
+   * exists. When bridges data is missing, the admin UI shows a default
+   * description instead of per-gate details.
    */
   const hasBringingTraitsShadow = (): boolean => {
-    if (!chart.bridges || chart.definition === undefined) return false;
+    if (chart.definition === undefined) return false;
     // definition: 0=none, 1=single, 2=split, 3=triple, 4=quadruple
-    // Collaborative = 2 (split), Subjective = 4 (quadruple)
     return chart.definition === 2 || chart.definition === 4;
   };
 
@@ -237,6 +237,21 @@ export default function hdChart(chart: Chart) {
     });
   };
 
+  /**
+   * Check if the chart has "near" bridging gates (specific per-gate descriptions).
+   */
+  const hasNearBridges = (): boolean => {
+    return Array.isArray(chart.bridges?.bridgingGates) && chart.bridges!.bridgingGates!.length > 0;
+  };
+
+  /**
+   * Check if the chart has "far" bridging gates (triple/quadruple split —
+   * generic description about blaming others / working with others).
+   */
+  const hasFarBridges = (): boolean => {
+    return Array.isArray(chart.bridges?.bridgingFarGates) && chart.bridges!.bridgingFarGates!.length > 0;
+  };
+
   return {
     type,
     isGenerator: () => chart.type === 0 || chart.type === 1,
@@ -275,5 +290,7 @@ export default function hdChart(chart: Chart) {
     hasBringingTraitsShadow,
     getShadows,
     getBridgeDescriptions,
+    hasNearBridges,
+    hasFarBridges,
   };
 }

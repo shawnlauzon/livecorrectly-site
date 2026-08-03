@@ -154,28 +154,54 @@ function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
                 <h3 className={styles.shadowName}>{shadowName}</h3>
               </div>
               {shadowName === 'Bringing Traits/Strengths' ? (
-                <div className={styles.bridgeGates}>
-                  {hd.getBridgeDescriptions().map((bridge) => (
-                    <div key={bridge.gate} className={styles.bridgeGate}>
-                      <span className={styles.bridgeGateNumber}>Gate {bridge.gate}</span>
-                      <p className={styles.bridgeDescription}>{bridge.description}</p>
-                      <div className={styles.bridgeDetails}>
-                        <div className={styles.bridgeDetailRow}>
-                          <span className={styles.bridgeDetailLabel}>Trait:</span>
-                          <span className={styles.bridgeDetailText}>{bridge.trait}</span>
-                        </div>
-                        <div className={styles.bridgeDetailRow}>
-                          <span className={styles.bridgeDetailLabel}>Harmonic Trait:</span>
-                          <span className={styles.bridgeDetailText}>{bridge.harmonicTrait}</span>
-                        </div>
-                        <div className={styles.bridgeDetailRow}>
-                          <span className={styles.bridgeDetailLabel}>Strength:</span>
-                          <span className={styles.bridgeDetailText}>{bridge.strength}</span>
+                hd.hasNearBridges() ? (
+                  <div className={styles.bridgeGates}>
+                    {hd.getBridgeDescriptions().map((bridge) => (
+                      <div key={bridge.gate} className={styles.bridgeGate}>
+                        <span className={styles.bridgeGateNumber}>Gate {bridge.gate}</span>
+                        <p className={styles.bridgeDescription}>{bridge.description}</p>
+                        <div className={styles.bridgeDetails}>
+                          <div className={styles.bridgeDetailRow}>
+                            <span className={styles.bridgeDetailLabel}>Trait:</span>
+                            <span className={styles.bridgeDetailText}>{bridge.trait}</span>
+                          </div>
+                          <div className={styles.bridgeDetailRow}>
+                            <span className={styles.bridgeDetailLabel}>Harmonic Trait:</span>
+                            <span className={styles.bridgeDetailText}>{bridge.harmonicTrait}</span>
+                          </div>
+                          <div className={styles.bridgeDetailRow}>
+                            <span className={styles.bridgeDetailLabel}>Strength:</span>
+                            <span className={styles.bridgeDetailText}>{bridge.strength}</span>
+                          </div>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                ) : hd.hasFarBridges() ? (
+                  <div className={styles.shadowDetails}>
+                    <p className={styles.shadowDescription}>
+                      You may have a tendency to blame others and become a victim, believing that other people are the cause of the problem.
+                    </p>
+                    <div className={styles.shadowDetail}>
+                      <span className={styles.shadowDetailLabel}>Wisdom:</span>
+                      <span className={styles.shadowDetailText}>
+                        You are designed to work with others and can help objectively work on problems that exist between others.
+                      </span>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <div className={styles.shadowDetails}>
+                    <p className={styles.shadowDescription}>
+                      You may feel like something is missing and blame yourself or try to overcompensate in the area or areas you feel you are lacking.
+                    </p>
+                    <div className={styles.shadowDetail}>
+                      <span className={styles.shadowDetailLabel}>Wisdom:</span>
+                      <span className={styles.shadowDetailText}>
+                        You are designed to work with others, and you will naturally attract others that have the skills and strengths you feel you lack, so don&#39;t try to do it on your own.
+                      </span>
+                    </div>
+                  </div>
+                )
               ) : (
                 <>
                   <p className={styles.shadowDescription}>{shadowDescriptions[shadowName]}</p>
