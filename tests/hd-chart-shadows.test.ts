@@ -139,7 +139,9 @@ describe('Shadow Functionality', () => {
       expect(hd.hasBringingTraitsShadow()).toBe(true);
     });
 
-    it('should return false when bridges is null', () => {
+    it('should return true when bridges is null but definition is Collaborative (2)', () => {
+      // The shadow applies based on definition type alone — bridge data
+      // is only needed for per-gate details, not for shadow presence.
       const chart: Chart = {
         type: 0,
         view: 0,
@@ -155,7 +157,7 @@ describe('Shadow Functionality', () => {
         variable: 0,
         authority: 0,
         cognition: 0,
-        definition: 2, // Collaborative, but no bridges
+        definition: 2, // Collaborative — shadow applies even without bridge data
         motivation: 0,
         environment: 0,
         transference: 0,
@@ -166,7 +168,7 @@ describe('Shadow Functionality', () => {
       };
 
       const hd = hdChart(chart);
-      expect(hd.hasBringingTraitsShadow()).toBe(false);
+      expect(hd.hasBringingTraitsShadow()).toBe(true);
     });
 
     it('should return false when definition is not Collaborative or Subjective', () => {

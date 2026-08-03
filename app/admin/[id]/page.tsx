@@ -8,7 +8,7 @@ import ChartDisplay from '@/components/admin/chart-display';
 import ChartHero from '@/components/chart-hero';
 import ChartImage from '@/components/admin/chart-image';
 import hdChart from '@/lib/hd-chart';
-import { shadowDescriptions, shadowThemes, shadowLessons, shadowPressures, channelStrengths } from '@/lib/hd-chart/constants';
+import { shadowNames, shadowDescriptions, shadowThemes, shadowLessons, shadowPressures, channelStrengths } from '@/lib/hd-chart/constants';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import styles from './detail.module.css';
 
@@ -201,13 +201,22 @@ function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
       <div className={styles.welcomeCard}>
         <h2 className={styles.welcomeHeading}>Shadows ({shadows.length})</h2>
         <div className={styles.shadowsList}>
-          {shadows.map((shadowName, index) => (
-            <div key={shadowName} className={styles.shadowItem}>
+          {shadows.map((functionName, index) => {
+            // Determine the shadow name for display
+            let displayShadowName = shadowNames[functionName] ?? '';
+            if (functionName === 'Bringing Traits/Strengths') {
+              displayShadowName = hd.hasFarBridges()
+                ? 'Blaming others and becoming a victim'
+                : 'Blaming yourself for something missing';
+            }
+
+            return (
+            <div key={functionName} className={styles.shadowItem}>
               <div className={styles.shadowHeader}>
                 <span className={styles.shadowNumber}>{index + 1}</span>
-                <h3 className={styles.shadowName}>{shadowName}</h3>
+                <h3 className={styles.shadowName}>{displayShadowName || functionName}</h3>
               </div>
-              {shadowName === 'Bringing Traits/Strengths' ? (
+              {functionName === 'Bringing Traits/Strengths' ? (
                 hd.hasNearBridges() ? (
                   <div className={styles.bridgeGates}>
                     {hd.getBridgeDescriptions().map((bridge) => (
@@ -258,25 +267,26 @@ function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
                 )
               ) : (
                 <>
-                  <p className={styles.shadowDescription}>{shadowDescriptions[shadowName]}</p>
+                  <p className={styles.shadowDescription}>{shadowDescriptions[functionName]}</p>
                   <div className={styles.shadowDetails}>
                     <div className={styles.shadowDetail}>
                       <span className={styles.shadowDetailLabel}>Theme:</span>
-                      <span className={styles.shadowDetailText}>{shadowThemes[shadowName]}</span>
+                      <span className={styles.shadowDetailText}>{shadowThemes[functionName]}</span>
                     </div>
                     <div className={styles.shadowDetail}>
                       <span className={styles.shadowDetailLabel}>Lesson:</span>
-                      <span className={styles.shadowDetailText}>{shadowLessons[shadowName]}</span>
+                      <span className={styles.shadowDetailText}>{shadowLessons[functionName]}</span>
                     </div>
                     <div className={styles.shadowDetail}>
                       <span className={styles.shadowDetailLabel}>Pressure:</span>
-                      <span className={styles.shadowDetailText}>{shadowPressures[shadowName]}</span>
+                      <span className={styles.shadowDetailText}>{shadowPressures[functionName]}</span>
                     </div>
                   </div>
                 </>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

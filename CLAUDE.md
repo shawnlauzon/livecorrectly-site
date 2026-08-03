@@ -112,22 +112,28 @@ The chart is generated via the **Maia Mechanics API** (external HTTP call from t
 
 When `NEXT_PUBLIC_MAIA_API_KEY` is unset (local dev), the form falls back to `public/fake-mmi-response.json`.
 
-## Shadows & Bridge Descriptions
+## BG5 Functions & Shadows
 
-**Shadows** are BG5 (business-focused Human Design) concepts representing conditioning patterns based on undefined/open centers. The admin UI displays up to 10 shadows in priority order:
+In BG5 (business-focused Human Design), **functions** are the 9 centers, and **shadows** are the conditioning patterns that appear when a function is undefined/open. The admin UI displays up to 10 functions with their shadow names in priority order:
 
-1. **Bringing Traits/Strengths** (conditional) — only present if `chart.bridges` exists AND definition is 2 (split) or 4 (quadruple split)
-2. **Willpower** (Ego center undefined)
-3. **Emotional Intelligence** (Solar Plexus undefined)
-4. **Identity & Direction** (G Center undefined)
-5. **Survival Instinct** (Spleen undefined)
-6. **Conceptualization** (Ajna undefined)
-7. **Inspiration** (Head undefined)
-8. **Drive & Stamina** (Root undefined)
-9. **Energy Resource** (Sacral undefined)
-10. **Communication & Action** (Throat undefined)
+| # | Function (center) | Shadow (conditioning pattern) |
+|---|---|---|
+| 1 | **Bringing Traits/Strengths** (conditional) | Near: Blaming yourself for something missing / Far: Blaming others and becoming a victim |
+| 2 | **Willpower** (Ego undefined) | Overcompensating |
+| 3 | **Emotional Intelligence** (Solar Plexus undefined) | Touchy & nervous |
+| 4 | **Identity & Direction** (G Center undefined) | Role confusion |
+| 5 | **Survival Instinct** (Spleen undefined) | Unable to let go |
+| 6 | **Conceptualization** (Ajna undefined) | Mentally defensive |
+| 7 | **Inspiration** (Head undefined) | Losing focus |
+| 8 | **Drive & Stamina** (Root undefined) | Too much in a hurry |
+| 9 | **Energy Resource** (Sacral undefined) | Over zealous |
+| 10 | **Communication & Action** (Throat undefined) | Trying to be the star |
 
-Shadow data is in `lib/hd-chart/constants.ts` (`shadowNames`, `shadowThemes`, `shadowLessons`, `shadowPressures`, `shadowDescriptions`).
+Function/shadow data is in `lib/hd-chart/constants.ts`:
+- `functionNames` — ordered array of BG5 function names (the center-based capabilities)
+- `shadowNames` — `Record<string, string>` mapping each function name to its shadow name (the conditioning pattern)
+- `functionToCenterIndex` — maps function name to chart center array index
+- `shadowThemes`, `shadowLessons`, `shadowPressures`, `shadowDescriptions`, `shadowWriteups` — shadow properties keyed by function name
 
 ### Bridge Descriptions (Shadow #1)
 

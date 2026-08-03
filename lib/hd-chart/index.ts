@@ -14,8 +14,8 @@ import {
   isCenterDefined,
   isCenterUndefined,
   isCenterOpen,
-  shadowNames,
-  shadowToCenterIndex,
+  functionNames,
+  functionToCenterIndex,
   gateTraits,
   groupThemes,
   channelStrengths,
@@ -135,20 +135,20 @@ export default function hdChart(chart: Chart) {
 
     // Check for shadow #1: Bringing Traits/Strengths (conditional)
     if (hasBringingTraitsShadow()) {
-      shadows.push(shadowNames[0]);
+      shadows.push(functionNames[0]);
     }
 
     // Check shadows 2-10 in priority order
     // Skip index 0 (already handled above)
-    for (let i = 1; i < shadowNames.length; i++) {
-      const shadowName = shadowNames[i];
-      const centerIndex = shadowToCenterIndex[shadowName];
+    for (let i = 1; i < functionNames.length; i++) {
+      const funcName = functionNames[i];
+      const centerIndex = functionToCenterIndex[funcName];
 
       if (centerIndex !== null && centerIndex !== undefined) {
         const status = getCenterStatus(centerIndex);
         // Shadow applies if center is undefined (status 0 or 1)
         if (status === 0 || status === 1) {
-          shadows.push(shadowName);
+          shadows.push(funcName);
         }
       }
     }

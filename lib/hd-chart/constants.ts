@@ -206,12 +206,15 @@ export function isCenterOpen(status: CenterStatus): boolean {
 // --- Shadow/BG5 Functions ---
 
 /**
- * Shadow names in priority order (1-10).
- * Index 0 = shadow #1 (Bringing Traits/Strengths - conditional)
- * Index 1 = shadow #2 (Willpower - Ego center)
+ * BG5 function names in priority order (1-10).
+ * Functions are the 9 centers; shadows are the conditioning patterns
+ * that appear when a function is undefined/open.
+ *
+ * Index 0 = function #1 (Bringing Traits/Strengths - conditional)
+ * Index 1 = function #2 (Willpower - Ego center)
  * etc.
  */
-export const shadowNames = [
+export const functionNames = [
   'Bringing Traits/Strengths',
   'Willpower',
   'Emotional Intelligence',
@@ -225,10 +228,27 @@ export const shadowNames = [
 ] as const;
 
 /**
- * Map from shadow name to center index.
+ * BG5 shadow names — the conditioning pattern for each undefined function.
+ * Keyed by function name.
+ */
+export const shadowNames: Record<string, string> = {
+  'Bringing Traits/Strengths': 'Blaming yourself for something missing',
+  'Willpower': 'Overcompensating',
+  'Emotional Intelligence': 'Touchy & nervous',
+  'Identity & Direction': 'Role confusion',
+  'Survival Instinct': 'Unable to let go',
+  'Conceptualization': 'Mentally defensive',
+  'Inspiration': 'Losing focus',
+  'Drive & Stamina': 'Too much in a hurry',
+  'Energy Resource': 'Over zealous',
+  'Communication & Action': 'Trying to be the star',
+};
+
+/**
+ * Map from function name to center index.
  * Special: 'Bringing Traits/Strengths' has no center (uses bridges field).
  */
-export const shadowToCenterIndex: Record<string, number | null> = {
+export const functionToCenterIndex: Record<string, number | null> = {
   'Bringing Traits/Strengths': null,
   'Willpower': 4, // Ego
   'Emotional Intelligence': 3, // Solar Plexus
