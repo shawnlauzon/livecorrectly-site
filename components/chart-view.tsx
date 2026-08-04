@@ -13,6 +13,7 @@ interface ChartViewProps {
 export default function ChartView({ subscriberId }: ChartViewProps) {
   const searchParams = useSearchParams();
   const isFromForm = searchParams.get('utm_source') === 'form';
+  const isStationAustin = searchParams.get('utm_campaign') === 'station_austin_followup';
   const [subscriber, setSubscriber] = useState<Subscriber | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -109,17 +110,23 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
               </p>
             ) : (
               <>
-                <p className={styles.resultP}>
-                  Can&rsquo;t find the email series, or want to receive it again
-                  from the beginning?
-                </p>
+                {!isStationAustin && (
+                  <p className={styles.resultP}>
+                    Can&rsquo;t find the email series, or want to receive it again
+                    from the beginning?
+                  </p>
+                )}
                 <button
                   className={styles.btn}
                   style={{ width: 'auto' }}
                   onClick={handleRestart}
                   disabled={restartState === 'loading'}
                 >
-                  {restartState === 'loading' ? 'Resending\u2026' : 'Resend the series'}
+                  {restartState === 'loading'
+                    ? 'Resending\u2026'
+                    : isStationAustin
+                      ? 'Yes I want to see more: start the series!'
+                      : 'Resend the series'}
                 </button>
               </>
             )}

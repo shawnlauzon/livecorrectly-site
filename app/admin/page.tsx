@@ -139,7 +139,6 @@ export default function AdminPage() {
     if (sub.email_status !== 'active') return '—';
     if (sub.seq_position >= WELCOME_SERIES_LENGTH) return 'Done';
     if (sub.next_send_at) return `Day ${sub.seq_position + 1}`;
-    if (sub.seq_position === 0) return 'Welcome';
     return `Paused @ ${sub.seq_position}`;
   };
 
