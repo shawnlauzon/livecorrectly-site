@@ -119,7 +119,7 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
     {
       scenes: `\
 - You've got a stack of certifications and you always want more
-- You make promises to prove you're worthy, and then you're trapped by them
+- You make promises to show you care, and then you end up bailing
 - You rank everyone you know, and you're not at the top`,
       story: `I have the same shadow as you. Maybe yours shows up differently, but I bet they're close. It took me a long time to realize I had a self-worth issue, until I could recognize the signs. And then I could stop beating myself up, because I knew it wasn't a personal failure. It's just mechanics.`,
       relief: `you'll know you can stop doing things to prove yourself, and you'll have an alternative to making promises you can't keep`,

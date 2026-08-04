@@ -49,7 +49,7 @@ export const Welcome0 = ({
 
   return (
     <EmailLayout
-      preview="It's not a personal failure."
+      preview="It's nothing personal. It's just mechanics."
       unsubscribeUrl={unsubscribeUrl}
     >
       {/* Greeting + common opener */}

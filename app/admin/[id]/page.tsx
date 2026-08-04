@@ -585,6 +585,7 @@ const EMAIL_LABELS = [
 function EmailPreviewItem({ subscriber, step, label }: { subscriber: Subscriber; step: number; label: string }) {
   const [html, setHtml] = useState<string | null>(null);
   const [subject, setSubject] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -612,8 +613,9 @@ function EmailPreviewItem({ subscriber, step, label }: { subscriber: Subscriber;
           }
           return res.json();
         })
-        .then((data: { subject: string; html: string }) => {
+        .then((data: { subject: string; preview: string; html: string }) => {
           setSubject(data.subject);
+          setPreview(data.preview);
           setHtml(data.html);
         })
         .catch((err: Error) => {
@@ -659,6 +661,9 @@ function EmailPreviewItem({ subscriber, step, label }: { subscriber: Subscriber;
         )}
         {subject && (
           <div className={styles.emailPreviewSubject}>Subject: {subject}</div>
+        )}
+        {preview && (
+          <div className={styles.emailPreviewPreview}>Preview: {preview}</div>
         )}
         {html && (
           <iframe

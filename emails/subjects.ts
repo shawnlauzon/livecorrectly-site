@@ -1,5 +1,28 @@
 import { EmailChartData } from '../lib/hd-chart/parse-for-email';
 
+export function getWelcomePreview(
+  step: number,
+  firstName: string,
+  chart: EmailChartData
+): string {
+  switch (step) {
+    case 0:
+      return "It's nothing personal. It's just mechanics.";
+    case 1:
+      return `${firstName}, you are designed to be a ${chart.careerDesign}`;
+    case 2:
+      return `You are designed to ${chart.strategy}`;
+    case 3:
+      return `To make decisions you can trust, ${chart.innerAuthorityDescription}`;
+    case 4:
+      return `Follow this advice for less ${chart.notSelfTheme} and more ${chart.signatureTheme}`;
+    case 5:
+      return `Congratulations ${firstName} on entering your life of flow`;
+    default:
+      return '';
+  }
+}
+
 export function getWelcomeSubject(
   step: number,
   firstName: string,
@@ -7,7 +30,7 @@ export function getWelcomeSubject(
 ): string {
   switch (step) {
     case 0:
-      return 'Something your design says about you';
+      return 'The chart you asked for, and what it shows';
     case 1:
       return `[Day 1] ${firstName}, you are designed to be a ${chart.careerDesign}`;
     case 2:

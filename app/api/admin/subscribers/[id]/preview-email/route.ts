@@ -3,7 +3,7 @@ import { render } from 'react-email';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getWelcomeSubject } from '@/emails/subjects';
+import { getWelcomeSubject, getWelcomePreview } from '@/emails/subjects';
 import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 
 /**
@@ -60,9 +60,10 @@ export async function GET(
       return NextResponse.json({ error: `No email template for step ${step}` }, { status: 400 });
     }
 
+    const preview = getWelcomePreview(step, subscriber.first_name, chart);
     const html = await render(emailComponent);
 
-    return NextResponse.json({ subject, html });
+    return NextResponse.json({ subject, preview, html });
   } catch (error) {
     console.error('[admin] Error rendering email preview:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
