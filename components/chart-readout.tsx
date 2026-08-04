@@ -1,5 +1,5 @@
 import React from 'react';
-import { Chart } from '@/lib/types/chart';
+import { Chart, PlanetActivation } from '@/lib/types/chart';
 import hdChart from '@/lib/hd-chart';
 import { channelStrengths } from '@/lib/hd-chart/constants';
 
@@ -24,14 +24,32 @@ function capitalize(str: string | undefined): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-/** Build ranked thematic lines from channel indices. */
-function rankedThematicLines(channels: number[]): string[] {
+/** Build ranked thematic lines from channel indices, weighted by planetary activations. */
+function rankedThematicLines(channels: number[], planets: PlanetActivation[]): string[] {
   if (!channels?.length) return [];
-  const counts: Record<string, number> = {};
+
+  // Count planetary activations per gate
+  const gateActivationCount: Record<number, number> = {};
+  for (const p of planets) {
+    gateActivationCount[p.gate] = (gateActivationCount[p.gate] ?? 0) + 1;
+  }
+
+  // Group channel gates by thematic, then sum activations
+  const thematicGates: Record<string, Set<number>> = {};
   for (const i of channels) {
     const s = channelStrengths[i];
-    if (s) counts[s.thematic] = (counts[s.thematic] ?? 0) + 1;
+    if (!s) continue;
+    if (!thematicGates[s.thematic]) thematicGates[s.thematic] = new Set();
+    for (const g of s.gates) thematicGates[s.thematic].add(g);
   }
+
+  const counts: Record<string, number> = {};
+  for (const [thematic, gates] of Object.entries(thematicGates)) {
+    counts[thematic] = [...gates].reduce(
+      (sum, g) => sum + (gateActivationCount[g] ?? 0), 0
+    );
+  }
+
   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
   // Group into ranks by count
   const ranks: string[][] = [];
@@ -76,7 +94,7 @@ export default function ChartReadout({ chart, classes = {} }: ChartReadoutProps)
     { label: 'Signposts', value: `${capitalize(hd.signatureTheme())} / ${capitalize(hd.notSelfTheme())}` },
   ];
 
-  const thematicLines = rankedThematicLines(chart.channels);
+  const thematicLines = rankedThematicLines(chart.channels, chart.planets ?? []);
 
   return (
     <div className={classes.readout}>
