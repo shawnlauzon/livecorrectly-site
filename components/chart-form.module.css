@@ -316,6 +316,13 @@
   margin-bottom: 16px;
 }
 
+/* Name row — first + last side by side */
+.nameRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 /* Place picker — country + city row */
 .placeRow {
   display: grid;
@@ -379,6 +386,9 @@
 }
 
 @media (max-width: 560px) {
+  .nameRow {
+    grid-template-columns: 1fr;
+  }
   .placeRow {
     grid-template-columns: 1fr;
   }

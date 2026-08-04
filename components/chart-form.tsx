@@ -253,10 +253,12 @@ export default function ChartForm() {
     const dateInput = form.elements.namedItem("bdate") as HTMLInputElement;
     const timeInput = form.elements.namedItem("btime") as HTMLInputElement;
     const fnameInput = form.elements.namedItem("fname") as HTMLInputElement;
+    const lnameInput = form.elements.namedItem("lname") as HTMLInputElement;
     const emailInput = form.elements.namedItem("email") as HTMLInputElement;
 
     const date = dateInput.value;
     const firstName = fnameInput.value.trim();
+    const lastName = lnameInput.value.trim();
     const email = emailInput.value.trim();
 
     if (!firstName) {
@@ -319,6 +321,7 @@ export default function ChartForm() {
         body: JSON.stringify({
           email,
           first_name: firstName,
+          last_name: lastName || null,
           birth_date: details.date,
           birth_time: details.time,
           time_unknown: details.timeUnknown,
@@ -348,17 +351,30 @@ export default function ChartForm() {
         onSubmit={handleBirthSubmit}
         onFocus={handleFormFocus}
       >
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="fname">
-              First name
-            </label>
-            <input
-              className={styles.input}
-              type="text"
-              id="fname"
-              name="fname"
-              required
-            />
+          <div className={styles.nameRow}>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="fname">
+                First name
+              </label>
+              <input
+                className={styles.input}
+                type="text"
+                id="fname"
+                name="fname"
+                required
+              />
+            </div>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="lname">
+                Last name
+              </label>
+              <input
+                className={styles.input}
+                type="text"
+                id="lname"
+                name="lname"
+              />
+            </div>
           </div>
           <div className={styles.field}>
             <label className={styles.label} htmlFor="email">
@@ -401,7 +417,6 @@ export default function ChartForm() {
               type="time"
               id="btime"
               name="btime"
-              disabled={timeUnknown}
             />
             <div className={styles.checkrow}>
               <input

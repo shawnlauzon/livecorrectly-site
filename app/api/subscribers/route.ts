@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const { email, first_name, birth_date, birth_time, time_unknown, birth_place, chart } = body;
+    const { email, first_name, last_name, birth_date, birth_time, time_unknown, birth_place, chart } = body;
 
     if (!email || !first_name || !birth_date || !birth_place || chart == null) {
       return NextResponse.json(
@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
     const subscriber = await createSubscriber({
       email,
       first_name,
+      last_name: last_name ?? null,
       birth_date,
       birth_time: birth_time ?? null,
       time_unknown: !!time_unknown,

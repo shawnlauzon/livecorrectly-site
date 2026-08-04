@@ -79,6 +79,7 @@ export async function getSubscriberByEmail(
 export async function createSubscriber(data: {
   email: string;
   first_name: string;
+  last_name: string | null;
   birth_date: string;
   birth_time: string | null;
   time_unknown: boolean;
@@ -88,15 +89,16 @@ export async function createSubscriber(data: {
   const db = getDb();
   const result = await db`
     INSERT INTO subscribers (
-      email, first_name, birth_date, birth_time, time_unknown,
+      email, first_name, last_name, birth_date, birth_time, time_unknown,
       birth_place, chart
     ) VALUES (
-      ${data.email}, ${data.first_name}, ${data.birth_date},
+      ${data.email}, ${data.first_name}, ${data.last_name}, ${data.birth_date},
       ${data.birth_time}, ${data.time_unknown}, ${data.birth_place},
       ${JSON.stringify(data.chart)}
     )
     ON CONFLICT (email) DO UPDATE SET
       first_name = EXCLUDED.first_name,
+      last_name = EXCLUDED.last_name,
       birth_date = EXCLUDED.birth_date,
       birth_time = EXCLUDED.birth_time,
       time_unknown = EXCLUDED.time_unknown,
