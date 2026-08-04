@@ -16,6 +16,23 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
   const [subscriber, setSubscriber] = useState<Subscriber | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [restartState, setRestartState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+  async function handleRestart() {
+    setRestartState('loading');
+    try {
+      const res = await fetch(`/api/subscribers/${subscriberId}/restart-series`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        throw new Error(`Unexpected status: ${res.status}`);
+      }
+      setRestartState('success');
+    } catch (err) {
+      console.error('Failed to restart email series:', err);
+      setRestartState('error');
+    }
+  }
 
   useEffect(() => {
     async function fetchSubscriber() {
@@ -79,6 +96,34 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
             files it under Promotions, so drag it to Primary if you want to see
             the rest.
           </p>
+        )}
+        {!isFromForm && subscriber.email_status === 'active' && (
+          <>
+            {restartState === 'success' ? (
+              <p className={styles.resultP}>
+                Done &mdash; the series is on its way. Look for the first email soon.
+              </p>
+            ) : restartState === 'error' ? (
+              <p className={styles.resultP} style={{ color: 'var(--coral)' }}>
+                Something went wrong. Please try again.
+              </p>
+            ) : (
+              <>
+                <p className={styles.resultP}>
+                  Can&rsquo;t find the email series, or want to receive it again
+                  from the beginning?
+                </p>
+                <button
+                  className={styles.btn}
+                  style={{ width: 'auto' }}
+                  onClick={handleRestart}
+                  disabled={restartState === 'loading'}
+                >
+                  {restartState === 'loading' ? 'Resending\u2026' : 'Resend the series'}
+                </button>
+              </>
+            )}
+          </>
         )}
       </div>
     </>

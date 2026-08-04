@@ -91,6 +91,7 @@ export default function ChartHero({ subscriber }: ChartHeroProps) {
           <div className={styles.v}>
             {subscriber.first_name}
             {subscriber.last_name && ` ${subscriber.last_name}`}
+            {' '}&lt;{subscriber.email}&gt;
           </div>
         </div>
         <div className={styles.rowitem}>
