@@ -51,9 +51,9 @@ export default function Hero() {
           </h1>
 
           <p className={styles.lede}>
-            You&apos;ve spent enough time listening to what other people say to
-            do. What works for others often won&apos;t work for you. Learn how
-            you are designed for success.
+            You&apos;ve spent enough time listening to what everyone else
+            thinks. You&apos;re ready to try something different. Learn how
+            you&mdash;specically YOU&mdash;are designed for success.
           </p>
 
           <div className={styles.ctaGroup}>
