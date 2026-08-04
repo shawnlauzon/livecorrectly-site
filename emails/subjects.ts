@@ -1,4 +1,4 @@
-import { EmailChartData } from './hd-chart/parse-for-email';
+import { EmailChartData } from '../lib/hd-chart/parse-for-email';
 
 export function getWelcomeSubject(
   step: number,

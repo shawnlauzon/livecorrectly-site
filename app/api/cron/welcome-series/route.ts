@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDueSubscribers, advanceEmailSeries } from '@/lib/db';
-import { sendEmail } from '@/lib/email';
+import { sendEmail } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getWelcomeSubject } from '@/lib/email-subjects';
-import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/lib/welcome-email';
+import { getWelcomeSubject } from '@/emails/subjects';
+import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 
 /**
  * Cron endpoint: sends due welcome series emails.

@@ -4,7 +4,7 @@ import { EmailLayout } from './components/email-layout';
 import { RaQuote } from './components/ra-quote';
 import { CareerTypeHighlight } from './components/career-type-table';
 import { EmailChartData } from '../lib/hd-chart/parse-for-email';
-import { strategyWriteups } from '../lib/email-content';
+import { strategyWriteups } from './content';
 
 interface Welcome2Props {
   firstName: string;

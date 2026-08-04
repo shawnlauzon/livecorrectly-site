@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
-import { sendEmail } from '@/lib/email';
+import { sendEmail } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getWelcomeSubject } from '@/lib/email-subjects';
-import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/lib/welcome-email';
+import { getWelcomeSubject } from '@/emails/subjects';
+import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 
 /**
  * POST /api/admin/subscribers/[id]/send-welcome

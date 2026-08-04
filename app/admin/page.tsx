@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Subscriber } from '@/lib/types/subscriber';
-import { WELCOME_SERIES_LENGTH } from '@/lib/welcome-email';
+import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import { channelStrengths } from '@/lib/hd-chart/constants';
 import styles from './admin.module.css';
 

@@ -169,13 +169,13 @@ Example:
 **List** = Neon. **Send** = Resend. **Templates** = React Email (`emails/` directory).
 
 - **Kill switch**: the automated cron only runs when `CRON_EMAIL_ENABLED=true`. Admin manual sends (from `/admin/[id]`) bypass this flag — they always send if `RESEND_API_KEY` is set. Omit `RESEND_API_KEY` in `.env.local` to prevent any sends during local development.
-- **Sole call site**: `lib/email.ts` is the only file that calls `resend.emails.send()`. All emails go through `sendEmail()`, which checks `canSendTo()` (subscriber must be `active`), sets `List-Unsubscribe` / `List-Unsubscribe-Post` headers, and renders the React component to HTML.
+- **Sole call site**: `emails/send.ts` is the only file that calls `resend.emails.send()`. All emails go through `sendEmail()`, which checks `canSendTo()` (subscriber must be `active`), sets `List-Unsubscribe` / `List-Unsubscribe-Post` headers, and renders the React component to HTML.
 - **Welcome series**: 5-day drip (career type → strategy → authority → indicators → conclusion+CTA). Templates are in `emails/welcome[1-5].tsx`. Each receives `firstName`, `chart` (flat `EmailChartData` from `parseChartForEmail()`), and `unsubscribeUrl`.
 - **Scheduler**: daily Vercel Cron at 14:00 UTC (`/api/cron/welcome-series`, configured in `vercel.json`). Queries `next_send_at <= now()` where `email_status = 'active'`, sends the next email in the series, advances `seq_position`, sets `next_send_at` to tomorrow.
 - **Admin manual send**: `POST /api/admin/subscribers/[id]/send-welcome` with `{ step: 1-5 }`. Sends a specific welcome email without advancing `seq_position` or `next_send_at`. Requires admin auth. Returns 422 if subscriber is not active.
-- **Personalization**: templates branch on chart type booleans (`isGenerator`, `isProjector`, etc.) and pull content from maps in `lib/email-content.ts` (strategy writeups, authority writeups/tips keyed by authority type).
+- **Personalization**: templates branch on chart type booleans (`isGenerator`, `isProjector`, etc.) and pull content from maps in `emails/content.ts` (strategy writeups, authority writeups/tips keyed by authority type).
 - **Compliance**: `List-Unsubscribe` header + footer link in every email; `GET /api/unsubscribe?token=<uuid>` and `POST` (RFC 8058 one-click); physical address in footer; bounce/complaint webhook at `/api/webhooks/resend` updates `email_status`.
-- **Content maps**: `lib/email-content.ts` holds `strategyWriteups`, `authorityWriteups`, `authorityTips` — ported from the old `WelcomeCampaignText.tsx`. Use `lookupByAuthority()` to handle casing normalization.
+- **Content maps**: `emails/content.ts` holds `strategyWriteups`, `authorityWriteups`, `authorityTips` — ported from the old `WelcomeCampaignText.tsx`. Use `lookupByAuthority()` to handle casing normalization.
 - Free-tier notes: Resend = 3,000/mo, 100/day, 1 domain. Neon free = 0.5GB/branch.
 
 ## Migration
@@ -192,10 +192,10 @@ app/api/unsubscribe/route.ts        GET/POST — unsubscribe (token-based)
 app/api/webhooks/resend/route.ts    POST — Resend bounce/complaint webhook
 app/api/cron/welcome-series/route.ts GET — daily cron: send due welcome emails
 lib/db.ts                           all database queries (raw SQL via Neon)
-lib/email.ts                        sole Resend call site (sendEmail + canSendTo)
-lib/welcome-email.ts                shared getWelcomeEmail() + WELCOME_SERIES_LENGTH
-lib/email-content.ts                content maps (strategy/authority writeups)
-lib/email-subjects.ts               subject line generator per welcome step
+emails/send.ts                      sole Resend call site (sendEmail + canSendTo)
+emails/welcome.ts                   shared getWelcomeEmail() + WELCOME_SERIES_LENGTH
+emails/content.ts                   content maps (strategy/authority writeups)
+emails/subjects.ts                  subject line generator per welcome step
 lib/hd-chart/                       chart interpreter (constants + hdChart())
 lib/hd-chart/constants.ts           lookup tables: types, authorities, shadows, gateTraits
 lib/hd-chart/bridge-descriptions.ts bridge gate descriptions (shadow #1)

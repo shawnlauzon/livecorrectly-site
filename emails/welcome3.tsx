@@ -3,7 +3,7 @@ import { Heading, Text, Section, Link, Img } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import { CareerTypeHighlight } from './components/career-type-table';
 import { EmailChartData } from '../lib/hd-chart/parse-for-email';
-import { authorityWriteups, authorityTips, lookupByAuthority } from '../lib/email-content';
+import { authorityWriteups, authorityTips, lookupByAuthority } from './content';
 
 interface Welcome3Props {
   firstName: string;

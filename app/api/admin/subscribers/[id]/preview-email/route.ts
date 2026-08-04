@@ -3,8 +3,8 @@ import { render } from 'react-email';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getWelcomeSubject } from '@/lib/email-subjects';
-import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/lib/welcome-email';
+import { getWelcomeSubject } from '@/emails/subjects';
+import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 
 /**
  * GET /api/admin/subscribers/[id]/preview-email?step=0

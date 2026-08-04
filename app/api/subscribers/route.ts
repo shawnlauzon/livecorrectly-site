@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSubscriber, advanceEmailSeries } from '@/lib/db';
-import { sendEmail, sendAdminNotification } from '@/lib/email';
+import { sendEmail, sendAdminNotification } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getWelcomeSubject } from '@/lib/email-subjects';
-import { getWelcomeEmail } from '@/lib/welcome-email';
+import { getWelcomeSubject } from '@/emails/subjects';
+import { getWelcomeEmail } from '@/emails/welcome';
 
 export async function POST(request: NextRequest) {
   try {

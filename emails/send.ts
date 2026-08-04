@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 import { render } from 'react-email';
-import { getActiveSubscriberByEmail } from './db';
-import type { Subscriber } from './types/subscriber';
+import { getActiveSubscriberByEmail } from '../lib/db';
+import type { Subscriber } from '../lib/types/subscriber';
 
 let resend: Resend | null = null;
 
