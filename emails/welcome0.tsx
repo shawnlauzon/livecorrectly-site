@@ -58,18 +58,17 @@ export const Welcome0 = ({
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        Before anything else, one thing from your chart.
+        Thanks for signing up to see how you&apos;re designed! I&apos;m excited
+        to be here to support you.
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+        Before anything else, one thing from your chart. Do any of these sound
+        familiar?
       </Text>
 
       {/* --- Shadow-specific: scenes --- */}
-      {shadow && (
-        <>
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-            Any of these sound familiar?
-          </Text>
-          <Prose content={shadow.scenes} />
-        </>
-      )}
+      {shadow && <Prose content={shadow.scenes} />}
 
       {/* --- Bridge shadow: dynamic descriptions --- */}
       {hasBridgeShadow &&
@@ -85,7 +84,7 @@ export const Welcome0 = ({
       {/* --- Common transition --- */}
       {hasShadowContent && (
         <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-          I didn&apos;t guess any of that. Your chart told me.
+          I didn&apos;t guess any of that. It&apos;s part of your nature.
         </Text>
       )}
 
@@ -117,24 +116,26 @@ export const Welcome0 = ({
 
       {/* --- Series intro --- */}
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        Over the next few days you&apos;ll see what your chart is really telling
-        you. You&apos;ll begin to recognize your own patterns, and then learn
-        how to listen to your unique way of being to make decisions that fit
-        you, rather than depending on bad advice from others. And those
-        decisions will fit, because they&apos;re coming from you.
+        Over the next few days you&apos;ll see how you are designed to function
+        best in the world. You&apos;ll begin to recognize your own patterns, and
+        then learn how to listen to your unique way of being. That will help you
+        make decisions you can trust, rather than being dependent on advice from
+        others. Advice based on their way of being, not yours.
       </Text>
 
       {/* --- Shadow-specific: relief + signatureTheme --- */}
       {shadow && (
         <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-          It won&apos;t happen overnight. But within the shadow, lies the gift.
-          Eventually, {shadow.relief}. It&apos;s simpler than you think.
+          Even though these tendencies are part of you, you aren&apos;t doomed.
+          And in fact, within the shadow always lies the gift. Eventually,{' '}
+          {shadow.relief}. It won&apos;t happen overnight. But it&apos;s simpler
+          than you think.
         </Text>
       )}
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        Tomorrow we start. I hope it brings you {chart.signatureTheme}, like it
-        has for me.
+        Tomorrow we start. I hope this knowledge brings you{' '}
+        {chart.signatureTheme}, like it has for me.
       </Text>
 
       {/* --- Closing question --- */}
@@ -144,7 +145,7 @@ export const Welcome0 = ({
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         Did I get that right? If I did, tell me. If I missed, tell me that too —
-        I&apos;d like to know.
+        I&apos;d love to know.
       </Text>
 
       {/* --- Shadow-specific: closingLine --- */}
@@ -155,7 +156,7 @@ export const Welcome0 = ({
       )}
 
       {/* --- Shadow-specific: P.S. (italic, last thing before signature) --- */}
-      {shadow && (
+      {shadow?.ps && (
         <Text className="mb-[16px] text-[16px] italic leading-[24px] text-[#4A4A4A]">
           {shadow.ps}
         </Text>
