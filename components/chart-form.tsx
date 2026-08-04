@@ -390,8 +390,7 @@ export default function ChartForm() {
               onChange={() => emailTaken && setEmailTaken(false)}
             />
             <p className={styles.hint}>
-              We&rsquo;ll email you when the new series is ready. Unsubscribe
-              anytime.
+              Unsubscribe anytime.
             </p>
           </div>
           <div className={styles.field}>

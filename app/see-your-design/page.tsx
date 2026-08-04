@@ -1,12 +1,12 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import ChartForm from "@/components/chart-form";
-import styles from "./page.module.css";
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import ChartForm from '@/components/chart-form';
+import styles from './page.module.css';
 
 export const metadata: Metadata = {
-  title: "See how you\u2019re designed \u2014 Live Correctly",
+  title: 'See how you\u2019re designed \u2014 Live Correctly',
   description:
-    "Get your Human Design chart, then learn how to actually use it.",
+    'Get your Human Design chart, then learn how to actually use it.',
 };
 
 export default function SeeYourDesign() {
@@ -17,31 +17,30 @@ export default function SeeYourDesign() {
           style={{
             paddingTop: 28,
             paddingBottom: 28,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
           }}
         >
           <Link
             href="/"
             style={{
-              fontFamily: "var(--display)",
+              fontFamily: 'var(--display)',
               fontWeight: 700,
-              fontSize: "1.24rem",
-              letterSpacing: "-0.02em",
-              textDecoration: "none",
+              fontSize: '1.24rem',
+              letterSpacing: '-0.02em',
+              textDecoration: 'none',
             }}
           >
-            Live{" "}
-            <span style={{ color: "var(--grape)" }}>Correctly</span>
+            Live <span style={{ color: 'var(--grape)' }}>Correctly</span>
           </Link>
           <Link
             href="/"
             style={{
               fontWeight: 500,
-              fontSize: "0.92rem",
-              textDecoration: "none",
-              color: "var(--muted)",
+              fontSize: '0.92rem',
+              textDecoration: 'none',
+              color: 'var(--muted)',
             }}
           >
             &larr; Back
@@ -53,16 +52,9 @@ export default function SeeYourDesign() {
         <p className={styles.eyebrow}>Human Design</p>
         <h1 className={styles.h1}>See how you&rsquo;re designed.</h1>
         <p className={styles.lead}>
-          Enter your birth details and see your chart right away.{' '}
-          <s style={{ opacity: 0.5 }}>
-            I&rsquo;ll also send you a 5-day series on how you&rsquo;re
-            specifically designed &mdash; and how to work with it at work and
-            in your life.
-          </s>
-        </p>
-        <p className={styles.lead}>
-          The email series is currently being rewritten and improved.
-          You&rsquo;ll receive it once it&rsquo;s ready.
+          Enter your birth details and see your chart right away. I&rsquo;ll
+          also send you a short series on how you&rsquo;re specifically
+          designed, and use it both in and outside of work.
         </p>
 
         <ChartForm />
