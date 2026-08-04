@@ -498,3 +498,18 @@ export const channelStrengths = [
   { name: 'Interaction', gates: [6, 59], thematic: 'Support' },
   { name: 'Custodianship', gates: [27, 50], thematic: 'Support' },
 ] as const;
+
+/**
+ * Solar Plexus gate fears and their associated emotional waves.
+ * Each gate in the Solar Plexus center carries a specific fear pattern
+ * and operates through one of three wave types: Need, Passion, or Desire.
+ */
+export const emotionalGateFears: Record<number, { fear: string; wave: string }> = {
+  6:  { fear: 'revealing who you really are', wave: 'Need' },
+  37: { fear: 'traditional roles in life', wave: 'Need' },
+  49: { fear: 'rejections, unpredictability and consequences', wave: 'Need' },
+  22: { fear: 'that no one will listen to you and there is nothing to listen to', wave: 'Passion' },
+  55: { fear: 'not having anything to be passionate about', wave: 'Passion' },
+  36: { fear: 'emotional inadequacy', wave: 'Desire' },
+  30: { fear: 'what might or might not happen', wave: 'Desire' },
+};
