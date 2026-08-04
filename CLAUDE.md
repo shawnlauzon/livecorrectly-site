@@ -165,6 +165,14 @@ Example:
 - The three value props are **outcomes, not information** ("Make your own calls with confidence…", not "learn how decisions work").
 - Reminder: copy is authoritative — propose changes, don't overwrite.
 
+## UTM conventions
+Follow Google's standard so GA4 auto-groups into the correct default channel:
+- `utm_medium=email` — always `email` for any email send
+- `utm_source` — the brand sending the email (`livecorrectly` or `workcorrectly`)
+- `utm_campaign` — the specific send (e.g., `welcome_series`, `station_austin_followup`)
+
+Use `utm_source=workcorrectly` when linking to livecorrectly.com from Work Correctly emails.
+
 ## Email pipeline
 **List** = Neon. **Send** = Resend. **Templates** = React Email (`emails/` directory).
 
