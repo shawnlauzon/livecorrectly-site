@@ -87,6 +87,13 @@ export default function ChartHero({ subscriber }: ChartHeroProps) {
 
       <div className={styles.readout}>
         <div className={styles.rowitem}>
+          <div className={styles.k}>Name</div>
+          <div className={styles.v}>
+            {subscriber.first_name}
+            {subscriber.last_name && ` ${subscriber.last_name}`}
+          </div>
+        </div>
+        <div className={styles.rowitem}>
           <div className={styles.k}>Born</div>
           <div className={styles.v}>
             {formatBirthDate(subscriber.birth_date)}

@@ -63,10 +63,7 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
 
   return (
     <>
-      <h1 className={styles.chartName}>
-        {subscriber.first_name}
-        {subscriber.last_name && ` ${subscriber.last_name}`}&rsquo;s design.
-      </h1>
+      <h1 className={styles.chartName}>Your design.</h1>
 
       <div className={styles.card}>
         <ChartHero subscriber={subscriber} />
