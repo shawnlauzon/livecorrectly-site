@@ -222,24 +222,21 @@ function getWhyAnnotation(
 ): string | null {
   if (functionName === 'Bringing Traits/Strengths') {
     const def = hd.definition() ?? 'unknown';
-    const { sunBridges, earthBridges, streamBridges, nonExclusiveSunEarthBridges, allBridges } = hd.getBridgePriority();
-    const label = `${def.charAt(0).toUpperCase() + def.slice(1)} definition — ${allBridges.length} bridge(s)`;
-    // Priority detail only relevant with multiple bridges
-    if (allBridges.length <= 1) return label;
-    let priorityNote: string;
-    if (sunBridges.length > 0) {
-      priorityNote = sunBridges.map(s => `gate ${s.bridge.harmonicGate} is ${s.planet} Sun`).join(', ');
-    } else if (earthBridges.length > 0) {
-      priorityNote = earthBridges.map(s => `gate ${s.bridge.harmonicGate} is ${s.planet} Earth`).join(', ');
-    } else if (streamBridges.length > 0) {
-      priorityNote = streamBridges.map(s => `completes ${s.stream} stream`).join(', ');
-    } else if (nonExclusiveSunEarthBridges.length > 0) {
-      priorityNote = nonExclusiveSunEarthBridges.map(s =>
-        `gate ${s.bridge.harmonicGate} is ${s.planet} ${s.body} (non-exclusive)`
-      ).join(', ');
-    } else {
-      priorityNote = 'no priority match';
-    }
+    const nearBridges = hd.getBridgeDescriptions();
+    const farBridges = hd.getFarBridgeDescriptions();
+    const totalBridges = nearBridges.length + farBridges.length;
+    const parts: string[] = [];
+    if (nearBridges.length > 0) parts.push(`${nearBridges.length} near`);
+    if (farBridges.length > 0) parts.push(`${farBridges.length} wide`);
+    const bridgeLabel = parts.length > 0 ? parts.join(' + ') + ' bridge(s)' : '0 bridges';
+    const label = `${def.charAt(0).toUpperCase() + def.slice(1)} definition — ${bridgeLabel}`;
+
+    if (totalBridges <= 1) return label;
+
+    const top = hd.getTopBridge();
+    const priorityNote = top
+      ? `top: ${top.bridge.trait} (${top.bridge.gate})${top.annotation ? ` · ${top.annotation}` : ''}`
+      : 'no priority match';
     return `${label}, ${priorityNote}`;
   }
 
@@ -270,9 +267,15 @@ function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
             // Determine the shadow name for display
             let displayShadowName = shadowNames[functionName] ?? '';
             if (functionName === 'Bringing Traits/Strengths') {
-              displayShadowName = hd.hasFarBridges()
-                ? 'Blaming others and becoming a victim'
-                : 'Blaming yourself for something missing';
+              const hasNear = hd.hasNearBridges();
+              const hasFar = hd.hasFarBridges();
+              if (hasNear && hasFar) {
+                displayShadowName = 'Blaming yourself for something missing / Blaming others';
+              } else if (hasFar) {
+                displayShadowName = 'Blaming others and becoming a victim';
+              } else {
+                displayShadowName = 'Blaming yourself for something missing';
+              }
             }
 
             const whyAnnotation = index === 0 ? getWhyAnnotation(functionName, hd) : null;
@@ -287,39 +290,27 @@ function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
                 <p className={styles.shadowWhy}>{whyAnnotation}</p>
               )}
               {functionName === 'Bringing Traits/Strengths' ? (
-                hd.hasNearBridges() ? (
+                (() => {
+                  const top = hd.getTopBridge();
+                  return top ? (
                   <div className={styles.bridgeGates}>
-                    {hd.getBridgeDescriptions().map((bridge) => (
-                      <div key={bridge.gate} className={styles.bridgeGate}>
-                        <span className={styles.bridgeGateNumber}>Gate {bridge.gate}</span>
-                        <p className={styles.bridgeDescription}>{bridge.description}</p>
-                        <div className={styles.bridgeDetails}>
-                          <div className={styles.bridgeDetailRow}>
-                            <span className={styles.bridgeDetailLabel}>Trait:</span>
-                            <span className={styles.bridgeDetailText}>{bridge.trait}</span>
-                          </div>
-                          <div className={styles.bridgeDetailRow}>
-                            <span className={styles.bridgeDetailLabel}>Harmonic Trait:</span>
-                            <span className={styles.bridgeDetailText}>{bridge.harmonicTrait}</span>
-                          </div>
-                          <div className={styles.bridgeDetailRow}>
-                            <span className={styles.bridgeDetailLabel}>Strength:</span>
-                            <span className={styles.bridgeDetailText}>{bridge.strength}</span>
-                          </div>
+                    <div className={styles.bridgeGate}>
+                      <span className={styles.bridgeGateNumber}>Gate {top.bridge.gate}</span>
+                      <p className={styles.bridgeDescription}>{top.bridge.description}</p>
+                      <div className={styles.bridgeDetails}>
+                        <div className={styles.bridgeDetailRow}>
+                          <span className={styles.bridgeDetailLabel}>Trait:</span>
+                          <span className={styles.bridgeDetailText}>{top.bridge.trait}</span>
+                        </div>
+                        <div className={styles.bridgeDetailRow}>
+                          <span className={styles.bridgeDetailLabel}>Harmonic Trait:</span>
+                          <span className={styles.bridgeDetailText}>{top.bridge.harmonicTrait}</span>
+                        </div>
+                        <div className={styles.bridgeDetailRow}>
+                          <span className={styles.bridgeDetailLabel}>Strength:</span>
+                          <span className={styles.bridgeDetailText}>{top.bridge.strength}</span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : hd.hasFarBridges() ? (
-                  <div className={styles.shadowDetails}>
-                    <p className={styles.shadowDescription}>
-                      You may have a tendency to blame others and become a victim, believing that other people are the cause of the problem.
-                    </p>
-                    <div className={styles.shadowDetail}>
-                      <span className={styles.shadowDetailLabel}>Wisdom:</span>
-                      <span className={styles.shadowDetailText}>
-                        You are designed to work with others and can help objectively work on problems that exist between others.
-                      </span>
                     </div>
                   </div>
                 ) : (
@@ -334,7 +325,8 @@ function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
                       </span>
                     </div>
                   </div>
-                )
+                );
+                })()
               ) : (
                 <>
                   <p className={styles.shadowDescription}>{shadowDescriptions[functionName]}</p>

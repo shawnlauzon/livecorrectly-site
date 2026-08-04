@@ -500,6 +500,32 @@ export const channelStrengths = [
 ] as const;
 
 /**
+ * Map from gate number (1-64) to center index (0-8).
+ * Center indices match centerNames: 0=Root, 1=Sacral, 2=Spleen, 3=Solar Plexus,
+ * 4=Ego, 5=G Center, 6=Throat, 7=Ajna, 8=Head.
+ */
+export const gateToCenter: Record<number, number> = {
+  // Head (8)
+  64: 8, 61: 8, 63: 8,
+  // Ajna (7)
+  47: 7, 24: 7, 4: 7, 17: 7, 43: 7, 11: 7,
+  // Throat (6)
+  62: 6, 23: 6, 56: 6, 35: 6, 12: 6, 45: 6, 33: 6, 8: 6, 31: 6, 20: 6, 16: 6,
+  // G Center (5)
+  7: 5, 1: 5, 13: 5, 25: 5, 46: 5, 2: 5, 15: 5, 10: 5,
+  // Ego (4)
+  26: 4, 51: 4, 21: 4, 40: 4,
+  // Solar Plexus (3)
+  36: 3, 22: 3, 37: 3, 6: 3, 49: 3, 55: 3, 30: 3,
+  // Spleen (2)
+  48: 2, 57: 2, 44: 2, 50: 2, 32: 2, 28: 2, 18: 2,
+  // Sacral (1)
+  5: 1, 14: 1, 29: 1, 59: 1, 9: 1, 3: 1, 42: 1, 27: 1, 34: 1,
+  // Root (0)
+  53: 0, 60: 0, 52: 0, 19: 0, 39: 0, 41: 0, 58: 0, 38: 0, 54: 0,
+};
+
+/**
  * Solar Plexus gate fears and their associated emotional waves.
  * Each gate in the Solar Plexus center carries a specific fear pattern
  * and operates through one of three wave types: Need, Passion, or Desire.

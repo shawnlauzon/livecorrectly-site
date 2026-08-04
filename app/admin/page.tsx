@@ -42,50 +42,11 @@ function getFirstShadowLabel(subscriber: Subscriber): string {
     return shadowNames[firstShadow] ?? firstShadow;
   }
 
-  // Bridging shadow
-  if (!hd.hasNearBridges()) {
-    return hd.hasFarBridges() ? 'Far bridging' : '—';
-  }
+  const top = hd.getTopBridge();
+  if (!top) return '—';
 
-  const { sunBridges, earthBridges, streamBridges, nonExclusiveSunEarthBridges, allBridges } = hd.getBridgePriority();
-
-  // Single bridge — just show it, no annotation needed
-  if (allBridges.length === 1) {
-    return `${allBridges[0].trait} (${allBridges[0].gate})`;
-  }
-
-  // Multiple bridges — 4-tier priority cascade
-  if (sunBridges.length > 0) {
-    const labels = sunBridges.map(s =>
-      `${s.bridge.trait} (${s.bridge.gate}) · ${s.planet} Sun`
-    ).join(', ');
-    return labels;
-  }
-
-  if (earthBridges.length > 0) {
-    const labels = earthBridges.map(s =>
-      `${s.bridge.trait} (${s.bridge.gate}) · ${s.planet} Earth`
-    ).join(', ');
-    return labels;
-  }
-
-  if (streamBridges.length > 0) {
-    const labels = streamBridges.map(s =>
-      `${s.bridge.trait} (${s.bridge.gate}) · completes ${s.stream} stream`
-    ).join(', ');
-    return labels;
-  }
-
-  if (nonExclusiveSunEarthBridges.length > 0) {
-    const labels = nonExclusiveSunEarthBridges.map(s =>
-      `${s.bridge.trait} (${s.bridge.gate}) · ${s.planet} ${s.body} (non-exclusive)`
-    ).join(', ');
-    return labels;
-  }
-
-  // No priority match — show all
-  const bridgeLabels = allBridges.map(b => `${b.trait} (${b.gate})`).join(', ');
-  return `${bridgeLabels} · no priority`;
+  const label = `${top.bridge.trait} (${top.bridge.gate})`;
+  return top.annotation ? `${label} · ${top.annotation}` : label;
 }
 
 export default function AdminPage() {
