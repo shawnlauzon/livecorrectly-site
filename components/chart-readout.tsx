@@ -73,8 +73,7 @@ export default function ChartReadout({ chart, classes = {} }: ChartReadoutProps)
 { label: 'Decision-making Strategy', value: capitalize(hd.decisionMakingStrategy()) },
     { label: 'Public Role', value: hd.profile() ?? '' },
 { label: 'Assimilation Style', value: capitalize(hd.assimilationStyle()) },
-    { label: 'On-Track Signal', value: capitalize(hd.signatureTheme()) },
-    { label: 'Off-Track Signal', value: capitalize(hd.notSelfTheme()) },
+    { label: 'Signposts', value: `${capitalize(hd.signatureTheme())} / ${capitalize(hd.notSelfTheme())}` },
   ];
 
   const thematicLines = rankedThematicLines(chart.channels);
