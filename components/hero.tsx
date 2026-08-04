@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import Wrap from "./wrap";
-import styles from "./hero.module.css";
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import Wrap from './wrap';
+import styles from './hero.module.css';
 
 let hasAnimated = false;
 
@@ -20,7 +20,7 @@ export default function Hero() {
     }
   }, []);
 
-  const done = skipAnimation ? ` ${styles.done}` : "";
+  const done = skipAnimation ? ` ${styles.done}` : '';
 
   return (
     <section className={styles.hero}>
@@ -28,7 +28,10 @@ export default function Hero() {
         <div className={styles.copy}>
           <p className="eyebrow">Human Design</p>
 
-          <ul className={styles.advice} aria-label="Common advice that didn't fit">
+          <ul
+            className={styles.advice}
+            aria-label="Common advice that didn't fit"
+          >
             <li className={`${styles.adviceLine} ${styles.strike1}${done}`}>
               Post five times a week.
             </li>
@@ -48,10 +51,9 @@ export default function Hero() {
           </h1>
 
           <p className={styles.lede}>
-            That&rsquo;s not a discipline problem. People are built differently,
-            and advice built for someone else&rsquo;s wiring won&rsquo;t hold no
-            matter how hard you push. Human Design shows you how yours actually
-            works.
+            You&apos;ve spent enough time listening to what other people say to
+            do. What works for others often won&apos;t work for you. Learn how
+            you are designed for success.
           </p>
 
           <div className={styles.ctaGroup}>
@@ -59,7 +61,7 @@ export default function Hero() {
               See how you&rsquo;re designed
             </Link>
             <p className={styles.ctaSub}>
-              Already have your chart, or want more depth?{" "}
+              Already have your chart, or want more depth?{' '}
               <a
                 className="link"
                 href="https://calendar.google.com/appointments/schedules/AcZssZ1kXUVAC-LNzJfVTRh5vOTKdXCDVuH1wAJvpXrgdjWLoq8XBGl5aYR3SJ1nTkN5pwwuuEnWzz8m"
