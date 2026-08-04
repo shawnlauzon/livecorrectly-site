@@ -19,6 +19,7 @@ import {
   gateTraits,
   groupThemes,
   channelStrengths,
+  awarenessStreams,
   type CenterStatus
 } from './constants';
 import { bridgeDescriptions } from './bridge-descriptions';
@@ -170,6 +171,7 @@ export default function hdChart(chart: Chart) {
   const getBridgeDescriptions = (): Array<{
     gate: number;
     trait: string;
+    harmonicGate: number;
     harmonicTrait: string;
     strength: string;
     description: string;
@@ -186,6 +188,7 @@ export default function hdChart(chart: Chart) {
         return {
           gate: missingGate,
           trait: 'Unknown',
+          harmonicGate: 0,
           harmonicTrait: 'Unknown',
           strength: 'Unknown',
           description: 'Bridge description not available'
@@ -205,6 +208,7 @@ export default function hdChart(chart: Chart) {
           return {
             gate: missingGate,
             trait: missingTraitInfo.trait,
+            harmonicGate: harmonicGateTheyHave,
             harmonicTrait: (missingTraitInfo.harmonicTrait as string[])[matchingHarmonicIndex],
             strength: (missingTraitInfo.strength as string[])[matchingHarmonicIndex],
             description: Array.isArray(descriptions)
@@ -219,6 +223,7 @@ export default function hdChart(chart: Chart) {
         return {
           gate: missingGate,
           trait: missingTraitInfo.trait,
+          harmonicGate: harmonicGateTheyHave,
           harmonicTrait: (missingTraitInfo.harmonicTrait as string[])[0],
           strength: (missingTraitInfo.strength as string[])[0],
           description: Array.isArray(descriptions) ? descriptions[0] : descriptions
@@ -231,6 +236,7 @@ export default function hdChart(chart: Chart) {
       return {
         gate: missingGate,
         trait: missingTraitInfo.trait,
+        harmonicGate: harmonicGateTheyHave,
         harmonicTrait: missingTraitInfo.harmonicTrait as string,
         strength: missingTraitInfo.strength as string,
         description: Array.isArray(description) ? description[0] : description
@@ -264,6 +270,111 @@ export default function hdChart(chart: Chart) {
    */
   const hasFarBridges = (): boolean => {
     return Array.isArray(chart.bridges?.bridgingFarGates) && chart.bridges!.bridgingFarGates!.length > 0;
+  };
+
+  type BridgeDesc = ReturnType<typeof getBridgeDescriptions>[number];
+
+  /**
+   * Prioritize bridging gates using a 4-tier system:
+   * 1. Sun bridge (exclusive) — Sun activates the ONLY harmonic the person has for this bridge
+   * 2. Earth bridge (exclusive) — Earth activates the ONLY harmonic the person has for this bridge
+   * 3. Stream completion — completing that bridge would complete an awareness stream
+   * 4. Sun/Earth bridge (non-exclusive) — Sun/Earth activates a harmonic, but other harmonics
+   *    for the same missing gate also exist in the chart (lower value)
+   *
+   * For single-harmonic gates, the harmonic is always exclusive by definition,
+   * so Sun/Earth is always tier 1/2 if present.
+   *
+   * A single bridge can appear in multiple lists. The consumer picks the
+   * highest-priority list that has entries.
+   */
+  const getBridgePriority = (): {
+    sunBridges: Array<{ bridge: BridgeDesc; planet: 'personality' | 'design' }>;
+    earthBridges: Array<{ bridge: BridgeDesc; planet: 'personality' | 'design' }>;
+    streamBridges: Array<{ bridge: BridgeDesc; stream: string }>;
+    nonExclusiveSunEarthBridges: Array<{ bridge: BridgeDesc; planet: 'personality' | 'design'; body: 'Sun' | 'Earth' }>;
+    allBridges: BridgeDesc[];
+  } => {
+    const allBridges = getBridgeDescriptions();
+    if (allBridges.length === 0) {
+      return { sunBridges: [], earthBridges: [], streamBridges: [], nonExclusiveSunEarthBridges: [], allBridges };
+    }
+
+    const planets = chart.planets ?? [];
+    const userGates = chart.gates.map(g => g.gate);
+
+    // --- Sun / Earth detection with exclusivity check ---
+    const sunBridges: Array<{ bridge: BridgeDesc; planet: 'personality' | 'design' }> = [];
+    const earthBridges: Array<{ bridge: BridgeDesc; planet: 'personality' | 'design' }> = [];
+    const nonExclusiveSunEarthBridges: Array<{ bridge: BridgeDesc; planet: 'personality' | 'design'; body: 'Sun' | 'Earth' }> = [];
+
+    for (const bridge of allBridges) {
+      // Count how many harmonics the person has for this missing gate
+      const missingTraitInfo = gateTraits[bridge.gate];
+      let harmonicCount = 1; // single-harmonic gates always have exactly 1
+      if (missingTraitInfo && Array.isArray(missingTraitInfo.harmonicGate)) {
+        harmonicCount = missingTraitInfo.harmonicGate.filter(hg => userGates.includes(hg)).length;
+      }
+      const isExclusive = harmonicCount <= 1;
+
+      // Find planets that activate the harmonic gate the person HAS
+      for (const p of planets) {
+        if (p.gate !== bridge.harmonicGate) continue;
+        const side: 'personality' | 'design' = p.activation === 1 ? 'personality' : 'design';
+        if (p.id === 0) {
+          if (isExclusive) {
+            sunBridges.push({ bridge, planet: side });
+          } else {
+            nonExclusiveSunEarthBridges.push({ bridge, planet: side, body: 'Sun' });
+          }
+        } else if (p.id === 1) {
+          if (isExclusive) {
+            earthBridges.push({ bridge, planet: side });
+          } else {
+            nonExclusiveSunEarthBridges.push({ bridge, planet: side, body: 'Earth' });
+          }
+        }
+      }
+    }
+
+    // --- Stream completion detection ---
+    const definedChannelPairs = new Set<string>();
+    for (const channelIndex of chart.channels ?? []) {
+      if (channelIndex >= 0 && channelIndex < channelStrengths.length) {
+        const gates = channelStrengths[channelIndex].gates;
+        const key = [gates[0], gates[1]].sort((a, b) => a - b).join(',');
+        definedChannelPairs.add(key);
+      }
+    }
+
+    const streamBridges: Array<{ bridge: BridgeDesc; stream: string }> = [];
+
+    for (const bridge of allBridges) {
+      const bridgeChannelKey = [bridge.gate, bridge.harmonicGate]
+        .sort((a, b) => a - b)
+        .join(',');
+
+      for (const stream of awarenessStreams) {
+        const streamChannelKeys = stream.channels.map(
+          (ch) => [...ch].sort((a, b) => a - b).join(',')
+        );
+
+        if (!streamChannelKeys.includes(bridgeChannelKey)) continue;
+
+        const otherChannels = streamChannelKeys.filter(
+          (key) => key !== bridgeChannelKey
+        );
+        const allOthersDefined = otherChannels.every((key) =>
+          definedChannelPairs.has(key)
+        );
+
+        if (allOthersDefined) {
+          streamBridges.push({ bridge, stream: stream.name });
+        }
+      }
+    }
+
+    return { sunBridges, earthBridges, streamBridges, nonExclusiveSunEarthBridges, allBridges };
   };
 
   return {
@@ -307,6 +418,7 @@ export default function hdChart(chart: Chart) {
     hasBringingTraitsShadow,
     getShadows,
     getBridgeDescriptions,
+    getBridgePriority,
     hasNearBridges,
     hasFarBridges,
   };

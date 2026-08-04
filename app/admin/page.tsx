@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Subscriber } from '@/lib/types/subscriber';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
-import { channelStrengths } from '@/lib/hd-chart/constants';
+import hdChart from '@/lib/hd-chart';
+import { channelStrengths, shadowNames } from '@/lib/hd-chart/constants';
 import styles from './admin.module.css';
 
 async function fetchSubscribers(pwd: string): Promise<{ ok: true; data: Subscriber[] } | { ok: false; error: string }> {
@@ -26,6 +27,65 @@ async function fetchSubscribers(pwd: string): Promise<{ ok: true; data: Subscrib
     console.error('Error loading subscribers:', err);
     return { ok: false, error: `Failed to load subscribers: ${err instanceof Error ? err.message : 'Unknown error'}` };
   }
+}
+
+function getFirstShadowLabel(subscriber: Subscriber): string {
+  if (!subscriber.chart?.chart) return '—';
+
+  const hd = hdChart(subscriber.chart.chart);
+  const shadows = hd.getShadows();
+  if (shadows.length === 0) return '—';
+
+  const firstShadow = shadows[0];
+
+  if (firstShadow !== 'Bringing Traits/Strengths') {
+    return shadowNames[firstShadow] ?? firstShadow;
+  }
+
+  // Bridging shadow
+  if (!hd.hasNearBridges()) {
+    return hd.hasFarBridges() ? 'Far bridging' : '—';
+  }
+
+  const { sunBridges, earthBridges, streamBridges, nonExclusiveSunEarthBridges, allBridges } = hd.getBridgePriority();
+
+  // Single bridge — just show it, no annotation needed
+  if (allBridges.length === 1) {
+    return `${allBridges[0].trait} (${allBridges[0].gate})`;
+  }
+
+  // Multiple bridges — 4-tier priority cascade
+  if (sunBridges.length > 0) {
+    const labels = sunBridges.map(s =>
+      `${s.bridge.trait} (${s.bridge.gate}) · ${s.planet} Sun`
+    ).join(', ');
+    return labels;
+  }
+
+  if (earthBridges.length > 0) {
+    const labels = earthBridges.map(s =>
+      `${s.bridge.trait} (${s.bridge.gate}) · ${s.planet} Earth`
+    ).join(', ');
+    return labels;
+  }
+
+  if (streamBridges.length > 0) {
+    const labels = streamBridges.map(s =>
+      `${s.bridge.trait} (${s.bridge.gate}) · completes ${s.stream} stream`
+    ).join(', ');
+    return labels;
+  }
+
+  if (nonExclusiveSunEarthBridges.length > 0) {
+    const labels = nonExclusiveSunEarthBridges.map(s =>
+      `${s.bridge.trait} (${s.bridge.gate}) · ${s.planet} ${s.body} (non-exclusive)`
+    ).join(', ');
+    return labels;
+  }
+
+  // No priority match — show all
+  const bridgeLabels = allBridges.map(b => `${b.trait} (${b.gate})`).join(', ');
+  return `${bridgeLabels} · no priority`;
 }
 
 export default function AdminPage() {
@@ -175,6 +235,7 @@ export default function AdminPage() {
               <th>Name</th>
               <th>Type</th>
               <th>Strengths</th>
+              <th>#1 Shadow</th>
               <th style={{ textAlign: 'center', width: '4rem' }}>Status</th>
               <th style={{ textAlign: 'center' }}>Next Email</th>
               <th>Created</th>
@@ -205,6 +266,7 @@ export default function AdminPage() {
                         .join(', ')
                     : '—'}
                 </td>
+                <td>{getFirstShadowLabel(subscriber)}</td>
                 <td className={subscriber.email_status === 'active' ? styles.statusOk : styles.statusBad}>
                   {subscriber.email_status === 'active' ? (
                     '✓'

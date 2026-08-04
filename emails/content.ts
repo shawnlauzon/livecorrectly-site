@@ -124,24 +124,36 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
       story: `I have the same shadow as you. Maybe yours shows up differently, but I bet they're close. It took me a long time to realize I had a self-worth issue, until I could recognize the signs. And then I could stop beating myself up, because I knew it wasn't a personal failure. It's just mechanics.`,
       relief: `you'll know you can stop doing things to prove yourself, and you'll have an alternative to making promises you can't keep`,
       closingLine: `You have nothing to prove.`,
-      ps: `P.S. About my own stack of certifications: I didn't learn it to teach it. I learned it because I needed it. Turns out helping other people with it is what I'm built for.`,
+      ps: `P.S. About my own stack of certifications: I didn't learn it to teach it. I learned it because I needed it. Turns out helping other people with it is what I'm designed for.`,
     },
   ],
   [
     'Emotional Intelligence',
     {
       scenes: `\
-- You avoid listening to voice messages because you're afraid of what you'll hear
+- You avoid going to parties because you're tired of acting how others expect
 - Friends complain that you take things too personally
-- You don't share what's really going on because you don't want people to be upset`,
+- You don't share what you really think because you don't want people to be upset`,
       story: `I have the same shadow as you. Maybe yours shows up differently, but I bet they're close. It took me a long time to realize my lack of emotional intelligence was a problem, until I could recognize the signs. And then I could stop beating myself up, because I knew it wasn't a personal failure. It's just mechanics.`,
       relief: `you'll know how to feel emotions without them controlling you, and how to speak your truth when necessary`,
       closingLine: `You don't need anger management; you just need solitude.`,
-      ps: `P.S. About my own emotional intelligence journey: I didn't start practicing Authentic Relating to teach it. I learned it because I needed it. Turns out helping other people with it is what I'm built for.`,
+      ps: `P.S. About my own emotional intelligence journey: I didn't start practicing Authentic Relating to teach it. I learned it because I needed it. Turns out helping other people with it is what I'm designed for.`,
+    },
+  ],
+  [
+    'Identity & Direction',
+    {
+      scenes: `\
+- You avoid listening to voice messages because you're afraid of what you'll hear
+- Friends complain that you take things too personally
+- You don't share what you really think because you don't want people to be upset`,
+      story: `I have the same shadow as you. Maybe yours shows up differently, but I bet they're close. It took me a long time to realize my lack of emotional intelligence was a problem, until I could recognize the signs. And then I could stop beating myself up, because I knew it wasn't a personal failure. It's just mechanics.`,
+      relief: `you'll know how to feel emotions without them controlling you, and how to speak your truth when necessary`,
+      closingLine: `You don't need anger management; you just need solitude.`,
+      ps: `P.S. About my own emotional intelligence journey: I didn't start practicing Authentic Relating to teach it. I learned it because I needed it. Turns out helping other people with it is what I'm designed for.`,
     },
   ],
   // Remaining shadows — text to be provided by Shawn:
-  // 'Identity & Direction'
   // 'Survival Instinct'
   // 'Conceptualization'
   // 'Inspiration'

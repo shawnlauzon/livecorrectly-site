@@ -513,3 +513,67 @@ export const emotionalGateFears: Record<number, { fear: string; wave: string }> 
   36: { fear: 'emotional inadequacy', wave: 'Desire' },
   30: { fear: 'what might or might not happen', wave: 'Desire' },
 };
+
+/**
+ * Awareness streams — pathways through the bodygraph that flow through
+ * one of the three awareness centers (Ajna, Spleen, Solar Plexus).
+ * Each stream consists of 2-3 channels belonging to the same circuit group.
+ * When a bridge would complete the last missing channel in a stream,
+ * it's especially significant ("completing a stream").
+ */
+export const awarenessStreams = [
+  {
+    name: 'Knowing',
+    circuit: 'Individual',
+    awarenessCenter: 'Ajna',
+    channels: [[61, 24], [43, 23]],
+  },
+  {
+    name: 'Intuition',
+    circuit: 'Individual',
+    awarenessCenter: 'Spleen',
+    channels: [[57, 20], [28, 38]],
+  },
+  {
+    name: 'Emoting',
+    circuit: 'Individual',
+    awarenessCenter: 'Solar Plexus',
+    channels: [[22, 12], [39, 55]],
+  },
+  {
+    name: 'Instinct',
+    circuit: 'Tribal',
+    awarenessCenter: 'Spleen',
+    channels: [[26, 44], [32, 54]],
+  },
+  {
+    name: 'Sensitivity',
+    circuit: 'Tribal',
+    awarenessCenter: 'Solar Plexus',
+    channels: [[37, 40], [19, 49], [6, 59]],
+  },
+  {
+    name: 'Understanding',
+    circuit: 'Collective Logic',
+    awarenessCenter: 'Ajna',
+    channels: [[63, 4], [17, 62]],
+  },
+  {
+    name: 'Taste',
+    circuit: 'Collective Logic',
+    awarenessCenter: 'Spleen',
+    channels: [[48, 16], [18, 58]],
+  },
+  {
+    name: 'Sensing',
+    circuit: 'Collective Abstract',
+    awarenessCenter: 'Ajna',
+    channels: [[64, 47], [11, 56]],
+  },
+  {
+    name: 'Feeling',
+    circuit: 'Collective Abstract',
+    awarenessCenter: 'Solar Plexus',
+    channels: [[35, 36], [41, 30]],
+  },
+] as const;

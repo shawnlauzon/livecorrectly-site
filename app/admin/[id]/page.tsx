@@ -8,7 +8,7 @@ import ChartDisplay from '@/components/admin/chart-display';
 import ChartHero from '@/components/chart-hero';
 import ChartImage from '@/components/admin/chart-image';
 import hdChart from '@/lib/hd-chart';
-import { shadowNames, shadowDescriptions, shadowThemes, shadowLessons, shadowPressures, channelStrengths, gateTraits } from '@/lib/hd-chart/constants';
+import { shadowNames, shadowDescriptions, shadowThemes, shadowLessons, shadowPressures, channelStrengths, gateTraits, functionToCenterIndex, centerNames } from '@/lib/hd-chart/constants';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import styles from './detail.module.css';
 
@@ -216,6 +216,43 @@ function StrengthsDisplay({ subscriber }: { subscriber: Subscriber }) {
   );
 }
 
+function getWhyAnnotation(
+  functionName: string,
+  hd: ReturnType<typeof hdChart>
+): string | null {
+  if (functionName === 'Bringing Traits/Strengths') {
+    const def = hd.definition() ?? 'unknown';
+    const { sunBridges, earthBridges, streamBridges, nonExclusiveSunEarthBridges, allBridges } = hd.getBridgePriority();
+    const label = `${def.charAt(0).toUpperCase() + def.slice(1)} definition — ${allBridges.length} bridge(s)`;
+    // Priority detail only relevant with multiple bridges
+    if (allBridges.length <= 1) return label;
+    let priorityNote: string;
+    if (sunBridges.length > 0) {
+      priorityNote = sunBridges.map(s => `gate ${s.bridge.harmonicGate} is ${s.planet} Sun`).join(', ');
+    } else if (earthBridges.length > 0) {
+      priorityNote = earthBridges.map(s => `gate ${s.bridge.harmonicGate} is ${s.planet} Earth`).join(', ');
+    } else if (streamBridges.length > 0) {
+      priorityNote = streamBridges.map(s => `completes ${s.stream} stream`).join(', ');
+    } else if (nonExclusiveSunEarthBridges.length > 0) {
+      priorityNote = nonExclusiveSunEarthBridges.map(s =>
+        `gate ${s.bridge.harmonicGate} is ${s.planet} ${s.body} (non-exclusive)`
+      ).join(', ');
+    } else {
+      priorityNote = 'no priority match';
+    }
+    return `${label}, ${priorityNote}`;
+  }
+
+  const centerIndex = functionToCenterIndex[functionName];
+  if (centerIndex === null || centerIndex === undefined) return null;
+
+  const status = hd.getCenterStatus(centerIndex);
+  const name = centerNames[centerIndex];
+  if (status === 0) return `${name} center is open`;
+  if (status === 1) return `${name} center is undefined`;
+  return null;
+}
+
 function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
   const hd = hdChart(subscriber.chart.chart);
   const shadows = hd.getShadows();
@@ -238,12 +275,17 @@ function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
                 : 'Blaming yourself for something missing';
             }
 
+            const whyAnnotation = index === 0 ? getWhyAnnotation(functionName, hd) : null;
+
             return (
             <div key={functionName} className={styles.shadowItem}>
               <div className={styles.shadowHeader}>
                 <span className={styles.shadowOrdinal}>{index + 1}.</span>
                 <h3 className={styles.shadowName}>{displayShadowName || functionName}</h3>
               </div>
+              {whyAnnotation && (
+                <p className={styles.shadowWhy}>{whyAnnotation}</p>
+              )}
               {functionName === 'Bringing Traits/Strengths' ? (
                 hd.hasNearBridges() ? (
                   <div className={styles.bridgeGates}>
@@ -700,11 +742,42 @@ function EmailPreviews({ subscriber }: { subscriber: Subscriber }) {
 }
 
 function ChartJson({ chart }: { chart: import('@/lib/types/chart').ChartRecord }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(chart, null, 2));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy chart JSON:', err);
+    }
+  };
+
   return (
     <div className={styles.welcomeSection}>
       <details className={styles.chartJsonDetails}>
         <summary className={styles.chartJsonButton}>
           Show Chart JSON
+          <button
+            className={styles.chartJsonCopy}
+            onClick={(e) => {
+              e.preventDefault();
+              handleCopy();
+            }}
+            title={copied ? 'Copied!' : 'Copy JSON'}
+          >
+            {copied ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            )}
+          </button>
         </summary>
         <pre className={styles.chartJsonPre}>
           {JSON.stringify(chart, null, 2)}

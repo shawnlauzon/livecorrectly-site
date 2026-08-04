@@ -292,6 +292,15 @@
   margin: 0;
 }
 
+.shadowWhy {
+  font-family: var(--body);
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: 0;
+  padding-left: 2.25rem;
+  margin-bottom: 0.5rem;
+}
+
 .shadowDescription {
   font-family: var(--body);
   font-size: 0.875rem;
@@ -505,7 +514,9 @@
 }
 
 .chartJsonButton {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 0.75rem 1rem;
   font-family: var(--body);
   font-size: 0.875rem;
@@ -522,6 +533,24 @@
 
 .chartJsonButton:hover {
   background: var(--paper);
+}
+
+.chartJsonCopy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  padding: 0.25rem;
+  color: var(--grape);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.chartJsonCopy:hover {
+  background: var(--line);
 }
 
 .chartJsonPre {
