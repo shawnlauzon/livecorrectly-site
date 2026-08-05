@@ -18,23 +18,23 @@ export const bridgeDescriptions: Record<number, string | string[]> = {
   8: "If only you expressed yourself more creatively, then you believe you could really inspire. You worry that your natural ability to contribute isn't enough.",
   9: "If only you had more stillness, then you believe you could really concentrate. You worry that your natural ability to focus isn't enough.",
   10: [
-    "If only you had more behavior of self, then you believe you could really embody higher principles. You worry that your natural ability to contemplate isn't enough.",
-    "If only you had more behavior of self, then you believe you could really have conviction. You worry that your natural personal power isn't enough.",
-    "If only you had more behavior of self, then you believe you could really achieve perfected form. You worry that your natural intuitive insight isn't enough."
+    "If only you contemplated more, then you believe you could really embody higher principles. You worry that your natural behavior of self isn't enough.",
+    "If only you had more personal power, then you believe you could really have conviction. You worry that your natural behavior of self isn't enough.",
+    "If only you had more intuitive insight, then you believe you could really achieve perfected form. You worry that your natural behavior of self isn't enough."
   ],
   11: "If only you were more stimulating, then you believe you could really be curious. You worry that your natural ability to generate ideas isn't enough.",
   12: "If only you were more open, then you believe you could really be social. You worry that your natural caution isn't enough.",
   13: "If only you could retreat better, then you believe you could really witness. You worry that your natural ability to listen isn't enough.",
   14: "If only you could drive things more, then you believe you could really provide direction. You worry that your natural power skills aren't enough.",
   15: "If only you recognized fixed patterns better, then you believe you could really master patterns and rhythms. You worry that your natural embrace of diversity isn't enough.",
-  16: "If only you had more depth, then you believe you could really be talented. You worry that your natural skills aren't enough.",
+  16: "Something feels missing — you may become self-critical, feeling that you don't have adequate depth behind your skills. You might overcompensate by searching for the right conditions to perfect your talent, believing you can't make it available to the world until you do.",
   17: "If only you paid more attention to details, then you believe you could really organize. You worry that your natural ability to form opinions isn't enough.",
   18: "If only you had more vitality, then you believe you could really judge well. You worry that your natural ability to correct isn't enough.",
   19: "If only you had stronger principles, then you believe you could really manage resources. You worry that your natural awareness of social needs isn't enough.",
   20: [
-    "If only you contemplated more, then you believe you could really embody higher principles. You worry that your natural behavior of self isn't enough.",
-    "If only you contemplated more, then you believe you could really have charisma. You worry that your natural personal power isn't enough.",
-    "If only you contemplated more, then you believe you could really be spontaneous. You worry that your natural intuitive insight isn't enough."
+    "If only you had more behavior of self, then you believe you could really embody higher principles. You worry that your natural ability to contemplate isn't enough.",
+    "If only you had more personal power, then you believe you could really have charisma. You worry that your natural ability to contemplate isn't enough.",
+    "If only you had more intuitive insight, then you believe you could really be spontaneous. You worry that your natural ability to contemplate isn't enough."
   ],
   21: "If only you could gather people together better, then you believe you could really manage. You worry that your natural ability to control isn't enough.",
   22: "If only you were more cautious, then you believe you could really be social. You worry that your natural openness isn't enough.",
@@ -50,9 +50,9 @@ export const bridgeDescriptions: Record<number, string | string[]> = {
   32: "If only you had more drive, then you believe you could really be ambitious. You worry that your natural sense of continuity isn't enough.",
   33: "If only you listened better, then you believe you could really witness. You worry that your natural ability to retreat isn't enough.",
   34: [
-    "If only you had more personal power, then you believe you could really have conviction. You worry that your natural behavior of self isn't enough.",
-    "If only you had more personal power, then you believe you could really be powerful. You worry that your natural intuitive insight isn't enough.",
-    "If only you had more personal power, then you believe you could really have charisma. You worry that your natural ability to contemplate isn't enough."
+    "If only you had more behavior of self, then you believe you could really have conviction. You worry that your natural personal power isn't enough.",
+    "If only you had more intuitive insight, then you believe you could really be powerful. You worry that your natural personal power isn't enough.",
+    "If only you contemplated more, then you believe you could really have charisma. You worry that your natural personal power isn't enough."
   ],
   35: "If only you could handle crisis better, then you believe you could really be the experiencer. You worry that your natural ability to progress isn't enough.",
   36: "If only you made more progress, then you believe you could really be the experiencer. You worry that your natural ability to handle crisis isn't enough.",
@@ -67,7 +67,7 @@ export const bridgeDescriptions: Record<number, string | string[]> = {
   45: "If only you had more control, then you believe you could really manage. You worry that your natural ability to gather people together isn't enough.",
   46: "If only you had more perseverance, then you believe you could really discover. You worry that your natural determination isn't enough.",
   47: "If only you could think more abstractly, then you believe you could really engage the experiential process. You worry that your natural ability to realize isn't enough.",
-  48: "If only you had more skills, then you believe you could really be talented. You worry that your natural depth isn't enough.",
+  48: "Something feels missing — you may experience feelings of inadequacy, fearing that you won't be able to explain or demonstrate your solutions. You might overcompensate by becoming overly concerned about developing skills you feel you lack, rather than trusting that your depth will be recognized.",
   49: "If only you understood social needs better, then you believe you could really manage resources. You worry that your natural principles aren't enough.",
   50: "If only you could nourish better, then you believe you could really be a custodian. You worry that your natural values aren't enough.",
   51: "If only you had more innocence, then you believe you could really be competitive. You worry that your natural initiative isn't enough.",
@@ -77,9 +77,9 @@ export const bridgeDescriptions: Record<number, string | string[]> = {
   55: "If only you recognized obstruction better, then you believe you could really provoke. You worry that your natural spirit isn't enough.",
   56: "If only you had more ideas, then you believe you could really be curious. You worry that your natural ability to stimulate isn't enough.",
   57: [
-    "If only you had more intuitive insight, then you believe you could really be powerful. You worry that your natural personal power isn't enough.",
-    "If only you had more intuitive insight, then you believe you could really achieve perfected form. You worry that your natural behavior of self isn't enough.",
-    "If only you had more intuitive insight, then you believe you could really be spontaneous. You worry that your natural ability to contemplate isn't enough."
+    "If only you had more personal power, then you believe you could really be powerful. You worry that your natural intuitive insight isn't enough.",
+    "If only you had more behavior of self, then you believe you could really achieve perfected form. You worry that your natural intuitive insight isn't enough.",
+    "If only you contemplated more, then you believe you could really be spontaneous. You worry that your natural intuitive insight isn't enough."
   ],
   58: "If only you could correct better, then you believe you could really judge well. You worry that your natural vitality isn't enough.",
   59: "If only you created more friction, then you believe you could really interact effectively. You worry that your natural ability to achieve union isn't enough.",

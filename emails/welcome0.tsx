@@ -63,8 +63,9 @@ export const Welcome0 = ({
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        Before anything else, one thing from your chart. Do any of these sound
-        familiar?
+        {hasBridgeShadow
+          ? "Before anything else, one thing from your chart. Does this resonate?"
+          : "Before anything else, one thing from your chart. Do any of these sound familiar?"}
       </Text>
 
       {/* --- Shadow-specific: scenes --- */}
@@ -84,7 +85,7 @@ export const Welcome0 = ({
       {/* --- Common transition --- */}
       {hasShadowContent && (
         <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-          I didn&apos;t guess any of that. It&apos;s part of your nature.
+          I didn&apos;t guess that. It&apos;s part of your nature.
         </Text>
       )}
 
@@ -127,9 +128,21 @@ export const Welcome0 = ({
       {shadow && (
         <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
           Even though these tendencies are part of you, you aren&apos;t doomed.
-          And in fact, within the shadow always lies the gift. Eventually,{' '}
+          Within the shadow always lies the gift. Eventually,{' '}
           {shadow.relief}. It won&apos;t happen overnight. But it&apos;s simpler
           than you think.
+        </Text>
+      )}
+
+      {/* --- Bridge shadow: relief --- */}
+      {hasBridgeShadow && bridgesToShow.length > 0 && (
+        <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+          Even though these tendencies are part of you, you aren&apos;t doomed.{' '}
+          <strong>
+            You are designed to work with someone who brings this exact ability
+          </strong>{' '}
+          — it&apos;s part of their gifts, not yours. When you find them, you
+          complete each other.
         </Text>
       )}
 

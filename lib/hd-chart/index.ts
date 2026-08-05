@@ -206,6 +206,13 @@ export default function hdChart(chart: Chart) {
         if (matchingHarmonicIndex >= 0) {
           const harmonicGateTheyHave = missingTraitInfo.harmonicGate[matchingHarmonicIndex];
           const descriptions = bridgeDescriptions[harmonicGateTheyHave];
+          // Description arrays are ordered by the HAD gate's harmonicGate array,
+          // not the missing gate's. Look up where the missing gate sits in
+          // the had gate's ordering to get the correct description index.
+          const hadGateInfo = gateTraits[harmonicGateTheyHave];
+          const descriptionIndex = Array.isArray(hadGateInfo.harmonicGate)
+            ? (hadGateInfo.harmonicGate as number[]).indexOf(missingGate)
+            : 0;
           return {
             gate: missingGate,
             trait: missingTraitInfo.trait,
@@ -213,7 +220,7 @@ export default function hdChart(chart: Chart) {
             harmonicTrait: (missingTraitInfo.harmonicTrait as string[])[matchingHarmonicIndex],
             strength: (missingTraitInfo.strength as string[])[matchingHarmonicIndex],
             description: Array.isArray(descriptions)
-              ? descriptions[matchingHarmonicIndex]
+              ? descriptions[descriptionIndex >= 0 ? descriptionIndex : 0]
               : descriptions
           };
         }

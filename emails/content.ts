@@ -162,6 +162,81 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
 ]);
 
 /**
+ * Hanging gate descriptions for the welcome0 email.
+ *
+ * Indexed by the gate the person HAS (not the missing gate).
+ * Gates with multiple harmonics (10, 20, 34, 57) use arrays of 3.
+ *
+ * Each description conveys the felt experience of having a gift
+ * but missing the harmonic partner needed to complete the channel.
+ * Grounded in The Definitive Book of Human Design gate descriptions.
+ *
+ * Gates not yet covered will fall back to bridgeDescriptions in
+ * lib/hd-chart/bridge-descriptions.ts.
+ */
+export const hangingGateDescriptions: Record<number, string | Record<number, string>> = {
+  1: "You have a deep creative nature and a drive to express yourself in unique ways. But without someone to champion and promote what you create, your work may never reach the audience it deserves — and self-promotion feels deeply unappealing to you.",
+
+  2: "You carry an innate sense of direction — a deep knowing of where you need to go. But without the resources and sustained power to fuel that direction, you can feel stuck with a vision you can't bring to life on your own.",
+
+  3: "You have a gift for bringing order out of confusion and birthing something new. But without the patience and acceptance that the creative process has its own timing, your enthusiasm for change can destabilize those around you rather than empower them.",
+
+  8: "You know how to spot and promote what's novel and inspiring in others. But without your own deep creative source to draw from, you may find yourself always championing other people's vision instead of expressing your own.",
+
+  10: {
+    20: "You carry a deep trait of self-acceptance — a code of behavior that lets you interact authentically with the world. But without a voice to speak for itself, that authenticity may go unrecognized. The people around you can't see what's clear and grounded about you, and without that recognition, you miss the invitations that would let your example truly land.",
+    34: "You carry a deep trait of self-acceptance — an underlying code of authentic behavior. But without the regenerating energy to stand behind your convictions, you may know exactly who you are yet lack the sustained power to live it fully, especially when the world pushes back.",
+    57: "You carry a deep trait of self-acceptance — a capacity for authentic behavior. But without intuitive awareness guiding you moment to moment, you may struggle to spontaneously adapt to what each situation truly requires for your well-being.",
+  },
+
+  12: "You have a unique and powerful voice — the quality and tone of how you speak can deeply move others. But without emotional clarity about what you're actually feeling, you may hold back, unsure of what to say or when to say it.",
+
+  14: "You have access to powerful resources and the energy to sustain creative work over long periods. But without a clear sense of direction for where to invest that energy, your great power may feel unfocused — fuel without a destination.",
+
+  20: {
+    10: "You are wired to live fully in the present moment — what you say and do bursts out of you before you can think about it. But without a clear code of authentic behavior to anchor your expression, your spontaneous words and actions may lack the grounded quality that would make others recognize something truly clear about you.",
+    34: "You are wired to live fully in the present moment, ready to express and manifest. But without sustained regenerating energy to fuel your deeds, your awareness may struggle to become action — the moment passes before the doing can match the insight.",
+    57: "You are wired to live fully in the present moment, ready to speak your truth. But without intuitive clarity penetrating to the core of what's really going on, your spontaneous words may lack the depth of instinctive wisdom that would make them truly transformative.",
+  },
+
+  22: "You have a gift for emotional openness and social grace — you know how to listen and connect with others deeply. But without the articulate voice to express what you feel, your depth of emotional awareness may stay trapped inside, waiting for the right words.",
+
+  23: "You have the voice to translate insight into language that others can understand. But without the inner knowing and breakthrough to fuel what you say, you may worry that your words lack the depth or clarity to truly land.",
+
+  24: "Your mind has a gift for reviewing and rationalizing ideas until a new understanding emerges. But without a connection to deep inner truth and inspiration, you may find yourself chasing mental puzzles that don't truly matter.",
+
+  25: "You carry a universal, innocent love for life and everything in it. But without the competitive fire and initiative to act on that love, your spirit may feel untested — a deep well of devotion without the challenges that would deepen it into wisdom.",
+
+  28: "You have a deep awareness of what makes life worth living, and you're willing to take risks to find it. But without the fighting spirit to stand behind what matters, you may exhaust yourself in struggles that aren't truly yours.",
+
+  34: {
+    10: "You have a potent, impressive source of regenerating energy — pure power that others admire and envy. But without a code of authentic behavior to focus it, your relentless energy may lack conviction, leaving you powerful but unsure what to stand for.",
+    57: "You have a potent, impressive source of regenerating energy — pure power that's unavailable to anyone but you. But without intuitive guidance, this relentless force may become unhealthy and misdirected — you may feel lost in your own momentum, expending energy that serves no one.",
+    20: "You have a potent, impressive source of regenerating energy — pure power that others admire and envy. But without a voice to manifest your awareness into deeds, your great energy may churn without clear expression, busy but unable to articulate what it's doing or why.",
+  },
+
+  38: "You have a fierce independence and the energy to stand up against anything that would compromise your integrity. But without the awareness of which struggles actually have meaning, you may fight battles that leave you exhausted rather than fulfilled.",
+
+  39: "You have the energy to provoke and tease out what's real in people — to reveal their true spirit. But without the emotional depth to channel that provocation, the pressure may turn inward, leaving you restless and searching for release.",
+
+  43: "Your mind has a unique capacity for breakthrough insights — you simply know things that others don't. But without the voice to explain your knowing, you may feel like a genius trapped behind glass, unable to share what you see.",
+
+  51: "You have the courage and competitive fire to shock others out of complacency and into growth. But without the grounding innocence and universal love to give that shock meaning, your initiative may feel reckless — bold action without spiritual depth.",
+
+  55: "You carry deep emotional awareness and a rich inner spirit that shifts with your moods. But without someone to provoke that spirit out of you, you may stay locked inside your own emotional world, unable to share its depth with others.",
+
+  57: {
+    34: "You have extraordinary intuitive clarity — a penetrating awareness of what's safe, healthy, and true in each moment. But without the regenerating energy to act on your instincts, your instinctive intelligence may go unused.",
+    10: "You have extraordinary intuitive clarity — an innate knowing of what's safe and healthy. But without authentic behaviors to follow through on what your intuition tells you, you may sense what's needed yet not embody it in how you interact with others.",
+    20: "You have extraordinary intuitive clarity — a penetrating awareness in the now. But without a voice to speak your truth in the moment, your deepest knowing — that little voice that speaks once and softly — may pass unheard, even by you.",
+  },
+
+  60: "You feel the deep pressure of evolutionary potential building inside you — something new wants to emerge. But without the ability to bring order to that chaos, you may feel stuck, unable to move forward despite the restless energy within.",
+
+  61: "You feel the pressure to know the unknowable — to unravel life's deepest mysteries. But without the ability to process your inspiration into something communicable, you may feel haunted by insights you can't quite articulate.",
+};
+
+/**
  * Look up a content map by inner authority type.
  * Normalizes the key to lowercase to handle casing differences.
  * Falls back to 'none' for Ego-Projected authority (same copy as Self-Projected for writeups,
