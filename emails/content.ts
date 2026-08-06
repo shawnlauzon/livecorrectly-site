@@ -121,7 +121,7 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
 - You've got a stack of certifications and you always want more
 - You make promises to show you care, and then you end up bailing
 - You rank everyone you know, and you're not at the top`,
-      story: `I have the same shadow as you. Maybe yours shows up differently, but I bet they're close. It took me a long time to realize I had a self-worth issue, until I could recognize the signs. And then I could stop beating myself up, because I knew it wasn't a personal failure. It's just mechanics.`,
+      story: `I have the same shadow as you. Maybe yours shows up differently, but I bet they're close. It took me a long time to realize I had a self-worth issue. And then I stopped beating myself up, because I knew it wasn't a personal failing. It's just mechanics.`,
       relief: `you'll stop doing things to prove yourself, and can even help others to love and believe in themselves`,
       closingLine: `You have nothing to prove.`,
       ps: `P.S. About my own stack of certifications: I didn't learn it to teach it. I learned it because I needed it. Turns out helping other people with it is what I'm designed for.`,
@@ -134,8 +134,8 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
 - You avoid going to parties because you're tired of acting how others expect
 - Friends complain that you take things too personally
 - You don't share what you really think because you don't want people to be upset`,
-      story: `I have the same shadow as you. Maybe yours shows up differently, but I bet they're close. It took me a long time to realize my lack of emotional intelligence was a problem, until I could recognize the signs. And then I could stop beating myself up, because I knew it wasn't a personal failure. It's just mechanics.`,
-      relief: `you'll feel emotions without them controlling you, and can even help others understand and use their emotions wisely`,
+      story: `I have the same shadow as you. Maybe yours shows up differently, but I bet they're close. It took me a long time to realize my lack of emotional intelligence was a problem. But after that: I stopped beating myself up, because I knew it wasn't a personal failing. It's just mechanics.`,
+      relief: `you'll feel emotions without them controlling you, and can even help others understand and use their own emotions wisely`,
       closingLine: `You are designed for emotional serenity.`,
       ps: `P.S. About my own emotional intelligence journey: I didn't start practicing Authentic Relating to teach it. I learned it because I needed it. Turns out helping other people with it is what I'm designed for.`,
     },
@@ -147,7 +147,7 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
 - You often do what others want you to do or to be in business and life
 - You try to make a particular place work even though you're always uncomforable there
 - You judge yourself for being a completely different person in different places`,
-      story: `Unlike some of the other challenges that the chart shows, this isn't one of my biggies. But I used to make it worse for people, telling them what they should do and getting frustrated when they didn't listen. Now I know this isn't a personality flaw. It's just mechanics.`,
+      story: `Unlike some of the other challenges that the chart shows, this isn't one of my biggies. But I used to make it worse for people, telling them what they should do and getting frustrated when they didn't listen. Now I know this isn't a personal failing. It's just mechanics.`,
       relief: `you'll trust yourself to find the correct place for you, and can even help others to find connection and love`,
       closingLine: `You know exactly where you're meant to be.`,
     },

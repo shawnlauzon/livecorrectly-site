@@ -98,8 +98,9 @@ export const Welcome0 = ({
         ))}
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        You probably believe that this is one of your biggest flaws, and that if
-        only you could fix it, then you would be{' '}
+        {chart.hasChannelBridge
+          ? "You might believe that this is one of the world's biggest flaws, and that if only that was changed, then you would be"
+          : 'You probably believe that this is one of your biggest flaws, and that if only you could fix it, then you would be'}{' '}
         {chart.isManifestor
           ? 'at peace'
           : chart.isReflector
@@ -108,16 +109,31 @@ export const Welcome0 = ({
         .
       </Text>
 
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        Not true. <strong>You are perfect as you are.</strong>
-      </Text>
+      {chart.hasChannelBridge ? (
+        <>
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+            Not true. <strong>The world is perfect as it is.</strong>
+          </Text>
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+            However, your rare gift is the ability to be objective and to help
+            work on world problems. This is something very few people have.
+          </Text>
+        </>
+      ) : (
+        <>
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+            Not true. <strong>You are perfect as you are.</strong>
+          </Text>
 
-      {/* --- Bridge shadow: relief --- */}
-      {hasBridgeShadow && bridgesToShow.length > 0 && (
-        <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-          This gap is exactly where you are designed to collaborate with someone
-          else. The ideal person who brings exactly the thing you need.
-        </Text>
+          {/* --- Bridge shadow: relief --- */}
+          {hasBridgeShadow && bridgesToShow.length > 0 && (
+            <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+              This gap is exactly where you are designed to collaborate with
+              someone else. The ideal person who brings exactly the thing you
+              need.
+            </Text>
+          )}
+        </>
       )}
 
       {/* --- Shadow-specific: relief --- */}
@@ -232,6 +248,7 @@ Welcome0.PreviewProps = {
     innerAuthorityVideo: 'https://youtu.be/e9g6q1pKJeo',
     signatureVideo: 'https://youtu.be/fHGRdJSyE34',
     topShadow: 'Willpower',
+    hasChannelBridge: false,
     bridgeDescriptions: [],
   },
   unsubscribeUrl: 'https://livecorrectly.com/api/unsubscribe?token=test',
