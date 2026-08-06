@@ -47,6 +47,23 @@ export const Welcome0 = ({
     ? bridgesToShow.length > 0
     : shadow !== null;
 
+  const reflectionPrompt = (() => {
+    if (chart.isManifestor) {
+      return hasBridgeShadow
+        ? 'See if this rings true.'
+        : 'Consider if any of these sound familiar.';
+    }
+    if (chart.isProjector || chart.isReflector) {
+      return hasBridgeShadow
+        ? 'How does this land for you?'
+        : 'How do these land for you?';
+    }
+    // Builder (Generator / MG) — yes/no
+    return hasBridgeShadow
+      ? 'Does this ring true?'
+      : 'Do any of these sound familiar?';
+  })();
+
   return (
     <EmailLayout
       preview="It's nothing personal. It's just mechanics."
@@ -63,9 +80,7 @@ export const Welcome0 = ({
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        {hasBridgeShadow
-          ? "Before anything else, one thing from your chart. Does this resonate?"
-          : "Before anything else, one thing from your chart. Do any of these sound familiar?"}
+        Before anything else, one thing from your chart. {reflectionPrompt}
       </Text>
 
       {/* --- Shadow-specific: scenes --- */}
@@ -81,6 +96,39 @@ export const Welcome0 = ({
             {bridge.description}
           </Text>
         ))}
+
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+        You probably believe that this is one of your biggest flaws, and that if
+        only you could fix yourself, then you would be{' '}
+        {chart.isManifestor
+          ? 'at peace'
+          : chart.isReflector
+            ? 'pleasantly surprised'
+            : chart.signatureThemeAdjective}
+        .
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+        Not true. <strong>You are perfect as you are.</strong>
+      </Text>
+
+      {/* --- Bridge shadow: relief --- */}
+      {hasBridgeShadow && bridgesToShow.length > 0 && (
+        <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+          This gap is exactly where you are designed to collaborate with someone
+          else. The ideal person who brings exactly the thing you need.
+        </Text>
+      )}
+
+      {/* --- Shadow-specific: relief --- */}
+      {shadow && (
+        <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+          Even though these tendencies are part of you, they can also become
+          your superpower. Within the shadow always lies the gift. Eventually,{' '}
+          {shadow.relief}. It won&apos;t happen overnight. But it&apos;s simpler
+          than you think.
+        </Text>
+      )}
 
       {/* --- Common transition --- */}
       {hasShadowContent && (
@@ -123,28 +171,6 @@ export const Welcome0 = ({
         make decisions you can trust, rather than being dependent on advice from
         others. Advice based on their way of being, not yours.
       </Text>
-
-      {/* --- Shadow-specific: relief + signatureTheme --- */}
-      {shadow && (
-        <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-          Even though these tendencies are part of you, you aren&apos;t doomed.
-          Within the shadow always lies the gift. Eventually,{' '}
-          {shadow.relief}. It won&apos;t happen overnight. But it&apos;s simpler
-          than you think.
-        </Text>
-      )}
-
-      {/* --- Bridge shadow: relief --- */}
-      {hasBridgeShadow && bridgesToShow.length > 0 && (
-        <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-          Even though these tendencies are part of you, you aren&apos;t doomed.{' '}
-          <strong>
-            You are designed to work with someone who brings this exact ability
-          </strong>{' '}
-          — it&apos;s part of their gifts, not yours. When you find them, you
-          complete each other.
-        </Text>
-      )}
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         Tomorrow we start. I hope this knowledge brings you{' '}

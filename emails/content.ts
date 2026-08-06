@@ -122,7 +122,7 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
 - You make promises to show you care, and then you end up bailing
 - You rank everyone you know, and you're not at the top`,
       story: `I have the same shadow as you. Maybe yours shows up differently, but I bet they're close. It took me a long time to realize I had a self-worth issue, until I could recognize the signs. And then I could stop beating myself up, because I knew it wasn't a personal failure. It's just mechanics.`,
-      relief: `you'll know you can stop doing things to prove yourself, and even help others to love and believe in themselves`,
+      relief: `you'll stop doing things to prove yourself, and can even help others to love and believe in themselves`,
       closingLine: `You have nothing to prove.`,
       ps: `P.S. About my own stack of certifications: I didn't learn it to teach it. I learned it because I needed it. Turns out helping other people with it is what I'm designed for.`,
     },
@@ -135,7 +135,7 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
 - Friends complain that you take things too personally
 - You don't share what you really think because you don't want people to be upset`,
       story: `I have the same shadow as you. Maybe yours shows up differently, but I bet they're close. It took me a long time to realize my lack of emotional intelligence was a problem, until I could recognize the signs. And then I could stop beating myself up, because I knew it wasn't a personal failure. It's just mechanics.`,
-      relief: `you'll know how to feel emotions without them controlling you, and even how to help others speak truth when necessary`,
+      relief: `you'll feel emotions without them controlling you, and can even help others understand and use their emotions wisely`,
       closingLine: `You are designed for emotional serenity.`,
       ps: `P.S. About my own emotional intelligence journey: I didn't start practicing Authentic Relating to teach it. I learned it because I needed it. Turns out helping other people with it is what I'm designed for.`,
     },
@@ -148,7 +148,7 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
 - You try to make a particular place work even though you're always uncomforable there
 - You judge yourself for being a completely different person in different places`,
       story: `Unlike some of the other challenges that the chart shows, this isn't one of my biggies. But I used to make it worse for people, telling them what they should do and getting frustrated when they didn't listen. Now I know this isn't a personality flaw. It's just mechanics.`,
-      relief: `you'll begin to love your sensitive environmental nature and find you can help others to find connection and love`,
+      relief: `you'll trust yourself to find the correct place for you, and can even help others to find connection and love`,
       closingLine: `You know exactly where you're meant to be.`,
     },
   ],
@@ -172,14 +172,17 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
  * but missing the harmonic partner needed to complete the channel.
  * Uses BG5 trait names from the reference document.
  */
-export const hangingGateDescriptions: Record<number, string | Record<number, string>> = {
-  1: "You have a deep creative nature and a drive to express yourself in unique ways. But without someone to champion and promote what you create, your work may never reach the audience it deserves — and self-promotion feels deeply unappealing to you.",
+export const hangingGateDescriptions: Record<
+  number,
+  string | Record<number, string>
+> = {
+  1: 'You have a deep creative nature and a drive to express yourself in unique ways. But without someone to champion and promote what you create, your work may never reach the audience it deserves — and self-promotion feels deeply unappealing to you.',
 
   2: "You carry an innate sense of direction — a deep knowing of where you need to go. But without the power skills and resources to fuel that direction, you can feel stuck with a vision you can't bring to life on your own.",
 
-  3: "You have a gift for bringing order out of confusion and birthing something new. But without the acceptance that the creative process has its own timing and limits, your enthusiasm for change can destabilize those around you rather than empower them.",
+  3: 'You have a gift for bringing order out of confusion and birthing something new. But without the acceptance that the creative process has its own timing and limits, your enthusiasm for change can destabilize those around you rather than empower them.',
 
-  4: "You have a mind that formulates answers and solutions — given the right question, you can find the pattern. But without the doubt that identifies which questions actually matter, you may spend your life answering questions no one asked, or feel anxious that your solutions have no clear purpose.",
+  4: 'You have a mind that formulates answers and solutions — given the right question, you can find the pattern. But without the doubt that identifies which questions actually matter, you may spend your life answering questions no one asked, or feel anxious that your solutions have no clear purpose.',
 
   5: "You thrive on rhythm and routine — fixed patterns that keep you vital, healthy, and in your flow. But without the diversity to embrace life's natural extremes, you can become rigid, and any disruption to your patterns may feel destabilizing.",
 
@@ -189,51 +192,51 @@ export const hangingGateDescriptions: Record<number, string | Record<number, str
 
   8: "You know how to spot and promote what's novel and inspiring in others. But without your own deep creative self-expression to draw from, you may find yourself always championing other people's vision instead of expressing your own.",
 
-  9: "You have the capacity to focus your energy with extraordinary diligence for detail. But without the stillness to anchor you in one place, you may find yourself unable to sit still long enough to concentrate — your focus scatters before the work is done.",
+  9: 'You have the capacity to focus your energy with extraordinary diligence for detail. But without the stillness to anchor you in one place, you may find yourself unable to sit still long enough to concentrate — your focus scatters before the work is done.',
 
   10: {
     20: "You carry a deep self-acceptance — a code of authentic behavior that lets you interact genuinely with the world. But without contemplation to give it voice, that authenticity may go unrecognized. The people around you can't see what's clear and grounded about you, and without that recognition, you miss the invitations that would let your example truly land.",
-    34: "You carry a deep self-acceptance — an underlying code of authentic behavior. But without the personal power to stand behind your convictions, you may know exactly who you are yet lack the sustained energy to live it fully, especially when the world pushes back.",
-    57: "You carry a deep self-acceptance — a capacity for authentic behavior. But without intuitive insight guiding you moment to moment, you may struggle to spontaneously adapt to what each situation truly requires for your well-being.",
+    34: 'You carry a deep self-acceptance — an underlying code of authentic behavior. But without the personal power to stand behind your convictions, you may know exactly who you are yet lack the sustained energy to live it fully, especially when the world pushes back.',
+    57: 'You carry a deep self-acceptance — a capacity for authentic behavior. But without intuitive insight guiding you moment to moment, you may struggle to spontaneously adapt to what each situation truly requires for your well-being.',
   },
 
-  11: "Your mind is a wellspring of ideas — stimulating concepts designed to be reflected upon and shared. But without the stimulation that turns ideas into compelling stories, you may feel pressured to express them impulsively, before the right audience or timing has arrived.",
+  11: 'Your mind is a wellspring of ideas — stimulating concepts designed to be reflected upon and shared. But without the stimulation that turns ideas into compelling stories, you may feel pressured to express them impulsively, before the right audience or timing has arrived.',
 
   12: "You have a unique and powerful voice — the quality and tone of how you speak can deeply move others. But without emotional openness to clarify what you're actually feeling, you may hold back, unsure when the mood is right to share what's inside you.",
 
   13: "You are a natural confidante — people share their stories and secrets with you because you genuinely listen. But without the retreat to process and select what's worth sharing, your treasure trove of human experience may stay locked inside you, waiting for an audience that never arrives.",
 
-  14: "You have access to powerful resources and the energy to sustain creative work over long periods. But without the driver to set a clear direction for where to invest that energy, your great power may feel unfocused — fuel without a destination.",
+  14: 'You have access to powerful resources and the energy to sustain creative work over long periods. But without the driver to set a clear direction for where to invest that energy, your great power may feel unfocused — fuel without a destination.',
 
-  15: "You embrace the full spectrum of human behavior with an extraordinary love of diversity. But without fixed patterns to anchor your ever-shifting rhythms, your constantly changing tempo may cost you the focus needed to achieve mastery in your own life.",
+  15: 'You embrace the full spectrum of human behavior with an extraordinary love of diversity. But without fixed patterns to anchor your ever-shifting rhythms, your constantly changing tempo may cost you the focus needed to achieve mastery in your own life.',
 
-  16: "You have enthusiasm and a natural talent for skills that, with practice, become mastery. But without the depth to back up your performance, you may become self-critical — searching for the foundation beneath your talent that would make it truly sing.",
+  16: 'You have enthusiasm and a natural talent for skills that, with practice, become mastery. But without the depth to back up your performance, you may become self-critical — searching for the foundation beneath your talent that would make it truly sing.',
 
   17: "You see the world in patterns and opinions — a concept forms in your mind with visual clarity. But without the details to support and communicate what you see, your insights may stay trapped as images you can't quite put into words.",
 
   18: "You have a keen eye for what needs correcting — a deep concern for health and integrity. But without the vitality and joyful energy to fuel that correction constructively, your gift for seeing what's wrong can become a chronic dissatisfaction that drains rather than heals.",
 
-  19: "You are deeply sensitive to what people need — food, shelter, spirit, belonging. But without the principles and authority to manage those resources, you may feel the weight of unfulfilled needs all around you with no power to address them.",
+  19: 'You are deeply sensitive to what people need — food, shelter, spirit, belonging. But without the principles and authority to manage those resources, you may feel the weight of unfulfilled needs all around you with no power to address them.',
 
   20: {
-    10: "You are wired to live fully in the present moment — what you say and do bursts out of you before you can think about it. But without a clear code of authentic behavior to anchor your expression, your spontaneous words and actions may lack the grounded quality that would make others recognize something truly clear about you.",
-    34: "You are wired to live fully in the present moment, ready to express and manifest. But without the personal power to fuel your deeds, your awareness may struggle to become action — the moment passes before the doing can match the insight.",
+    10: 'You are wired to live fully in the present moment — what you say and do bursts out of you before you can think about it. But without a clear code of authentic behavior to anchor your expression, your spontaneous words and actions may lack the grounded quality that would make others recognize something truly clear about you.',
+    34: 'You are wired to live fully in the present moment, ready to express and manifest. But without the personal power to fuel your deeds, your awareness may struggle to become action — the moment passes before the doing can match the insight.',
     57: "You are wired to live fully in the present moment, ready to speak your truth. But without intuitive insight penetrating to the core of what's really going on, your spontaneous words may lack the depth of instinctive wisdom that would make them truly transformative.",
   },
 
   21: "You need to be in control of your own domain — you don't tolerate being told what to do. But without the ability to gather people together under your authority, you may find yourself endlessly searching for a kingdom worthy of your management.",
 
-  22: "You have a gift for emotional openness and social grace — you know how to listen and connect with others deeply. But without the cautious, articulate voice to express what you feel, your depth of emotional awareness may stay trapped inside, waiting for the right words.",
+  22: 'You have a gift for emotional openness and social grace — you know how to listen and connect with others deeply. But without the cautious, articulate voice to express what you feel, your depth of emotional awareness may stay trapped inside, waiting for the right words.',
 
-  23: "You have the voice to translate insight into language that others can understand. But without the breakthrough insights to fuel what you say, you may worry that your words lack the depth or originality to truly land.",
+  23: 'You have the voice to translate insight into language that others can understand. But without the breakthrough insights to fuel what you say, you may worry that your words lack the depth or originality to truly land.',
 
   24: "Your mind has a gift for reviewing and rationalizing ideas until a new understanding emerges. But without a connection to inner truth and inspiration, you may find yourself chasing mental puzzles that don't truly matter.",
 
-  25: "You carry a universal, innocent love for life and everything in it. But without the initiative and competitive fire to act on that love, your spirit may feel untested — a deep well of devotion without the challenges that would deepen it into wisdom.",
+  25: 'You carry a universal, innocent love for life and everything in it. But without the initiative and competitive fire to act on that love, your spirit may feel untested — a deep well of devotion without the challenges that would deepen it into wisdom.',
 
-  26: "You are a natural salesperson with the ego and resilience to withstand rejection. But without the instinctive alertness to know what the market actually needs, you may find yourself selling brilliantly — but selling the wrong thing at the wrong time.",
+  26: 'You are a natural salesperson with the ego and resilience to withstand rejection. But without the instinctive alertness to know what the market actually needs, you may find yourself selling brilliantly — but selling the wrong thing at the wrong time.',
 
-  27: "You have a deep drive to care for and nourish others — a powerful, altruistic impulse. But without the values to set boundaries around your caring, you can exhaust yourself nurturing everyone who needs you, sacrificing your own well-being in the process.",
+  27: 'You have a deep drive to care for and nourish others — a powerful, altruistic impulse. But without the values to set boundaries around your caring, you can exhaust yourself nurturing everyone who needs you, sacrificing your own well-being in the process.',
 
   28: "You have a deep awareness of what makes life worth living, and you're willing to take risks to find it. But without the fighter's clarity about which struggles actually have purpose, you may pour your energy into battles that leave you exhausted rather than fulfilled.",
 
@@ -243,19 +246,19 @@ export const hangingGateDescriptions: Record<number, string | Record<number, str
 
   31: "You have a powerful voice of influence — people listen when you speak. But without the leader's strategic vision to back up your words, your influence may lack substance, and you may struggle to show others the direction you want them to follow.",
 
-  32: "You have an instinctive awareness of what has lasting value — what can endure and what will fail. But without the drive and ambition to fuel transformation, your gift for recognizing potential may stay passive, evaluating from the sidelines without the energy to act.",
+  32: 'You have an instinctive awareness of what has lasting value — what can endure and what will fail. But without the drive and ambition to fuel transformation, your gift for recognizing potential may stay passive, evaluating from the sidelines without the energy to act.',
 
   33: "You carry hard-won wisdom from your experiences, and a deep need for privacy to process what you've witnessed. But without the listener to draw out your stories and hold them, you may retreat so far inward that your most valuable lessons are never shared.",
 
   34: {
-    10: "You have a potent, impressive source of regenerating energy — pure power that others admire and envy. But without a code of authentic behavior to focus it, your relentless energy may lack conviction, leaving you powerful but unsure what to stand for.",
+    10: 'You have a potent, impressive source of regenerating energy — pure power that others admire and envy. But without a code of authentic behavior to focus it, your relentless energy may lack conviction, leaving you powerful but unsure what to stand for.',
     57: "You have a potent, impressive source of regenerating energy — pure power that's unavailable to anyone but you. But without intuitive insight to guide it, this relentless force may become misdirected — you may feel lost in your own momentum, expending energy that serves no one.",
     20: "You have a potent, impressive source of regenerating energy — pure power that others admire and envy. But without contemplation to manifest your awareness into deeds, your great energy may churn without clear expression, busy but unable to articulate what it's doing or why.",
   },
 
-  35: "You are driven by a restless curiosity to explore new horizons and collect experiences. But without the emotional depth that crisis brings, your hunger for progress may become a chase for novelty — always moving forward but never reaching the feeling of depth that would make your experiences truly transformative.",
+  35: 'You are driven by a restless curiosity to explore new horizons and collect experiences. But without the emotional depth that crisis brings, your hunger for progress may become a chase for novelty — always moving forward but never reaching the feeling of depth that would make your experiences truly transformative.',
 
-  36: "You carry deep emotional intensity — a capacity to grow through crisis that transforms vulnerability into wisdom. But without the progress and direction to channel that intensity outward, your emotional depth may turn inward, creating personal crises when there is no outlet for the powerful feelings building inside you.",
+  36: 'You carry deep emotional intensity — a capacity to grow through crisis that transforms vulnerability into wisdom. But without the progress and direction to channel that intensity outward, your emotional depth may turn inward, creating personal crises when there is no outlet for the powerful feelings building inside you.',
 
   37: "You have a gift for holding family and community together through warmth, friendship, and nurturing. But without someone willing to deliver the resources and provide for the group, you may find yourself making promises to your community that you can't fulfill on your own.",
 
@@ -263,11 +266,11 @@ export const hangingGateDescriptions: Record<number, string | Record<number, str
 
   39: "You have the energy to provoke and tease out what's real in people. But without the spirit to respond to your provocation, the pressure may turn inward — provoking yourself into restless excess rather than drawing out the emotional depth of others.",
 
-  40: "You have the willpower and love of work to provide for others — a strong, independent provider. But without the friendship and family bonds to deliver your provisions to, you may work in isolation, generating resources that no community is there to receive.",
+  40: 'You have the willpower and love of work to provide for others — a strong, independent provider. But without the friendship and family bonds to deliver your provisions to, you may work in isolation, generating resources that no community is there to receive.',
 
-  41: "You carry the pressure of desire — a hunger to experience something new, a fantasy of what life could be. But without fate to guide which desires are yours to fulfill, you may feel a restless wanting without knowing what it is you actually want.",
+  41: 'You carry the pressure of desire — a hunger to experience something new, a fantasy of what life could be. But without fate to guide which desires are yours to fulfill, you may feel a restless wanting without knowing what it is you actually want.',
 
-  42: "You have the tenacity to stay with a process and see it through to completion. But without the beginnings to properly initiate what you commit to, you may struggle to get things started — or find yourself finishing cycles that were never yours to begin.",
+  42: 'You have the tenacity to stay with a process and see it through to completion. But without the beginnings to properly initiate what you commit to, you may struggle to get things started — or find yourself finishing cycles that were never yours to begin.',
 
   43: "Your mind has a unique capacity for breakthrough insights — you simply know things that others don't. But without assimilation to translate your knowing into language, you may feel like a genius trapped behind glass, unable to share what you see.",
 
@@ -275,47 +278,47 @@ export const hangingGateDescriptions: Record<number, string | Record<number, str
 
   45: "You have a natural authority to gather people together and protect your community's resources. But without the control to manage the day-to-day operations of your domain, you may find yourself presiding over a kingdom with no one to run it.",
 
-  46: "You experience life through your body — serendipity, determination, and the love of being in physical form. But without the perseverance to commit your energy fully, you may sense the right moment but lack the sustained fuel to see the cycle through.",
+  46: 'You experience life through your body — serendipity, determination, and the love of being in physical form. But without the perseverance to commit your energy fully, you may sense the right moment but lack the sustained fuel to see the cycle through.',
 
   47: "You have the gift of realization — the ability to assemble fragments of experience into meaningful insight. But without the abstractions flowing through your mind to work with, you may pressure yourself for clarity when there's simply nothing yet to resolve.",
 
-  48: "You carry a deep well of instinctual knowing — solutions rooted in an awareness that goes far beneath the surface. But without the skills to express and demonstrate your depth, you may experience feelings of inadequacy, fearing that no one will ever recognize what you have to offer.",
+  48: 'You carry a deep well of instinctual knowing — solutions rooted in an awareness that goes far beneath the surface. But without the skills to express and demonstrate your depth, you may experience feelings of inadequacy, fearing that no one will ever recognize what you have to offer.',
 
   49: "You hold powerful principles about who belongs and who doesn't — the authority to accept or reject on behalf of your community. But without sensitivity to social needs that reveals what people actually require, your principles may become rigid — rejecting those who simply haven't had their needs met.",
 
   50: "You are a guardian of values — an instinctive lawmaker who knows what's right for the community's well-being. But without the nourishment to put those values into caring action, you may know exactly what your people need but lack the energy to provide it.",
 
-  51: "You have the courage and competitive fire to shock others out of complacency and into growth. But without the innocence and universal love to give that shock meaning, your initiative may feel reckless — bold action without spiritual depth.",
+  51: 'You have the courage and competitive fire to shock others out of complacency and into growth. But without the innocence and universal love to give that shock meaning, your initiative may feel reckless — bold action without spiritual depth.',
 
-  52: "You have an extraordinary power to be still — a concentrated presence that can anchor those around you. But without the focus to direct that stillness toward something specific, you may oscillate between restless searching and passive withdrawal, unable to channel your concentration.",
+  52: 'You have an extraordinary power to be still — a concentrated presence that can anchor those around you. But without the focus to direct that stillness toward something specific, you may oscillate between restless searching and passive withdrawal, unable to channel your concentration.',
 
-  53: "You carry the spark to begin new things — a restless pressure to initiate cycles of growth and development. But without the growth to sustain what you start, you may feel frustrated by a pattern of unfinished projects, not realizing that your gift is in the beginning, not the ending.",
+  53: 'You carry the spark to begin new things — a restless pressure to initiate cycles of growth and development. But without the growth to sustain what you start, you may feel frustrated by a pattern of unfinished projects, not realizing that your gift is in the beginning, not the ending.',
 
   54: "You have an extraordinary drive and ambition — the fuel to rise up and transform your position in the world. But without the continuity to assess what has lasting value, your ambition may burn bright but directionless, chasing success that doesn't endure.",
 
-  55: "You carry deep emotional awareness and a rich inner spirit that shifts with your moods. But without someone to provoke that spirit out of you, you may stay locked inside your own emotional world, unable to share its depth with others.",
+  55: 'You carry deep emotional awareness and a rich inner spirit that shifts with your moods. But without someone to provoke that spirit out of you, you may stay locked inside your own emotional world, unable to share its depth with others.',
 
-  56: "You are a born storyteller — your voice turns experience into compelling tales that shift beliefs and stimulate new thinking. But without the ideas to fuel your stories, you may find yourself searching restlessly for something new to talk about, or retelling the same experiences without fresh inspiration.",
+  56: 'You are a born storyteller — your voice turns experience into compelling tales that shift beliefs and stimulate new thinking. But without the ideas to fuel your stories, you may find yourself searching restlessly for something new to talk about, or retelling the same experiences without fresh inspiration.',
 
   57: {
     34: "You have extraordinary intuitive clarity — a penetrating awareness of what's safe, healthy, and true in each moment. But without the personal power to act on your instincts, your instinctive intelligence may go unused.",
     10: "You have extraordinary intuitive clarity — an innate knowing of what's safe and healthy. But without authentic behavior to follow through on what your intuition tells you, you may sense what's needed yet not embody it in how you interact with others.",
-    20: "You have extraordinary intuitive clarity — a penetrating awareness in the now. But without contemplation to speak your truth in the moment, your deepest knowing — that little voice that speaks once and softly — may pass unheard, even by you.",
+    20: 'You have extraordinary intuitive clarity — a penetrating awareness in the now. But without contemplation to speak your truth in the moment, your deepest knowing — that little voice that speaks once and softly — may pass unheard, even by you.',
   },
 
   58: "You bring a joyful vitality and audacity to challenge what isn't working — a love of life that wants everything to thrive. But without the correction to identify exactly what needs fixing, your energy may scatter — desperate to improve things but unsure where to focus.",
 
-  59: "You have the power to break through barriers to intimacy — to dissolve the walls that keep people apart. But without the friction to test whether the timing is right, you may open doors too quickly, creating bonds that lack the emotional depth to sustain them.",
+  59: 'You have the power to break through barriers to intimacy — to dissolve the walls that keep people apart. But without the friction to test whether the timing is right, you may open doors too quickly, creating bonds that lack the emotional depth to sustain them.',
 
-  60: "You feel the deep pressure of mutation building inside you — something new wants to emerge. But without the ordering to give that potential its proper structure, you may feel stuck, unable to move forward despite the restless energy within.",
+  60: 'You feel the deep pressure of mutation building inside you — something new wants to emerge. But without the ordering to give that potential its proper structure, you may feel stuck, unable to move forward despite the restless energy within.',
 
   61: "You feel the pressure to know the unknowable — to unravel life's deepest mysteries. But without rationalization to process your inspiration into a concept you can communicate, you may feel haunted by insights that return again and again but never fully resolve.",
 
-  62: "You have an eye for detail — the facts and specifics that make complex things understandable. But without the opinions and patterns to give your details structure, you may accumulate facts that lack a coherent framework, blurting out information that confuses rather than clarifies.",
+  62: 'You have an eye for detail — the facts and specifics that make complex things understandable. But without the opinions and patterns to give your details structure, you may accumulate facts that lack a coherent framework, blurting out information that confuses rather than clarifies.',
 
-  63: "You have a keen sense of doubt — an ability to spot inconsistencies and question what others take for granted. But without the formulization to resolve your doubts into workable answers, your suspicions may build into anxiety, endlessly questioning without resolution.",
+  63: 'You have a keen sense of doubt — an ability to spot inconsistencies and question what others take for granted. But without the formulization to resolve your doubts into workable answers, your suspicions may build into anxiety, endlessly questioning without resolution.',
 
-  64: "Your mind is a stream of images and memories — fragments of past experience cycling through, seeking meaning. But without the realization to assemble those fragments into clarity, you may feel overwhelmed by mental confusion, tempted to force resolution before the picture is complete.",
+  64: 'Your mind is a stream of images and memories — fragments of past experience cycling through, seeking meaning. But without the realization to assemble those fragments into clarity, you may feel overwhelmed by mental confusion, tempted to force resolution before the picture is complete.',
 };
 
 /**
