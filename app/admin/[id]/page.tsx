@@ -10,6 +10,7 @@ import ChartImage from '@/components/admin/chart-image';
 import hdChart from '@/lib/hd-chart';
 import { shadowNames, shadowDescriptions, shadowThemes, shadowLessons, shadowPressures, channelStrengths, gateTraits, functionToCenterIndex, centerNames } from '@/lib/hd-chart/constants';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
+import { hangingGateDescriptions } from '@/emails/content';
 import styles from './detail.module.css';
 
 const WELCOME_SERIES_LENGTH = 5;
@@ -291,27 +292,38 @@ function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
               )}
               {functionName === 'Bringing Traits/Strengths' ? (
                 (() => {
-                  const top = hd.getTopBridge();
-                  return top ? (
+                  const allBridges = hd.getAllBridgesSorted();
+                  return allBridges.length > 0 ? (
                   <div className={styles.bridgeGates}>
-                    <div className={styles.bridgeGate}>
-                      <span className={styles.bridgeGateNumber}>Gate {top.bridge.gate}</span>
-                      <p className={styles.bridgeDescription}>{top.bridge.description}</p>
-                      <div className={styles.bridgeDetails}>
-                        <div className={styles.bridgeDetailRow}>
-                          <span className={styles.bridgeDetailLabel}>Trait:</span>
-                          <span className={styles.bridgeDetailText}>{top.bridge.trait}</span>
+                    {allBridges.map((bridge, i) => {
+                      // Override with richer prose from hangingGateDescriptions
+                      const hanging = hangingGateDescriptions[bridge.harmonicGate];
+                      const description = hanging
+                        ? (typeof hanging === 'string'
+                            ? hanging
+                            : hanging[bridge.gate] ?? bridge.description)
+                        : bridge.description;
+                      return (
+                        <div key={i} className={styles.bridgeGate}>
+                          <span className={styles.bridgeGateNumber}>Gate {bridge.gate}</span>
+                          <p className={styles.bridgeDescription}>{description}</p>
+                          <div className={styles.bridgeDetails}>
+                            <div className={styles.bridgeDetailRow}>
+                              <span className={styles.bridgeDetailLabel}>Trait:</span>
+                              <span className={styles.bridgeDetailText}>{bridge.trait}</span>
+                            </div>
+                            <div className={styles.bridgeDetailRow}>
+                              <span className={styles.bridgeDetailLabel}>Harmonic Trait:</span>
+                              <span className={styles.bridgeDetailText}>{bridge.harmonicTrait}</span>
+                            </div>
+                            <div className={styles.bridgeDetailRow}>
+                              <span className={styles.bridgeDetailLabel}>Strength:</span>
+                              <span className={styles.bridgeDetailText}>{bridge.strength}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className={styles.bridgeDetailRow}>
-                          <span className={styles.bridgeDetailLabel}>Harmonic Trait:</span>
-                          <span className={styles.bridgeDetailText}>{top.bridge.harmonicTrait}</span>
-                        </div>
-                        <div className={styles.bridgeDetailRow}>
-                          <span className={styles.bridgeDetailLabel}>Strength:</span>
-                          <span className={styles.bridgeDetailText}>{top.bridge.strength}</span>
-                        </div>
-                      </div>
-                    </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className={styles.shadowDetails}>

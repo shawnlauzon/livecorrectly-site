@@ -16,6 +16,7 @@ import {
   signatureVideos
 } from './constants';
 import hdChart from './index';
+import { hangingGateDescriptions } from '../../emails/content';
 
 /**
  * Flat chart data for email templates.
@@ -70,7 +71,18 @@ export function parseChartForEmail(chart: Chart): EmailChartData {
   const hd = hdChart(chart);
   const shadows = hd.getShadows();
   const topShadow = shadows.length > 0 ? shadows[0] : null;
-  const bridgeDescriptions = hd.getBridgeDescriptions();
+
+  // Override bridge descriptions with richer prose from hangingGateDescriptions.
+  // Uses getAllBridgesSorted() to include both near + far bridges, ranked by priority.
+  const rawBridges = hd.getAllBridgesSorted();
+  const bridgeDescriptions = rawBridges.map(bridge => {
+    const hanging = hangingGateDescriptions[bridge.harmonicGate];
+    if (!hanging) return bridge;
+    const description = typeof hanging === 'string'
+      ? hanging
+      : hanging[bridge.gate] ?? bridge.description;
+    return { ...bridge, description };
+  });
 
   return {
     type: types[typeIndex],

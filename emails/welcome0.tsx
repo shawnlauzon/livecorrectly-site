@@ -37,7 +37,7 @@ export const Welcome0 = ({
   // Determine which shadow content to render.
   const hasBridgeShadow = chart.topShadow === 'Bringing Traits/Strengths';
   const bridgesToShow = hasBridgeShadow
-    ? chart.bridgeDescriptions.slice(0, 2)
+    ? chart.bridgeDescriptions.slice(0, 1)
     : [];
   const shadow =
     chart.topShadow && !hasBridgeShadow

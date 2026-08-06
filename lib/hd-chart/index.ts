@@ -950,6 +950,32 @@ export default function hdChart(chart: Chart) {
     };
   };
 
+  /**
+   * Get all bridges (near + far) sorted by the 5-tier priority system.
+   * Lower score = higher priority.
+   *
+   * 1: Sun activates the harmonic exclusively
+   * 2: Earth activates the harmonic exclusively
+   * 3: Bridge completes an awareness stream
+   * 4: Sun/Earth activates the harmonic non-exclusively
+   * 5: Default (no special priority)
+   */
+  const getAllBridgesSorted = (): BridgeDesc[] => {
+    const near = getBridgeDescriptions();
+    const far = getFarBridgeDescriptions();
+    const all = [...near, ...far];
+
+    if (all.length <= 1) return all;
+
+    const scored = all.map(bridge => ({
+      ...bridge,
+      _score: scoreBridge(bridge.gate, bridge.harmonicGate),
+    }));
+    scored.sort((a, b) => a._score - b._score);
+
+    return scored.map(({ _score, ...rest }) => rest);
+  };
+
   return {
     type,
     isGenerator: () => chart.type === 0 || chart.type === 1,
@@ -994,6 +1020,7 @@ export default function hdChart(chart: Chart) {
     getFarBridgeDescriptions,
     getBridgePriority,
     getTopBridge,
+    getAllBridgesSorted,
     hasNearBridges,
     hasFarBridges,
     findDefinedComponents,
