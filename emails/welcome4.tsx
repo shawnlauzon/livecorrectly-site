@@ -152,6 +152,7 @@ Welcome4.PreviewProps = {
     innerAuthorityVideo: 'https://youtu.be/e9g6q1pKJeo',
     signatureVideo: 'https://youtu.be/fHGRdJSyE34',
     topShadow: 'Willpower',
+    hasChannelBridge: false,
     bridgeDescriptions: []
   },
   unsubscribeUrl: 'https://livecorrectly.com/api/unsubscribe?token=test'
