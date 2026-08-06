@@ -99,7 +99,7 @@ export const Welcome0 = ({
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         You probably believe that this is one of your biggest flaws, and that if
-        only you could fix yourself, then you would be{' '}
+        only you could fix it, then you would be{' '}
         {chart.isManifestor
           ? 'at peace'
           : chart.isReflector
