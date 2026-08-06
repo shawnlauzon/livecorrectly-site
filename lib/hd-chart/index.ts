@@ -199,9 +199,18 @@ export default function hdChart(chart: Chart) {
       // For gates with multiple harmonics (10, 20, 34, 57),
       // check which harmonic gate they HAVE in their chart
       if (Array.isArray(missingTraitInfo.harmonicGate)) {
-        const matchingHarmonicIndex = missingTraitInfo.harmonicGate.findIndex(
-          hGate => userGates.includes(hGate)
-        );
+        // Find all matching harmonics, prefer Sacral/Splenic centers
+        const matchingHarmonics = missingTraitInfo.harmonicGate
+          .map((hGate, idx) => ({ gate: hGate, idx }))
+          .filter(h => userGates.includes(h.gate));
+
+        // Prefer harmonics in Sacral (1) or Splenic (2) centers
+        const preferred = matchingHarmonics.find(h => {
+          const center = gateToCenter[h.gate];
+          return center === 1 || center === 2;
+        });
+        const best = preferred ?? matchingHarmonics[0];
+        const matchingHarmonicIndex = best?.idx ?? -1;
 
         if (matchingHarmonicIndex >= 0) {
           const harmonicGateTheyHave = missingTraitInfo.harmonicGate[matchingHarmonicIndex];
