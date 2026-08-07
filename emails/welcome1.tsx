@@ -5,7 +5,6 @@ import { EmailChartData } from '../lib/hd-chart/parse-for-email';
 import {
   typeEngagement,
   waitingDetail,
-  lookupByCareerType,
   lookupByDMS,
   formatPrompt,
 } from './content';
@@ -92,9 +91,7 @@ export const Welcome1 = ({
         you wanted if you depended on advice not for you.
       </Text>
 
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        {engagement}
-      </Text>
+      {engagement}
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         That&apos;s because your design is {getArticle(chart.careerDesign)}{' '}
@@ -113,9 +110,9 @@ export const Welcome1 = ({
           </Heading>
 
           <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-            I know how that lands. You&apos;ve spent years being told the people
-            who make it are the ones who go out and make things happen, and now
-            here&apos;s a stranger telling you to wait.
+            I know how that lands. You&apos;ve spent years being told to go out
+            and make things happen, and now here&apos;s a stranger telling you
+            to wait.
           </Text>
 
           <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
@@ -124,9 +121,7 @@ export const Welcome1 = ({
             positioning yourself to receive.
           </Text>
 
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-            {detail}
-          </Text>
+          {detail}
 
           <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
             This is not to say you should <em>avoid</em> doing anything that you
@@ -137,12 +132,17 @@ export const Welcome1 = ({
         </>
       ) : (
         <>
-          {/* Initiator: entirely custom section (Shawn provides alt copy via waitingDetail/waitingSpeedNote maps) */}
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-            {detail}
-          </Text>
+          {/* Initiator: entirely custom section */}
+          {detail}
         </>
       )}
+
+      <Heading
+        as="h2"
+        className="mt-[24px] mb-[8px] text-[20px] font-bold text-[#221B3D]"
+      >
+        It&apos;s all about your decision making strategy
+      </Heading>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         Knowing how to use and trust your decision making strategy is the single

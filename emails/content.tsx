@@ -9,7 +9,16 @@
  */
 
 import * as React from 'react';
+import { Text } from 'react-email';
 import { innerAuthorityTypes } from '../lib/hd-chart/constants';
+
+/** Standard paragraph styling used across all email content. */
+const P_CLASS = 'mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]';
+
+/** Paragraph wrapper — each <P> renders as its own <p> in the email. */
+export function P({ children }: { children: React.ReactNode }) {
+  return <Text className={P_CLASS}>{children}</Text>;
+}
 
 /** Type-safe authority names derived from constants */
 export type InnerAuthority = (typeof innerAuthorityTypes)[number];
@@ -343,73 +352,45 @@ export const typeEngagement = new Map<
   [
     'Classic Builder',
     (authority) => {
-      const baseText = (
-        <>
-          The advice <em>designed for you</em> is to wait before engaging with
-          anything
-        </>
-      );
+      const baseText =
+        'The advice designed for you is to wait before engaging with anything';
       const energyText =
-        "You've got tons of energy, and it regenerates everytime you have a good night's sleep, but you can only tap into this energy when you're doing what you love.";
+        "You've got tons of energy, and it regenerates everytime you have a good night's sleep. But you can only tap into this energy when you're doing what you love.";
 
       switch (authority) {
         case 'Sacral':
           return (
-            <>
+            <P>
               {baseText} and then to follow your gut. {energyText} And your gut
               always knows what that is, in the present moment.
-            </>
+            </P>
           );
 
         case 'Emotional':
           return (
-            <>
+            <P>
               {baseText} and then to allow your emotions to guide you to what
               feels good. {energyText} And this emotional clarity takes time to
               arrive.
-            </>
+            </P>
           );
 
         default:
-          return <>{baseText}.</>;
+          return <P>{baseText}. {energyText}</P>;
       }
     },
   ],
   [
     'Advisor',
     (authority) => {
-      const baseText = (
-        <>
+      return (
+        <P>
           The advice <em>designed for you</em> is to wait for a formal
-          invitation
-        </>
+          invitation. You&apos;ve got a limited supply of energy, but when you
+          are working with the right person, it doesn&apos;t drain you. In fact
+          it feels sweet!
+        </P>
       );
-      const energyText =
-        "You've got a limited supply of energy, but when you are working with the right person, it doesn't drain you and feels sweet.";
-
-      switch (authority) {
-        case 'Emotional':
-          return (
-            <>
-              {baseText} and then to allow your emotions to guide you to what
-              feels good. {energyText}&nbsp;And this emotional clarity takes
-              time to arrive.
-            </>
-          );
-        case 'Splenic':
-          return (
-            <>
-              {baseText} and then to trust your intuition to make the correct
-              decision. {energyText}&nbsp;Your mind might complain this
-              isn&apos;t rational. But allow your mind to do what it&apos;s good
-              at&mdash;gathering information&mdash;and your intution on being
-              your guide.
-            </>
-          );
-
-        default:
-          return <>{baseText}.</>;
-      }
     },
   ],
 
@@ -431,47 +412,50 @@ export const waitingDetail = new Map<
   [
     'Classic Builder',
     (authority) => {
-      const baseText = (
-        <>
-          It means your job is to make sure enough opportunities arise to give
-          your body something to respond to. It might be words spoken directly
-          to you, or something you see, hear, or even smell.
-        </>
-      );
+      const baseText =
+        'It means your job is to make sure enough opportunities arise to give your body something to respond to. It might be words spoken directly to you, or something you see, hear, or even smell.';
 
       switch (authority) {
         case 'Sacral':
           return (
-            <>
+            <P>
               {baseText} And when it comes time to make a decision, your gut
               will tell you what to do.
-            </>
+            </P>
           );
 
         case 'Emotional':
           return (
-            <>
+            <P>
               {baseText} And when it comes time to make a decision, play hard to
               get. If it&apos;s a request, tell them to ask you later. Take the
               time your system needs to really feel into it. If it&apos;s right
               for you, they&apos;ll be back.
-            </>
+            </P>
           );
 
         default:
-          return baseText;
+          return <P>{baseText}</P>;
       }
     },
   ],
   [
     'Advisor',
     (authority) => {
-      const baseText = (
+      const baseParagraphs = (
         <>
-          It means that while you are waiting, your time is best spent becoming
-          a master in whatever field you choose. Don&apos;t get disappointed if
-          this takes months or even years&mdash;at the right time, your mastery
-          will be recognized and an invitation offered.
+          <P>
+            It means that while you are waiting, your time is best spent
+            becoming a master in whatever field you choose. Don&apos;t get
+            disappointed if this takes months or even years&mdash;at the right
+            time, your mastery will be recognized and an invitation offered.
+          </P>
+          <P>
+            You only need to wait for a formal invitation to these major
+            decisions: invitations to love, to a career, to bond with others,
+            and to a place to live. Don&apos;t wait for a formal invitation to
+            have dinner!
+          </P>
         </>
       );
 
@@ -479,25 +463,31 @@ export const waitingDetail = new Map<
         case 'Emotional':
           return (
             <>
-              {baseText} And that&apos;s the time when you play hard to get. I
-              know, it sounds crazy. But tell them to come back and ask you
-              later. Or say you need to sleep on it. Take the time your system
-              needs to really feel into it. If it&apos;s right for you,
-              they&apos;ll be back.
+              {baseParagraphs}
+              <P>
+                And that&apos;s the time when you play hard to get. I know, it
+                sounds crazy. But tell them to come back and ask you later. Or
+                say you need to sleep on it. Take the time your system needs to
+                really feel into it. If it&apos;s right for you, they&apos;ll be
+                back.
+              </P>
             </>
           );
         case 'Splenic':
           return (
             <>
-              {baseText} And that&apos;s the time when you trust your intuition.
-              If your intuition says this isn&apos;t right for you, then say no.
-              Saying no to what is not for you gives you the space to say yes to
-              the correct relationship.
+              {baseParagraphs}
+              <P>
+                And that&apos;s the time when you trust your intuition. If your
+                intuition says this isn&apos;t right for you, then say no.
+                Knowing when to accept and when to decline is what gives you the
+                energy to say yes to the correct invitation.
+              </P>
             </>
           );
 
         default:
-          return baseText;
+          return baseParagraphs;
       }
     },
   ],
@@ -505,7 +495,6 @@ export const waitingDetail = new Map<
   // TODO: Shawn to provide per-type copy
   // ['Express Builder', '...'],
   // ['Initiator', '...'],
-  // ['Advisor', '...'],
   // ['Evaluator', '...'],
 ]);
 
