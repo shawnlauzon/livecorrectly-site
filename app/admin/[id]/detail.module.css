@@ -56,6 +56,44 @@
   color: white;
 }
 
+/* Email preview selector */
+.emailPreviewSelector {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.emailPreviewSelectorLabel {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.emailPreviewSelectorSelect {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+  flex: 1;
+  max-width: 400px;
+}
+
+.emailPreviewSelectorSelect:focus {
+  outline: none;
+  border-color: var(--grape);
+}
+
 .grid {
   display: grid;
   gap: 1.5rem;
@@ -429,6 +467,7 @@
 .emailPreviewSummary {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   font-family: var(--body);
@@ -441,6 +480,43 @@
 
 .emailPreviewSummary:hover {
   background: var(--line);
+}
+
+.emailPreviewLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.emailPreviewRefresh {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  font-family: var(--body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--grape);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.emailPreviewRefresh:hover:not(:disabled) {
+  background: var(--paper);
+  border-color: var(--grape);
+}
+
+.emailPreviewRefresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.emailPreviewRefresh svg {
+  flex-shrink: 0;
 }
 
 .emailPreviewTag {

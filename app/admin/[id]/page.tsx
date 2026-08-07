@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Subscriber } from '@/lib/types/subscriber';
 import ChartDisplay from '@/components/admin/chart-display';
@@ -22,6 +22,7 @@ export default function AdminDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [subscriber, setSubscriber] = useState<Subscriber | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -98,6 +99,7 @@ export default function AdminDetailPage({
   }
 
   const birthTimeUtc = subscriber.chart?.meta?.birthData?.time?.utc;
+  const emailStep = searchParams.get('email');
 
   return (
     <div className={styles.container}>
@@ -120,6 +122,8 @@ export default function AdminDetailPage({
         </Link>
       </div>
 
+      <EmailPreviewSelector subscriberId={subscriber.id} currentStep={emailStep} />
+
       <div className={styles.card}>
         <ChartHero subscriber={subscriber} />
       </div>
@@ -130,7 +134,7 @@ export default function AdminDetailPage({
 
       <WelcomeSeries subscriber={subscriber} onSubscriberUpdate={setSubscriber} />
 
-      <EmailPreviews subscriber={subscriber} />
+      <EmailPreviews subscriber={subscriber} currentEmailStep={emailStep} />
 
       <ChartJson chart={subscriber.chart} />
     </div>
@@ -628,49 +632,125 @@ const EMAIL_LABELS = [
   'Day 5: Conclusion'
 ];
 
-function EmailPreviewItem({ subscriber, step, label }: { subscriber: Subscriber; step: number; label: string }) {
+function EmailPreviewSelector({ subscriberId, currentStep }: { subscriberId: string; currentStep: string | null }) {
+  const router = useRouter();
+
+  const handleEmailSelect = (step: number) => {
+    router.push(`/admin/${subscriberId}?email=${step}#email-previews`);
+  };
+
+  return (
+    <div className={styles.emailPreviewSelector}>
+      <label htmlFor="email-select" className={styles.emailPreviewSelectorLabel}>
+        Jump to email preview:
+      </label>
+      <select
+        id="email-select"
+        className={styles.emailPreviewSelectorSelect}
+        value={currentStep ?? ''}
+        onChange={(e) => {
+          const step = e.target.value;
+          if (step) {
+            handleEmailSelect(parseInt(step, 10));
+          } else {
+            router.push(`/admin/${subscriberId}`);
+          }
+        }}
+      >
+        <option value="">Select an email...</option>
+        {EMAIL_LABELS.map((label, step) => (
+          <option key={step} value={step}>
+            {label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function EmailPreviewItem({
+  subscriber,
+  step,
+  label,
+  autoOpen = false
+}: {
+  subscriber: Subscriber;
+  step: number;
+  label: string;
+  autoOpen?: boolean;
+}) {
   const [html, setHtml] = useState<string | null>(null);
   const [subject, setSubject] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(autoOpen);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const detailsRef = useRef<HTMLDetailsElement>(null);
 
   const chart = parseChartForEmail(subscriber.chart.chart);
   const shadowTag = step === 0 ? chart.topShadow : null;
 
+  // Auto-open and scroll into view if autoOpen is true
+  useEffect(() => {
+    if (autoOpen && detailsRef.current) {
+      setIsOpen(true);
+      // Small delay to ensure the DOM is updated before scrolling
+      setTimeout(() => {
+        detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [autoOpen]);
+
+  const loadPreview = useCallback((forceReload = false) => {
+    if (!forceReload && (html !== null || loading)) return;
+
+    const password = sessionStorage.getItem('adminPassword');
+    if (!password) return;
+
+    setLoading(true);
+    setError(null);
+
+    fetch(`/api/admin/subscribers/${subscriber.id}/preview-email?step=${step}`, {
+      headers: { Authorization: `Bearer ${password}` }
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to load preview');
+        }
+        return res.json();
+      })
+      .then((data: { subject: string; preview: string; html: string }) => {
+        setSubject(data.subject);
+        setPreview(data.preview);
+        setHtml(data.html);
+      })
+      .catch((err: Error) => {
+        setError(err.message);
+        console.error(`[admin] Error loading email preview step ${step}:`, err);
+      })
+      .finally(() => setLoading(false));
+  }, [html, loading, subscriber.id, step]);
+
+  const handleRefresh = useCallback(() => {
+    setHtml(null);
+    setSubject(null);
+    setPreview(null);
+    loadPreview(true);
+  }, [loadPreview]);
+
+  // Load preview when opened (either manually or auto-opened)
+  useEffect(() => {
+    if (isOpen) {
+      loadPreview();
+    }
+  }, [isOpen, loadPreview]);
+
   const handleToggle = useCallback((e: React.SyntheticEvent<HTMLDetailsElement>) => {
     const open = (e.target as HTMLDetailsElement).open;
-
-    if (open && html === null && !loading) {
-      const password = sessionStorage.getItem('adminPassword');
-      if (!password) return;
-
-      setLoading(true);
-      setError(null);
-
-      fetch(`/api/admin/subscribers/${subscriber.id}/preview-email?step=${step}`, {
-        headers: { Authorization: `Bearer ${password}` }
-      })
-        .then(async (res) => {
-          if (!res.ok) {
-            const data = await res.json();
-            throw new Error(data.error || 'Failed to load preview');
-          }
-          return res.json();
-        })
-        .then((data: { subject: string; preview: string; html: string }) => {
-          setSubject(data.subject);
-          setPreview(data.preview);
-          setHtml(data.html);
-        })
-        .catch((err: Error) => {
-          setError(err.message);
-          console.error(`[admin] Error loading email preview step ${step}:`, err);
-        })
-        .finally(() => setLoading(false));
-    }
-  }, [html, loading, subscriber.id, step]);
+    setIsOpen(open);
+  }, []);
 
   // Resize iframe to match content height once HTML is loaded
   useEffect(() => {
@@ -691,11 +771,36 @@ function EmailPreviewItem({ subscriber, step, label }: { subscriber: Subscriber;
   }, [html]);
 
   return (
-    <details className={styles.emailPreview} onToggle={handleToggle}>
+    <details
+      ref={detailsRef}
+      className={styles.emailPreview}
+      onToggle={handleToggle}
+      open={isOpen}
+    >
       <summary className={styles.emailPreviewSummary}>
-        {label}
-        {shadowTag && (
-          <span className={styles.emailPreviewTag}>{shadowTag}</span>
+        <span className={styles.emailPreviewLabel}>
+          {label}
+          {shadowTag && (
+            <span className={styles.emailPreviewTag}>{shadowTag}</span>
+          )}
+        </span>
+        {isOpen && (
+          <button
+            className={styles.emailPreviewRefresh}
+            onClick={(e) => {
+              e.preventDefault();
+              handleRefresh();
+            }}
+            disabled={loading}
+            title="Refresh preview"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10" />
+              <polyline points="1 20 1 14 7 14" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg>
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </button>
         )}
       </summary>
       <div className={styles.emailPreviewContent}>
@@ -725,9 +830,11 @@ function EmailPreviewItem({ subscriber, step, label }: { subscriber: Subscriber;
   );
 }
 
-function EmailPreviews({ subscriber }: { subscriber: Subscriber }) {
+function EmailPreviews({ subscriber, currentEmailStep }: { subscriber: Subscriber; currentEmailStep: string | null }) {
+  const targetStep = currentEmailStep ? parseInt(currentEmailStep, 10) : null;
+
   return (
-    <div className={styles.welcomeSection}>
+    <div className={styles.welcomeSection} id="email-previews">
       <div className={styles.welcomeCard}>
         <h2 className={styles.welcomeHeading}>Email Previews</h2>
         <div className={styles.emailPreviewList}>
@@ -737,6 +844,7 @@ function EmailPreviews({ subscriber }: { subscriber: Subscriber }) {
               subscriber={subscriber}
               step={step}
               label={label}
+              autoOpen={targetStep === step}
             />
           ))}
         </div>
