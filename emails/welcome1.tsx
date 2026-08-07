@@ -3,11 +3,12 @@ import { Heading, Text } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import { EmailChartData } from '../lib/hd-chart/parse-for-email';
 import {
-  misfitAdvice,
   typeEngagement,
   waitingDetail,
   waitingSpeedNote,
   lookupByCareerType,
+  lookupByDMS,
+  formatPrompt,
 } from './content';
 
 interface Welcome1Props {
@@ -25,50 +26,72 @@ interface Welcome1Props {
  *
  * All conditionals use BG5 career types (chart.careerDesign), not HD types.
  */
+
+const getArticle = (word: string): string => {
+  const vowels = ['A', 'E', 'I', 'O', 'U'];
+  return vowels.includes(word[0].toUpperCase()) ? 'an' : 'a';
+};
+
 export const Welcome1 = ({
   firstName,
   chart,
   unsubscribeUrl,
 }: Welcome1Props) => {
-  const advice = lookupByCareerType(misfitAdvice, chart.careerDesign);
-  const engagement = lookupByCareerType(typeEngagement, chart.careerDesign);
-  const detail = lookupByCareerType(waitingDetail, chart.careerDesign);
+  const engagement = lookupByDMS(
+    typeEngagement,
+    chart.careerDesign,
+    chart.innerAuthority,
+  );
+  const detail = lookupByDMS(
+    waitingDetail,
+    chart.careerDesign,
+    chart.innerAuthority,
+  );
   const speedNote = lookupByCareerType(waitingSpeedNote, chart.careerDesign);
 
   return (
     <EmailLayout
       preview="It's good advice. It's just not yours."
       unsubscribeUrl={unsubscribeUrl}
+      postscript={
+        <Text className="mt-[24px] mb-[16px] text-[16px] italic leading-[24px] text-[#4A4A4A]">
+          P.S.{' '}
+          {formatPrompt(
+            "followed someone's advice which works for them, but didn't work for you",
+            chart,
+          )}{' '}
+          Hit reply and let me know.
+        </Text>
+      }
     >
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         {firstName},
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        I'm sure that at some point, somebody has told you to {advice}.
+        If you&apos;re anything like me, at some point somebody has given you
+        some advice: told you to put yourself out there and just share what you
+        know. Or be more consistent. Or speak up more in meetings.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         Maybe a coach, maybe a book, maybe your best friend&apos;s plumber. You
-        tried. It worked for a while and then it didn&apos;t, and you added it
-        to the list of things you started and couldn&apos;t sustain.
+        didn&apos;t trust yourself, so you tried. And it worked for awhile, but
+        then something happened to bring you off-track. And you added it to the
+        list of things that you&apos;re a failure at.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        Here&apos;s the thing about that advice: it&apos;s good. Whoever gave it
-        to you built something that worked, then described what they did. What
-        they described was how they engage with the world.
+        Here&apos;s the thing about that advice: it&apos;s good&mdash;for the
+        right person. In fact, the advice was perfect for the person who gave
+        it.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        The problem is you&apos;re not them. And what is good for the goose, is
-        often NOT what&apos;s good for the gander. (A goose is actually a male
-        gander. I had to look that up.)
-      </Text>
-
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        You&apos;re a {chart.careerDesign} &mdash; in Human Design terms, a{' '}
-        {chart.type}.
+        Unfortunately, even though anyone <em>can</em>&nbsp;do anything, it
+        doesn&apos;t mean that everyone <em>should</em>. You would have to go
+        through a ton of {chart.notSelfTheme} before achieving what you thought
+        you wanted if you depended on advice not for you.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
@@ -76,7 +99,14 @@ export const Welcome1 = ({
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        So the version that works for you is <strong>{chart.strategy}</strong>.
+        That&apos;s because your design is {getArticle(chart.careerDesign)}{' '}
+        {chart.careerDesign}&mdash;in Human Design terms,{' '}
+        {getArticle(chart.type)} {chart.type}.
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+        So the version that works for you is{' '}
+        <strong>{chart.decisionMakingStrategy}</strong>.
       </Text>
 
       {chart.careerDesign !== 'Initiator' ? (
@@ -90,14 +120,14 @@ export const Welcome1 = ({
 
           <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
             I know how that lands. You&apos;ve spent years being told the people
-            who make it are the ones who push, and now here&apos;s a stranger
-            telling you to wait.
+            who make it are the ones who go out and make things happen, and now
+            here&apos;s a stranger telling you to wait.
           </Text>
 
           <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
             So let me be specific about what it isn&apos;t. It isn&apos;t
-            sitting still. It isn&apos;t hoping. It isn&apos;t turning down
-            work.
+            sitting still. It isn&apos;t doing nothing. It is, rather, actively
+            positioning yourself to receive.
           </Text>
 
           <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
@@ -105,19 +135,10 @@ export const Welcome1 = ({
           </Text>
 
           <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-            And you already have the evidence for this, because you&apos;ve run
-            the experiment.
-          </Text>
-
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-            Think about the things you started cold, because you&apos;d decided
-            they were a good idea. Then think about the ones that arrived
-            &mdash; someone asked, something came up, and you knew almost
-            immediately. Compare how those two sets went.
-          </Text>
-
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-            {speedNote}
+            This is not to say you should <em>avoid</em>&nbsp;doing anything
+            that you have energy for. If you have an authentic desire to do
+            something&mdash;and it&apos;s not your mind telling you that you
+            should do to get some result&mdash;definitely do it!
           </Text>
         </>
       ) : (
@@ -132,16 +153,6 @@ export const Welcome1 = ({
           </Text>
         </>
       )}
-
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        One question:
-      </Text>
-
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        What&apos;s the piece of advice you keep getting handed that you
-        can&apos;t make yourself do? I&apos;m collecting these &mdash; hit reply
-        and tell me yours.
-      </Text>
     </EmailLayout>
   );
 };

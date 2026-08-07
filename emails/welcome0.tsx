@@ -3,7 +3,7 @@ import { Text, Section, Button } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import { Prose } from './components/prose';
 import { EmailChartData } from '../lib/hd-chart/parse-for-email';
-import { shadowOpenings } from './content';
+import { shadowOpenings, formatPrompt } from './content';
 
 interface Welcome0Props {
   firstName: string;
@@ -47,27 +47,19 @@ export const Welcome0 = ({
     ? bridgesToShow.length > 0
     : shadow !== null;
 
-  const reflectionPrompt = (() => {
-    if (chart.isManifestor) {
-      return hasBridgeShadow
-        ? 'See if this rings true.'
-        : 'Consider if any of these sound familiar.';
-    }
-    if (chart.isProjector || chart.isReflector) {
-      return hasBridgeShadow
-        ? 'How does this land for you?'
-        : 'How do these land for you?';
-    }
-    // Builder (Generator / MG) — yes/no
-    return hasBridgeShadow
-      ? 'Does this ring true?'
-      : 'Do any of these sound familiar?';
-  })();
+  const reflectionPrompt = hasBridgeShadow
+    ? formatPrompt('felt like this described you', chart)
+    : formatPrompt('noticed any of these showing up in your life', chart);
 
   return (
     <EmailLayout
       preview="It's nothing personal. It's just mechanics."
       unsubscribeUrl={unsubscribeUrl}
+      postscript={shadow?.ps && (
+        <Text className="mb-[16px] text-[16px] italic leading-[24px] text-[#4A4A4A]">
+          {shadow.ps}
+        </Text>
+      )}
     >
       {/* Greeting + common opener */}
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
@@ -197,7 +189,7 @@ export const Welcome0 = ({
 
       {/* --- Closing question --- */}
       <Text className="mb-[16px] text-[16px] font-bold leading-[24px] text-[#4A4A4A]">
-        One question, and I read every reply:
+        Last thing, and I read every reply:
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
@@ -212,12 +204,6 @@ export const Welcome0 = ({
         </Text>
       )}
 
-      {/* --- Shadow-specific: P.S. (italic, last thing before signature) --- */}
-      {shadow?.ps && (
-        <Text className="mb-[16px] text-[16px] italic leading-[24px] text-[#4A4A4A]">
-          {shadow.ps}
-        </Text>
-      )}
     </EmailLayout>
   );
 };

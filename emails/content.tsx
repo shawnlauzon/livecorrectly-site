@@ -8,6 +8,12 @@
  * Strategy map keys match the full strategy string.
  */
 
+import * as React from 'react';
+import { innerAuthorityTypes } from '../lib/hd-chart/constants';
+
+/** Type-safe authority names derived from constants */
+export type InnerAuthority = (typeof innerAuthorityTypes)[number];
+
 export const strategyWriteups = new Map<string, string>([
   [
     'wait to respond before engaging',
@@ -332,7 +338,7 @@ export const hangingGateDescriptions: Record<
 export const misfitAdvice = new Map<string, string>([
   [
     'Classic Builder',
-    'post five times a week. Or be consistent. Or build out a content strategy and stick to it',
+    "just put yourself out there and make it happen. Or don't wait for someone else. Or stop overthinking it and commit.",
   ],
   // TODO: Shawn to provide per-type copy
   // ['Express Builder', '...'],  // falls back to Classic Builder via lookupByCareerType
@@ -344,27 +350,80 @@ export const misfitAdvice = new Map<string, string>([
 /**
  * How the career type engages with the world.
  * Full paragraph describing their energy mechanics.
+ * Each function receives the authority type to allow referencing decision-making mechanics.
  */
-export const typeEngagement = new Map<string, string>([
+export const typeEngagement = new Map<
+  string,
+  (authority: InnerAuthority) => React.ReactNode
+>([
   [
     'Classic Builder',
-    "You have real energy, and it's renewable. But it switches on in response to something concrete — a request, an opportunity, a problem in front of you. Started cold, from nothing, you're drawing on a reserve you don't have. This is why \"just be consistent\" feels like pushing a car uphill.",
+    (authority) => {
+      const energyText =
+        "You've got tons of energy, and it regenerates everytime you have a good night's sleep, but you can only utilize this energy when you're doing what you love.";
+
+      switch (authority) {
+        case 'Sacral':
+          return (
+            <>
+              The advice <em>designed for you</em> is to wait before engaging
+              with anything and then to follow your gut. {energyText} And your
+              gut always knows what that is, in the present moment.
+            </>
+          );
+
+        case 'Emotional':
+          return (
+            <>
+              The advice <em>designed for you</em> is to wait before engaging
+              with anything and then to allow your emotions to guide you to what
+              feels good. {energyText} And this emotional clarity takes time to
+              arrive.
+            </>
+          );
+
+        default:
+          return (
+            <>
+              The advice <em>designed for you</em> is to wait before engaging
+              with anything. {energyText}
+            </>
+          );
+      }
+    },
   ],
-  // TODO: Shawn to provide per-type copy
-  // ['Express Builder', '...'],
-  // ['Initiator', '...'],
-  // ['Advisor', '...'],
-  // ['Evaluator', '...'],
+  // TODO: Shawn to provide per-type copy (functions receive authority: InnerAuthority)
+  // ['Express Builder', (authority) => <>...</>],
+  // ['Initiator', (authority) => <>...</>],
+  // ['Advisor', (authority) => <>...</>],
+  // ['Evaluator', (authority) => <>...</>],
 ]);
 
 /**
  * What "waiting" (or "informing" for Initiator) actually means.
  * Full paragraph with practical specifics.
  */
-export const waitingDetail = new Map<string, string>([
+export const waitingDetail = new Map<
+  string,
+  (authority: InnerAuthority) => React.ReactNode
+>([
   [
     'Classic Builder',
-    "It means your job is to make sure enough real things reach you — conversations, requests, problems, people asking if you do X. That part takes actual effort, and someone doing it properly looks busy. What changes is where the effort goes. Not into forcing an outcome. Into making sure you're in the path of things worth responding to. Then when one lands, you move hard.",
+    (authority) => {
+      const baseText =
+        'It means your job is to make sure enough opportunities arise to give your body something to respond to. It might be words spoken directly to you, or something you see, hear, or even smell.';
+
+      switch (authority) {
+        case 'Sacral':
+          return `${baseText} And when it comes time to make a decision, your gut will tell you what to do.`;
+
+        case 'Emotional':
+          return `${baseText} And when it comes time to make a decision, play hard to get. If it's a request, tell them to ask you later. Take the time your system needs to really feel into it. If it's right for you, they'll be back.`;
+
+        default:
+          return baseText;
+      }
+    },
   ],
   // TODO: Shawn to provide per-type copy
   // ['Express Builder', '...'],
@@ -402,6 +461,47 @@ export function lookupByCareerType(
   if (careerDesign === 'Express Builder')
     return map.get('Classic Builder') ?? '';
   return '';
+}
+
+/**
+ * Look up a function-based content map by BG5 career type and execute it.
+ * Falls back from Express Builder → Classic Builder when no specific entry exists.
+ * Passes authority to the function for dynamic content generation.
+ */
+export function lookupByDMS(
+  map: Map<string, (authority: InnerAuthority) => React.ReactNode>,
+  careerDesign: string,
+  authority: InnerAuthority,
+): React.ReactNode {
+  const fn = map.get(careerDesign);
+  if (fn) return fn(authority);
+  if (careerDesign === 'Express Builder') {
+    const fallbackFn = map.get('Classic Builder');
+    if (fallbackFn) return fallbackFn(authority);
+  }
+  return '';
+}
+
+/**
+ * Format a prompt clause into the correct voice for the career type.
+ * - Generator: yes/no question ("Have you ever {clause}?")
+ * - Manifestor: statement ("I would love to hear if you ever {clause}.")
+ * - Projector / Reflector: open-ended question ("What's a time that you ever {clause}?")
+ *
+ * The clause should be the bare action, e.g.
+ * "followed someone's advice which works for them, but didn't work for you"
+ */
+export function formatPrompt(
+  clause: string,
+  opts: { isGenerator: boolean; isManifestor: boolean },
+): string {
+  if (opts.isGenerator) {
+    return `Have you ever ${clause}?`;
+  }
+  if (opts.isManifestor) {
+    return `I would love to hear if you ever ${clause}.`;
+  }
+  return `What's a time that you ever ${clause}?`;
 }
 
 /**

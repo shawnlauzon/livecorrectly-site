@@ -17,6 +17,7 @@ interface EmailLayoutProps {
   preview: string;
   unsubscribeUrl: string;
   children: React.ReactNode;
+  postscript?: React.ReactNode;
 }
 
 /**
@@ -30,7 +31,8 @@ interface EmailLayoutProps {
 export function EmailLayout({
   preview,
   unsubscribeUrl,
-  children
+  children,
+  postscript
 }: EmailLayoutProps) {
   return (
     <Tailwind>
@@ -42,6 +44,8 @@ export function EmailLayout({
             {children}
 
             <Signature />
+
+            {postscript}
 
             <Hr className="my-[24px] border-[#E6E1F4]" />
 
