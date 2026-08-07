@@ -99,8 +99,8 @@ export const Welcome0 = ({
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         {chart.hasChannelBridge
-          ? "You might believe that this is one of the world's biggest flaws, and that if only that was changed, then you would be"
-          : 'You probably believe that this is one of your biggest flaws, and that if only you could fix it, then you would be'}{' '}
+          ? "You might believe that this is one of the world's biggest flaws, and that if only that was changed, then you would be "
+          : 'You might believe that this is one of your biggest flaws, and that if only you could fix it, then you would be '}
         {chart.isManifestor
           ? 'at peace'
           : chart.isReflector
@@ -139,27 +139,18 @@ export const Welcome0 = ({
       {/* --- Shadow-specific: relief --- */}
       {shadow && (
         <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-          Even though these tendencies are part of you, they can also become
-          your superpower. Within the shadow always lies the gift. Eventually,{' '}
-          {shadow.relief}. It won&apos;t happen overnight. But it&apos;s simpler
-          than you think.
+          Even though these tendencies might be part of you (and I&apos;m
+          betting they are), they can also become your superpower. Within the
+          shadow always lies the gift. Eventually, {shadow.relief}. It
+          won&apos;t happen overnight. But it&apos;s simpler than you think.
         </Text>
       )}
 
       {/* --- Common transition --- */}
       {hasShadowContent && (
         <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-          I didn&apos;t guess that. It&apos;s part of your nature.
+          I didn&apos;t guess any of that. It&apos;s part of your nature.
         </Text>
-      )}
-
-      {/* --- Shadow-specific: story --- */}
-      {shadow && (
-        <>
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-            {shadow.story}
-          </Text>
-        </>
       )}
 
       {/* --- CTA --- */}
@@ -179,13 +170,24 @@ export const Welcome0 = ({
         facilitator.
       </Text>
 
+      {/* --- Shadow-specific: story --- */}
+      {shadow && (
+        <>
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+            {shadow.story} {shadow.story && ' '}Through Human Design, I was able
+            to clearly see my own patterns, and realize they&apos;re not
+            something wrong with me personally&mdash;it&apos;s how my system
+            works. It&apos;s just mechanics.
+          </Text>
+        </>
+      )}
+
       {/* --- Series intro --- */}
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        Over the next few days you&apos;ll see how you are designed to function
-        best in the world. You&apos;ll begin to recognize your own patterns, and
-        then learn how to listen to your unique way of being. That will help you
-        make decisions you can trust, rather than being dependent on advice from
-        others. Advice based on their way of being, not yours.
+        Over the next few days you&apos;ll begin to recognize your own patterns
+        and learn how to listen to your unique way of doing and being. That will
+        help you make decisions you can trust, and stop depending on advice from
+        others. Advice which is based on their way of being, not yours.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">

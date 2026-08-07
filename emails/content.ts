@@ -121,7 +121,7 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
 - You've got a stack of certifications and you always want more
 - You make promises to show you care, and then you end up bailing
 - You rank everyone you know, and you're not at the top`,
-      story: `I have the same shadow as you. Maybe yours shows up differently, but I bet they're close. It took me a long time to realize I had a self-worth issue. And then I stopped beating myself up, because I knew it wasn't a personal failing. It's just mechanics.`,
+      story: `And I have the same shadow as you. Those tendencies up top? I've felt every single one of them. Maybe yours show up a little differently, but I bet they're close.`,
       relief: `you'll stop doing things to prove yourself, and can even help others to love and believe in themselves`,
       closingLine: `You have nothing to prove.`,
       ps: `P.S. About my own stack of certifications: I didn't learn it to teach it. I learned it because I needed it. Turns out helping other people with it is what I'm designed for.`,
@@ -134,7 +134,7 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
 - You avoid going to parties because you're tired of acting how others expect
 - Friends complain that you take things too personally
 - You don't share what you really think because you don't want people to be upset`,
-      story: `I have the same shadow as you. Maybe yours shows up differently, but I bet they're close. It took me a long time to realize my lack of emotional intelligence was a problem. But after that: I stopped beating myself up, because I knew it wasn't a personal failing. It's just mechanics.`,
+      story: `And I have the same shadow as you. Those tendencies up top? I've felt every single one of them. Maybe yours show up a little differently, but I bet they're close.`,
       relief: `you'll feel emotions without them controlling you, and can even help others understand and use their own emotions wisely`,
       closingLine: `You are designed for emotional serenity.`,
       ps: `P.S. About my own emotional intelligence journey: I didn't start practicing Authentic Relating to teach it. I learned it because I needed it. Turns out helping other people with it is what I'm designed for.`,
@@ -145,9 +145,9 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
     {
       scenes: `\
 - You often do what others want you to do or to be in business and life
-- You try to make a particular place work even though you're always uncomforable there
+- You try to make a particular place work even though you're always uncomfortable there
 - You judge yourself for being a completely different person in different places`,
-      story: `Unlike some of the other challenges that the chart shows, this isn't one of my biggies. But I used to make it worse for people, telling them what they should do and getting frustrated when they didn't listen. Now I know this isn't a personal failing. It's just mechanics.`,
+      story: `And even though my own patterns are different from these, I still relate to them from time to time because of conditioning from others.`,
       relief: `you'll trust yourself to find the correct place for you, and can even help others to find connection and love`,
       closingLine: `You know exactly where you're meant to be.`,
     },
@@ -320,6 +320,89 @@ export const hangingGateDescriptions: Record<
 
   64: 'Your mind is a stream of images and memories — fragments of past experience cycling through, seeking meaning. But without the realization to assemble those fragments into clarity, you may feel overwhelmed by mental confusion, tempted to force resolution before the picture is complete.',
 };
+
+// ---------------------------------------------------------------------------
+// Welcome 1 content maps — keyed by BG5 career type
+// ---------------------------------------------------------------------------
+
+/**
+ * The bad advice that doesn't fit their design.
+ * Used in the opening: "Somebody has told you to {misfitAdvice}."
+ */
+export const misfitAdvice = new Map<string, string>([
+  [
+    'Classic Builder',
+    'post five times a week. Or be consistent. Or build out a content strategy and stick to it',
+  ],
+  // TODO: Shawn to provide per-type copy
+  // ['Express Builder', '...'],  // falls back to Classic Builder via lookupByCareerType
+  // ['Initiator', '...'],
+  // ['Advisor', '...'],
+  // ['Evaluator', '...'],
+]);
+
+/**
+ * How the career type engages with the world.
+ * Full paragraph describing their energy mechanics.
+ */
+export const typeEngagement = new Map<string, string>([
+  [
+    'Classic Builder',
+    "You have real energy, and it's renewable. But it switches on in response to something concrete — a request, an opportunity, a problem in front of you. Started cold, from nothing, you're drawing on a reserve you don't have. This is why \"just be consistent\" feels like pushing a car uphill.",
+  ],
+  // TODO: Shawn to provide per-type copy
+  // ['Express Builder', '...'],
+  // ['Initiator', '...'],
+  // ['Advisor', '...'],
+  // ['Evaluator', '...'],
+]);
+
+/**
+ * What "waiting" (or "informing" for Initiator) actually means.
+ * Full paragraph with practical specifics.
+ */
+export const waitingDetail = new Map<string, string>([
+  [
+    'Classic Builder',
+    "It means your job is to make sure enough real things reach you — conversations, requests, problems, people asking if you do X. That part takes actual effort, and someone doing it properly looks busy. What changes is where the effort goes. Not into forcing an outcome. Into making sure you're in the path of things worth responding to. Then when one lands, you move hard.",
+  ],
+  // TODO: Shawn to provide per-type copy
+  // ['Express Builder', '...'],
+  // ['Initiator', '...'],
+  // ['Advisor', '...'],
+  // ['Evaluator', '...'],
+]);
+
+/**
+ * Speed reframe — why their strategy isn't slower.
+ * Full paragraph.
+ */
+export const waitingSpeedNote = new Map<string, string>([
+  [
+    'Classic Builder',
+    "Waiting also isn't slower. A project you initiated takes months to fail. One you responded to is obvious in days. The waiting is the short part. What's long is the wrong thing you already committed to.",
+  ],
+  // TODO: Shawn to provide per-type copy
+  // ['Express Builder', '...'],
+  // ['Initiator', '...'],
+  // ['Advisor', '...'],
+  // ['Evaluator', '...'],
+]);
+
+/**
+ * Look up a content map by BG5 career type.
+ * Falls back from Express Builder → Classic Builder when no specific entry exists.
+ */
+export function lookupByCareerType(
+  map: Map<string, string>,
+  careerDesign: string,
+): string {
+  const result = map.get(careerDesign);
+  if (result) return result;
+  if (careerDesign === 'Express Builder')
+    return map.get('Classic Builder') ?? '';
+  return '';
+}
 
 /**
  * Look up a content map by inner authority type.

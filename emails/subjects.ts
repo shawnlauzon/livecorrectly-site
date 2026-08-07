@@ -9,7 +9,7 @@ export function getWelcomePreview(
     case 0:
       return "It's nothing personal. It's just mechanics.";
     case 1:
-      return `${firstName}, you are designed to be a ${chart.careerDesign}`;
+      return "It's good advice. It's just not yours.";
     case 2:
       return `You are designed to ${chart.strategy}`;
     case 3:
@@ -32,7 +32,7 @@ export function getWelcomeSubject(
     case 0:
       return 'The chart you asked for, and what it shows';
     case 1:
-      return `[Day 1] ${firstName}, you are designed to be a ${chart.careerDesign}`;
+      return 'The advice that was never for you';
     case 2:
       return `[Day 2] You are designed to ${chart.strategy}`;
     case 3:
