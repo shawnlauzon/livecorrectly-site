@@ -29,10 +29,9 @@ export async function POST(request: NextRequest) {
       chart,
     });
 
-    // Welcome email series is paused while being rewritten.
-    // Subscribers are still created; emails will be sent once the series is re-enabled.
-    // To re-enable: set this to true.
-    const WELCOME_SERIES_ENABLED = false;
+    // Welcome0 (immediate signup email) is active.
+    // The daily drip (welcome1-5) is separately controlled by CRON_EMAIL_ENABLED.
+    const WELCOME_SERIES_ENABLED = true;
 
     // Send immediate welcome email for fresh subscribers
     const isFresh = subscriber.seq_position === 0 && subscriber.next_send_at === null;
