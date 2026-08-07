@@ -332,22 +332,6 @@ export const hangingGateDescriptions: Record<
 // ---------------------------------------------------------------------------
 
 /**
- * The bad advice that doesn't fit their design.
- * Used in the opening: "Somebody has told you to {misfitAdvice}."
- */
-export const misfitAdvice = new Map<string, string>([
-  [
-    'Classic Builder',
-    "just put yourself out there and make it happen. Or don't wait for someone else. Or stop overthinking it and commit.",
-  ],
-  // TODO: Shawn to provide per-type copy
-  // ['Express Builder', '...'],  // falls back to Classic Builder via lookupByCareerType
-  // ['Initiator', '...'],
-  // ['Advisor', '...'],
-  // ['Evaluator', '...'],
-]);
-
-/**
  * How the career type engages with the world.
  * Full paragraph describing their energy mechanics.
  * Each function receives the authority type to allow referencing decision-making mechanics.
@@ -359,39 +343,75 @@ export const typeEngagement = new Map<
   [
     'Classic Builder',
     (authority) => {
+      const baseText = (
+        <>
+          The advice <em>designed for you</em> is to wait before engaging with
+          anything
+        </>
+      );
       const energyText =
-        "You've got tons of energy, and it regenerates everytime you have a good night's sleep, but you can only utilize this energy when you're doing what you love.";
+        "You've got tons of energy, and it regenerates everytime you have a good night's sleep, but you can only tap into this energy when you're doing what you love.";
 
       switch (authority) {
         case 'Sacral':
           return (
             <>
-              The advice <em>designed for you</em> is to wait before engaging
-              with anything and then to follow your gut. {energyText} And your
-              gut always knows what that is, in the present moment.
+              {baseText} and then to follow your gut. {energyText} And your gut
+              always knows what that is, in the present moment.
             </>
           );
 
         case 'Emotional':
           return (
             <>
-              The advice <em>designed for you</em> is to wait before engaging
-              with anything and then to allow your emotions to guide you to what
+              {baseText} and then to allow your emotions to guide you to what
               feels good. {energyText} And this emotional clarity takes time to
               arrive.
             </>
           );
 
         default:
-          return (
-            <>
-              The advice <em>designed for you</em> is to wait before engaging
-              with anything. {energyText}
-            </>
-          );
+          return <>{baseText}.</>;
       }
     },
   ],
+  [
+    'Advisor',
+    (authority) => {
+      const baseText = (
+        <>
+          The advice <em>designed for you</em> is to wait for a formal
+          invitation
+        </>
+      );
+      const energyText =
+        "You've got a limited supply of energy, but when you are working with the right person, it doesn't drain you and feels sweet.";
+
+      switch (authority) {
+        case 'Emotional':
+          return (
+            <>
+              {baseText} and then to allow your emotions to guide you to what
+              feels good. {energyText}&nbsp;And this emotional clarity takes
+              time to arrive.
+            </>
+          );
+        case 'Splenic':
+          return (
+            <>
+              {baseText} and then to trust your intuition to make the correct
+              decision. {energyText}&nbsp;You might find that your mind says
+              this isn&apos;t rational. And that&apos;s true. But your intuition
+              can be trusted.
+            </>
+          );
+
+        default:
+          return <>{baseText}.</>;
+      }
+    },
+  ],
+
   // TODO: Shawn to provide per-type copy (functions receive authority: InnerAuthority)
   // ['Express Builder', (authority) => <>...</>],
   // ['Initiator', (authority) => <>...</>],
@@ -410,37 +430,77 @@ export const waitingDetail = new Map<
   [
     'Classic Builder',
     (authority) => {
-      const baseText =
-        'It means your job is to make sure enough opportunities arise to give your body something to respond to. It might be words spoken directly to you, or something you see, hear, or even smell.';
+      const baseText = (
+        <>
+          It means your job is to make sure enough opportunities arise to give
+          your body something to respond to. It might be words spoken directly to
+          you, or something you see, hear, or even smell.
+        </>
+      );
 
       switch (authority) {
         case 'Sacral':
-          return `${baseText} And when it comes time to make a decision, your gut will tell you what to do.`;
+          return (
+            <>
+              {baseText} And when it comes time to make a decision, your gut
+              will tell you what to do.
+            </>
+          );
 
         case 'Emotional':
-          return `${baseText} And when it comes time to make a decision, play hard to get. If it's a request, tell them to ask you later. Take the time your system needs to really feel into it. If it's right for you, they'll be back.`;
+          return (
+            <>
+              {baseText} And when it comes time to make a decision, play hard to
+              get. If it&apos;s a request, tell them to ask you later. Take the
+              time your system needs to really feel into it. If it&apos;s right
+              for you, they&apos;ll be back.
+            </>
+          );
 
         default:
           return baseText;
       }
     },
   ],
-  // TODO: Shawn to provide per-type copy
-  // ['Express Builder', '...'],
-  // ['Initiator', '...'],
-  // ['Advisor', '...'],
-  // ['Evaluator', '...'],
-]);
-
-/**
- * Speed reframe — why their strategy isn't slower.
- * Full paragraph.
- */
-export const waitingSpeedNote = new Map<string, string>([
   [
-    'Classic Builder',
-    "Waiting also isn't slower. A project you initiated takes months to fail. One you responded to is obvious in days. The waiting is the short part. What's long is the wrong thing you already committed to.",
+    'Advisor',
+    (authority) => {
+      const baseText = (
+        <>
+          It means that while you are waiting, your time is best spent becoming
+          a master in whatever field you choose. Don&apos;t get disappointed if
+          this takes months or even years&mdash;at the right time, your mastery
+          will be recognized and an invitation offered.
+        </>
+      );
+
+      switch (authority) {
+        case 'Emotional':
+          return (
+            <>
+              {baseText} And that&apos;s the time when you play hard to get. I
+              know, it sounds crazy. But tell them to come back and ask you
+              later. Or say you need to sleep on it. Take the time your system
+              needs to really feel into it. If it&apos;s right for you,
+              they&apos;ll be back.
+            </>
+          );
+        case 'Splenic':
+          return (
+            <>
+              {baseText} And that&apos;s the time when you trust your intuition.
+              If your intuition says this isn&apos;t right for you, then say no.
+              Saying no to what is not for you gives you the space to say yes to
+              the correct relationship.
+            </>
+          );
+
+        default:
+          return baseText;
+      }
+    },
   ],
+
   // TODO: Shawn to provide per-type copy
   // ['Express Builder', '...'],
   // ['Initiator', '...'],

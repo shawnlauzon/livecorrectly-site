@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { render } from 'react-email';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject, getWelcomePreview } from '@/emails/subjects';
 import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
+import { renderEmail } from '@/emails/send';
 
 /**
  * GET /api/admin/subscribers/[id]/preview-email?step=0
@@ -61,7 +61,7 @@ export async function GET(
     }
 
     const preview = getWelcomePreview(step, subscriber.first_name, chart);
-    const html = await render(emailComponent);
+    const html = await renderEmail(emailComponent);
 
     return NextResponse.json({ subject, preview, html });
   } catch (error) {

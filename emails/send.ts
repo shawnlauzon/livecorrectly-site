@@ -3,6 +3,19 @@ import { render } from 'react-email';
 import { getActiveSubscriberByEmail } from '../lib/db';
 import type { Subscriber } from '../lib/types/subscriber';
 
+/**
+ * Render a React Email component to HTML with post-processing.
+ *
+ * React Email's renderer strips the whitespace between a closing inline tag
+ * (</em>, </strong>, </a>) and the next word. This restores it as &nbsp;
+ * so the space is always preserved. The regex handles both cases: space
+ * already stripped (</em>word) and space present but collapsible (</em> word).
+ */
+export async function renderEmail(component: React.ReactElement): Promise<string> {
+  const html = await render(component);
+  return html.replace(/<\/(em|strong|a)>\s*(\w)/g, '</$1>&nbsp;$2');
+}
+
 let resend: Resend | null = null;
 
 function getResend(): Resend {
@@ -61,7 +74,7 @@ export async function sendEmail({
   const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${unsubToken}`;
 
   const from = process.env.EMAIL_FROM ?? 'Live Correctly <hello@livecorrectly.com>';
-  const html = await render(react);
+  const html = await renderEmail(react);
 
   const client = getResend();
   const { data, error } = await client.emails.send({

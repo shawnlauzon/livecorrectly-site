@@ -5,7 +5,6 @@ import { EmailChartData } from '../lib/hd-chart/parse-for-email';
 import {
   typeEngagement,
   waitingDetail,
-  waitingSpeedNote,
   lookupByCareerType,
   lookupByDMS,
   formatPrompt,
@@ -47,7 +46,6 @@ export const Welcome1 = ({
     chart.careerDesign,
     chart.innerAuthority,
   );
-  const speedNote = lookupByCareerType(waitingSpeedNote, chart.careerDesign);
 
   return (
     <EmailLayout
@@ -88,7 +86,7 @@ export const Welcome1 = ({
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        Unfortunately, even though anyone <em>can</em>&nbsp;do anything, it
+        Unfortunately, even though anyone <em>can</em> do anything, it
         doesn&apos;t mean that everyone <em>should</em>. You would have to go
         through a ton of {chart.notSelfTheme} before achieving what you thought
         you wanted if you depended on advice not for you.
@@ -101,12 +99,8 @@ export const Welcome1 = ({
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         That&apos;s because your design is {getArticle(chart.careerDesign)}{' '}
         {chart.careerDesign}&mdash;in Human Design terms,{' '}
-        {getArticle(chart.type)} {chart.type}.
-      </Text>
-
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        So the version that works for you is{' '}
-        <strong>{chart.decisionMakingStrategy}</strong>.
+        {getArticle(chart.type)} {chart.type}. And your decision making strategy
+        is to <strong>{chart.decisionMakingStrategy}</strong>.
       </Text>
 
       {chart.careerDesign !== 'Initiator' ? (
@@ -135,7 +129,7 @@ export const Welcome1 = ({
           </Text>
 
           <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-            This is not to say you should <em>avoid</em>&nbsp;doing anything
+            This is not to say you should <em>avoid</em> doing anything
             that you have energy for. If you have an authentic desire to do
             something&mdash;and it&apos;s not your mind telling you that you
             should do to get some result&mdash;definitely do it!
@@ -147,12 +141,32 @@ export const Welcome1 = ({
           <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
             {detail}
           </Text>
-
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-            {speedNote}
-          </Text>
         </>
       )}
+
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+        Knowing how to use and trust your decision making strategy is the single
+        most important thing you can learn. The shadow mentioned in the previous
+        email, as well as all the rest, can be softened by making decisions that
+        are correct for you. There&apos;s a reason the site is{' '}
+        <em>
+          <strong>Live Correctly</strong>
+        </em>
+        : when you live by your decision making strategy, you are by definition
+        living correctly, specifically for you.
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+        Living correctly is simple, but it takes practice. That&apos;s why I
+        hold a free <em>Decisions You Can Trust</em> online session every week.
+        Reply to this email and I&apos;ll send you the link.
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+        {chart.innerAuthorityDescription.charAt(0).toUpperCase() +
+          chart.innerAuthorityDescription.slice(1)}
+        .
+      </Text>
     </EmailLayout>
   );
 };
