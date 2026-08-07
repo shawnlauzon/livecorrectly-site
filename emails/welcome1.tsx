@@ -73,10 +73,10 @@ export const Welcome1 = ({
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        Maybe a coach, maybe a book, maybe your best friend&apos;s plumber. You
-        didn&apos;t trust yourself, so you tried. And it worked for awhile, but
-        then something happened to bring you off-track. And you added it to the
-        list of things that you&apos;re a failure at.
+        Maybe a coach, maybe a book, maybe your best friend&apos;s boyfriend.
+        You didn&apos;t trust yourself, so you tried. And it worked for awhile,
+        but then something happened to bring you off-track. And you added it to
+        the list of things that you&apos;re a failure at.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
@@ -129,8 +129,8 @@ export const Welcome1 = ({
           </Text>
 
           <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-            This is not to say you should <em>avoid</em> doing anything
-            that you have energy for. If you have an authentic desire to do
+            This is not to say you should <em>avoid</em> doing anything that you
+            have energy for. If you have an authentic desire to do
             something&mdash;and it&apos;s not your mind telling you that you
             should do to get some result&mdash;definitely do it!
           </Text>

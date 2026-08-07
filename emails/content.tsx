@@ -400,9 +400,10 @@ export const typeEngagement = new Map<
           return (
             <>
               {baseText} and then to trust your intuition to make the correct
-              decision. {energyText}&nbsp;You might find that your mind says
-              this isn&apos;t rational. And that&apos;s true. But your intuition
-              can be trusted.
+              decision. {energyText}&nbsp;Your mind might complain this
+              isn&apos;t rational. But allow your mind to do what it&apos;s good
+              at&mdash;gathering information&mdash;and your intution on being
+              your guide.
             </>
           );
 
@@ -433,8 +434,8 @@ export const waitingDetail = new Map<
       const baseText = (
         <>
           It means your job is to make sure enough opportunities arise to give
-          your body something to respond to. It might be words spoken directly to
-          you, or something you see, hear, or even smell.
+          your body something to respond to. It might be words spoken directly
+          to you, or something you see, hear, or even smell.
         </>
       );
 
