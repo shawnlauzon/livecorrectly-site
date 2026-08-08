@@ -353,9 +353,9 @@ export const typeEngagement = new Map<
     'Classic Builder',
     (authority) => {
       const baseText =
-        'The advice designed for you is to wait before engaging with anything';
+        'The advice that is designed for you is to wait for your body to respond,';
       const energyText =
-        "You've got tons of energy, and it regenerates everytime you have a good night's sleep. But you can only tap into this energy when you're doing what you love.";
+        "You've got tons of energy, but you can only tap into it when you're doing what you love.";
 
       switch (authority) {
         case 'Sacral':
@@ -369,14 +369,18 @@ export const typeEngagement = new Map<
         case 'Emotional':
           return (
             <P>
-              {baseText} and then to allow your emotions to guide you to what
-              feels good. {energyText} And this emotional clarity takes time to
-              arrive.
+              {baseText} and then to allow your emotions to guide you.{' '}
+              {energyText}&nbsp;And it&apos;s your emotions which know what this
+              is.
             </P>
           );
 
         default:
-          return <P>{baseText}. {energyText}</P>;
+          return (
+            <P>
+              {baseText}. {energyText}
+            </P>
+          );
       }
     },
   ],
@@ -385,7 +389,7 @@ export const typeEngagement = new Map<
     (authority) => {
       return (
         <P>
-          The advice <em>designed for you</em> is to wait for a formal
+          The advice that is designed for you is to wait for a formal
           invitation. You&apos;ve got a limited supply of energy, but when you
           are working with the right person, it doesn&apos;t drain you. In fact
           it feels sweet!
@@ -413,14 +417,14 @@ export const waitingDetail = new Map<
     'Classic Builder',
     (authority) => {
       const baseText =
-        'It means your job is to make sure enough opportunities arise to give your body something to respond to. It might be words spoken directly to you, or something you see, hear, or even smell.';
+        'It means your job is to make sure enough opportunities arise to give your body something to respond to. It might be words spoken directly to you, or something you can see, hear, or even smell. ';
 
       switch (authority) {
         case 'Sacral':
           return (
             <P>
-              {baseText} And when it comes time to make a decision, your gut
-              will tell you what to do.
+              {baseText}And when it comes time to make a decision, your gut will
+              tell you what to do.
             </P>
           );
 
