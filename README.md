@@ -52,9 +52,9 @@ A 5-day welcome series sent via Resend with React Email templates. The automated
 ### How it works
 
 1. Subscriber fills out the chart form and is inserted into the `subscribers` table
-2. A daily Vercel cron (`/api/cron/welcome-series`, 14:00 UTC) queries subscribers where `next_send_at <= now()`
-3. For each due subscriber, it renders the next welcome email with their personalized chart data and calls Resend
-4. After sending, it advances `seq_position` and sets `next_send_at` to the next day
+2. A daily Vercel cron (`/api/cron/welcome-series`, 14:00 UTC) queries subscribers where `next_send_at <= CURRENT_DATE`
+3. For each due subscriber, it renders the welcome email at `next_step` with their personalized chart data and calls Resend
+4. After sending, it advances `next_step` and sets `next_send_at` to the next day
 
 ### Welcome series
 

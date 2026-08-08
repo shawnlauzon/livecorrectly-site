@@ -5,6 +5,12 @@ import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/emails/subjects';
 import { getWelcomeEmail } from '@/emails/welcome';
 
+function getTomorrowDate(): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -34,12 +40,12 @@ export async function POST(request: NextRequest) {
     const WELCOME_SERIES_ENABLED = true;
 
     // Send immediate welcome email for fresh subscribers
-    const isFresh = subscriber.seq_position === 0 && subscriber.next_send_at === null;
+    const isFresh = subscriber.next_step === 0 && subscriber.next_send_at === null;
     if (WELCOME_SERIES_ENABLED && isFresh && process.env.RESEND_API_KEY) {
-      // Set next_send_at to tomorrow so the cron picks up Day 1 —
+      // Advance to step 1 (welcome0 sent) with tomorrow's date so the cron picks up Day 1 —
       // do this regardless of whether the welcome email send succeeds.
-      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-      await advanceEmailSeries(subscriber.id, 0, tomorrow);
+      const tomorrow = getTomorrowDate();
+      await advanceEmailSeries(subscriber.id, 1, tomorrow);
 
       const chartData = parseChartForEmail(subscriber.chart.chart);
 

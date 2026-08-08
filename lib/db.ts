@@ -157,31 +157,31 @@ export async function getActiveSubscriberByEmail(
 
 /**
  * Get subscribers who are due for their next email.
- * Returns active subscribers where next_send_at <= now.
+ * Returns active subscribers where next_send_at <= today.
  */
 export async function getDueSubscribers(): Promise<Subscriber[]> {
   const db = getDb();
   const result = await db`
     SELECT * FROM subscribers
     WHERE email_status = 'active'
-      AND next_send_at <= now()
+      AND next_send_at <= CURRENT_DATE
     ORDER BY next_send_at ASC
   `;
   return (result as Subscriber[]).map(normalizeSubscriber);
 }
 
 /**
- * Advance a subscriber's email series position and set the next send time.
+ * Advance a subscriber's email series to the next step and set the next send date.
  */
 export async function advanceEmailSeries(
   id: string,
-  newPosition: number,
+  nextStep: number,
   nextSendAt: string | null
 ): Promise<void> {
   const db = getDb();
   await db`
     UPDATE subscribers
-    SET seq_position = ${newPosition},
+    SET next_step = ${nextStep},
         next_send_at = ${nextSendAt}
     WHERE id = ${id}
   `;
@@ -202,18 +202,18 @@ export async function getSubscriberByEmailForWebhook(
 }
 
 /**
- * Update a subscriber's email series position and next send time.
+ * Update a subscriber's email series next step and next send date.
  * Used by admin to manually adjust pipeline position.
  */
 export async function updateEmailSeries(
   id: string,
-  seqPosition: number,
+  nextStep: number,
   nextSendAt: string | null
 ): Promise<Subscriber> {
   const db = getDb();
   const result = await db`
     UPDATE subscribers
-    SET seq_position = ${seqPosition},
+    SET next_step = ${nextStep},
         next_send_at = ${nextSendAt}
     WHERE id = ${id}
     RETURNING *

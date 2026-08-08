@@ -63,8 +63,8 @@ subscribers
   birth_lat       float null
   birth_lng       float null
   chart           jsonb              -- engine output, VERBATIM. identity fields never go in here.
-  seq_position    int default 0      -- email series progress (0 = no emails sent yet)
-  next_send_at    timestamptz null
+  next_step       int default 0      -- next email to send (0 = welcome0 is next, 6 = series complete)
+  next_send_at    date null          -- date the next email is due (YYYY-MM-DD)
   email_status    text default 'active'  -- active | unsubscribed | bounced | complained | failed | suppressed
   email_status_at timestamptz null
   unsub_token     uuid default gen_random_uuid()
@@ -179,8 +179,8 @@ Use `utm_source=workcorrectly` when linking to livecorrectly.com from Work Corre
 - **Kill switch**: the automated cron only runs when `CRON_EMAIL_ENABLED=true`. Admin manual sends (from `/admin/[id]`) bypass this flag — they always send if `RESEND_API_KEY` is set. Omit `RESEND_API_KEY` in `.env.local` to prevent any sends during local development.
 - **Sole call site**: `emails/send.ts` is the only file that calls `resend.emails.send()`. All emails go through `sendEmail()`, which checks `canSendTo()` (subscriber must be `active`), sets `List-Unsubscribe` / `List-Unsubscribe-Post` headers, and renders the React component to HTML.
 - **Welcome series**: 5-day drip (career type → strategy → authority → indicators → conclusion+CTA). Templates are in `emails/welcome[1-5].tsx`. Each receives `firstName`, `chart` (flat `EmailChartData` from `parseChartForEmail()`), and `unsubscribeUrl`.
-- **Scheduler**: daily Vercel Cron at 14:00 UTC (`/api/cron/welcome-series`, configured in `vercel.json`). Queries `next_send_at <= now()` where `email_status = 'active'`, sends the next email in the series, advances `seq_position`, sets `next_send_at` to tomorrow.
-- **Admin manual send**: `POST /api/admin/subscribers/[id]/send-welcome` with `{ step: 1-5 }`. Sends a specific welcome email without advancing `seq_position` or `next_send_at`. Requires admin auth. Returns 422 if subscriber is not active.
+- **Scheduler**: daily Vercel Cron at 14:00 UTC (`/api/cron/welcome-series`, configured in `vercel.json`). Queries `next_send_at <= CURRENT_DATE` where `email_status = 'active'`, sends the email at `next_step`, advances `next_step`, sets `next_send_at` to tomorrow.
+- **Admin manual send**: `POST /api/admin/subscribers/[id]/send-welcome` with `{ step: 1-5 }`. Sends a specific welcome email without advancing `next_step` or `next_send_at`. Requires admin auth. Returns 422 if subscriber is not active.
 - **Personalization**: templates branch on chart type booleans (`isGenerator`, `isProjector`, etc.) and pull content from maps in `emails/content.ts` (strategy writeups, authority writeups/tips keyed by authority type).
 - **Compliance**: `List-Unsubscribe` header + footer link in every email; `GET /api/unsubscribe?token=<uuid>` and `POST` (RFC 8058 one-click); physical address in footer; bounce/complaint webhook at `/api/webhooks/resend` updates `email_status`.
 - **Content maps**: `emails/content.ts` holds `strategyWriteups`, `authorityWriteups`, `authorityTips` — ported from the old `WelcomeCampaignText.tsx`. Use `lookupByAuthority()` to handle casing normalization.

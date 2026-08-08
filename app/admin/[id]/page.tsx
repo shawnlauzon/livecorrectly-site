@@ -374,19 +374,17 @@ function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
 type NextEmailValue = 'not_started' | 'day1' | 'day2' | 'day3' | 'day4' | 'day5' | 'done' | 'paused';
 
 function deriveNextEmailValue(sub: Subscriber): NextEmailValue {
-  if (sub.seq_position >= WELCOME_SERIES_LENGTH) return 'done';
-  if (sub.seq_position === 0 && !sub.next_send_at) return 'not_started';
-  if (!sub.next_send_at && sub.seq_position > 0) return 'paused';
-  const step = sub.seq_position + 1;
-  if (step >= 1 && step <= 5) return `day${step}` as NextEmailValue;
+  if (sub.next_step > WELCOME_SERIES_LENGTH) return 'done';
+  if (sub.next_step === 0 && !sub.next_send_at) return 'not_started';
+  if (!sub.next_send_at && sub.next_step > 0) return 'paused';
+  if (sub.next_step >= 1 && sub.next_step <= 5) return `day${sub.next_step}` as NextEmailValue;
   return 'not_started';
 }
 
-function getTomorrowISO(): string {
+function getTomorrowDate(): string {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() + 1);
-  d.setUTCHours(14, 0, 0, 0);
-  return d.toISOString();
+  return d.toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
 function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscriber; onSubscriberUpdate: (s: Subscriber) => void }) {
@@ -399,7 +397,7 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
   const nextEmailValue = localOverride ?? derivedValue;
 
   // Reset local override when subscriber data changes (e.g. after save)
-  const subscriberKey = `${subscriber.seq_position}:${subscriber.next_send_at}`;
+  const subscriberKey = `${subscriber.next_step}:${subscriber.next_send_at}`;
   const [lastSubscriberKey, setLastSubscriberKey] = useState(subscriberKey);
   if (subscriberKey !== lastSubscriberKey) {
     setLocalOverride(null);
@@ -407,46 +405,46 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
   }
 
   const isActive = subscriber.email_status === 'active';
-  const emailsSent = subscriber.seq_position;
+  const emailsSent = Math.max(0, subscriber.next_step - 1);
 
   const handleSaveNextEmail = useCallback(async () => {
     const password = sessionStorage.getItem('adminPassword');
     if (!password) return;
 
-    let seq_position: number;
+    let next_step: number;
     let next_send_at: string | null;
 
     switch (nextEmailValue) {
       case 'not_started':
-        seq_position = 0;
+        next_step = 0;
         next_send_at = null;
         break;
       case 'day1':
-        seq_position = 0;
-        next_send_at = getTomorrowISO();
+        next_step = 1;
+        next_send_at = getTomorrowDate();
         break;
       case 'day2':
-        seq_position = 1;
-        next_send_at = getTomorrowISO();
+        next_step = 2;
+        next_send_at = getTomorrowDate();
         break;
       case 'day3':
-        seq_position = 2;
-        next_send_at = getTomorrowISO();
+        next_step = 3;
+        next_send_at = getTomorrowDate();
         break;
       case 'day4':
-        seq_position = 3;
-        next_send_at = getTomorrowISO();
+        next_step = 4;
+        next_send_at = getTomorrowDate();
         break;
       case 'day5':
-        seq_position = 4;
-        next_send_at = getTomorrowISO();
+        next_step = 5;
+        next_send_at = getTomorrowDate();
         break;
       case 'done':
-        seq_position = 5;
+        next_step = 6;
         next_send_at = null;
         break;
       case 'paused':
-        seq_position = subscriber.seq_position;
+        next_step = subscriber.next_step;
         next_send_at = null;
         break;
     }
@@ -461,7 +459,7 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
           'Content-Type': 'application/json',
           Authorization: `Bearer ${password}`
         },
-        body: JSON.stringify({ seq_position, next_send_at })
+        body: JSON.stringify({ next_step, next_send_at })
       });
 
       const data = await response.json();
@@ -479,7 +477,7 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
     } finally {
       setSaving(false);
     }
-  }, [nextEmailValue, subscriber.id, subscriber.seq_position, onSubscriberUpdate]);
+  }, [nextEmailValue, subscriber.id, subscriber.next_step, onSubscriberUpdate]);
 
   const handleSend = useCallback(async (step: number) => {
     const password = sessionStorage.getItem('adminPassword');
@@ -517,14 +515,15 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
     }
   }, [subscriber.id]);
 
-  const formatDate = (iso: string) => {
-    const d = new Date(iso);
-    return d.toLocaleDateString('en-US', {
+  const formatDate = (dateStr: string) => {
+    // next_send_at is now a YYYY-MM-DD date; parse as UTC to avoid timezone shift
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const date = new Date(Date.UTC(y, m - 1, d));
+    return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
+      timeZone: 'UTC'
     });
   };
 

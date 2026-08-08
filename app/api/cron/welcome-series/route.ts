@@ -5,6 +5,12 @@ import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/emails/subjects';
 import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 
+function getTomorrowDate(): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
 /**
  * Cron endpoint: sends due welcome series emails.
  * Secured by CRON_SECRET (Vercel sends Authorization: Bearer <CRON_SECRET>).
@@ -39,11 +45,11 @@ export async function GET(request: NextRequest) {
   let skipped = 0;
 
   for (const subscriber of dueSubscribers) {
-    const step = subscriber.seq_position + 1; // seq_position is 0-indexed, steps are 1-indexed
+    const step = subscriber.next_step;
 
     if (step > WELCOME_SERIES_LENGTH) {
       // Series complete — clear next_send_at
-      await advanceEmailSeries(subscriber.id, subscriber.seq_position, null);
+      await advanceEmailSeries(subscriber.id, subscriber.next_step, null);
       skipped++;
       continue;
     }
@@ -70,12 +76,12 @@ export async function GET(request: NextRequest) {
     });
 
     if (result.success) {
-      // Advance to next step; set next_send_at to tomorrow at same time
+      // Advance to next step; set next_send_at to tomorrow's date
       const nextSendAt =
         step < WELCOME_SERIES_LENGTH
-          ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          ? getTomorrowDate()
           : null;
-      await advanceEmailSeries(subscriber.id, step, nextSendAt);
+      await advanceEmailSeries(subscriber.id, step + 1, nextSendAt);
       sent++;
     } else {
       skipped++;

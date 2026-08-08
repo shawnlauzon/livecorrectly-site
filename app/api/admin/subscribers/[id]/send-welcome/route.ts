@@ -10,7 +10,7 @@ import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
  * POST /api/admin/subscribers/[id]/send-welcome
  *
  * Manually send a specific welcome series email to a subscriber.
- * Does NOT advance seq_position or modify next_send_at — manual sends
+ * Does NOT advance next_step or modify next_send_at — manual sends
  * are independent of the automated series.
  *
  * Body: { step: 1-5 }

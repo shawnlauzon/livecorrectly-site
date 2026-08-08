@@ -60,11 +60,11 @@ export async function PATCH(
     const { id } = await params;
 
     const body = await request.json();
-    const { seq_position, next_send_at } = body;
+    const { next_step, next_send_at } = body;
 
-    if (typeof seq_position !== 'number' || seq_position < 0 || seq_position > 5) {
+    if (typeof next_step !== 'number' || next_step < 0 || next_step > 6) {
       return NextResponse.json(
-        { error: 'seq_position must be a number between 0 and 5' },
+        { error: 'next_step must be a number between 0 and 6' },
         { status: 422 }
       );
     }
@@ -84,7 +84,7 @@ export async function PATCH(
       );
     }
 
-    const updated = await updateEmailSeries(id, seq_position, next_send_at);
+    const updated = await updateEmailSeries(id, next_step, next_send_at);
     return NextResponse.json(updated);
   } catch (error) {
     console.error('Error updating subscriber email series:', error);
