@@ -553,9 +553,30 @@ export function formatPrompt(
     return `Have you ever ${clause}?`;
   }
   if (opts.isManifestor) {
-    return `I would love to hear if you ever ${clause}.`;
+    return `I'm curious if you ever ${clause}.`;
   }
   return `What's a time that you ever ${clause}?`;
+}
+
+/**
+ * Format a frequency/quality prompt into the correct voice for the career type.
+ * - Generator: yes/no question ("Do you often {clause}?")
+ * - Manifestor: statement ("I would love to hear how often you {clause}.")
+ * - Projector / Reflector: open-ended question ("How often do you {clause}?")
+ *
+ * The clause should be the bare action, e.g. "feel frustrated"
+ */
+export function formatOftenPrompt(
+  clause: string,
+  opts: { isGenerator: boolean; isManifestor: boolean },
+): string {
+  if (opts.isGenerator) {
+    return `Do you often ${clause}?`;
+  }
+  if (opts.isManifestor) {
+    return `I'm curious how often you ${clause}.`;
+  }
+  return `How often do you ${clause}?`;
 }
 
 /**

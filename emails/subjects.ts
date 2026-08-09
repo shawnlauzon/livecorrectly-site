@@ -3,7 +3,7 @@ import { EmailChartData } from '../lib/hd-chart/parse-for-email';
 export function getWelcomePreview(
   step: number,
   firstName: string,
-  chart: EmailChartData
+  chart: EmailChartData,
 ): string {
   switch (step) {
     case 0:
@@ -11,7 +11,7 @@ export function getWelcomePreview(
     case 1:
       return "It's good advice. It's just not yours.";
     case 2:
-      return `You are designed to ${chart.strategy}`;
+      return 'A test you can run in ten seconds.';
     case 3:
       return `To make decisions you can trust, ${chart.innerAuthorityDescription}`;
     case 4:
@@ -26,7 +26,7 @@ export function getWelcomePreview(
 export function getWelcomeSubject(
   step: number,
   firstName: string,
-  chart: EmailChartData
+  chart: EmailChartData,
 ): string {
   switch (step) {
     case 0:
@@ -34,7 +34,7 @@ export function getWelcomeSubject(
     case 1:
       return 'The advice that was never for you';
     case 2:
-      return `[Day 2] You are designed to ${chart.strategy}`;
+      return 'Are you in the flow?';
     case 3:
       return `[Day 3] To make decisions you can trust, ${chart.innerAuthorityDescription}`;
     case 4:

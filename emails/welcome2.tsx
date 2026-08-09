@@ -1,10 +1,8 @@
 import * as React from 'react';
-import { Heading, Text, Section, Link, Img } from 'react-email';
+import { Text } from 'react-email';
 import { EmailLayout } from './components/email-layout';
-import { RaQuote } from './components/ra-quote';
-import { CareerTypeHighlight } from './components/career-type-table';
 import { EmailChartData } from '../lib/hd-chart/parse-for-email';
-import { strategyWriteups } from './content';
+import { formatOftenPrompt } from './content';
 
 interface Welcome2Props {
   firstName: string;
@@ -13,98 +11,79 @@ interface Welcome2Props {
 }
 
 /**
- * Welcome Email 2: Personal Interaction Style (Strategy)
- * Ported from fractalhumandesign/email/templates/welcome2.html
- * Copy is verbatim from the original template.
+ * Welcome Email 2: Signpost email (signature / not-self as daily check-in)
  */
-export const Welcome2 = ({ chart, unsubscribeUrl }: Welcome2Props) => {
-  const strategyWriteup = strategyWriteups.get(chart.strategy) ?? '';
-
+export const Welcome2 = ({
+  firstName,
+  chart,
+  unsubscribeUrl,
+}: Welcome2Props) => {
   return (
     <EmailLayout
-      preview={`You are designed to ${chart.strategy}`}
+      preview="A test you can run in ten seconds."
       unsubscribeUrl={unsubscribeUrl}
+      postscript={
+        <Text className="mt-[24px] mb-[16px] text-[16px] italic leading-[24px] text-[#4A4A4A]">
+          P.S. {formatOftenPrompt(`feel ${chart.notSelfThemeAdjective}`, chart)}{' '}
+          Hit reply and let me know.
+        </Text>
+      }
     >
-      <Heading
-        as="h2"
-        className="mt-[16px] text-[24px] font-bold tracking-tight text-[#221B3D]"
-      >
-        Success Code 2: Personal Interaction Style
-      </Heading>
+      <Text className="mb-[16px] text-[16px] leading-[24px]">{firstName},</Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        Each of the types has a different way of moving though life. Living
-        according to your design means to stop trying to make things happen from
-        the <em>mind</em> (&quot;I should ...&quot;), and instead allow the
-        unique wisdom of the <em>body</em> to guide you in daily activities.
-      </Text>
-
-      <CareerTypeHighlight
-        number="2"
-        title="Personal Interaction Style"
-        description={`Your personal style is to ${chart.strategy}.`}
-      />
-
-      <Text className="mb-[16px] text-[16px] leading-[24px]">
-        {strategyWriteup}
-      </Text>
-
-      {/* Waiting section — shown for all types except Manifestor */}
-      {!chart.isManifestor && (
-        <>
-          <Text className="mb-[16px] text-[16px] leading-[24px]">
-            You&apos;re probably not used to so much waiting. You might even feel
-            that if you&apos;re not actively doing something, you&apos;re
-            falling behind. Or maybe even feel like you&apos;re being lazy! But
-            waiting is not just sitting around, waiting for something to happen.
-            It&apos;s an active state of awareness. Rather than running around
-            and DOING, it&apos;s more of a state of BEING. And then doing what
-            you want, what makes you happy, or even something which brings you{' '}
-            {chart.signatureTheme}.
-          </Text>
-
-          <RaQuote>
-            So many people think that waiting is a stagnant sort of dead space.
-            You know, nothing is happening, nothing is going on, nothing&apos;s
-            ever going on ... It doesn&apos;t mean that nothing is going on.
-            Waiting can be translated as a higher state of alertness ... It is a
-            state of awareness. It is being present. It is being ready for
-            precisely those things that you&apos;re actually waiting for, waiting
-            for that perfect stimulation that is going to allow you to operate
-            correctly, to make a decision correctly, because you&apos;re present
-            here now, waiting you.
-          </RaQuote>
-        </>
-      )}
-
-      {/* Strategy video link */}
-      <Section className="mt-[8px]">
-        <Link href={chart.strategyVideo}>
-          <Img
-            src={chart.typeButtonGif}
-            height={180}
-            width={320}
-            alt={`How to ${chart.strategy} video`}
-          />
-          <Text>Watch how to {chart.strategy} in this video.</Text>
-        </Link>
-      </Section>
-
-      {/* Strategy writeup repeated (matches original template) */}
-      <Text className="mb-[16px] text-[16px] leading-[24px]">
-        {strategyWriteup}
+        Short one today.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        After you {chart.strategy}, you still need to determine if this is
-        something to take action on. That&apos;s next.
+        Yesterday was a lot of information. Today I want to share something you
+        can use immediately, a simple way to track how things are going. I use
+        it constantly to see if I&apos;m in the flow.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        That&apos;ll do it for the first part of the decision-making strategy.
-        Tomorrow we&apos;ll cover the second part, which is how to know if you
-        should take action on something. See you then!
+        Look back at yesterday. Were you mostly {chart.notSelfThemeAdjective},
+        or mostly {chart.signatureThemeAdjective}?
       </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        Those two feelings are your signposts. One means you&apos;re working
+        against how you&apos;re built. The other means you&apos;re working with
+        it. The more you&apos;re feeling {chart.signatureThemeAdjective}, the
+        more you&apos;re in the flow.
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        This might feel like a weird way of tracking things. Most advice tracks
+        things like <em>tasks achieved</em>
+        or <em>dollars earned</em>. And yes, they&apos;re better than nothing.
+        But look back and consider days that you achieved some of this, but all
+        day you felt {chart.notSelfThemeAdjective}&mdash;is this a life of flow?
+        Could you do that every day?
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        Now think back to a day where you did not earn any money, you
+        weren&apos;t on vacation, but still you felt incredibly{' '}
+        {chart.signatureThemeAdjective}. If every day was like that,
+        wouldn&apos;t you have the life that you wanted?
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        It&apos;s important that you don&apos;t try to <em>avoid</em>{' '}
+        {chart.notSelfTheme}. Instead, simply recognize when you&apos;re feeling
+        it. If you are, then PAUSE. Then think back to when you decided to do
+        whatever you&apos;re doing. Did you follow your decision making
+        strategy? Or did your mind pressure you to do something without
+        listening to your body? Probably it was your mind. And so now you have
+        the opportunity to choose more wisely.
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        Choose {chart.signatureTheme}.
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">— Shawn</Text>
     </EmailLayout>
   );
 };
@@ -138,9 +117,9 @@ Welcome2.PreviewProps = {
     signatureVideo: 'https://youtu.be/fHGRdJSyE34',
     topShadow: 'Willpower',
     hasChannelBridge: false,
-    bridgeDescriptions: []
+    bridgeDescriptions: [],
   },
-  unsubscribeUrl: 'https://livecorrectly.com/api/unsubscribe?token=test'
+  unsubscribeUrl: 'https://livecorrectly.com/api/unsubscribe?token=test',
 } satisfies Welcome2Props;
 
 export default Welcome2;
