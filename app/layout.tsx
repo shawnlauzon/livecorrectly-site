@@ -30,6 +30,9 @@ export const metadata: Metadata = {
   title: "Live Correctly — Human Design",
   description:
     "Advice built for someone else's wiring won't hold. Human Design shows you how yours actually works.",
+  openGraph: {
+    title: "You've tried it their way. Now do it yours 🚀",
+  },
 };
 
 export default function RootLayout({
