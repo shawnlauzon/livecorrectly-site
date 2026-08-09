@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSubscriberById, updateEmailSeries } from '@/lib/db';
+import { getSubscriberById, advanceEmailSeries } from '@/lib/db';
+import { sendEmail, sendAdminNotification } from '@/emails/send';
+import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
+import { getWelcomeSubject } from '@/emails/subjects';
+import { getWelcomeEmail } from '@/emails/welcome';
+
+function getTomorrowDate(): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+}
 
 export async function POST(
   _request: NextRequest,
@@ -33,10 +43,53 @@ export async function POST(
       );
     }
 
-    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    await updateEmailSeries(id, 0, tomorrow);
+    // Advance to step 1 with tomorrow's date so the cron picks up Welcome1 tomorrow.
+    // Do this first, regardless of whether the immediate email send succeeds.
+    const tomorrow = getTomorrowDate();
+    await advanceEmailSeries(id, 1, tomorrow);
 
-    return NextResponse.json({ ok: true });
+    // Immediately send Welcome0 (matching the initial signup flow)
+    const chartData = parseChartForEmail(subscriber.chart.chart);
+    const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
+    const chartUrl = `${appUrl}/see-your-design/${subscriber.id}`;
+    const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${subscriber.unsub_token}`;
+    const subject = getWelcomeSubject(0, subscriber.first_name, chartData);
+    const emailComponent = getWelcomeEmail(
+      0, subscriber, chartData, unsubscribeUrl, chartUrl
+    );
+
+    if (!emailComponent) {
+      return NextResponse.json(
+        { error: 'Email template not found' },
+        { status: 500 }
+      );
+    }
+
+    const result = await sendEmail({
+      to: subscriber.email,
+      subject,
+      react: emailComponent,
+      unsubToken: subscriber.unsub_token
+    });
+
+    if (result.success) {
+      console.log(`[restart-series] Sent Welcome0 to ${subscriber.email} (id=${result.id})`);
+
+      // Admin notification — fire-and-forget, failure must never block the restart
+      if (process.env.RESEND_API_KEY) {
+        sendAdminNotification(subscriber, chartData.type, true).catch((err) => {
+          console.error(`[restart-series] Failed to send admin notification for ${subscriber.email}:`, err);
+        });
+      }
+
+      return NextResponse.json({ ok: true });
+    } else {
+      console.warn(`[restart-series] Welcome0 not sent to ${subscriber.email}`);
+      return NextResponse.json(
+        { error: 'Failed to send email' },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error('Error restarting email series:', error);
     return NextResponse.json(

@@ -98,25 +98,34 @@ export async function sendEmail({
 }
 
 /**
- * Send a plain-text admin notification when a new subscriber signs up.
+ * Send a plain-text admin notification when a new subscriber signs up or restarts the series.
  * This bypasses canSendTo() and unsubscribe headers — it's an internal notification,
  * not a marketing email. Failures are logged but should never block registration.
  */
 export async function sendAdminNotification(
   subscriber: Subscriber,
-  chartType: string
+  chartType: string,
+  isRestart = false
 ): Promise<void> {
   const from = process.env.EMAIL_FROM ?? 'Live Correctly <hello@livecorrectly.com>';
   const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
   const adminUrl = `${appUrl}/admin/${subscriber.id}`;
 
+  const subject = isRestart
+    ? `Series restarted: ${subscriber.first_name} (${chartType})`
+    : `New signup: ${subscriber.first_name} (${chartType})`;
+
+  const bodyPrefix = isRestart
+    ? `Series restarted: ${subscriber.first_name} (${subscriber.email})`
+    : `New subscriber: ${subscriber.first_name} (${subscriber.email})`;
+
   const client = getResend();
   const { error } = await client.emails.send({
     from,
     to: from,
-    subject: `New signup: ${subscriber.first_name} (${chartType})`,
+    subject,
     text: [
-      `New subscriber: ${subscriber.first_name} (${subscriber.email})`,
+      bodyPrefix,
       `Type: ${chartType}`,
       ``,
       `Admin: ${adminUrl}`,
