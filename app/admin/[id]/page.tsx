@@ -405,7 +405,8 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
   }
 
   const isActive = subscriber.email_status === 'active';
-  const emailsSent = Math.max(0, subscriber.next_step - 1);
+  const totalEmails = WELCOME_SERIES_LENGTH + 1; // welcome0 + days 1-N
+  const emailsSent = Math.min(subscriber.next_step, totalEmails);
 
   const handleSaveNextEmail = useCallback(async () => {
     const password = sessionStorage.getItem('adminPassword');
@@ -508,9 +509,10 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
   }, [subscriber.id]);
 
   const formatDate = (dateStr: string) => {
-    // next_send_at is now a YYYY-MM-DD date; parse as UTC to avoid timezone shift
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const date = new Date(Date.UTC(y, m - 1, d));
+    // next_send_at may arrive as YYYY-MM-DD or a full ISO timestamp
+    const iso = dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00Z`;
+    const date = new Date(iso);
+    if (isNaN(date.getTime())) return dateStr;
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -527,7 +529,7 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
         <div className={styles.welcomeMeta}>
           <div className={styles.welcomeMetaItem}>
             <span className={styles.welcomeMetaLabel}>Emails sent</span>
-            <span>{emailsSent} of {WELCOME_SERIES_LENGTH}</span>
+            <span>{emailsSent} of {totalEmails}</span>
           </div>
           <div className={styles.welcomeMetaItem}>
             <span className={styles.welcomeMetaLabel}>Email status</span>

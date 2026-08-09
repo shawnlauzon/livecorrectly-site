@@ -976,13 +976,30 @@ export default function hdChart(chart: Chart) {
 
     if (all.length <= 1) return all;
 
-    const scored = all.map(bridge => ({
-      ...bridge,
-      _score: scoreBridge(bridge.gate, bridge.harmonicGate),
-    }));
-    scored.sort((a, b) => a._score - b._score);
+    const planets = chart.planets ?? [];
 
-    return scored.map(({ _score, ...rest }) => rest);
+    // Score each bridge with primary score + tiebreakers matching getTopBridge():
+    // - Primary: scoreBridge() tiers 1-5
+    // - Secondary: activation count on harmonic gate (more = better, so negate)
+    // - Tertiary: best planet id on harmonic gate (lower = more important)
+    const scored = all.map(bridge => {
+      const harmonicPlanets = planets.filter(p => p.gate === bridge.harmonicGate);
+      return {
+        ...bridge,
+        _score: scoreBridge(bridge.gate, bridge.harmonicGate),
+        _activationCount: harmonicPlanets.length,
+        _bestPlanetId: harmonicPlanets.length > 0
+          ? Math.min(...harmonicPlanets.map(p => p.id))
+          : Infinity,
+      };
+    });
+    scored.sort((a, b) => {
+      if (a._score !== b._score) return a._score - b._score;
+      if (a._activationCount !== b._activationCount) return b._activationCount - a._activationCount;
+      return a._bestPlanetId - b._bestPlanetId;
+    });
+
+    return scored.map(({ _score, _activationCount, _bestPlanetId, ...rest }) => rest);
   };
 
   return {
