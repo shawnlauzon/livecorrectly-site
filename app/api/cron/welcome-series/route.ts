@@ -58,10 +58,7 @@ export async function GET(request: NextRequest) {
     const subject = getWelcomeSubject(step, subscriber.first_name, chart);
     const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
     const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${subscriber.unsub_token}`;
-    const bookingUrl =
-      process.env.NEXT_PUBLIC_BOOKING_URL ?? 'https://livecorrectly.com';
-
-    const emailComponent = getWelcomeEmail(step, subscriber, chart, unsubscribeUrl, bookingUrl);
+    const emailComponent = getWelcomeEmail(step, subscriber, chart, unsubscribeUrl);
 
     if (!emailComponent) {
       skipped++;

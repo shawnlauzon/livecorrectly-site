@@ -13,8 +13,8 @@ import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { hangingGateDescriptions } from '@/emails/content';
 import styles from './detail.module.css';
 
-const WELCOME_SERIES_LENGTH = 5;
-const DAY_LABELS = ['Day 1: Career Type', 'Day 2: Strategy', 'Day 3: Authority', 'Day 4: Indicators', 'Day 5: Conclusion'];
+const WELCOME_SERIES_LENGTH = 3;
+const DAY_LABELS = ['Day 1: Career Type', 'Day 2: Signposts', 'Day 3: Invitation'];
 
 export default function AdminDetailPage({
   params
@@ -371,13 +371,13 @@ function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
   );
 }
 
-type NextEmailValue = 'not_started' | 'day1' | 'day2' | 'day3' | 'day4' | 'day5' | 'done' | 'paused';
+type NextEmailValue = 'not_started' | 'day1' | 'day2' | 'day3' | 'done' | 'paused';
 
 function deriveNextEmailValue(sub: Subscriber): NextEmailValue {
   if (sub.next_step > WELCOME_SERIES_LENGTH) return 'done';
   if (sub.next_step === 0 && !sub.next_send_at) return 'not_started';
   if (!sub.next_send_at && sub.next_step > 0) return 'paused';
-  if (sub.next_step >= 1 && sub.next_step <= 5) return `day${sub.next_step}` as NextEmailValue;
+  if (sub.next_step >= 1 && sub.next_step <= 3) return `day${sub.next_step}` as NextEmailValue;
   return 'not_started';
 }
 
@@ -431,16 +431,8 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
         next_step = 3;
         next_send_at = getTomorrowDate();
         break;
-      case 'day4':
-        next_step = 4;
-        next_send_at = getTomorrowDate();
-        break;
-      case 'day5':
-        next_step = 5;
-        next_send_at = getTomorrowDate();
-        break;
       case 'done':
-        next_step = 6;
+        next_step = 4;
         next_send_at = null;
         break;
       case 'paused':
@@ -559,8 +551,6 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
                 <option value="day1">Day 1</option>
                 <option value="day2">Day 2</option>
                 <option value="day3">Day 3</option>
-                <option value="day4">Day 4</option>
-                <option value="day5">Day 5</option>
                 <option value="done">Done</option>
                 <option value="paused">Paused</option>
               </select>
@@ -625,10 +615,8 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
 const EMAIL_LABELS = [
   'Welcome: Shadow hook',
   'Day 1: Career Type',
-  'Day 2: Strategy',
-  'Day 3: Authority',
-  'Day 4: Indicators',
-  'Day 5: Conclusion'
+  'Day 2: Signposts',
+  'Day 3: Invitation'
 ];
 
 function EmailPreviewSelector({ subscriberId, currentStep }: { subscriberId: string; currentStep: string | null }) {

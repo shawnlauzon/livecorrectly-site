@@ -15,7 +15,7 @@ interface Welcome0Props {
 /**
  * Welcome Email 0: Shadow hook (sent immediately on registration)
  *
- * This is NOT part of the 5-day drip series — it fires at registration time.
+ * This is NOT part of the 3-day drip series — it fires at registration time.
  * Opens with the subscriber's #1 shadow (a conditioning pattern they'll
  * immediately recognize), then transitions to bio, series intro, and CTA.
  *

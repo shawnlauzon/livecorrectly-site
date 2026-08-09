@@ -13,11 +13,7 @@ export function getWelcomePreview(
     case 2:
       return 'A test you can run in ten seconds.';
     case 3:
-      return `To make decisions you can trust, ${chart.innerAuthorityDescription}`;
-    case 4:
-      return `Follow this advice for less ${chart.notSelfTheme} and more ${chart.signatureTheme}`;
-    case 5:
-      return `Congratulations ${firstName} on entering your life of flow`;
+      return 'Being honest about the limit.';
     default:
       return '';
   }
@@ -36,11 +32,7 @@ export function getWelcomeSubject(
     case 2:
       return 'Are you in the flow?';
     case 3:
-      return `[Day 3] To make decisions you can trust, ${chart.innerAuthorityDescription}`;
-    case 4:
-      return `[Day 4] Follow this advice for less ${chart.notSelfTheme} and more ${chart.signatureTheme}`;
-    case 5:
-      return `[Day 5] Congratulations ${firstName} on entering your life of flow`;
+      return "What these emails can't do";
     default:
       return '';
   }

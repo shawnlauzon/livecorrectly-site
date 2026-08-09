@@ -150,7 +150,7 @@ export const signatureVideos = [
   'https://youtu.be/ltxpSWRx5t4',
 ];
 
-// Adjective forms of themes (used in welcome4)
+// Adjective forms of themes (used in welcome2 signpost email)
 export const signatureThemeAdjectives = [
   'satisfied',
   'satisfied',

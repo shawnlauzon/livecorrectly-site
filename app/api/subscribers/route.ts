@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Welcome0 (immediate signup email) is active.
-    // The daily drip (welcome1-5) is separately controlled by CRON_EMAIL_ENABLED.
+    // The daily drip (welcome1-3) is separately controlled by CRON_EMAIL_ENABLED.
     const WELCOME_SERIES_ENABLED = true;
 
     // Send immediate welcome email for fresh subscribers
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${subscriber.unsub_token}`;
         const subject = getWelcomeSubject(0, subscriber.first_name, chartData);
         const emailComponent = getWelcomeEmail(
-          0, subscriber, chartData, unsubscribeUrl, '', chartUrl
+          0, subscriber, chartData, unsubscribeUrl, chartUrl
         );
 
         if (emailComponent) {

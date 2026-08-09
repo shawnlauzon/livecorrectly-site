@@ -29,7 +29,9 @@ export const Welcome2 = ({
         </Text>
       }
     >
-      <Text className="mb-[16px] text-[16px] leading-[24px]">{firstName},</Text>
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        Hey {firstName},
+      </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
         Short one today.
@@ -37,8 +39,8 @@ export const Welcome2 = ({
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
         Yesterday was a lot of information. Today I want to share something you
-        can use immediately, a simple way to track how things are going. I use
-        it constantly to see if I&apos;m in the flow.
+        can use immediately: a simple way to get a sense of how things are
+        going. I use it all the time to see if I&apos;m in the flow.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
@@ -63,7 +65,7 @@ export const Welcome2 = ({
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        Now think back to a day where you did not earn any money, you
+        Now think back to a day where you didn&apos;t earn any money, you
         weren&apos;t on vacation, but still you felt incredibly{' '}
         {chart.signatureThemeAdjective}. If every day was like that,
         wouldn&apos;t you have the life that you wanted?
@@ -72,15 +74,16 @@ export const Welcome2 = ({
       <Text className="mb-[16px] text-[16px] leading-[24px]">
         It&apos;s important that you don&apos;t try to <em>avoid</em>{' '}
         {chart.notSelfTheme}. Instead, simply recognize when you&apos;re feeling
-        it. If you are, then PAUSE. Then think back to when you decided to do
-        whatever you&apos;re doing. Did you follow your decision making
-        strategy? Or did your mind pressure you to do something without
-        listening to your body? Probably it was your mind. And so now you have
-        the opportunity to choose more wisely.
+        it, and if you do, PAUSE. Think back to when you decided to do whatever
+        you&apos;re doing. Did you follow your decision making strategy? Or did
+        your mind tell you that you <em>should</em> do something without
+        listening to your body? Probably it was your mind. And so now try again,
+        but this time {chart.innerAuthorityDescription}.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        Choose {chart.signatureTheme}.
+        Every day, look for what brings you {chart.signatureTheme}. You&apos;re
+        designed for it.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">— Shawn</Text>

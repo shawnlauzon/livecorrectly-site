@@ -1,9 +1,7 @@
 import * as React from 'react';
-import { Heading, Text, Section, Link, Img } from 'react-email';
+import { Text } from 'react-email';
 import { EmailLayout } from './components/email-layout';
-import { CareerTypeHighlight } from './components/career-type-table';
 import { EmailChartData } from '../lib/hd-chart/parse-for-email';
-import { authorityWriteups, authorityTips, lookupByAuthority } from './content';
 
 interface Welcome3Props {
   firstName: string;
@@ -12,116 +10,124 @@ interface Welcome3Props {
 }
 
 /**
- * Welcome Email 3: Decision-Making Strategy (Inner Authority)
- * Ported from fractalhumandesign/email/templates/welcome3.html
- * Copy is verbatim from the original template.
+ * Welcome Email 3: Invitation — one-on-one offer and Decisions You Can Trust
+ *
+ * Conversational close that recaps what the subscriber has learned,
+ * acknowledges the limits of template-based advice, and offers a
+ * free one-on-one session in exchange for a documented case study.
+ * CTA is "reply to this email."
  */
-export const Welcome3 = ({ chart, unsubscribeUrl }: Welcome3Props) => {
-  const authorityWriteup = lookupByAuthority(authorityWriteups, chart.innerAuthority);
-  const authorityTip = lookupByAuthority(authorityTips, chart.innerAuthority);
+export const Welcome3 = ({
+  firstName,
+  chart,
+  unsubscribeUrl,
+}: Welcome3Props) => {
+  const authority =
+    chart.innerAuthority === 'None'
+      ? 'Lunar Authority'
+      : `${chart.innerAuthority} Authority`;
 
   return (
     <EmailLayout
-      preview={`To make decisions you can trust, ${chart.innerAuthorityDescription}`}
+      preview="Being honest about the limit."
       unsubscribeUrl={unsubscribeUrl}
-    >
-      <Heading
-        as="h2"
-        className="mt-[16px] text-[24px] font-bold tracking-tight text-[#221B3D]"
-      >
-        Success Code 3: Your Decision-Making Strategy
-      </Heading>
-
-      <Text className="mb-[16px] text-[16px] leading-[24px]">
-        We all have decisions to make: should I work with this person or not,
-        should I date or marry this person. By following the{' '}
-        <em>decision-making strategy</em>, we let go of the old patterns which
-        have controlled us in the past, and move towards a new way of being
-        which is authentically ourself. This is not an instant fix; it can take
-        years to completely let go of these destructive patterns. But the payoff
-        is worth it: a life without {chart.notSelfTheme} and a nearly effortless
-        way of being.
-      </Text>
-
-      <CareerTypeHighlight
-        number="3"
-        title="Decision-Making Strategy"
-        description={`Your way to make decisions is to ${chart.innerAuthorityDescription}.`}
-      />
-
-      <Text className="mb-[16px] text-[16px] leading-[24px]">
-        {authorityWriteup}
-      </Text>
-
-      {/* Inner authority video link */}
-      <Section className="mt-[8px]">
-        <Link href={chart.innerAuthorityVideo}>
-          <Img
-            src={chart.typeButtonGif}
-            height={180}
-            width={320}
-            alt={`How to ${chart.innerAuthorityDescription} video`}
-          />
-          <Text>
-            See how to {chart.innerAuthorityDescription} in this video.
-          </Text>
-        </Link>
-      </Section>
-
-      <Text className="mb-[16px] text-[16px] leading-[24px]">
-        {authorityTip}
-      </Text>
-
-      {/* "This is the way" image */}
-      <Section className="w-[85%]">
-        <Img
-          alt="Star Wars Mandalorian - This is the way"
-          src="https://fractalhumandesign.s3.amazonaws.com/site/images/this-is-the-way.jpg"
-          width={480}
-          className="w-full rounded-xl"
-          style={{
-            width: '100%',
-            height: 'auto',
-            maxWidth: '100%'
-          }}
-        />
-        <Text className="mt-[16px] text-[14px] leading-[24px]">
-          Your decision-making strategy, to {chart.decisionMakingStrategy}, is
-          your way.
+      postscript={
+        <Text className="mt-[24px] mb-[16px] text-[16px] italic leading-[24px] text-[#4A4A4A]">
+          P.S. If you&apos;re not sure whether you&apos;ve got something worth
+          bringing &mdash; you do. Bring the decision you&apos;ve been putting
+          off. That&apos;s the one.
         </Text>
-      </Section>
+      }
+    >
+      <Text className="mb-[16px] text-[16px] leading-[24px]">{firstName},</Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        This brings us to a core teaching of Human Design: the mind is never the
-        way to make decisions. It is a tool, and this tool is ideal for
-        processing information and considering different options. But not for
-        making decision. However, it will continually try to persuade you into
-        ignoring your body, complaining &quot;you&apos;re not being
-        logical&quot;. Just let it go.
+        Three emails in, let&apos;s review where we&apos;re at.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        Remember, your mind is the result of decades of conditioning from
-        parents, teachers, coaches, society, advertising: everyone telling you
-        what <em>they think</em> you should do, when they don&apos;t even know
-        you. And aren&apos;t you just sick of it?!?
+        You know what you&apos;re built to do and why the standard advice
+        hasn&apos;t worked. You know what{' '}
+        {chart.isManifestor ? 'informing' : 'waiting'}&nbsp;actually means,
+        which is the part almost everyone gets wrong. And you&apos;ve got your
+        signposts&mdash;{chart.notSelfTheme} and {chart.signatureTheme}
+        &mdash;which you can use to keep yourself on track.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        That&apos;s where Human Design fits in. This simple decision-making
-        strategy, to {chart.decisionMakingStrategy}, you will let go of the
-        mental chatter and begin to hear your true nature. Because this is
-        always a part of you, your genetic birthright, it is something you can
-        always depend on begin to make <b>decisions you can trust</b>.
+        That&apos;s real value. In fact, it&apos;s the whole thing. Live your
+        life by it, and you&apos;ll see your life radically transformed.
+        Guaranteed.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        Congratulations! We&apos;ve covered a lot in a short amount of time. You
-        now know how you can make decisions you can trust, and can begin to let
-        go of depending on others for guidance. Tomorrow we&apos;ll give you
-        some useful indicators that you can use to understand if you&apos;re
-        on-track or off-track. See you then!
+        But I want to be straight with you about what it takes. It&apos;ll take
+        time to learn how to apply it to the situations in your life.
+        Definitely, start experimenting with it right away. But if you have
+        anything you&apos;re struggling with now, and want to apply this
+        knowledge quicker, let&apos;s chat.
       </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        (By the way, if you&apos;re considering using AI to help with this,
+        there is a place for it. I actually use it to get things from time to
+        time. But I have seen that a huge chunk of it is straight up WRONG.
+        Which is ok for me, because I already know what parts are accurate. But
+        without years of training, certified by a real institution and not a
+        weekend course, it&apos;s really easy to be led down the wrong path. And
+        I don&apos;t want that for you.)
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        <strong>An offer, and a trade</strong>
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        So, here&apos;s where I&apos;m at: I&apos;m looking for 5 people to work
+        with one-on-one, at no charge.
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        Seventy-five minutes, on whatever&apos;s actually keeping you up at
+        night. You bring the situation; I show you what your design says about
+        it. We will look through your chart, but this is not a
+        &ldquo;reading&rdquo;; this is problem solving.
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        Here&apos;s what I ask in return:
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        I&apos;m building this practice, and what I don&apos;t have yet is
+        documented results. So the trade is: we talk now, and then we talk again
+        in 2 weeks, and you tell me honestly what you did
+        differently&mdash;including <em>nothing</em>. If something did shift,
+        I&apos;d want your permission to write it up. Anonymously if you&apos;d
+        prefer.
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        That&apos;s the whole deal. You get the session; I get to find out
+        whether it works and to say so publicly.
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        Reply to this email if you want one of the 5 spots.
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        If that&apos;s not for you, the weekly <em>Decisions You Can Trust</em>{' '}
+        session I mentioned previously is still running and always free. Reply
+        and I&apos;ll send you the link for that instead.
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        Either way, you&apos;ve got your decision making strategy and your
+        signposts, and those work whether or not we ever talk.
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">— Shawn</Text>
     </EmailLayout>
   );
 };
@@ -136,7 +142,7 @@ Welcome3.PreviewProps = {
     isManifestor: false,
     isProjector: false,
     isReflector: false,
-    careerDesign: '🔥 Classic Builder',
+    careerDesign: 'Classic Builder',
     strategy: 'wait to respond before engaging',
     innerAuthority: 'Emotional',
     innerAuthorityDescription: 'wait for emotional clarity',
@@ -155,9 +161,9 @@ Welcome3.PreviewProps = {
     signatureVideo: 'https://youtu.be/fHGRdJSyE34',
     topShadow: 'Willpower',
     hasChannelBridge: false,
-    bridgeDescriptions: []
+    bridgeDescriptions: [],
   },
-  unsubscribeUrl: 'https://livecorrectly.com/api/unsubscribe?token=test'
+  unsubscribeUrl: 'https://livecorrectly.com/api/unsubscribe?token=test',
 } satisfies Welcome3Props;
 
 export default Welcome3;

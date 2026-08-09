@@ -13,7 +13,7 @@ import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
  * Does NOT advance next_step or modify next_send_at — manual sends
  * are independent of the automated series.
  *
- * Body: { step: 1-5 }
+ * Body: { step: 0-3 }
  * Auth: Bearer <ADMIN_PASSWORD>
  */
 export async function POST(
@@ -67,11 +67,8 @@ export async function POST(
     const subject = getWelcomeSubject(step, subscriber.first_name, chart);
     const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
     const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${subscriber.unsub_token}`;
-    const bookingUrl =
-      process.env.NEXT_PUBLIC_BOOKING_URL ?? 'https://livecorrectly.com';
-
     const chartUrl = `${appUrl}/see-your-design/${id}`;
-    const emailComponent = getWelcomeEmail(step, subscriber, chart, unsubscribeUrl, bookingUrl, chartUrl);
+    const emailComponent = getWelcomeEmail(step, subscriber, chart, unsubscribeUrl, chartUrl);
 
     if (!emailComponent) {
       return NextResponse.json(
