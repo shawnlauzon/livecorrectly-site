@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/welcome-series",
-      "schedule": "0 0 * * *"
+      "schedule": "20 0 * * *"
     }
   ]
 }
