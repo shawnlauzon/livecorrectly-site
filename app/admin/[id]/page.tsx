@@ -391,6 +391,7 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
   const [sendingStep, setSendingStep] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [restarting, setRestarting] = useState(false);
 
   const derivedValue = deriveNextEmailValue(subscriber);
   const [localOverride, setLocalOverride] = useState<NextEmailValue | null>(null);
@@ -508,6 +509,53 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
     }
   }, [subscriber.id]);
 
+  const handleRestart = useCallback(async () => {
+    const password = sessionStorage.getItem('adminPassword');
+    if (!password) return;
+
+    setRestarting(true);
+    setFeedback(null);
+
+    try {
+      const response = await fetch(`/api/admin/subscribers/${subscriber.id}/restart-series`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${password}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setFeedback({ type: 'error', message: data.error || 'Failed to restart series' });
+        return;
+      }
+
+      // Refetch subscriber to get updated next_step and next_send_at
+      const refetchResponse = await fetch(`/api/admin/subscribers/${subscriber.id}`, {
+        headers: {
+          Authorization: `Bearer ${password}`
+        }
+      });
+
+      if (refetchResponse.ok) {
+        const updatedSubscriber = await refetchResponse.json();
+        onSubscriberUpdate(updatedSubscriber);
+      }
+
+      setFeedback({
+        type: 'success',
+        message: 'Series restarted — Welcome sent, Day 1 scheduled for tomorrow'
+      });
+    } catch (err) {
+      console.error('Error restarting series:', err);
+      setFeedback({ type: 'error', message: 'Network error — could not restart series' });
+    } finally {
+      setRestarting(false);
+    }
+  }, [subscriber.id, onSubscriberUpdate]);
+
   const formatDate = (dateStr: string) => {
     // next_send_at may arrive as YYYY-MM-DD or a full ISO timestamp
     const iso = dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00Z`;
@@ -568,36 +616,47 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
         </div>
 
         {isActive ? (
-          <div className={styles.welcomeButtons}>
-            <button
-              className={styles.dayButton}
-              disabled={sendingStep !== null}
-              onClick={() => handleSend(0)}
-            >
-              {sendingStep === 0 ? 'Sending...' : 'Welcome'}
-            </button>
-            {DAY_LABELS.map((label, i) => {
-              const step = i + 1;
-              const isSending = sendingStep === step;
-              const alreadySent = step <= emailsSent;
-              const buttonClass = [
-                styles.dayButton,
-                alreadySent ? styles.dayButtonSent : '',
-                isSending ? styles.dayButtonSending : ''
-              ].filter(Boolean).join(' ');
+          <>
+            <div className={styles.welcomeButtons}>
+              <button
+                className={styles.dayButton}
+                disabled={sendingStep !== null || restarting}
+                onClick={() => handleSend(0)}
+              >
+                {sendingStep === 0 ? 'Sending...' : 'Welcome'}
+              </button>
+              {DAY_LABELS.map((label, i) => {
+                const step = i + 1;
+                const isSending = sendingStep === step;
+                const alreadySent = step <= emailsSent;
+                const buttonClass = [
+                  styles.dayButton,
+                  alreadySent ? styles.dayButtonSent : '',
+                  isSending ? styles.dayButtonSending : ''
+                ].filter(Boolean).join(' ');
 
-              return (
-                <button
-                  key={step}
-                  className={buttonClass}
-                  disabled={sendingStep !== null}
-                  onClick={() => handleSend(step)}
-                >
-                  {isSending ? 'Sending...' : label}
-                </button>
-              );
-            })}
-          </div>
+                return (
+                  <button
+                    key={step}
+                    className={buttonClass}
+                    disabled={sendingStep !== null || restarting}
+                    onClick={() => handleSend(step)}
+                  >
+                    {isSending ? 'Sending...' : label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className={styles.restartButtonContainer}>
+              <button
+                className={styles.restartButton}
+                disabled={sendingStep !== null || restarting}
+                onClick={handleRestart}
+              >
+                {restarting ? 'Restarting...' : '↻ Restart Series'}
+              </button>
+            </div>
+          </>
         ) : (
           <p className={styles.welcomeDisabled}>
             Cannot send emails — subscriber status is &ldquo;{subscriber.email_status}&rdquo;

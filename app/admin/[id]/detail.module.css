@@ -210,6 +210,35 @@
   cursor: wait;
 }
 
+.restartButtonContainer {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.restartButton {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.625rem 1.25rem;
+  border: 1px solid var(--marigold);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--marigold);
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.restartButton:hover:not(:disabled) {
+  background: var(--marigold);
+  color: white;
+}
+
+.restartButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .welcomeFeedback {
   margin-top: 0.75rem;
   font-family: var(--body);
