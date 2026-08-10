@@ -93,6 +93,39 @@ Opens the React Email dev server with preview props for all 5 templates.
 - `POST /api/webhooks/resend` handles bounce/complaint events via HMAC-verified webhook
 - Physical postal address in the email footer
 
+### Bounce and Failure Handling
+
+Email deliverability is managed via the `subscribers.email_status` field and Resend webhooks:
+
+**Status values:**
+- `active` — can receive email
+- `unsubscribed` — user opted out
+- `bounced` — hard bounce from Resend
+- `complained` — spam complaint
+- `failed` — delivery failure
+- `suppressed` — on Resend's suppression list
+
+**How it works:**
+
+1. **Resend sends webhook** — When emails bounce, fail, or trigger spam complaints, Resend posts to `/api/webhooks/resend`
+2. **Signature verification** — Webhook handler validates the `svix-signature` header using HMAC-SHA256 via `crypto.subtle` to prevent spoofing
+3. **Status update** — Handler calls `updateEmailStatus()` which sets `email_status` and timestamps the change in `email_status_at`
+4. **Send prevention** — All email sends go through `sendEmail()` in `emails/send.ts`, which checks `canSendTo()` before every send. Only `active` subscribers receive emails.
+5. **Automatic reactivation** — If someone is removed from Resend's suppression list, they're automatically set back to `active`
+
+**Events handled:**
+- `email.bounced` → `bounced`
+- `email.complained` → `complained`
+- `email.failed` → `failed`
+- `email.suppressed` / `suppression.added` → `suppressed`
+- `suppression.removed` → `active` (if currently suppressed)
+
+**Key guarantees:**
+- Cron only queries `WHERE email_status = 'active'`
+- Admin manual sends check `canSendTo()` and return 422 if subscriber is not active
+- Once someone bounces, they won't receive any more emails until status is manually changed back to `active`
+- No queue needed — direct webhook → database update (throughput is low)
+
 ### Deploying email
 
 1. Run `migrations/001_email_status.sql` against your Neon database
