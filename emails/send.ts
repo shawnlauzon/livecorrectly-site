@@ -29,10 +29,33 @@ function getResend(): Resend {
 }
 
 /**
+ * Format an email recipient in RFC 5322 format.
+ * Returns "FirstName LastName <email>" or "FirstName <email>" if last_name is null.
+ */
+export function formatEmailRecipient(
+  firstName: string,
+  lastName: string | null,
+  email: string
+): string {
+  const name = lastName ? `${firstName} ${lastName}` : firstName;
+  return `${name} <${email}>`;
+}
+
+/**
+ * Extract email address from either formatted recipient ("Name <email>") or plain email.
+ */
+function extractEmail(recipient: string): string {
+  const match = recipient.match(/<(.+)>/);
+  return match ? match[1] : recipient;
+}
+
+/**
  * Check if we can send email to an address.
  * Returns false if the subscriber is not active (unsubscribed, bounced, complained).
+ * Handles both formatted recipients ("Name <email>") and plain email addresses.
  */
-export async function canSendTo(email: string): Promise<boolean> {
+export async function canSendTo(recipient: string): Promise<boolean> {
+  const email = extractEmail(recipient);
   const subscriber = await getActiveSubscriberByEmail(email);
   return subscriber !== null;
 }
@@ -66,7 +89,8 @@ export async function sendEmail({
 }: SendEmailOptions): Promise<{ success: boolean; id?: string }> {
   const sendable = await canSendTo(to);
   if (!sendable) {
-    console.log(`[email] Skipping send to ${to}: subscriber not active`);
+    const email = extractEmail(to);
+    console.log(`[email] Skipping send to ${email}: subscriber not active`);
     return { success: false };
   }
 
@@ -88,12 +112,13 @@ export async function sendEmail({
     }
   });
 
+  const email = extractEmail(to);
   if (error) {
-    console.error(`[email] Failed to send to ${to}:`, error);
+    console.error(`[email] Failed to send to ${email}:`, error);
     return { success: false };
   }
 
-  console.log(`[email] Sent to=${to} subject="${subject}" id=${data?.id}`);
+  console.log(`[email] Sent to=${email} subject="${subject}" id=${data?.id}`);
   return { success: true, id: data?.id };
 }
 
