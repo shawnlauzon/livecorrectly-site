@@ -34,8 +34,8 @@ export const Welcome3 = ({
       postscript={
         <Text className="mt-[24px] mb-[16px] text-[16px] italic leading-[24px] text-[#4A4A4A]">
           P.S. If you&apos;re not sure whether you&apos;ve got something worth
-          bringing &mdash; you do. Bring the decision you&apos;ve been putting
-          off. That&apos;s the one.
+          bringing: you do. Bring the decision you&apos;ve been putting off.
+          That&apos;s the one.
         </Text>
       }
     >
@@ -88,10 +88,10 @@ export const Welcome3 = ({
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        Seventy-five minutes, on whatever&apos;s actually keeping you up at
-        night. You bring the situation; I show you what your design says about
-        it. We will look through your chart, but this is not a
-        &ldquo;reading&rdquo;; this is problem solving.
+        Sixty minutes, on whatever&apos;s actually keeping you up at night. You
+        bring the situation; I show you what your design says about it. We will
+        look through your chart, but this is not a &ldquo;reading&rdquo;; this
+        is problem solving.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
@@ -110,6 +110,11 @@ export const Welcome3 = ({
       <Text className="mb-[16px] text-[16px] leading-[24px]">
         That&apos;s the whole deal. You get the session; I get to find out
         whether it works and to say so publicly.
+      </Text>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        I&apos;m building this practice and what I don&apos;t have yet is
+        documented evidence of the impact. That&apos;s the trade.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
