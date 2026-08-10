@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById, updateEmailSeries } from '@/lib/db';
-import { sendEmail, formatEmailRecipient, sendAdminNotification } from '@/emails/send';
+import { sendWelcomeEmail, formatEmailRecipient, sendAdminNotification } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/emails/subjects';
 import { getWelcomeEmail } from '@/emails/welcome';
@@ -68,7 +68,7 @@ export async function POST(
       );
     }
 
-    const result = await sendEmail({
+    const result = await sendWelcomeEmail({
       to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
       subject,
       react: emailComponent,

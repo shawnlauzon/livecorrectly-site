@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDueSubscribers, advanceEmailSeries } from '@/lib/db';
-import { sendEmail, formatEmailRecipient } from '@/emails/send';
+import { sendWelcomeEmail, formatEmailRecipient } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/emails/subjects';
 import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
       continue;
     }
 
-    const result = await sendEmail({
+    const result = await sendWelcomeEmail({
       to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
       subject,
       react: emailComponent,

@@ -60,15 +60,17 @@ export async function canSendTo(recipient: string): Promise<boolean> {
   return subscriber !== null;
 }
 
-interface SendEmailOptions {
+interface _SendEmailOptions {
   to: string;
   subject: string;
   react: React.ReactElement;
   unsubToken: string;
+  from: string;
+  replyTo?: string;
 }
 
 /**
- * Send an email via Resend. This is the SOLE Resend call site in the codebase.
+ * Internal email send function. This is the SOLE Resend call site in the codebase.
  *
  * Checks:
  * 1. canSendTo() — skips if subscriber is not active
@@ -80,13 +82,17 @@ interface SendEmailOptions {
  * not here. This function always sends if the subscriber is active and
  * RESEND_API_KEY is set. Omit RESEND_API_KEY in .env.local to prevent
  * sends during local development.
+ *
+ * @internal Use sendWelcomeEmail(), sendMarketingEmail(), or sendTransactionalEmail() instead.
  */
-export async function sendEmail({
+export async function _sendEmail({
   to,
   subject,
   react,
-  unsubToken
-}: SendEmailOptions): Promise<{ success: boolean; id?: string }> {
+  unsubToken,
+  from,
+  replyTo
+}: _SendEmailOptions): Promise<{ success: boolean; id?: string }> {
   const sendable = await canSendTo(to);
   if (!sendable) {
     const email = extractEmail(to);
@@ -96,8 +102,6 @@ export async function sendEmail({
 
   const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
   const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${unsubToken}`;
-
-  const from = process.env.EMAIL_FROM ?? 'Live Correctly <hello@livecorrectly.com>';
   const html = await renderEmail(react);
 
   const client = getResend();
@@ -106,6 +110,7 @@ export async function sendEmail({
     to,
     subject,
     html,
+    ...(replyTo && { replyTo }),
     headers: {
       'List-Unsubscribe': `<${unsubscribeUrl}>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
@@ -122,17 +127,57 @@ export async function sendEmail({
   return { success: true, id: data?.id };
 }
 
+interface SendEmailOptions {
+  to: string;
+  subject: string;
+  react: React.ReactElement;
+  unsubToken: string;
+}
+
+/**
+ * Send a welcome series email. Personal relationship-building emails from Shawn.
+ * From: Shawn Lauzon <shawn@livecorrectly.com>
+ */
+export async function sendWelcomeEmail(options: SendEmailOptions) {
+  const from = process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+  return _sendEmail({ ...options, from });
+}
+
+/**
+ * Send a broadcast/marketing email. Marketing campaigns with reply-to Shawn.
+ * From: Shawn Lauzon <updates@livecorrectly.com>
+ * Reply-To: Shawn Lauzon <shawn@livecorrectly.com>
+ */
+export async function sendMarketingEmail(options: SendEmailOptions) {
+  const from = process.env.EMAIL_FROM_MARKETING ?? 'Shawn Lauzon <updates@livecorrectly.com>';
+  const replyTo = process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+  return _sendEmail({ ...options, from, replyTo });
+}
+
+/**
+ * Send a transactional/system email. System notifications with reply-to Shawn.
+ * From: Live Correctly <notifications@livecorrectly.com>
+ * Reply-To: Shawn Lauzon <shawn@livecorrectly.com>
+ */
+export async function sendTransactionalEmail(options: SendEmailOptions) {
+  const from = process.env.EMAIL_FROM_NOTIFICATIONS ?? 'Live Correctly <notifications@livecorrectly.com>';
+  const replyTo = process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+  return _sendEmail({ ...options, from, replyTo });
+}
+
 /**
  * Send a plain-text admin notification when a new subscriber signs up or restarts the series.
  * This bypasses canSendTo() and unsubscribe headers — it's an internal notification,
  * not a marketing email. Failures are logged but should never block registration.
+ * Uses transactional configuration: From notifications@, Reply-To shawn@.
  */
 export async function sendAdminNotification(
   subscriber: Subscriber,
   chartType: string,
   isRestart = false
 ): Promise<void> {
-  const from = process.env.EMAIL_FROM ?? 'Live Correctly <hello@livecorrectly.com>';
+  const from = process.env.EMAIL_FROM_NOTIFICATIONS ?? 'Live Correctly <notifications@livecorrectly.com>';
+  const replyTo = process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
   const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
   const adminUrl = `${appUrl}/admin/${subscriber.id}`;
 
@@ -155,6 +200,7 @@ export async function sendAdminNotification(
       ``,
       `Admin: ${adminUrl}`,
     ].join('\n'),
+    ...(replyTo && { replyTo }),
   });
 
   if (error) {

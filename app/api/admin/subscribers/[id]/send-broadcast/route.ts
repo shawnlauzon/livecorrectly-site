@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
-import { sendEmail, formatEmailRecipient } from '@/emails/send';
+import { sendMarketingEmail, formatEmailRecipient } from '@/emails/send';
 import { buildBroadcastEmail, BroadcastSlug } from '@/emails/broadcast-config';
 
 /**
@@ -69,7 +69,7 @@ export async function POST(
       subscriber.unsub_token
     );
 
-    const result = await sendEmail({
+    const result = await sendMarketingEmail({
       to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
       subject,
       react: element,

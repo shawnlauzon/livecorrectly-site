@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBroadcastRecipients, recordBroadcastSend } from '@/lib/db';
-import { sendEmail, formatEmailRecipient } from '@/emails/send';
+import { sendMarketingEmail, formatEmailRecipient } from '@/emails/send';
 import { buildBroadcastEmail, BroadcastSlug } from '@/emails/broadcast-config';
 
 // --- Broadcast configuration ---
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       subscriber.unsub_token
     );
 
-    const result = await sendEmail({
+    const result = await sendMarketingEmail({
       to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
       subject,
       react: element,
