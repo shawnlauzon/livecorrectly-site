@@ -60,28 +60,28 @@ export const Reengagement = ({
         At the end of that series I offered you a discounted session with me.
         Nobody took it&mdash;not you, not anyone. I had offerings listed on the
         old site too with a fancy way of clicking a button and buying, but no
-        one ever did.
+        one ever did that either.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        Now I can see why: I was trying to initiate, but I&apos;m not an
-        Initator my design. I&apos;m a Builder, and what I&apos;m good at is
-        building things. Building can take many forms, but for me, it&apos;s
-        about supporting my tribe (my #1 thematic is &quot;Support&quot;, and
-        you can{' '}
+        In retrospect, it&apos;s obvious why: I was trying to initiate, but
+        I&apos;m not an Initator. I&apos;m a Classic Builder, and what I&apos;m
+        good at is building things, step-by-step. Building can take many forms,
+        but for me, it&apos;s about supporting my tribe (my #1 thematic is
+        &quot;Support&quot;, and you can{' '}
         <Link href={chartUrl} className="text-[#6A4BD6] underline">
           see yours here
         </Link>
         ). And because you trusted me enough to share your birth information,
-        you&apos;re part of my tribe. And I&apos;m here to support you.
+        you&apos;re part of my tribe.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        So, I&apos;ve rebuilt it all. I renamed the site to Live Correctly, and
-        I&apos;ve flipped the script of how I&apos;m working with people. Rather
-        than go through what your chart says, we discuss whatever you&apos;re
-        actually dealing with, and how you can use your own wisdom to get the
-        answers.
+        So, I&apos;ve rebuilt it all. I renamed the site to Live Correctly (stay
+        tuned for what that means), and I&apos;ve flipped the script of how
+        I&apos;m working with people. Rather than go through what your chart
+        says, we discuss whatever you&apos;re actually dealing with, and how you
+        can use your own wisdom to get the answers.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
@@ -89,11 +89,11 @@ export const Reengagement = ({
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        Sixty minutes. You bring the situation, I tell you what your design says
-        about it. In exchange: we talk again in 2 weeks and you tell me honestly
-        what you did differently&mdash;including &ldquo;nothing&rdquo;&mdash;and
-        if something shifted, you let me write it up. Anonymously if you&apos;d
-        rather.
+        Sixty minutes. You bring the situation, and I support you in
+        understanding what to do about it, based on your specific design. In
+        exchange: we talk again in 2 weeks and you tell me honestly what you did
+        differently&mdash;including &ldquo;nothing&rdquo;&mdash;and if something
+        shifted, you let me write it up. Anonymously if you&apos;d rather.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
@@ -106,15 +106,15 @@ export const Reengagement = ({
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        If one-on-one is more than you&apos;re after, I also run a free weekly
-        session called <em>Decisions You Can Trust</em>: you bring something
-        you&apos;re deciding and we work on it in a group. Reply and I&apos;ll
-        send you that link instead.
+        If one-on-one is too much right now, I also run a free weekly session
+        called <em>Decisions You Can Trust</em>: you bring something you&apos;re
+        deciding and we work on it in a group. Reply and I&apos;ll send you that
+        link instead.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        And if you just want to hang out and hear what I say, that works too.
-        I&apos;ll share something with you every week from now on.
+        And if you just want to read something from me every week, that works
+        too. I&apos;ll share something every week from now on.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">— Shawn</Text>

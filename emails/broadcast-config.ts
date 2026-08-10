@@ -27,7 +27,7 @@ export function monthsSince(createdAt: string): number {
 export const BROADCASTS = {
   'reengagement-2026-08': {
     subject: 'I sent you five emails last year and then disappeared',
-    preview: "Let's start over",
+    preview: "Let's begin again",
     component: Reengagement,
   },
 } as const;
