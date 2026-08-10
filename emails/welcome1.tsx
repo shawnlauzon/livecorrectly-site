@@ -50,16 +50,15 @@ export const Welcome1 = ({
     <EmailLayout
       preview="It's good advice. It's just not yours."
       unsubscribeUrl={unsubscribeUrl}
-      postscript={
-        <Text className="mt-[24px] mb-[16px] text-[16px] italic leading-[24px] text-[#4A4A4A]">
-          P.S.{' '}
+      postscripts={[
+        <>
           {formatPrompt(
             "followed someone's advice which works for them, but didn't work for you",
             chart,
           )}{' '}
           Hit reply and let me know.
-        </Text>
-      }
+        </>,
+      ]}
     >
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
         {firstName},
@@ -185,7 +184,7 @@ Welcome1.PreviewProps = {
     isEmotionalAuthority: true,
     typeVideo: 'https://youtu.be/9PVgkBzpPqs',
     typeButtonGif:
-      'https://fractalhumandesign.s3.us-east-1.amazonaws.com/site/images/generator-button.gif',
+      'https://livecorrectly.com/generator-button.gif',
     strategyVideo: 'https://youtu.be/_g3cx77EeLs',
     innerAuthorityVideo: 'https://youtu.be/e9g6q1pKJeo',
     signatureVideo: 'https://youtu.be/fHGRdJSyE34',

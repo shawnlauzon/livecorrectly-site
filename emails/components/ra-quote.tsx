@@ -6,6 +6,7 @@ import { Img, Text, Section, Row, Column } from 'react-email';
  * Used in welcome1 and welcome2 for founder quotes.
  */
 export function RaQuote({ children }: { children: React.ReactNode }) {
+  const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
   return (
     <Section className="mt-[8px] pl-[32px] pr-[32px]">
       <Text className="font-serif text-[16px] leading-[24px] text-brown-900 italic">
@@ -15,7 +16,7 @@ export function RaQuote({ children }: { children: React.ReactNode }) {
         <Column className="w-[64px]">
           <Img
             alt="Ra Uru Hu headshot"
-            src="https://fractalhumandesign.s3.amazonaws.com/site/images/ra-uru-hu-headshot.jpg"
+            src={`${appUrl}/ra-uru-hu-headshot.jpg`}
             width={48}
             height={48}
             className="rounded-full"

@@ -32,15 +32,18 @@ export const Reengagement = ({
     <EmailLayout
       preview={preview}
       unsubscribeUrl={unsubscribeUrl}
-      postscript={
-        <Text className="mt-[24px] mb-[16px] text-[16px] italic leading-[24px] text-[#4A4A4A]">
-          P.S. Here&apos;s the updated link for the chart, with a few things
-          added:{' '}
+      postscripts={[
+        <>
+          Here&apos;s the updated link for the chart, with a few things added:{' '}
           <Link href={chartUrl} className="text-[#6A4BD6] underline">
             view your chart
           </Link>
-        </Text>
-      }
+        </>,
+        <>
+          I&apos;ll share something new every week from now on. Or at least
+          until my Willpower lasts.
+        </>,
+      ]}
     >
       <Text className="mb-[16px] text-[16px] leading-[24px]">
         Hi {firstName},
@@ -73,7 +76,7 @@ export const Reengagement = ({
           see yours here
         </Link>
         ). And because you trusted me enough to share your birth information,
-        you&apos;re part of my tribe.
+        you&apos;re part of my tribe (even after {monthsSinceSignup} months).
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
@@ -107,15 +110,10 @@ export const Reengagement = ({
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
         If one-on-one is too much right now, I also run a free weekly session
-        called <em>Decisions You Can Trust</em>: you bring something you could
-        use support with, and we work on it together. You can see how each
-        person is designed to use their own innate wisdom to navigate
-        life&apos;s challenges. Reply and I&apos;ll send you that link instead.
-      </Text>
-
-      <Text className="mb-[16px] text-[16px] leading-[24px]">
-        And if you just want to read something from me every week, that works
-        too. I&apos;ll share something new every week from now on.
+        called <em>Decisions You Can Trust</em>: bring something you could use
+        support with, and we work on it together. You can see how each person is
+        designed to use their own innate wisdom to navigate life&apos;s
+        challenges. Reply and I&apos;ll send you that link instead.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">— Shawn</Text>

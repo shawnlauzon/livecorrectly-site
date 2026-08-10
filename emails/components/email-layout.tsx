@@ -17,7 +17,15 @@ interface EmailLayoutProps {
   preview: string;
   unsubscribeUrl: string;
   children: React.ReactNode;
-  postscript?: React.ReactNode;
+  postscripts?: React.ReactNode[];
+}
+
+/**
+ * Generate postscript prefix: P.S., P.P.S., P.P.P.S., etc.
+ */
+function getPostscriptPrefix(index: number): string {
+  if (index === 0) return 'P.S.';
+  return 'P.' + 'P.'.repeat(index) + 'S.';
 }
 
 /**
@@ -32,7 +40,7 @@ export function EmailLayout({
   preview,
   unsubscribeUrl,
   children,
-  postscript
+  postscripts = []
 }: EmailLayoutProps) {
   return (
     <Tailwind>
@@ -45,7 +53,14 @@ export function EmailLayout({
 
             <Signature />
 
-            {postscript}
+            {postscripts.map((content, index) => (
+              <Text
+                key={index}
+                className="mt-[24px] mb-[16px] text-[16px] italic leading-[24px] text-[#4A4A4A]"
+              >
+                {getPostscriptPrefix(index)} {content}
+              </Text>
+            ))}
 
             <Hr className="my-[24px] border-[#E6E1F4]" />
 

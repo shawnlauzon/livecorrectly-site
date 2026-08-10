@@ -6,13 +6,14 @@ import { Img, Text, Section, Row, Column } from 'react-email';
  * Ported from fractalhumandesign email signature component.
  */
 export function Signature() {
+  const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
   return (
     <Section className="mt-[24px]">
       <Row>
         <Column className="w-[64px] align-top">
           <Img
             alt="Shawn Lauzon headshot"
-            src="https://fractalhumandesign.s3.us-east-1.amazonaws.com/site/images/headshot-shawn.jpg"
+            src={`${appUrl}/shawn-lauzon.jpg`}
             width={48}
             height={48}
             className="rounded-full"

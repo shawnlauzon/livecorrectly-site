@@ -22,12 +22,12 @@ export const Welcome2 = ({
     <EmailLayout
       preview="A test you can run in ten seconds."
       unsubscribeUrl={unsubscribeUrl}
-      postscript={
-        <Text className="mt-[24px] mb-[16px] text-[16px] italic leading-[24px] text-[#4A4A4A]">
-          P.S. {formatOftenPrompt(`feel ${chart.notSelfThemeAdjective}`, chart)}{' '}
-          Hit reply and let me know.
-        </Text>
-      }
+      postscripts={[
+        <>
+          {formatOftenPrompt(`feel ${chart.notSelfThemeAdjective}`, chart)} Hit
+          reply and let me know.
+        </>,
+      ]}
     >
       <Text className="mb-[16px] text-[16px] leading-[24px]">
         Hey {firstName},
@@ -114,7 +114,7 @@ Welcome2.PreviewProps = {
     isEmotionalAuthority: true,
     typeVideo: 'https://youtu.be/9PVgkBzpPqs',
     typeButtonGif:
-      'https://fractalhumandesign.s3.us-east-1.amazonaws.com/site/images/generator-button.gif',
+      'https://livecorrectly.com/generator-button.gif',
     strategyVideo: 'https://youtu.be/_g3cx77EeLs',
     innerAuthorityVideo: 'https://youtu.be/e9g6q1pKJeo',
     signatureVideo: 'https://youtu.be/fHGRdJSyE34',
