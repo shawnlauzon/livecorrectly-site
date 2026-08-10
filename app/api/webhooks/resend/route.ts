@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSubscriberByEmailForWebhook, updateEmailStatus } from '@/lib/db';
+import { getSubscriberByEmailForWebhook, updateEmailStatus, touchEngagement } from '@/lib/db';
 
 /**
  * Resend webhook endpoint.
@@ -165,10 +165,22 @@ export async function POST(request: NextRequest) {
       break;
     }
 
+    case 'email.clicked':
+    case 'email.opened': {
+      if (recipientEmail) {
+        const subscriber = await getSubscriberByEmailForWebhook(recipientEmail);
+        if (subscriber) {
+          await touchEngagement(subscriber.id);
+          console.log(
+            `[webhook] ${event.type}: ${recipientEmail} (subscriber ${subscriber.id})`
+          );
+        }
+      }
+      break;
+    }
+
     // Acknowledge other events without action
     // case 'email.delivered':
-    // case 'email.opened':
-    // case 'email.clicked':
     // case 'email.delivery_delayed': (transient — no status change)
     default:
       break;

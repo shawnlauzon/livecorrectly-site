@@ -135,6 +135,16 @@ export default function AdminPage() {
     });
   };
 
+  const getEngagementLabel = (sub: Subscriber): { label: string; stale: boolean } => {
+    if (!sub.last_engaged_at) return { label: '\u2014', stale: false };
+    const now = Date.now();
+    const then = new Date(sub.last_engaged_at).getTime();
+    const days = Math.floor((now - then) / (1000 * 60 * 60 * 24));
+    if (days === 0) return { label: 'Today', stale: false };
+    if (days === 1) return { label: '1 day', stale: false };
+    return { label: `${days} days`, stale: days > 90 };
+  };
+
   const getNextEmailLabel = (sub: Subscriber): string => {
     if (sub.email_status !== 'active') return '—';
     if (sub.next_step > WELCOME_SERIES_LENGTH) return 'Done';
@@ -200,10 +210,13 @@ export default function AdminPage() {
               <th style={{ textAlign: 'center', width: '4rem' }}>Status</th>
               <th style={{ textAlign: 'center' }}>Next Email</th>
               <th>Created</th>
+              <th>Last Active</th>
             </tr>
           </thead>
           <tbody>
-            {subscribers.map((subscriber) => (
+            {subscribers.map((subscriber) => {
+              const engagement = getEngagementLabel(subscriber);
+              return (
               <tr
                 key={subscriber.id}
                 onClick={() => handleRowClick(subscriber.id)}
@@ -239,8 +252,12 @@ export default function AdminPage() {
                   {getNextEmailLabel(subscriber)}
                 </td>
                 <td>{formatDate(subscriber.created_at)}</td>
+                <td className={engagement.stale ? styles.engagementStale : undefined}>
+                  {engagement.label}
+                </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       )}

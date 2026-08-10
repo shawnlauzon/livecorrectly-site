@@ -148,6 +148,11 @@
   text-align: center;
 }
 
+.engagementStale {
+  color: var(--coral);
+  font-weight: 600;
+}
+
 .empty {
   text-align: center;
   padding: 3rem;

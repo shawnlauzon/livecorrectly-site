@@ -265,6 +265,37 @@
   font-style: italic;
 }
 
+.engagementRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.touchEngagementButton {
+  font-family: var(--body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--grape);
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.touchEngagementButton:hover:not(:disabled) {
+  background: var(--grape);
+  color: white;
+  border-color: var(--grape);
+}
+
+.touchEngagementButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .nextEmailControl {
   display: flex;
   align-items: center;

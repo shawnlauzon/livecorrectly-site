@@ -90,11 +90,11 @@ export async function createSubscriber(data: {
   const result = await db`
     INSERT INTO subscribers (
       email, first_name, last_name, birth_date, birth_time, time_unknown,
-      birth_place, chart
+      birth_place, chart, last_engaged_at
     ) VALUES (
       ${data.email}, ${data.first_name}, ${data.last_name}, ${data.birth_date},
       ${data.birth_time}, ${data.time_unknown}, ${data.birth_place},
-      ${JSON.stringify(data.chart)}
+      ${JSON.stringify(data.chart)}, now()
     )
     ON CONFLICT (email) DO UPDATE SET
       first_name = EXCLUDED.first_name,
@@ -103,7 +103,8 @@ export async function createSubscriber(data: {
       birth_time = EXCLUDED.birth_time,
       time_unknown = EXCLUDED.time_unknown,
       birth_place = EXCLUDED.birth_place,
-      chart = EXCLUDED.chart
+      chart = EXCLUDED.chart,
+      last_engaged_at = now()
     RETURNING *
   `;
   return normalizeSubscriber(result[0] as Subscriber);
@@ -219,4 +220,17 @@ export async function updateEmailSeries(
     RETURNING *
   `;
   return normalizeSubscriber(result[0] as Subscriber);
+}
+
+/**
+ * Update last_engaged_at to now() for a subscriber.
+ * Records the most recent proof of life (email click, chart page visit, etc.).
+ */
+export async function touchEngagement(id: string): Promise<void> {
+  const db = getDb();
+  await db`
+    UPDATE subscribers
+    SET last_engaged_at = now()
+    WHERE id = ${id}
+  `;
 }

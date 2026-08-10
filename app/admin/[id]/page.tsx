@@ -371,6 +371,16 @@ function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
   );
 }
 
+function formatRelativeEngagement(dateString: string | null): string {
+  if (!dateString) return '\u2014';
+  const now = Date.now();
+  const then = new Date(dateString).getTime();
+  const days = Math.floor((now - then) / (1000 * 60 * 60 * 24));
+  if (days === 0) return 'Today';
+  if (days === 1) return '1 day ago';
+  return `${days} days ago`;
+}
+
 type NextEmailValue = 'not_started' | 'day1' | 'day2' | 'day3' | 'done' | 'paused';
 
 function deriveNextEmailValue(sub: Subscriber): NextEmailValue {
@@ -392,6 +402,7 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [restarting, setRestarting] = useState(false);
+  const [touchingEngagement, setTouchingEngagement] = useState(false);
 
   const derivedValue = deriveNextEmailValue(subscriber);
   const [localOverride, setLocalOverride] = useState<NextEmailValue | null>(null);
@@ -556,6 +567,38 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
     }
   }, [subscriber.id, onSubscriberUpdate]);
 
+  const handleTouchEngagement = useCallback(async () => {
+    const password = sessionStorage.getItem('adminPassword');
+    if (!password) return;
+
+    setTouchingEngagement(true);
+    setFeedback(null);
+
+    try {
+      const response = await fetch(`/api/admin/subscribers/${subscriber.id}/touch-engagement`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${password}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setFeedback({ type: 'error', message: data.error || 'Failed to record engagement' });
+        return;
+      }
+
+      onSubscriberUpdate({ ...subscriber, last_engaged_at: data.last_engaged_at });
+      setFeedback({ type: 'success', message: 'Engagement recorded' });
+    } catch (err) {
+      console.error('Error touching engagement:', err);
+      setFeedback({ type: 'error', message: 'Network error — could not record engagement' });
+    } finally {
+      setTouchingEngagement(false);
+    }
+  }, [subscriber, onSubscriberUpdate]);
+
   const formatDate = (dateStr: string) => {
     // next_send_at may arrive as YYYY-MM-DD or a full ISO timestamp
     const iso = dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00Z`;
@@ -582,6 +625,20 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
           <div className={styles.welcomeMetaItem}>
             <span className={styles.welcomeMetaLabel}>Email status</span>
             <span>{subscriber.email_status}</span>
+          </div>
+          <div className={styles.welcomeMetaItem}>
+            <span className={styles.welcomeMetaLabel}>Last active</span>
+            <div className={styles.engagementRow}>
+              <span>{formatRelativeEngagement(subscriber.last_engaged_at)}</span>
+              <button
+                className={styles.touchEngagementButton}
+                onClick={handleTouchEngagement}
+                disabled={touchingEngagement}
+                title="Record manual engagement (e.g. they replied to an email)"
+              >
+                {touchingEngagement ? 'Saving...' : 'They replied'}
+              </button>
+            </div>
           </div>
           {subscriber.next_send_at && (
             <div className={styles.welcomeMetaItem}>

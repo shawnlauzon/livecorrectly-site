@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSubscriberById } from '@/lib/db';
+import { getSubscriberById, touchEngagement } from '@/lib/db';
 
 export async function GET(
   _request: NextRequest,
@@ -25,6 +25,11 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    // Fire-and-forget: record chart page visit as engagement
+    touchEngagement(id).catch((err) => {
+      console.error(`[engagement] Failed to touch engagement for ${id}:`, err);
+    });
 
     return NextResponse.json(subscriber);
   } catch (error) {

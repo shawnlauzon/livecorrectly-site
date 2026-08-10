@@ -21,4 +21,5 @@ export interface Subscriber {
   email_status_at: string | null; // ISO timestamp
   unsub_token: string;
   created_at: string; // ISO timestamp
+  last_engaged_at: string | null; // ISO timestamp — most recent proof of life
 }
