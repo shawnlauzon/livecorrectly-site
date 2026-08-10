@@ -234,3 +234,44 @@ export async function touchEngagement(id: string): Promise<void> {
     WHERE id = ${id}
   `;
 }
+
+/**
+ * Get active subscribers eligible for a broadcast who haven't received it yet.
+ * Returns newest registrations first, limited to batch size.
+ */
+export async function getBroadcastRecipients(
+  broadcastSlug: string,
+  cutoffDate: string,
+  limit: number
+): Promise<Subscriber[]> {
+  const db = getDb();
+  const result = await db`
+    SELECT s.* FROM subscribers s
+    WHERE s.email_status = 'active'
+      AND s.created_at < ${cutoffDate}
+      AND NOT EXISTS (
+        SELECT 1 FROM broadcast_sends bs
+        WHERE bs.subscriber_id = s.id
+          AND bs.broadcast_slug = ${broadcastSlug}
+      )
+    ORDER BY s.created_at DESC
+    LIMIT ${limit}
+  `;
+  return (result as Subscriber[]).map(normalizeSubscriber);
+}
+
+/**
+ * Record that a broadcast was sent to a subscriber.
+ * Uses ON CONFLICT DO NOTHING for idempotency (safe if cron retries after interruption).
+ */
+export async function recordBroadcastSend(
+  subscriberId: string,
+  broadcastSlug: string
+): Promise<void> {
+  const db = getDb();
+  await db`
+    INSERT INTO broadcast_sends (subscriber_id, broadcast_slug)
+    VALUES (${subscriberId}, ${broadcastSlug})
+    ON CONFLICT (subscriber_id, broadcast_slug) DO NOTHING
+  `;
+}
