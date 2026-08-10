@@ -1,29 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBroadcastRecipients, recordBroadcastSend } from '@/lib/db';
 import { sendEmail, formatEmailRecipient } from '@/emails/send';
-import { Reengagement } from '@/emails/reengagement';
+import { buildBroadcastEmail, BroadcastSlug } from '@/emails/broadcast-config';
 
 // --- Broadcast configuration ---
-const BROADCAST_SLUG = 'reengagement-2026-08';
+const BROADCAST_SLUG: BroadcastSlug = 'reengagement-2026-08';
 const CUTOFF_DATE = '2026-01-01';
 const BATCH_SIZE = 25;
-const SUBJECT = 'I sent you five emails last year and then disappeared';
-
-function formatMonthYear(createdAt: string): string {
-  const date = new Date(createdAt);
-  return date.toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
-}
-
-function monthsSince(createdAt: string): number {
-  const created = new Date(createdAt);
-  const now = new Date();
-  return (now.getUTCFullYear() - created.getUTCFullYear()) * 12 +
-    (now.getUTCMonth() - created.getUTCMonth());
-}
 
 /**
  * Cron endpoint: sends broadcast re-engagement emails in daily batches.
@@ -58,26 +41,23 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, sent: 0, skipped: 0 });
   }
 
-  const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
   let sent = 0;
   let skipped = 0;
 
   for (const subscriber of recipients) {
-    const monthYear = formatMonthYear(subscriber.created_at);
-    const monthsSinceSignup = monthsSince(subscriber.created_at);
-    const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${subscriber.unsub_token}`;
-    const chartUrl = `${appUrl}/see-your-design/${subscriber.id}?utm_source=livecorrectly&utm_medium=email&utm_campaign=reengagement_2026`;
+    // Use shared broadcast builder to ensure identical output across all code paths
+    const { element, subject } = buildBroadcastEmail(
+      BROADCAST_SLUG,
+      subscriber.id,
+      subscriber.first_name,
+      subscriber.created_at,
+      subscriber.unsub_token
+    );
 
     const result = await sendEmail({
       to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
-      subject: SUBJECT,
-      react: Reengagement({
-        firstName: subscriber.first_name,
-        monthYear,
-        monthsSinceSignup,
-        chartUrl,
-        unsubscribeUrl,
-      }),
+      subject,
+      react: element,
       unsubToken: subscriber.unsub_token,
     });
 

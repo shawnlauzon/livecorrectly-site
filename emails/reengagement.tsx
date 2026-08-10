@@ -3,6 +3,7 @@ import { Text, Link } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 
 interface ReengagementProps {
+  preview: string;
   firstName: string;
   monthYear: string;
   monthsSinceSignup: number;
@@ -20,6 +21,7 @@ interface ReengagementProps {
  * weekly "Decisions You Can Trust" group session.
  */
 export const Reengagement = ({
+  preview,
   firstName,
   monthYear,
   monthsSinceSignup,
@@ -28,13 +30,15 @@ export const Reengagement = ({
 }: ReengagementProps) => {
   return (
     <EmailLayout
-      preview="Being direct about what I should have offered last year."
+      preview={preview}
       unsubscribeUrl={unsubscribeUrl}
       postscript={
         <Text className="mt-[24px] mb-[16px] text-[16px] italic leading-[24px] text-[#4A4A4A]">
-          P.S. If you&apos;re not sure whether you&apos;ve got something worth
-          bringing: you do. Bring the decision you&apos;ve been putting off.
-          That&apos;s the one.
+          P.S. Here&apos;s the updated link for the chart, with a few things
+          added:{' '}
+          <Link href={chartUrl} className="text-[#6A4BD6] underline">
+            view your chart
+          </Link>
         </Text>
       }
     >
@@ -43,9 +47,9 @@ export const Reengagement = ({
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        In {monthYear} you got your chart at Fractal Human Design, and then five
-        emails from me about how you&apos;re built &mdash; your type, how you
-        make decisions, how to tell when you&apos;re on track.
+        In {monthYear}, you got your chart at Fractal Human Design, and then
+        five emails from me about how you&apos;re built: your type, how you make
+        decisions, how to tell when you&apos;re on track.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
@@ -53,23 +57,31 @@ export const Reengagement = ({
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        Here&apos;s what I didn&apos;t do at the time: actually offer you
-        anything. The series ended with a vague &ldquo;book a
-        conversation&rdquo; link that I don&apos;t think a single person
-        clicked, and I don&apos;t blame them. It wasn&apos;t clear what it was
-        for.
+        At the end of that series I offered you a discounted session with me.
+        Nobody took it&mdash;not you, not anyone. I had offerings listed on the
+        old site too with a fancy way of clicking a button and buying, but no
+        one ever did.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        So let me be direct about it now.
+        Now I can see why: I was trying to initiate, but I&apos;m not an
+        Initator my design. I&apos;m a Builder, and what I&apos;m good at is
+        building things. Building can take many forms, but for me, it&apos;s
+        about supporting my tribe (my #1 thematic is &quot;Support&quot;, and
+        you can{' '}
+        <Link href={chartUrl} className="text-[#6A4BD6] underline">
+          see yours here
+        </Link>
+        ). And because you trusted me enough to share your birth information,
+        you&apos;re part of my tribe. And I&apos;m here to support you.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        Since then I&apos;ve rebuilt all of this &mdash; it&apos;s called Live
-        Correctly, and I&apos;ve been working with people one-on-one on what
-        their design says about whatever they&apos;re actually dealing with. Not
-        a tour of their chart. A real decision, a stuck situation, a person they
-        can&apos;t reach.
+        So, I&apos;ve rebuilt it all. I renamed the site to Live Correctly, and
+        I&apos;ve flipped the script of how I&apos;m working with people. Rather
+        than go through what your chart says, we discuss whatever you&apos;re
+        actually dealing with, and how you can use your own wisdom to get the
+        answers.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
@@ -95,16 +107,14 @@ export const Reengagement = ({
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
         If one-on-one is more than you&apos;re after, I also run a free weekly
-        session called <em>Decisions You Can Trust</em>&mdash;you bring
-        something you&apos;re deciding and we work on it in a group. Reply and
-        I&apos;ll send you that link instead.
+        session called <em>Decisions You Can Trust</em>: you bring something
+        you&apos;re deciding and we work on it in a group. Reply and I&apos;ll
+        send you that link instead.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        And here&apos;s the updated link for the chart, with a few things added:{' '}
-        <Link href={chartUrl} className="text-[#6A4BD6] underline">
-          view your chart
-        </Link>
+        And if you just want to hang out and hear what I say, that works too.
+        I&apos;ll share something with you every week from now on.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">— Shawn</Text>
@@ -113,6 +123,7 @@ export const Reengagement = ({
 };
 
 Reengagement.PreviewProps = {
+  preview: "Let's start over",
   firstName: 'Shawn',
   monthYear: 'October 2024',
   monthsSinceSignup: 22,

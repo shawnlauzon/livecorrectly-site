@@ -136,6 +136,8 @@ export default function AdminDetailPage({
 
       <EmailPreviews subscriber={subscriber} currentEmailStep={emailStep} />
 
+      <BroadcastSection subscriber={subscriber} />
+
       <ChartJson chart={subscriber.chart} />
     </div>
   );
@@ -953,6 +955,223 @@ function EmailPreviews({ subscriber, currentEmailStep }: { subscriber: Subscribe
             />
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+const BROADCAST_OPTIONS = [
+  { slug: 'reengagement-2026-08', label: 'Re-engagement (Aug 2026)' },
+] as const;
+
+function BroadcastSection({ subscriber }: { subscriber: Subscriber }) {
+  const [selectedSlug, setSelectedSlug] = useState<string>('');
+  const [html, setHtml] = useState<string | null>(null);
+  const [subject, setSubject] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const isActive = subscriber.email_status === 'active';
+
+  const loadPreview = useCallback(async (slug: string) => {
+    if (!slug) return;
+
+    const password = sessionStorage.getItem('adminPassword');
+    if (!password) return;
+
+    setLoading(true);
+    setError(null);
+    setHtml(null);
+    setSubject(null);
+    setPreview(null);
+
+    try {
+      const response = await fetch(`/api/admin/subscribers/${subscriber.id}/preview-broadcast?slug=${slug}`, {
+        headers: { Authorization: `Bearer ${password}` }
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to load preview');
+      }
+
+      const data: { subject: string; preview: string; html: string } = await response.json();
+      setSubject(data.subject);
+      setPreview(data.preview);
+      setHtml(data.html);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load preview';
+      setError(message);
+      console.error('[admin] Error loading broadcast preview:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [subscriber.id]);
+
+  const handleSend = useCallback(async () => {
+    if (!selectedSlug) return;
+
+    const password = sessionStorage.getItem('adminPassword');
+    if (!password) return;
+
+    setSending(true);
+    setFeedback(null);
+
+    try {
+      const response = await fetch(`/api/admin/subscribers/${subscriber.id}/send-broadcast`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${password}`
+        },
+        body: JSON.stringify({ slug: selectedSlug })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setFeedback({ type: 'error', message: data.error || 'Failed to send broadcast' });
+        return;
+      }
+
+      setFeedback({ type: 'success', message: 'Broadcast sent successfully' });
+    } catch (err) {
+      console.error('Error sending broadcast:', err);
+      setFeedback({ type: 'error', message: 'Network error — could not send broadcast' });
+    } finally {
+      setSending(false);
+    }
+  }, [subscriber.id, selectedSlug]);
+
+  const handleSlugChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const slug = e.target.value;
+    setSelectedSlug(slug);
+    setFeedback(null);
+    if (slug) {
+      loadPreview(slug);
+    } else {
+      setHtml(null);
+      setSubject(null);
+      setPreview(null);
+      setError(null);
+    }
+  }, [loadPreview]);
+
+  // Resize iframe to match content height
+  useEffect(() => {
+    if (!html || !iframeRef.current) return;
+    const iframe = iframeRef.current;
+    const onLoad = () => {
+      try {
+        const doc = iframe.contentDocument;
+        if (doc) {
+          iframe.style.height = doc.documentElement.scrollHeight + 'px';
+        }
+      } catch {
+        // Cross-origin — shouldn't happen with srcdoc but just in case
+      }
+    };
+    iframe.addEventListener('load', onLoad);
+    return () => iframe.removeEventListener('load', onLoad);
+  }, [html]);
+
+  return (
+    <div className={styles.welcomeSection}>
+      <div className={styles.welcomeCard}>
+        <h2 className={styles.welcomeHeading}>Broadcasts</h2>
+
+        <div className={styles.welcomeMeta}>
+          <div className={styles.welcomeMetaItem}>
+            <span className={styles.welcomeMetaLabel}>Select broadcast</span>
+            <select
+              className={styles.nextEmailSelect}
+              value={selectedSlug}
+              onChange={handleSlugChange}
+            >
+              <option value="">Choose a broadcast...</option>
+              {BROADCAST_OPTIONS.map(({ slug, label }) => (
+                <option key={slug} value={slug}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {selectedSlug && (
+          <>
+            <details className={styles.emailPreview} open>
+              <summary className={styles.emailPreviewSummary}>
+                <span className={styles.emailPreviewLabel}>Preview</span>
+                <button
+                  className={styles.emailPreviewRefresh}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    loadPreview(selectedSlug);
+                  }}
+                  disabled={loading}
+                  title="Refresh preview"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="23 4 23 10 17 10" />
+                    <polyline points="1 20 1 14 7 14" />
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                  </svg>
+                  {loading ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </summary>
+              <div className={styles.emailPreviewContent}>
+                {loading && (
+                  <p className={styles.emailPreviewParagraph}>Loading preview...</p>
+                )}
+                {error && (
+                  <p className={styles.emailPreviewError}>{error}</p>
+                )}
+                {subject && (
+                  <div className={styles.emailPreviewSubject}>Subject: {subject}</div>
+                )}
+                {preview && (
+                  <div className={styles.emailPreviewPreview}>Preview: {preview}</div>
+                )}
+                {html && (
+                  <iframe
+                    ref={iframeRef}
+                    srcDoc={html}
+                    className={styles.emailPreviewIframe}
+                    sandbox="allow-same-origin"
+                    title="Broadcast preview"
+                  />
+                )}
+              </div>
+            </details>
+
+            {isActive ? (
+              <div className={styles.welcomeButtons}>
+                <button
+                  className={styles.dayButton}
+                  disabled={sending || loading}
+                  onClick={handleSend}
+                >
+                  {sending ? 'Sending...' : 'Send Broadcast'}
+                </button>
+              </div>
+            ) : (
+              <p className={styles.welcomeDisabled}>
+                Cannot send broadcast — subscriber status is &ldquo;{subscriber.email_status}&rdquo;
+              </p>
+            )}
+
+            {feedback && (
+              <div className={`${styles.welcomeFeedback} ${feedback.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}`}>
+                {feedback.message}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
