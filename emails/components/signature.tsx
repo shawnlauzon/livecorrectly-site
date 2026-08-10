@@ -13,7 +13,7 @@ export function Signature() {
         <Column className="w-[64px] align-top">
           <Img
             alt="Shawn Lauzon headshot"
-            src={`${appUrl}/shawn-lauzon.jpg`}
+            src={`${appUrl}/shawn-lauzon-headshot.jpg`}
             width={48}
             height={48}
             className="rounded-full"

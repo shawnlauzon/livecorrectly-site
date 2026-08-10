@@ -1,6 +1,6 @@
-import Image from "next/image";
-import Wrap from "./wrap";
-import styles from "./about.module.css";
+import Image from 'next/image';
+import Wrap from './wrap';
+import styles from './about.module.css';
 
 export default function About() {
   return (
@@ -10,7 +10,7 @@ export default function About() {
           <div className={styles.portrait}>
             <Image
               className={styles.portraitImg}
-              src="/shawn-lauzon.jpg"
+              src="/shawn-lauzon-headshot.jpg"
               alt="Shawn Lauzon"
               fill
               sizes="15rem"
