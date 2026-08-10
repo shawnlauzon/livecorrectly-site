@@ -140,7 +140,7 @@ export default function AdminPage() {
     const now = Date.now();
     const then = new Date(sub.last_engaged_at).getTime();
     const days = Math.floor((now - then) / (1000 * 60 * 60 * 24));
-    if (days === 0) return { label: 'Today', stale: false };
+    if (days <= 0) return { label: 'Today', stale: false };
     if (days === 1) return { label: '1 day', stale: false };
     return { label: `${days} days`, stale: days > 90 };
   };
