@@ -67,7 +67,7 @@ export const Reengagement = ({
         In retrospect, it&apos;s obvious why: I was trying to initiate, but
         I&apos;m not an Initator. I&apos;m a Classic Builder, and what I&apos;m
         good at is building things, step-by-step. Building can take many forms,
-        but for me, it&apos;s about supporting my tribe (my #1 thematic is
+        but for me it&apos;s about supporting my tribe (my #1 thematic is
         &quot;Support&quot;, and you can{' '}
         <Link href={chartUrl} className="text-[#6A4BD6] underline">
           see yours here
@@ -107,14 +107,15 @@ export const Reengagement = ({
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
         If one-on-one is too much right now, I also run a free weekly session
-        called <em>Decisions You Can Trust</em>: you bring something you&apos;re
-        deciding and we work on it in a group. Reply and I&apos;ll send you that
-        link instead.
+        called <em>Decisions You Can Trust</em>: you bring something you could
+        use support with, and we work on it together. You can see how each
+        person is designed to use their own innate wisdom to navigate
+        life&apos;s challenges. Reply and I&apos;ll send you that link instead.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
         And if you just want to read something from me every week, that works
-        too. I&apos;ll share something every week from now on.
+        too. I&apos;ll share something new every week from now on.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">— Shawn</Text>
