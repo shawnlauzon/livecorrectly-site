@@ -110,6 +110,7 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [sortColumn, setSortColumn] = useState<SortColumn>('created');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [lightboxChart, setLightboxChart] = useState<string | null>(null);
 
   const loadSubscribers = useCallback(async (pwd: string) => {
     setLoading(true);
@@ -182,6 +183,11 @@ export default function AdminPage() {
     } catch (err) {
       console.error('Failed to copy email:', err);
     }
+  };
+
+  const handleViewChart = (chartUrl: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent row click
+    setLightboxChart(chartUrl);
   };
 
   const formatDate = (dateString: string) => {
@@ -324,6 +330,7 @@ export default function AdminPage() {
         <table className={styles.table}>
           <thead>
             <tr>
+              <th style={{ width: '2rem' }}></th>
               <th onClick={() => handleSort('name')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 Name<span style={{ display: 'inline-block', width: '1em', textAlign: 'center' }}>
                   {sortColumn === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
@@ -385,6 +392,34 @@ export default function AdminPage() {
                 key={subscriber.id}
                 onClick={() => handleRowClick(subscriber.id)}
               >
+                <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+                  {subscriber.chart?.meta?.birthData?.time?.utc && (() => {
+                    const birthTimeUtc = subscriber.chart.meta.birthData.time.utc;
+                    const time = new Date(birthTimeUtc).getTime();
+                    const timeId = 1e4 * time + 621355968e9;
+                    const chartUrl = `https://cdn.jovianarchive.com/RaveChartGenerator.php?Time=${timeId}`;
+                    return (
+                      <button
+                        onClick={(e) => handleViewChart(chartUrl, e)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          opacity: 0.6
+                        }}
+                        title="View chart"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      </button>
+                    );
+                  })()}
+                </td>
                 <td>
                   {subscriber.first_name}{' '}
                   {subscriber.last_name ? subscriber.last_name : ''}
@@ -458,6 +493,35 @@ export default function AdminPage() {
             })}
           </tbody>
         </table>
+      )}
+
+      {lightboxChart && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(255, 255, 255, 0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            cursor: 'zoom-out'
+          }}
+          onClick={() => setLightboxChart(null)}
+        >
+          <img
+            src={lightboxChart}
+            alt="Chart"
+            style={{
+              maxWidth: '92vw',
+              maxHeight: '92vh',
+              borderRadius: '8px'
+            }}
+          />
+        </div>
       )}
     </div>
   );
