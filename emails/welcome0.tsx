@@ -72,30 +72,42 @@ export const Welcome0 = ({
       </Text>
 
       {/* --- Shadow-specific: scenes --- */}
-      {shadow && <Prose content={shadow.scenes} />}
-
-      {/* --- Bridge shadow: dynamic descriptions --- */}
-      {hasBridgeShadow &&
-        bridgesToShow.map((bridge, i) => (
-          <Text
-            key={i}
-            className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]"
-          >
-            {bridge.description}
+      {shadow ? (
+        <>
+          <Prose content={shadow.scenes} />
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+            These are all signs that{' '}
+            <strong>you tend to {shadow.shadow}</strong>. When you see this,
+            your mind might immediately start to self-blame and believe
+            there&apos;s something wrong with you.
           </Text>
-        ))}
+        </>
+      ) : (
+        <>
+          {/* --- Bridge shadow: dynamic descriptions --- */}
+          {hasBridgeShadow &&
+            bridgesToShow.map((bridge, i) => (
+              <Text
+                key={i}
+                className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]"
+              >
+                {bridge.description}
+              </Text>
+            ))}
 
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        {chart.hasChannelBridge
-          ? "You might believe that this is one of the world's biggest flaws, and that if only that was changed, then you would be "
-          : 'You might believe that this is one of your biggest flaws, and that if only you could fix it, then you would be '}
-        {chart.isManifestor
-          ? 'at peace'
-          : chart.isReflector
-            ? 'pleasantly surprised'
-            : chart.signatureThemeAdjective}
-        .
-      </Text>
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+            {chart.hasChannelBridge
+              ? "You might believe that this is one of the world's biggest flaws, and that if only that was changed, then you would be "
+              : 'You might believe that this is one of your biggest flaws, and that if only you could fix it, then you would be '}
+            {chart.isManifestor
+              ? 'at peace'
+              : chart.isReflector
+                ? 'pleasantly surprised'
+                : chart.signatureThemeAdjective}
+            .
+          </Text>
+        </>
+      )}
 
       {chart.hasChannelBridge ? (
         <>
@@ -127,10 +139,10 @@ export const Welcome0 = ({
       {/* --- Shadow-specific: relief --- */}
       {shadow && (
         <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-          Even though these tendencies might be part of you (and I&apos;m
-          betting they are), they can also become your superpower. Within the
-          shadow always lies the gift. Eventually, {shadow.relief}. It
-          won&apos;t happen overnight. But it&apos;s simpler than you think.
+          Even if you struggle with this right now, it can become your
+          superpower. Within the shadow always lies the gift. With the practices
+          I&apos;ll be sharing with you, {shadow.relief}. It won&apos;t happen
+          overnight. But there is a path.
         </Text>
       )}
 
@@ -199,7 +211,6 @@ export const Welcome0 = ({
           {shadow.closingLine}
         </Text>
       )}
-
     </EmailLayout>
   );
 };
@@ -226,8 +237,7 @@ Welcome0.PreviewProps = {
       'wait to respond before engaging, and then wait for emotional clarity',
     isEmotionalAuthority: true,
     typeVideo: 'https://youtu.be/9PVgkBzpPqs',
-    typeButtonGif:
-      'https://livecorrectly.com/generator-button.gif',
+    typeButtonGif: 'https://livecorrectly.com/generator-button.gif',
     strategyVideo: 'https://youtu.be/_g3cx77EeLs',
     innerAuthorityVideo: 'https://youtu.be/e9g6q1pKJeo',
     signatureVideo: 'https://youtu.be/fHGRdJSyE34',

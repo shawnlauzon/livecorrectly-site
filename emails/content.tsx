@@ -107,6 +107,7 @@ export const authorityTips = new Map<string, string>([
  * - ps: italic P.S. note — personal bookend related to the scenes
  */
 export interface ShadowOpening {
+  shadow: string;
   /** 3 recognition scenes as `- ` prefixed lines (rendered with Prose) */
   scenes: string;
   /** Personal story paragraph — why this pattern is recognizable */
@@ -132,6 +133,7 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
   [
     'Willpower',
     {
+      shadow: 'over compensate',
       scenes: `\
 - You've got a stack of certifications and you always want more
 - You make promises to show you care, and then you end up bailing
@@ -145,6 +147,7 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
   [
     'Emotional Intelligence',
     {
+      shadow: 'be touchy, nervous, and defensive',
       scenes: `\
 - You avoid going to parties because you're tired of acting how others expect
 - Friends complain that you take things too personally
@@ -158,6 +161,7 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
   [
     'Identity & Direction',
     {
+      shadow: 'be role confused',
       scenes: `\
 - You often do what others want you to do or to be in business and life
 - You try to make a particular place work even though you're always uncomfortable there
@@ -167,9 +171,47 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
       closingLine: `You know exactly where you're meant to be.`,
     },
   ],
+  [
+    'Survival Instinct',
+    {
+      shadow: 'be unable to let go',
+      scenes: `\
+- You often do what others want you to do or to be in business and life
+- You try to make a particular place work even though you're always uncomfortable there
+- You judge yourself for being a completely different person in different places`,
+      story: `And I have the same shadow as you. Those tendencies up top? I've felt every single one of them. Maybe yours show up a little differently, but I bet they're close.`,
+      relief: `you'll trust yourself to find the correct place for you, and can even help others to find connection and love`,
+      closingLine: `You know exactly where you're meant to be.`,
+    },
+  ],
+  [
+    'Conceptualization',
+    {
+      shadow: 'be mentally defensive',
+      scenes: `\
+- You try to convince others that you are certain of your opinion
+- Being afraid of not knowing something or being intellectually inconsistent and looking stupid
+- Being rigid in your beliefs and feel compelled to argue when challenged`,
+      story: `And I have the same shadow as you. I remember in school I hated to raise my hand, in case I was wrong. Maybe how it shows up for you is a little different, but I bet it's similar.`,
+      relief: `you'll be completely okay not being certain about things, and become open to new ways of thinking because of your open mindedness`,
+      closingLine: `You are beautifully open-minded.`,
+    },
+  ],
+  [
+    'Drive & Stamina',
+    {
+      shadow: 'too much in a hurry',
+      scenes: `\
+- You often do what others want you to do or to be in business and life
+- You try to make a particular place work even though you're always uncomfortable there
+- You judge yourself for being a completely different person in different places`,
+      story: `And I have the same shadow as you. Those tendencies up top? I've felt every single one of them. Maybe yours show up a little differently, but I bet they're close.`,
+      relief: `you'll trust yourself to find the correct place for you, and can even help others to find connection and love`,
+      closingLine: `You know exactly where you're meant to be.`,
+    },
+  ],
   // Remaining shadows — text to be provided by Shawn:
   // 'Survival Instinct'
-  // 'Conceptualization'
   // 'Inspiration'
   // 'Drive & Stamina'
   // 'Energy Resource'
