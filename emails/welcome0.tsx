@@ -165,7 +165,7 @@ export const Welcome0 = ({
 
       {/* --- Bio --- */}
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        I&apos;m Shawn — certified BG5 Career &amp; Business Consultant,
+        I&apos;m Shawn, certified BG5 Career &amp; Business Consultant,
         certified Living Your Design Guide, and certified Authentic Relating
         facilitator.
       </Text>

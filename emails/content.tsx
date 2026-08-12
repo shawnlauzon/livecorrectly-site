@@ -163,7 +163,7 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
     {
       shadow: 'be role confused',
       scenes: `\
-- You often do what others want you to do or to be in business and life
+- You often do what others want you to do in business and life
 - You try to make a particular place work even though you're uncomfortable
 - You judge yourself for being a completely different person in different places`,
       story: `And even though my integrated design doesn't have these shadows, my mind believes I do. I would look for my identity from other people rather than believe in myself.`,
@@ -198,21 +198,32 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
     },
   ],
   [
+    'Inspiration',
+    {
+      shadow: 'lose focus',
+      scenes: `\
+- You think about things which are completely unimportant to you in this moment
+- You get distracted by other things (shiny object syndrome)
+- Searching for something out there that inspires you`,
+      story: `And I have the same shadow as you. Those tendencies up top? I've felt every single one of them. Maybe yours show up a little differently, but I bet they're close.`,
+      relief: `you enjoy the wonder and mystery of the world, and can even discern which inspiration is worthy of contemplation`,
+      closingLine: `Make lists. It helps :)`,
+    },
+  ],
+  [
     'Drive & Stamina',
     {
-      shadow: 'too much in a hurry',
+      shadow: 'be in too much of a hurry',
       scenes: `\
-- You often do what others want you to do or to be in business and life
-- You try to make a particular place work even though you're always uncomfortable there
+- You think about things which are completely unimportant to this moment
+- You l
 - You judge yourself for being a completely different person in different places`,
       story: `And I have the same shadow as you. Those tendencies up top? I've felt every single one of them. Maybe yours show up a little differently, but I bet they're close.`,
       relief: `you'll trust yourself to find the correct place for you, and can even help others to find connection and love`,
-      closingLine: `You know exactly where you're meant to be.`,
+      closingLine: `Make lists. It helps :)`,
     },
   ],
   // Remaining shadows — text to be provided by Shawn:
-  // 'Survival Instinct'
-  // 'Inspiration'
   // 'Drive & Stamina'
   // 'Energy Resource'
   // 'Communication & Action'
