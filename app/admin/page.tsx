@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Subscriber } from '@/lib/types/subscriber';
 import { ChartRecord } from '@/lib/types/chart';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
@@ -89,8 +89,22 @@ function getFirstShadowLabel(subscriber: Subscriber): string {
 type SortColumn = 'name' | 'email' | 'profile' | 'authority' | 'type' | 'split' | 'shadow' | 'status' | 'nextEmail' | 'created' | 'lastActive';
 type SortDirection = 'asc' | 'desc';
 
+const VALID_SORT_COLUMNS: SortColumn[] = ['name','email','profile','authority','type','split','shadow','status','nextEmail','created','lastActive'];
+
 export default function AdminPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const sortColumn: SortColumn = (() => {
+    const param = searchParams.get('sort');
+    return param && VALID_SORT_COLUMNS.includes(param as SortColumn) ? param as SortColumn : 'created';
+  })();
+
+  const sortDirection: SortDirection = (() => {
+    const param = searchParams.get('dir');
+    return param === 'asc' || param === 'desc' ? param : 'desc';
+  })();
+
   const [password, setPassword] = useState(() => {
     if (typeof window !== 'undefined') {
       return sessionStorage.getItem('adminPassword') ?? '';
@@ -106,8 +120,6 @@ export default function AdminPage() {
     return false;
   });
   const [error, setError] = useState('');
-  const [sortColumn, setSortColumn] = useState<SortColumn>('created');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [lightboxChart, setLightboxChart] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState<string | null>(null);
   const [freshCharts, setFreshCharts] = useState<Record<string, ChartRecord>>({});
@@ -416,12 +428,13 @@ export default function AdminPage() {
   };
 
   const handleSort = (column: SortColumn) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortColumn(column);
-      setSortDirection('asc');
-    }
+    const newDir = sortColumn === column
+      ? (sortDirection === 'asc' ? 'desc' : 'asc')
+      : 'asc';
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('sort', column);
+    params.set('dir', newDir);
+    router.replace(`/admin?${params.toString()}`);
   };
 
   const getSortValue = (subscriber: Subscriber, column: SortColumn): string | number => {
