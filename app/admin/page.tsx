@@ -217,11 +217,24 @@ export default function AdminPage() {
       const storedChart = currentData.chart;
       const birthData = storedChart.meta.birthData;
 
+      // Handle both old format (nested objects) and new format (strings)
+      const city = typeof birthData.location.city === 'string'
+        ? birthData.location.city
+        : birthData.location.city.name;
+
+      const timezone = typeof birthData.location.city === 'string'
+        ? birthData.time.timezone?.id || birthData.time.timezone
+        : birthData.location.city.timezone;
+
+      const countryAbbr = typeof birthData.location.country === 'string'
+        ? birthData.location.country
+        : birthData.location.country.id;
+
       console.log('Birth data from chart metadata:', {
         local_time: birthData.time.local,
-        city: birthData.location.city.name,
-        timezone: birthData.location.city.timezone,
-        country: birthData.location.country.id,
+        city,
+        timezone,
+        country: countryAbbr,
       });
 
       // Parse local birth date and time directly from the string (avoid Date constructor timezone issues)
@@ -232,9 +245,9 @@ export default function AdminPage() {
         date: birthDate,
         time: birthTime,
         timeUnknown: currentData.time_unknown,
-        city: birthData.location.city.name,
-        timezone: birthData.location.city.timezone,
-        country: birthData.location.country.id,
+        city,
+        timezone,
+        country: countryAbbr,
       });
 
       // Re-generate chart using Maia Mechanics API
@@ -243,9 +256,9 @@ export default function AdminPage() {
         date: birthDate,
         time: birthTime,
         timeUnknown: currentData.time_unknown,
-        city: birthData.location.city.name,
-        timezone: birthData.location.city.timezone,
-        countryAbbr: birthData.location.country.id,
+        city,
+        timezone,
+        countryAbbr,
       });
 
       console.group(`Chart Refresh Diff - ${currentData.first_name} ${currentData.last_name ?? ''}`);
