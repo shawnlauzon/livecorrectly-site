@@ -53,7 +53,7 @@ export default function Hero() {
           <p className={styles.lede}>
             You&apos;ve spent enough time listening to what everyone else
             thinks. You&apos;re ready to try something different. Learn how
-            you&mdash;specically YOU&mdash;are designed for success.
+            you&mdash;specifically YOU&mdash;are designed for success.
           </p>
 
           <div className={styles.ctaGroup}>
