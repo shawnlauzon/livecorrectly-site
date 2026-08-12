@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Subscriber } from '@/lib/types/subscriber';
 import { ChartRecord } from '@/lib/types/chart';
@@ -92,6 +92,14 @@ type SortDirection = 'asc' | 'desc';
 const VALID_SORT_COLUMNS: SortColumn[] = ['name','email','profile','authority','type','split','shadow','status','nextEmail','created','lastActive'];
 
 export default function AdminPage() {
+  return (
+    <Suspense>
+      <AdminPageContent />
+    </Suspense>
+  );
+}
+
+function AdminPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
