@@ -229,16 +229,38 @@ function getWhyAnnotation(
 ): string | null {
   if (functionName === 'Bringing Traits/Strengths') {
     const def = hd.definition() ?? 'unknown';
+    const split = hd.splitType();
     const nearBridges = hd.getBridgeDescriptions();
     const farBridges = hd.getFarBridgeDescriptions();
-    const totalBridges = nearBridges.length + farBridges.length;
+    const channelBridges = hd.getChannelBridgeDescriptions();
+    const totalBridges = nearBridges.length + farBridges.length + channelBridges.length;
     const parts: string[] = [];
     if (nearBridges.length > 0) parts.push(`${nearBridges.length} near`);
     if (farBridges.length > 0) parts.push(`${farBridges.length} wide`);
+    if (channelBridges.length > 0) parts.push(`${channelBridges.length} channel`);
     const bridgeLabel = parts.length > 0 ? parts.join(' + ') + ' bridge(s)' : '0 bridges';
-    const label = `${def.charAt(0).toUpperCase() + def.slice(1)} definition — ${bridgeLabel}`;
+    const label = `${def.charAt(0).toUpperCase() + def.slice(1)} definition (${split}) — ${bridgeLabel}`;
 
     if (totalBridges <= 1) return label;
+
+    // For 2W splits: channel bridge → 1 channel, far gates → pair of 2
+    if (split === '2W') {
+      const topBridge = hd.getTopBridge();
+      if (topBridge?.bridge.isChannelBridge) {
+        const b = topBridge.bridge;
+        const bridgeLabel = `${b.strength} (${b.gate}/${b.harmonicGate})`;
+        const ann = topBridge.annotation ? ` · ${topBridge.annotation}` : '';
+        return `${label}, top: ${bridgeLabel}${ann}`;
+      }
+      const topPair = hd.getTopBridgePair();
+      if (topPair) {
+        const pairLabel = topPair.bridges
+          .map(b => `${b.trait} (${b.gate})`)
+          .join(' + ');
+        const ann = topPair.annotation ? ` · ${topPair.annotation}` : '';
+        return `${label}, top pair: ${pairLabel}${ann}`;
+      }
+    }
 
     const top = hd.getTopBridge();
     const priorityNote = top
@@ -274,11 +296,14 @@ function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
             // Determine the shadow name for display
             let displayShadowName = shadowNames[functionName] ?? '';
             if (functionName === 'Bringing Traits/Strengths') {
-              const hasNear = hd.hasNearBridges();
-              const hasFar = hd.hasFarBridges();
-              if (hasNear && hasFar) {
+              const split = hd.splitType();
+              if (split === '2VW') {
+                displayShadowName = 'Blaming the world for something missing';
+              } else if (split === '2W') {
+                displayShadowName = 'Blaming others for something missing';
+              } else if (hd.hasNearBridges() && hd.hasFarBridges()) {
                 displayShadowName = 'Blaming yourself for something missing / Blaming others';
-              } else if (hasFar) {
+              } else if (hd.hasFarBridges()) {
                 displayShadowName = 'Blaming others and becoming a victim';
               } else {
                 displayShadowName = 'Blaming yourself for something missing';
@@ -311,7 +336,11 @@ function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
                         : bridge.description;
                       return (
                         <div key={i} className={styles.bridgeGate}>
-                          <span className={styles.bridgeGateNumber}>Gate {bridge.gate}</span>
+                          <span className={styles.bridgeGateNumber}>
+                            {bridge.isChannelBridge
+                              ? `Channel ${bridge.gate}/${bridge.harmonicGate}`
+                              : `Gate ${bridge.gate}`}
+                          </span>
                           <p className={styles.bridgeDescription}>{description}</p>
                           <div className={styles.bridgeDetails}>
                             <div className={styles.bridgeDetailRow}>

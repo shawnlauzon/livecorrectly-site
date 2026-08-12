@@ -176,6 +176,7 @@ export default function hdChart(chart: Chart) {
     harmonicTrait: string;
     strength: string;
     description: string;
+    isChannelBridge?: boolean;
   }> => {
     if (!chart.bridges?.bridgingGates) return [];
 
@@ -289,6 +290,138 @@ export default function hdChart(chart: Chart) {
     return Array.isArray(chart.bridges?.bridgingFarGates) && chart.bridges!.bridgingFarGates!.length > 0;
   };
 
+  /**
+   * Determine split width label for definition=2 charts.
+   * - '-': no split (definition 0 or 1)
+   * - '2': simple split (1 gate bridges the gap)
+   * - '2W': wide split (2 gates needed — either a channel or a pair of gates)
+   * - '2VW': very wide split (3+ gates needed)
+   * - '3': triple split
+   * - '4': quadruple split
+   *
+   * Uses connectivity analysis: builds center-to-center edges from ALL
+   * bridge candidates (bridgingGates, bridgingFarGates, bridgingChannels),
+   * then checks the minimum set size that connects all defined-center
+   * components via connectsAllComponents().
+   */
+  const splitType = (): string => {
+    const def = chart.definition;
+    if (def === undefined || def <= 1) return '-';
+    if (def === 3) return '3';
+    if (def === 4) return '4';
+
+    // def === 2: determine width from connectivity analysis
+    const components = findDefinedComponents();
+    if (components.length <= 1) return '2'; // no split to bridge
+
+    const userGates = chart.gates.map(g => g.gate);
+
+    // --- Build single-gate edges from bridgingGates ---
+    const singleGateEdges: Array<{ c1: number; c2: number }> = [];
+    for (const missingGate of chart.bridges?.bridgingGates ?? []) {
+      const traitInfo = gateTraits[missingGate];
+      if (!traitInfo) continue;
+      const c1 = gateToCenter[missingGate];
+      if (c1 === undefined) continue;
+
+      if (Array.isArray(traitInfo.harmonicGate)) {
+        for (const hg of traitInfo.harmonicGate) {
+          if (userGates.includes(hg)) {
+            const c2 = gateToCenter[hg];
+            if (c2 !== undefined) {
+              singleGateEdges.push({ c1, c2 });
+              break; // one edge per missing gate
+            }
+          }
+        }
+      } else {
+        if (userGates.includes(traitInfo.harmonicGate)) {
+          const c2 = gateToCenter[traitInfo.harmonicGate];
+          if (c2 !== undefined) {
+            singleGateEdges.push({ c1, c2 });
+          }
+        }
+      }
+    }
+
+    // --- Build single-gate edges from bridgingFarGates ---
+    const farGateEdges: Array<{ c1: number; c2: number }> = [];
+    for (const missingGate of chart.bridges?.bridgingFarGates ?? []) {
+      const traitInfo = gateTraits[missingGate];
+      if (!traitInfo) continue;
+      const c1 = gateToCenter[missingGate];
+      if (c1 === undefined) continue;
+
+      if (Array.isArray(traitInfo.harmonicGate)) {
+        for (const hg of traitInfo.harmonicGate) {
+          if (userGates.includes(hg)) {
+            const c2 = gateToCenter[hg];
+            if (c2 !== undefined) {
+              farGateEdges.push({ c1, c2 });
+              break;
+            }
+          }
+        }
+      } else {
+        if (userGates.includes(traitInfo.harmonicGate)) {
+          const c2 = gateToCenter[traitInfo.harmonicGate];
+          if (c2 !== undefined) {
+            farGateEdges.push({ c1, c2 });
+          }
+        }
+      }
+    }
+
+    // --- Build channel edges from bridgingChannels ---
+    // Each channel "g1/g2" creates an edge between gateToCenter[g1] and gateToCenter[g2].
+    // Neither gate is defined (the person has neither), so both centers may be
+    // undefined waypoints — connectsAllComponents handles this.
+    const channelEdgePairs: Array<Array<{ c1: number; c2: number }>> = [];
+    for (const channelStr of chart.bridges?.bridgingChannels ?? []) {
+      const parts = channelStr.split('/').map(Number);
+      if (parts.length !== 2 || parts.some(isNaN)) continue;
+      const [g1, g2] = parts;
+      const c1 = gateToCenter[g1];
+      const c2 = gateToCenter[g2];
+      if (c1 !== undefined && c2 !== undefined) {
+        channelEdgePairs.push([{ c1, c2 }]);
+      }
+    }
+
+    // Combine all single-gate edges
+    const allSingleEdges = [...singleGateEdges, ...farGateEdges];
+
+    // Check if any single gate edge connects all components → '2'
+    for (const edge of singleGateEdges) {
+      if (connectsAllComponents(components, [edge])) return '2';
+    }
+
+    // Check if any single channel connects all components → '2W'
+    for (const channelEdges of channelEdgePairs) {
+      if (connectsAllComponents(components, channelEdges)) return '2W';
+    }
+
+    // Check if any pair of single-gate edges connects all components → '2W'
+    for (let i = 0; i < allSingleEdges.length; i++) {
+      for (let j = i + 1; j < allSingleEdges.length; j++) {
+        if (connectsAllComponents(components, [allSingleEdges[i], allSingleEdges[j]])) return '2W';
+      }
+    }
+
+    // Check if any single far gate edge + channel edge connects → '2VW' (3 gates)
+    // or other 3-gate combinations
+    return '2VW';
+  };
+
+  /**
+   * Check if the chart has channel bridges (wide/very wide split —
+   * bridgingChannels populated but bridgingGates empty).
+   */
+  const hasChannelBridges = (): boolean => {
+    return !chart.bridges?.bridgingGates?.length
+      && !!chart.bridges?.bridgingChannels?.length;
+  };
+
   type BridgeDesc = ReturnType<typeof getBridgeDescriptions>[number];
 
   /**
@@ -345,6 +478,71 @@ export default function hdChart(chart: Chart) {
     }
 
     return components;
+  };
+
+  /**
+   * Check if adding a set of bridge edges connects all defined-center components.
+   * Uses union-find with waypoint support for undefined intermediate centers.
+   */
+  const connectsAllComponents = (
+    comps: Set<number>[],
+    edges: Array<{ c1: number; c2: number }>
+  ): boolean => {
+    // Map each center to its component index
+    const centerToComp = new Map<number, number>();
+    for (let i = 0; i < comps.length; i++) {
+      for (const center of comps[i]) {
+        centerToComp.set(center, i);
+      }
+    }
+
+    // parent array for union-find on component indices
+    const parent = Array.from({ length: comps.length }, (_, i) => i);
+    const find = (x: number): number => {
+      while (parent[x] !== x) {
+        parent[x] = parent[parent[x]];
+        x = parent[x];
+      }
+      return x;
+    };
+    const union = (a: number, b: number) => {
+      const ra = find(a);
+      const rb = find(b);
+      if (ra !== rb) parent[ra] = rb;
+    };
+
+    for (const edge of edges) {
+      const comp1 = centerToComp.get(edge.c1);
+      const comp2 = centerToComp.get(edge.c2);
+
+      if (comp1 !== undefined && comp2 !== undefined) {
+        union(comp1, comp2);
+      } else if (comp1 !== undefined || comp2 !== undefined) {
+        const definedComp = comp1 ?? comp2!;
+        const undefinedCenter = comp1 !== undefined ? edge.c2 : edge.c1;
+        centerToComp.set(undefinedCenter, definedComp);
+      } else {
+        const tempIdx = parent.length;
+        parent.push(tempIdx);
+        centerToComp.set(edge.c1, tempIdx);
+        centerToComp.set(edge.c2, tempIdx);
+      }
+    }
+
+    // Re-run unions after all waypoints are assigned
+    for (const edge of edges) {
+      const comp1 = centerToComp.get(edge.c1);
+      const comp2 = centerToComp.get(edge.c2);
+      if (comp1 !== undefined && comp2 !== undefined) {
+        union(comp1, comp2);
+      }
+    }
+
+    const roots = new Set<number>();
+    for (let i = 0; i < comps.length; i++) {
+      roots.add(find(i));
+    }
+    return roots.size === 1;
   };
 
   /**
@@ -410,79 +608,6 @@ export default function hdChart(chart: Chart) {
 
     if (candidateBridges.size === 0) return [];
 
-    // Check if adding a set of bridge edges connects all components
-    const connectsAllComponents = (
-      comps: Set<number>[],
-      edges: Array<{ c1: number; c2: number }>
-    ): boolean => {
-      // Union-Find for component merging
-      // Map each center to its component index
-      const centerToComp = new Map<number, number>();
-      for (let i = 0; i < comps.length; i++) {
-        for (const center of comps[i]) {
-          centerToComp.set(center, i);
-        }
-      }
-
-      // parent array for union-find on component indices
-      const parent = Array.from({ length: comps.length }, (_, i) => i);
-      const find = (x: number): number => {
-        while (parent[x] !== x) {
-          parent[x] = parent[parent[x]];
-          x = parent[x];
-        }
-        return x;
-      };
-      const union = (a: number, b: number) => {
-        const ra = find(a);
-        const rb = find(b);
-        if (ra !== rb) parent[ra] = rb;
-      };
-
-      for (const edge of edges) {
-        // Both endpoints might be in defined components, or one/both might be
-        // undefined centers acting as waypoints. Bridge channels connect through
-        // intermediary undefined centers.
-        const comp1 = centerToComp.get(edge.c1);
-        const comp2 = centerToComp.get(edge.c2);
-
-        if (comp1 !== undefined && comp2 !== undefined) {
-          // Both endpoints are in defined components — direct merge
-          union(comp1, comp2);
-        } else if (comp1 !== undefined || comp2 !== undefined) {
-          // One endpoint is in a defined component, the other is undefined.
-          // The undefined center becomes a waypoint — assign it to the known component
-          // so future edges through it can chain.
-          const definedComp = comp1 ?? comp2!;
-          const undefinedCenter = comp1 !== undefined ? edge.c2 : edge.c1;
-          centerToComp.set(undefinedCenter, definedComp);
-        } else {
-          // Neither endpoint is in any component yet — both undefined centers.
-          // Create a temporary group for chaining.
-          const tempIdx = parent.length;
-          parent.push(tempIdx);
-          centerToComp.set(edge.c1, tempIdx);
-          centerToComp.set(edge.c2, tempIdx);
-        }
-      }
-
-      // Re-run unions after all waypoints are assigned (edges may need re-evaluation)
-      for (const edge of edges) {
-        const comp1 = centerToComp.get(edge.c1);
-        const comp2 = centerToComp.get(edge.c2);
-        if (comp1 !== undefined && comp2 !== undefined) {
-          union(comp1, comp2);
-        }
-      }
-
-      // Check if all original components are now in one group
-      const roots = new Set<number>();
-      for (let i = 0; i < comps.length; i++) {
-        roots.add(find(i));
-      }
-      return roots.size === 1;
-    };
-
     // Find minimum bridge set via brute-force combination search
     const missingGates = Array.from(candidateBridges.keys());
     const numComponents = components.length;
@@ -526,6 +651,56 @@ export default function hdChart(chart: Chart) {
 
     // Build bridge descriptions for the selected gates, ordered by priority
     return buildFarBridgeDescs(selectedGates, candidateBridges, components);
+  };
+
+  /**
+   * Get channel bridge descriptions for wide/very wide splits.
+   * These are bridges where BOTH gates of the channel are missing —
+   * the person has neither gate. The shadow is externalized:
+   * - Wide (2W): blame the other person
+   * - Very wide (2VW): blame the world
+   *
+   * Only runs when bridgingGates is empty and bridgingChannels is populated.
+   */
+  const getChannelBridgeDescriptions = (): BridgeDesc[] => {
+    if (chart.bridges?.bridgingGates?.length) return [];
+    if (!chart.bridges?.bridgingChannels?.length) return [];
+
+    const split = splitType();
+    const isVeryWide = split === '2VW';
+
+    const results: BridgeDesc[] = [];
+    for (const channelStr of chart.bridges.bridgingChannels) {
+      const parts = channelStr.split('/').map(Number);
+      if (parts.length !== 2 || parts.some(isNaN)) continue;
+      const [g1, g2] = parts;
+
+      // Find the channel strength name
+      const channel = channelStrengths.find(
+        ch => (ch.gates[0] === g1 && ch.gates[1] === g2)
+           || (ch.gates[0] === g2 && ch.gates[1] === g1)
+      );
+      const strengthName = channel?.name ?? 'Unknown';
+
+      // Get traits for each gate
+      const trait1 = gateTraits[g1]?.trait ?? 'Unknown';
+      const trait2 = gateTraits[g2]?.trait ?? 'Unknown';
+
+      const description = isVeryWide
+        ? `You believe the world needs more ${strengthName}.`
+        : `You believe the other needs to bring more ${strengthName}.`;
+
+      results.push({
+        gate: g1,
+        trait: trait1,
+        harmonicGate: g2,
+        harmonicTrait: trait2,
+        strength: strengthName,
+        description,
+        isChannelBridge: true,
+      });
+    }
+    return results;
   };
 
   /**
@@ -832,7 +1007,8 @@ export default function hdChart(chart: Chart) {
   const getTopBridge = (): { bridge: BridgeDesc; annotation: string } | null => {
     const nearBridges = getBridgeDescriptions();
     const wideBridges = getFarBridgeDescriptions();
-    const all = [...nearBridges, ...wideBridges];
+    const channelBridges = getChannelBridgeDescriptions();
+    const all = [...nearBridges, ...wideBridges, ...channelBridges];
 
     if (all.length === 0) return null;
     if (all.length === 1) return { bridge: all[0], annotation: '' };
@@ -960,6 +1136,192 @@ export default function hdChart(chart: Chart) {
   };
 
   /**
+   * Get the top bridge pair for 2W splits.
+   * For wide splits, two bridges are needed to connect all components.
+   * This function finds the best PAIR using cascading priority tiers
+   * applied to the pair as a unit.
+   *
+   * Tiers (applied to pairs):
+   * 1. Stream completion — does the pair together complete an awareness stream?
+   * 2. Sun exclusive — does either bridge in the pair have Sun activating its harmonic exclusively?
+   * 3. Earth exclusive — same for Earth
+   * 4. Sun/Earth non-exclusive
+   * 5. Most activations — sum activation counts across both bridges in the pair
+   * 6. Most important planet — lowest planet ID across both bridges
+   *
+   * Returns null if not a 2W split or if no valid pair found.
+   */
+  const getTopBridgePair = (): { bridges: [BridgeDesc, BridgeDesc]; annotation: string } | null => {
+    if (splitType() !== '2W') return null;
+
+    const components = findDefinedComponents();
+    if (components.length <= 1) return null;
+
+    // Collect all candidate bridges (far gates + channel bridges)
+    const farBridges = getFarBridgeDescriptions();
+    const channelBridges = getChannelBridgeDescriptions();
+    const all = [...farBridges, ...channelBridges];
+
+    if (all.length < 2) return null;
+
+    const planets = chart.planets ?? [];
+    const userGates = chart.gates.map(g => g.gate);
+
+    // Generate all valid 2-element combinations that connect all components
+    const validPairs: Array<[BridgeDesc, BridgeDesc]> = [];
+    for (let i = 0; i < all.length; i++) {
+      for (let j = i + 1; j < all.length; j++) {
+        // Build edges for this pair
+        const edges: Array<{ c1: number; c2: number }> = [];
+        for (const bridge of [all[i], all[j]]) {
+          const c1 = gateToCenter[bridge.gate];
+          const c2 = gateToCenter[bridge.harmonicGate];
+          if (c1 !== undefined && c2 !== undefined) {
+            edges.push({ c1, c2 });
+          }
+        }
+        if (edges.length >= 2 && connectsAllComponents(components, edges)) {
+          validPairs.push([all[i], all[j]]);
+        }
+      }
+    }
+
+    if (validPairs.length === 0) return null;
+    if (validPairs.length === 1) {
+      return { bridges: validPairs[0], annotation: '' };
+    }
+
+    // Annotate each pair with priority properties
+    const definedChannelPairs = new Set<string>();
+    for (const channelIndex of chart.channels ?? []) {
+      if (channelIndex >= 0 && channelIndex < channelStrengths.length) {
+        const gates = channelStrengths[channelIndex].gates;
+        definedChannelPairs.add([gates[0], gates[1]].sort((a, b) => a - b).join(','));
+      }
+    }
+
+    const annotatedPairs = validPairs.map(pair => {
+      // Stream completion: does this pair together complete a stream?
+      let completesStream: string | null = null;
+      const pairChannelKeys = pair.map(b =>
+        [b.gate, b.harmonicGate].sort((a, b) => a - b).join(',')
+      );
+      for (const stream of awarenessStreams) {
+        const streamKeys = stream.channels.map(ch => [...ch].sort((a, b) => a - b).join(','));
+        // Check if both bridges in the pair are channels in this stream
+        const pairInStream = pairChannelKeys.filter(k => streamKeys.includes(k));
+        if (pairInStream.length >= 2) {
+          // Both pair channels are in this stream — check if the rest are defined
+          const others = streamKeys.filter(k => !pairChannelKeys.includes(k));
+          if (others.every(k => definedChannelPairs.has(k))) {
+            completesStream = stream.name;
+            break;
+          }
+        }
+      }
+
+      // Sun/Earth analysis per bridge in pair
+      let hasSunExclusive = false;
+      let hasEarthExclusive = false;
+      let hasNonExclusiveSunEarth = false;
+      let totalActivations = 0;
+      let bestPlanetId = Infinity;
+
+      for (const bridge of pair) {
+        const traitInfo = gateTraits[bridge.gate];
+        let harmonicCount = 1;
+        if (traitInfo && Array.isArray(traitInfo.harmonicGate)) {
+          harmonicCount = traitInfo.harmonicGate.filter(hg => userGates.includes(hg)).length;
+        }
+        const exclusive = harmonicCount <= 1;
+
+        const harmonicPlanets = planets.filter(p => p.gate === bridge.harmonicGate);
+        totalActivations += harmonicPlanets.length;
+        if (harmonicPlanets.length > 0) {
+          bestPlanetId = Math.min(bestPlanetId, ...harmonicPlanets.map(p => p.id));
+        }
+
+        for (const p of harmonicPlanets) {
+          if (p.id === 0 && exclusive) hasSunExclusive = true;
+          if (p.id === 1 && exclusive) hasEarthExclusive = true;
+          if ((p.id === 0 || p.id === 1) && !exclusive) hasNonExclusiveSunEarth = true;
+        }
+      }
+
+      return {
+        pair,
+        completesStream,
+        hasSunExclusive,
+        hasEarthExclusive,
+        hasNonExclusiveSunEarth,
+        totalActivations,
+        bestPlanetId,
+      };
+    });
+
+    let candidates = annotatedPairs;
+    const annotations: string[] = [];
+
+    // Tier 1: Stream completion
+    const streamFiltered = candidates.filter(a => a.completesStream !== null);
+    if (streamFiltered.length > 0 && streamFiltered.length < candidates.length) {
+      candidates = streamFiltered;
+      annotations.push(`completes ${candidates[0].completesStream} stream`);
+    }
+
+    // Tier 2: Sun exclusive
+    if (candidates.length > 1) {
+      const sunFiltered = candidates.filter(a => a.hasSunExclusive);
+      if (sunFiltered.length > 0 && sunFiltered.length < candidates.length) {
+        candidates = sunFiltered;
+        annotations.push('Sun exclusive');
+      }
+    }
+
+    // Tier 3: Earth exclusive
+    if (candidates.length > 1) {
+      const earthFiltered = candidates.filter(a => a.hasEarthExclusive);
+      if (earthFiltered.length > 0 && earthFiltered.length < candidates.length) {
+        candidates = earthFiltered;
+        annotations.push('Earth exclusive');
+      }
+    }
+
+    // Tier 4: Non-exclusive Sun/Earth
+    if (candidates.length > 1) {
+      const neFiltered = candidates.filter(a => a.hasNonExclusiveSunEarth);
+      if (neFiltered.length > 0 && neFiltered.length < candidates.length) {
+        candidates = neFiltered;
+        annotations.push('Sun/Earth (non-exclusive)');
+      }
+    }
+
+    // Tier 5: Most activations (sum across pair)
+    if (candidates.length > 1) {
+      const maxAct = Math.max(...candidates.map(a => a.totalActivations));
+      const actFiltered = candidates.filter(a => a.totalActivations === maxAct);
+      if (actFiltered.length < candidates.length) {
+        candidates = actFiltered;
+        annotations.push(`${maxAct} activations`);
+      }
+    }
+
+    // Tier 6: Most important planet (lowest id across pair)
+    if (candidates.length > 1) {
+      const bestId = Math.min(...candidates.map(a => a.bestPlanetId));
+      const planetFiltered = candidates.filter(a => a.bestPlanetId === bestId);
+      if (planetFiltered.length < candidates.length) {
+        candidates = planetFiltered;
+      }
+    }
+
+    return {
+      bridges: candidates[0].pair,
+      annotation: annotations.length > 0 ? annotations.join(', ') : '',
+    };
+  };
+
+  /**
    * Get all bridges (near + far) sorted by the 5-tier priority system.
    * Lower score = higher priority.
    *
@@ -972,7 +1334,8 @@ export default function hdChart(chart: Chart) {
   const getAllBridgesSorted = (): BridgeDesc[] => {
     const near = getBridgeDescriptions();
     const far = getFarBridgeDescriptions();
-    const all = [...near, ...far];
+    const channel = getChannelBridgeDescriptions();
+    const all = [...near, ...far, ...channel];
 
     if (all.length <= 1) return all;
 
@@ -1044,11 +1407,15 @@ export default function hdChart(chart: Chart) {
     getShadows,
     getBridgeDescriptions,
     getFarBridgeDescriptions,
+    getChannelBridgeDescriptions,
     getBridgePriority,
     getTopBridge,
+    getTopBridgePair,
     getAllBridgesSorted,
     hasNearBridges,
     hasFarBridges,
+    hasChannelBridges,
+    splitType,
     findDefinedComponents,
   };
 }

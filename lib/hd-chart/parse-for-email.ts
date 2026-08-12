@@ -75,22 +75,11 @@ export function parseChartForEmail(chart: Chart): EmailChartData {
   const topShadow = shadows.length > 0 ? shadows[0] : null;
 
   // Override bridge descriptions with richer prose from hangingGateDescriptions.
-  // Uses getAllBridgesSorted() to include both near + far bridges, ranked by priority.
+  // Uses getAllBridgesSorted() to include both near + far + channel bridges, ranked by priority.
   const rawBridges = hd.getAllBridgesSorted();
   const bridgeDescriptions = rawBridges.map(bridge => {
-    // TODO: Far bridges involving complete channels (e.g., 43/23 + gate 48) need
-    // channel-aware descriptions, not individual gate-pair descriptions. This
-    // hard-code handles the known case; generalize when more channel+gate bridge
-    // patterns are identified. The admin page (app/admin/[id]/page.tsx:300) has
-    // the same hangingGateDescriptions override and will need the same treatment.
-    if (bridge.gate === 48
-        && !chart.bridges?.bridgingGates?.length
-        && chart.bridges?.bridgingChannels?.includes('43/23')) {
-      return {
-        ...bridge,
-        description: 'You believe that the world needs to be more efficient. You have a natural gift for cutting through complexity — arriving at breakthrough insights and expressing them clearly. But you may feel that no matter how clearly you see the solution, something foundational is always missing.',
-      };
-    }
+    // Channel bridges already have their own descriptions from getChannelBridgeDescriptions()
+    if (bridge.isChannelBridge) return bridge;
 
     const hanging = hangingGateDescriptions[bridge.harmonicGate];
     if (!hanging) return bridge;

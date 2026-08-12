@@ -6,7 +6,7 @@ import { Subscriber } from '@/lib/types/subscriber';
 import { ChartRecord } from '@/lib/types/chart';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import hdChart from '@/lib/hd-chart';
-import { shadowNames, functionToCenterIndex, centerNames, innerAuthorityTypes } from '@/lib/hd-chart/constants';
+import { innerAuthorityTypes } from '@/lib/hd-chart/constants';
 import styles from './admin.module.css';
 
 async function fetchSubscribers(pwd: string): Promise<{ ok: true; data: Subscriber[] } | { ok: false; error: string }> {
@@ -30,6 +30,12 @@ async function fetchSubscribers(pwd: string): Promise<{ ok: true; data: Subscrib
   }
 }
 
+function getSplitLabel(subscriber: Subscriber): string {
+  if (!subscriber.chart?.chart) return '—';
+  const hd = hdChart(subscriber.chart.chart);
+  return hd.splitType();
+}
+
 function getFirstShadowLabel(subscriber: Subscriber): string {
   if (!subscriber.chart?.chart) return '—';
 
@@ -39,57 +45,48 @@ function getFirstShadowLabel(subscriber: Subscriber): string {
 
   const firstShadowFunction = shadows[0];
 
-  // For bridging shadow, show split type and bridges
+  // For bridging shadow, show bridges (split type is now its own column)
   if (firstShadowFunction === 'Bringing Traits/Strengths') {
-    // Find number of defined components to determine split type
-    const components = hd.findDefinedComponents();
-    const numComponents = components.length;
+    const split = hd.splitType();
 
-    // Determine split type and number of bridges to show based on component count
-    let splitType = '';
-    let numBridgesToShow = 0;
-
-    if (numComponents === 2) {
-      splitType = 'Simple split';
-      numBridgesToShow = 1;
-    } else if (numComponents === 3) {
-      splitType = 'Wide split';
-      numBridgesToShow = 2;
-    } else if (numComponents >= 4) {
-      splitType = 'Very wide split';
-      numBridgesToShow = 3;
-    } else {
-      // Shouldn't happen for bridging shadows, but handle gracefully
-      return firstShadowFunction;
+    // For 2W splits: always 2 gates.
+    // If top bridge is a channel bridge → 1 channel = 2 gates.
+    // Otherwise → pair of 2 individual far gates.
+    if (split === '2W') {
+      const topBridge = hd.getTopBridge();
+      if (topBridge?.bridge.isChannelBridge) {
+        const b = topBridge.bridge;
+        return `${b.strength} (${b.gate}/${b.harmonicGate})`;
+      }
+      const topPair = hd.getTopBridgePair();
+      if (topPair) {
+        return topPair.bridges
+          .map(b => `${b.trait} (${b.gate})`)
+          .join(', ');
+      }
     }
 
-    // Get all bridges (near + far) sorted by priority
+    // Number of bridges to show: 2→1, 2VW→2, 3→2, 4→3
+    const numBridgesToShow = split === '4' ? 3 : (split === '3' || split === '2VW') ? 2 : 1;
+
     const allBridges = hd.getAllBridgesSorted();
 
-    if (allBridges.length === 0) {
-      return `${splitType}: —`;
-    }
+    if (allBridges.length === 0) return '—';
 
-    // Show exactly the number of bridges needed for this split type
     const bridgesToDisplay = allBridges.slice(0, numBridgesToShow);
     const bridgeLabels = bridgesToDisplay
-      .map(b => `${b.trait} (${b.gate})`)
+      .map(b => b.isChannelBridge
+        ? `${b.strength} (${b.gate}/${b.harmonicGate})`
+        : `${b.trait} (${b.gate})`)
       .join(', ');
 
-    return `${splitType}: ${bridgeLabels}`;
-  }
-
-  // For non-bridging shadows, show the function name and center
-  const centerIndex = functionToCenterIndex[firstShadowFunction];
-  if (centerIndex !== null && centerIndex !== undefined) {
-    const centerName = centerNames[centerIndex];
-    return `${firstShadowFunction} (${centerName})`;
+    return bridgeLabels;
   }
 
   return firstShadowFunction;
 }
 
-type SortColumn = 'name' | 'email' | 'profile' | 'authority' | 'type' | 'shadow' | 'status' | 'nextEmail' | 'created' | 'lastActive';
+type SortColumn = 'name' | 'email' | 'profile' | 'authority' | 'type' | 'split' | 'shadow' | 'status' | 'nextEmail' | 'created' | 'lastActive';
 type SortDirection = 'asc' | 'desc';
 
 export default function AdminPage() {
@@ -442,6 +439,8 @@ export default function AdminPage() {
       case 'type':
         if (!subscriber.chart) return '';
         return ['Generator', 'MG', 'Manifestor', 'Projector', 'Reflector'][subscriber.chart.chart.type];
+      case 'split':
+        return getSplitLabel(subscriber);
       case 'shadow':
         return getFirstShadowLabel(subscriber);
       case 'status':
@@ -541,6 +540,11 @@ export default function AdminPage() {
               <th onClick={() => handleSort('type')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 Type<span style={{ display: 'inline-block', width: '1em', textAlign: 'center' }}>
                   {sortColumn === 'type' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                </span>
+              </th>
+              <th onClick={() => handleSort('split')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                Split<span style={{ display: 'inline-block', width: '1em', textAlign: 'center' }}>
+                  {sortColumn === 'split' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
                 </span>
               </th>
               <th onClick={() => handleSort('shadow')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -704,6 +708,7 @@ export default function AdminPage() {
                       ]
                     : '-'}
                 </td>
+                <td>{getSplitLabel(subscriber)}</td>
                 <td>{getFirstShadowLabel(subscriber)}</td>
                 <td className={subscriber.email_status === 'active' ? styles.statusOk : styles.statusBad}>
                   {subscriber.email_status === 'active' ? (
