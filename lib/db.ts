@@ -1,6 +1,6 @@
 import { neon, NeonQueryFunction } from '@neondatabase/serverless';
 import { EmailStatus, Subscriber } from './types/subscriber';
-import type { ChartGroup } from './types/chart';
+import type { ChartGroup, ChartRecord } from './types/chart';
 
 let sql: NeonQueryFunction<false, false>;
 
@@ -200,6 +200,27 @@ export async function getSubscriberByEmailForWebhook(
     WHERE email = ${email}
   `;
   return result.length > 0 ? normalizeSubscriber(result[0] as Subscriber) : null;
+}
+
+/**
+ * Replace a subscriber's chart JSONB blob with a fresh one.
+ * Used by admin after refreshing a chart from the Maia API.
+ */
+export async function updateSubscriberChart(
+  id: string,
+  chart: ChartRecord
+): Promise<Subscriber> {
+  const db = getDb();
+  const result = await db`
+    UPDATE subscribers
+    SET chart = ${JSON.stringify(chart)}
+    WHERE id = ${id}
+    RETURNING *
+  `;
+  if (result.length === 0) {
+    throw new Error(`Subscriber ${id} not found`);
+  }
+  return normalizeSubscriber(result[0] as Subscriber);
 }
 
 /**

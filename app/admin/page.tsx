@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Subscriber } from '@/lib/types/subscriber';
+import { ChartRecord } from '@/lib/types/chart';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import hdChart from '@/lib/hd-chart';
 import { shadowNames, functionToCenterIndex, centerNames, innerAuthorityTypes } from '@/lib/hd-chart/constants';
@@ -112,6 +113,8 @@ export default function AdminPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [lightboxChart, setLightboxChart] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState<string | null>(null);
+  const [freshCharts, setFreshCharts] = useState<Record<string, ChartRecord>>({});
+  const [saving, setSaving] = useState<string | null>(null);
 
   const loadSubscribers = useCallback(async (pwd: string) => {
     setLoading(true);
@@ -283,10 +286,54 @@ export default function AdminPage() {
       }
       console.groupEnd();
 
+      // Store fresh chart so the admin can save it
+      setFreshCharts(prev => ({ ...prev, [subscriberId]: freshChart }));
+
     } catch (err) {
       console.error('Failed to refresh chart:', err);
     } finally {
       setRefreshing(null);
+    }
+  };
+
+  const handleSaveChart = async (subscriberId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent row click
+    const freshChart = freshCharts[subscriberId];
+    if (!freshChart) return;
+
+    setSaving(subscriberId);
+    try {
+      const pwd = sessionStorage.getItem('adminPassword') ?? '';
+      const response = await fetch(`/api/admin/subscribers/${subscriberId}/update-chart`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${pwd}`,
+        },
+        body: JSON.stringify({ chart: freshChart }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        console.error('Failed to save chart:', data.error);
+        return;
+      }
+
+      const updated: Subscriber = await response.json();
+
+      // Update subscriber in local state
+      setSubscribers(prev => prev.map(s => s.id === subscriberId ? updated : s));
+
+      // Remove from freshCharts — button reverts to refresh icon
+      setFreshCharts(prev => {
+        const next = { ...prev };
+        delete next[subscriberId];
+        return next;
+      });
+    } catch (err) {
+      console.error('Failed to save chart:', err);
+    } finally {
+      setSaving(null);
     }
   };
 
@@ -560,24 +607,48 @@ export default function AdminPage() {
                         </button>
                       );
                     })()}
-                    <button
-                      onClick={(e) => handleRefreshChart(subscriber.id, e)}
-                      disabled={refreshing === subscriber.id}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: refreshing === subscriber.id ? 'wait' : 'pointer',
-                        padding: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        opacity: refreshing === subscriber.id ? 0.3 : 0.6
-                      }}
-                      title="Refresh chart from server"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                      </svg>
-                    </button>
+                    {freshCharts[subscriber.id] ? (
+                      <button
+                        onClick={(e) => handleSaveChart(subscriber.id, e)}
+                        disabled={saving === subscriber.id}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: saving === subscriber.id ? 'wait' : 'pointer',
+                          padding: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          opacity: saving === subscriber.id ? 0.3 : 0.6,
+                          color: '#6A4BD6',
+                        }}
+                        title="Save refreshed chart"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                          <polyline points="17 21 17 13 7 13 7 21"/>
+                          <polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => handleRefreshChart(subscriber.id, e)}
+                        disabled={refreshing === subscriber.id}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: refreshing === subscriber.id ? 'wait' : 'pointer',
+                          padding: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          opacity: refreshing === subscriber.id ? 0.3 : 0.6
+                        }}
+                        title="Refresh chart from server"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </td>
                 <td>
