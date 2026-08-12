@@ -176,8 +176,8 @@ export const Welcome0 = ({
           <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
             {shadow.story} {shadow.story && ' '}Through Human Design, I was able
             to clearly see my own patterns, and realize they&apos;re not
-            something wrong with me personally&mdash;it&apos;s how my system
-            works. It&apos;s just mechanics.
+            something wrong with me personally. It&apos;s how my system works.
+            It&apos;s just mechanics.
           </Text>
         </>
       )}

@@ -135,11 +135,11 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
     {
       shadow: 'over compensate',
       scenes: `\
-- You've got a stack of certifications and you always want more
-- You make promises to show you care, and then you end up bailing
-- You rank everyone you know, and you're not at the top`,
+- Having a stack of certifications and always wanting more
+- Making promises to show you care, and then you end up bailing
+- Ranking everyone you know, and you're not at the top`,
       story: `And I have the same shadow as you. Those tendencies up top? I've felt every single one of them. Maybe yours show up a little differently, but I bet they're close.`,
-      relief: `you'll stop doing things to prove yourself, and can even help others to love and believe in themselves`,
+      relief: `you'll stop doing things to prove yourself, and can even be wise about what is truly valuable`,
       closingLine: `You have nothing to prove.`,
       ps: `About my own stack of certifications: I didn't learn it to teach it. I learned it because I needed it. Turns out helping other people with it is what I'm designed for.`,
     },
@@ -149,11 +149,11 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
     {
       shadow: 'be touchy, nervous, and defensive',
       scenes: `\
-- You avoid going to parties because you're tired of acting how others expect
-- Friends complain that you take things too personally
-- You don't share what you really think because you don't want people to be upset`,
+- Avoiding going to parties because you're tired of acting how others expect
+- Friends complaining that you take things too personally
+- Not sharing what you really think because you don't want people to be upset`,
       story: `And I have the same shadow as you. Those tendencies up top? I've felt every single one of them. Maybe yours show up a little differently, but I bet they're close.`,
-      relief: `you'll feel emotions without them controlling you, and can even help others understand and use their own emotions wisely`,
+      relief: `you'll feel emotions without them controlling you, and can even be wise about knowing the right time to speak out`,
       closingLine: `You are designed for emotional serenity.`,
       ps: `About my own emotional intelligence journey: I didn't start practicing Authentic Relating to teach it. I learned it because I needed it. Turns out helping other people with it is what I'm designed for.`,
     },
@@ -163,11 +163,11 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
     {
       shadow: 'be role confused',
       scenes: `\
-- You often do what others want you to do in business and life
-- You try to make a particular place work even though you're uncomfortable
-- You judge yourself for being a completely different person in different places`,
+- Doing what others want you to do in business and life
+- Trying to make a particular place work even though you're uncomfortable
+- Judging yourself for being a completely different person in different places`,
       story: `And even though my integrated design doesn't have these shadows, my mind believes I do. I would look for my identity from other people rather than believe in myself.`,
-      relief: `you'll trust yourself to find the correct place for you, and can even help others to find connection and love`,
+      relief: `you'll trust yourself to find the correct place for you, and can even be wise about how to find connection and love`,
       closingLine: `You know exactly where you're meant to be.`,
     },
   ],
@@ -178,9 +178,9 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
       scenes: `\
 - Not moving to a lovely new town because you're afraid of losing what you already have
 - Remaining at your current job even though you know that it's not right for you
-- You don't leave a relationship that felt great at the beginning but you know it's not good for you`,
+- Not leaving a relationship that felt great at the beginning but you know it's not good for you`,
       story: `And even though my integrated design doesn't have these shadows, my mind believes I do. I stayed in a relationship and even got married because I was afraid of being alone, which is classic behavior.`,
-      relief: `you'll stop depending on spontaneous reactions which don't work out, and can even develop instinctual and intuitive awareness of what is healthy or not`,
+      relief: `you'll stop depending on spontaneous reactions which don't work out, and can even be wise about instinctual and intuitive awareness of what is healthy or not`,
       closingLine: `You know what is good for you.`,
     },
   ],
@@ -189,11 +189,11 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
     {
       shadow: 'be mentally defensive',
       scenes: `\
-- You try to convince others that you are certain of your opinion
+- Trying to convince others that you are certain of your opinion
 - Being afraid of not knowing something or being intellectually inconsistent and looking stupid
 - Being rigid in your beliefs and feel compelled to argue when challenged`,
       story: `And I have the same shadow as you. I remember in school I hated to raise my hand, in case I was wrong. Maybe how it shows up for you is a little different, but I bet it's similar.`,
-      relief: `you'll be completely okay not being certain about things, and become open to new ways of thinking because of your open mindedness`,
+      relief: `you'll be completely okay not being certain about things, and even be wise about new ways of processing information`,
       closingLine: `You are beautifully open-minded.`,
     },
   ],
@@ -202,11 +202,11 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
     {
       shadow: 'lose focus',
       scenes: `\
-- You think about things which are completely unimportant to you in this moment
-- You get distracted by other things (shiny object syndrome)
+- Thinking about things which are completely unimportant to you in this moment
+- Getting distracted by other things (shiny object syndrome)
 - Searching for something out there that inspires you`,
       story: `And I have the same shadow as you. Those tendencies up top? I've felt every single one of them. Maybe yours show up a little differently, but I bet they're close.`,
-      relief: `you enjoy the wonder and mystery of the world, and can even discern which inspiration is worthy of contemplation`,
+      relief: `you enjoy the wonder and mystery of the world, and can even be wise about which inspiration is worthy of contemplation`,
       closingLine: `Make lists. It helps :)`,
     },
   ],
@@ -215,18 +215,40 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
     {
       shadow: 'be in too much of a hurry',
       scenes: `\
-- You think about things which are completely unimportant to this moment
-- You l
-- You judge yourself for being a completely different person in different places`,
-      story: `And I have the same shadow as you. Those tendencies up top? I've felt every single one of them. Maybe yours show up a little differently, but I bet they're close.`,
-      relief: `you'll trust yourself to find the correct place for you, and can even help others to find connection and love`,
-      closingLine: `Make lists. It helps :)`,
+- Trying to get things done as fast as possible to get rid of the pressure
+- Believing that you're behind everyone else and need to catch up
+- Allowing others to pressure you into getting everything done and off your plate`,
+      story: `And even though my integrated design doesn't have these shadows, my mind believes I do. I still often feel pressure to finish things before going onto the next.`,
+      relief: `you'll be able to distinguish between healthy and unhealthy pressure, and even be wise about when to allow the pressure to help`,
+      closingLine: `Stop and smell the roses. You have time.`,
     },
   ],
-  // Remaining shadows — text to be provided by Shawn:
-  // 'Drive & Stamina'
-  // 'Energy Resource'
-  // 'Communication & Action'
+  [
+    'Energy Resource',
+    {
+      shadow: 'be over-zealous',
+      scenes: `\
+- Not noticing when you're tired and so you keep going until you're exhausted
+- Thinking that you're the only one that can do things and so never delegating
+- Pushing yourself to hustle even more than others because that's what you're supposed to do`,
+      story: `And even though I don't usually have doesn't have these shadows, I have seen it in my workaholic father who does. And the result after years of this, is a body which is older than its years.`,
+      relief: `you'll know when enough is enough, when to do it yourself, and even be wise about when to delegate`,
+      closingLine: `Take breaks, even before you're tired.`,
+    },
+  ],
+  [
+    'Communication & Action',
+    {
+      shadow: 'try to be the star',
+      scenes: `\
+- Trying to force your voice into a conversation so that people see you
+- Talking because the silence makes you uncomfortable
+- Pushing yourself to be seen on social media when you really don't want to`,
+      story: `And I have the same shadow as you. I would talk just to be seen, and usually people talked right over me. And I would blame myself for not being powerful enough.`,
+      relief: `you'll wait for the perfect time to speak, and even be wise about what is worthy of attention`,
+      closingLine: `When you are silent, it's your presence that speaks.`,
+    },
+  ],
 ]);
 
 /**
