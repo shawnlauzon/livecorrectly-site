@@ -3,7 +3,7 @@ import { Text, Section, Button } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import { Prose } from './components/prose';
 import { EmailChartData } from '../lib/hd-chart/parse-for-email';
-import { shadowOpenings, formatPrompt } from './content';
+import { shadowOpenings, formatPrompt, formatLandForYou } from './content';
 
 interface Welcome0Props {
   firstName: string;
@@ -55,7 +55,7 @@ export const Welcome0 = ({
     <EmailLayout
       preview="It's nothing personal. It's just mechanics."
       unsubscribeUrl={unsubscribeUrl}
-      postscripts={shadow?.ps ? [shadow.ps] : []}
+      postscripts={[...(shadow?.ps ? [shadow.ps] : [])]}
     >
       {/* Greeting + common opener */}
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
@@ -201,8 +201,8 @@ export const Welcome0 = ({
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
-        Did I get that right? If I did, tell me. If I missed, tell me that too —
-        I&apos;d love to know.
+        {formatLandForYou(chart)}&nbsp;Let me know because I&apos;m always
+        improving.
       </Text>
 
       {/* --- Shadow-specific: closingLine --- */}

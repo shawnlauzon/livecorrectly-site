@@ -141,7 +141,7 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
       story: `And I have the same shadow as you. Those tendencies up top? I've felt every single one of them. Maybe yours show up a little differently, but I bet they're close.`,
       relief: `you'll stop doing things to prove yourself, and can even help others to love and believe in themselves`,
       closingLine: `You have nothing to prove.`,
-      ps: `P.S. About my own stack of certifications: I didn't learn it to teach it. I learned it because I needed it. Turns out helping other people with it is what I'm designed for.`,
+      ps: `About my own stack of certifications: I didn't learn it to teach it. I learned it because I needed it. Turns out helping other people with it is what I'm designed for.`,
     },
   ],
   [
@@ -155,7 +155,7 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
       story: `And I have the same shadow as you. Those tendencies up top? I've felt every single one of them. Maybe yours show up a little differently, but I bet they're close.`,
       relief: `you'll feel emotions without them controlling you, and can even help others understand and use their own emotions wisely`,
       closingLine: `You are designed for emotional serenity.`,
-      ps: `P.S. About my own emotional intelligence journey: I didn't start practicing Authentic Relating to teach it. I learned it because I needed it. Turns out helping other people with it is what I'm designed for.`,
+      ps: `About my own emotional intelligence journey: I didn't start practicing Authentic Relating to teach it. I learned it because I needed it. Turns out helping other people with it is what I'm designed for.`,
     },
   ],
   [
@@ -164,9 +164,9 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
       shadow: 'be role confused',
       scenes: `\
 - You often do what others want you to do or to be in business and life
-- You try to make a particular place work even though you're always uncomfortable there
+- You try to make a particular place work even though you're uncomfortable
 - You judge yourself for being a completely different person in different places`,
-      story: `And even though my own patterns are different from these, I still relate to them from time to time because of conditioning from others.`,
+      story: `And even though my integrated design doesn't have these shadows, my mind believes I do. I would look for my identity from other people rather than believe in myself.`,
       relief: `you'll trust yourself to find the correct place for you, and can even help others to find connection and love`,
       closingLine: `You know exactly where you're meant to be.`,
     },
@@ -176,12 +176,12 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
     {
       shadow: 'be unable to let go',
       scenes: `\
-- You often do what others want you to do or to be in business and life
-- You try to make a particular place work even though you're always uncomfortable there
-- You judge yourself for being a completely different person in different places`,
-      story: `And I have the same shadow as you. Those tendencies up top? I've felt every single one of them. Maybe yours show up a little differently, but I bet they're close.`,
-      relief: `you'll trust yourself to find the correct place for you, and can even help others to find connection and love`,
-      closingLine: `You know exactly where you're meant to be.`,
+- Not moving to a lovely new town because you're afraid of losing what you already have
+- Remaining at your current job even though you know that it's not right for you
+- You don't leave a relationship that felt great at the beginning but you know it's not good for you`,
+      story: `And even though my integrated design doesn't have these shadows, my mind believes I do. I stayed in a relationship and even got married because I was afraid of being alone, which is classic behavior.`,
+      relief: `you'll stop depending on spontaneous reactions which don't work out, and can even develop instinctual and intuitive awareness of what is healthy or not`,
+      closingLine: `You know what is good for you.`,
     },
   ],
   [
@@ -619,6 +619,19 @@ export function formatOftenPrompt(
     return `I'm curious how often you ${clause}.`;
   }
   return `How often do you ${clause}?`;
+}
+
+export function formatLandForYou(opts: {
+  isGenerator: boolean;
+  isManifestor: boolean;
+}): string {
+  if (opts.isGenerator) {
+    return `Does this land for you?`;
+  }
+  if (opts.isManifestor) {
+    return `I'm curious how this lands for you.`;
+  }
+  return `How does this land for you?`;
 }
 
 /**
