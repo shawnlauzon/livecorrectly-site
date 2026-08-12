@@ -304,8 +304,19 @@ export default function AdminPage() {
 
       if (typeof val1 === 'object' && val1 !== null && typeof val2 === 'object' && val2 !== null) {
         if (Array.isArray(val1) && Array.isArray(val2)) {
-          if (JSON.stringify(val1) !== JSON.stringify(val2)) {
+          // Compare arrays element by element (recursively)
+          if (val1.length !== val2.length) {
             diff[currentPath] = { old: val1, new: val2 };
+          } else {
+            // Deep compare each element
+            const arrayDiff: Record<string, { old: any; new: any }> = {};
+            for (let i = 0; i < val1.length; i++) {
+              const elemDiff = findDifferences(val1[i], val2[i], `${currentPath}[${i}]`);
+              Object.assign(arrayDiff, elemDiff);
+            }
+            if (Object.keys(arrayDiff).length > 0) {
+              Object.assign(diff, arrayDiff);
+            }
           }
         } else {
           const nested = findDifferences(val1, val2, currentPath);
