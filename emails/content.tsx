@@ -165,8 +165,8 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
       scenes: `\
 - Doing what others want you to do in business and life
 - Trying to make a particular place work even though you're uncomfortable
-- Judging yourself for being a completely different person in different places`,
-      story: `And even though my integrated design doesn't have these shadows, my mind believes I do. I would look for my identity from other people rather than believe in myself.`,
+- Modeling your business on other people's success rather than what is specifically yours`,
+      story: `And even though my integrated design doesn't have these shadows, my mind believes I do. And so I would look for what worked for other people than believing in myself.`,
       relief: `you'll trust yourself to find the correct place for you, and can even be wise about how to find connection and love`,
       closingLine: `You know exactly where you're meant to be.`,
     },
