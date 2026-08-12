@@ -459,7 +459,7 @@ export default function AdminPage() {
       case 'status':
         return subscriber.email_status;
       case 'nextEmail':
-        return subscriber.next_step ?? 0;
+        return getNextEmailLabel(subscriber);
       case 'created':
         return new Date(subscriber.created_at).getTime();
       case 'lastActive':
@@ -571,7 +571,7 @@ export default function AdminPage() {
                 </span>
               </th>
               <th onClick={() => handleSort('nextEmail')} style={{ textAlign: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                Email<span style={{ display: 'inline-block', width: '1em', textAlign: 'center' }}>
+                Welcome<span style={{ display: 'inline-block', width: '1em', textAlign: 'center' }}>
                   {sortColumn === 'nextEmail' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
                 </span>
               </th>
