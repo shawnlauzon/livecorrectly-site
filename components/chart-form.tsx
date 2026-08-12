@@ -6,6 +6,7 @@ import styles from "./chart-form.module.css";
 import { countries } from "@/lib/countries";
 import { ChartRecord } from "@/lib/types/chart";
 import hdChart from "@/lib/hd-chart";
+import { generateChart as generateChartAPI } from "@/lib/generate-chart";
 
 /* ---- Analytics wrapper ---- */
 function track(name: string, params?: Record<string, unknown>) {
@@ -38,63 +39,18 @@ interface TimeZoneCities {
 
 /* ---- Chart generation via Maia Mechanics API ---- */
 async function generateChart(details: BirthDetails): Promise<ChartRecord> {
-  if (!process.env.NEXT_PUBLIC_MAIA_API_KEY) {
-    // Dev fallback: dynamically import the static fixture
-    const mod = await import("@/public/fake-mmi-response.json");
-    return mod.default as unknown as ChartRecord;
-  }
-
-  const time = details.time ?? "12:00";
-
-  const body = {
-    tzData: {
-      country: details.countryAbbr,
-      city: details.city,
-      timezone: details.timezone,
-      timeInUtc: false,
-      time: `${details.date}T${time}:00Z`,
-    },
-    data: {
-      city: {
-        name: details.city,
-        timezone: details.timezone,
-        tz: details.timezone,
-      },
-      country: {
-        id: details.countryAbbr,
-        name: countries.find((c) => c.abbr === details.countryAbbr)?.name,
-        tz: null,
-      },
-      date: `${details.date}T00:00:00.000Z`,
-      time: `1970-01-01T${time}:00.000Z`,
-    },
-  };
-
-  const response = await fetch(
-    "https://app.maiamechanics.com/api-v2/api/web-calculator/server-side-generation",
-    {
-      method: "POST",
-      headers: {
-        "Calculator-Token": process.env.NEXT_PUBLIC_MAIA_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
+  try {
+    return await generateChartAPI(details);
+  } catch (error) {
+    // Dev-only fallback: if API key is missing, use fake fixture
+    // This allows local development without requiring an API key
+    if (error instanceof Error && error.message.includes('NEXT_PUBLIC_MAIA_API_KEY')) {
+      console.warn('⚠️ Using fake chart data - NEXT_PUBLIC_MAIA_API_KEY not set');
+      const mod = await import("@/public/fake-mmi-response.json");
+      return mod.default as unknown as ChartRecord;
     }
-  );
-
-  if (!response.ok) {
-    let errorBody: unknown;
-    try {
-      errorBody = await response.json();
-    } catch {
-      // Response body not JSON — ignore
-    }
-    throw new Error(
-      `Chart generation failed: ${response.status} ${response.statusText} ${JSON.stringify(errorBody)}`
-    );
+    throw error;
   }
-
-  return (await response.json()) as ChartRecord;
 }
 
 export default function ChartForm() {

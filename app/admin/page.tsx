@@ -111,6 +111,7 @@ export default function AdminPage() {
   const [sortColumn, setSortColumn] = useState<SortColumn>('created');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [lightboxChart, setLightboxChart] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState<string | null>(null);
 
   const loadSubscribers = useCallback(async (pwd: string) => {
     setLoading(true);
@@ -189,6 +190,121 @@ export default function AdminPage() {
     e.stopPropagation(); // Prevent row click
     setLightboxChart(chartUrl);
   };
+
+  const handleRefreshChart = async (subscriberId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent row click
+    setRefreshing(subscriberId);
+
+    try {
+      // Find the current subscriber data
+      const currentData = subscribers.find(s => s.id === subscriberId);
+      if (!currentData) {
+        console.error('Subscriber not found in list');
+        return;
+      }
+
+      // Extract birth details from database columns (original user input)
+      console.log('Original birth data from database:', {
+        birth_date: currentData.birth_date,
+        birth_time: currentData.birth_time,
+        time_unknown: currentData.time_unknown,
+        birth_place: currentData.birth_place,
+        birth_lat: currentData.birth_lat,
+        birth_lng: currentData.birth_lng,
+      });
+
+      // Extract birth details from stored chart metadata
+      const storedChart = currentData.chart;
+      const birthData = storedChart.meta.birthData;
+
+      console.log('Birth data from chart metadata:', {
+        local_time: birthData.time.local,
+        city: birthData.location.city.name,
+        timezone: birthData.location.city.timezone,
+        country: birthData.location.country.id,
+      });
+
+      // Parse local birth date and time directly from the string (avoid Date constructor timezone issues)
+      const [birthDate, timeWithMs] = birthData.time.local.split('T');
+      const birthTime = currentData.time_unknown ? null : timeWithMs?.substring(0, 5) ?? null; // HH:MM
+
+      console.log('Regenerating chart with:', {
+        date: birthDate,
+        time: birthTime,
+        timeUnknown: currentData.time_unknown,
+        city: birthData.location.city.name,
+        timezone: birthData.location.city.timezone,
+        country: birthData.location.country.id,
+      });
+
+      // Re-generate chart using Maia Mechanics API
+      const { generateChart } = await import('@/lib/generate-chart');
+      const freshChart = await generateChart({
+        date: birthDate,
+        time: birthTime,
+        timeUnknown: currentData.time_unknown,
+        city: birthData.location.city.name,
+        timezone: birthData.location.city.timezone,
+        countryAbbr: birthData.location.country.id,
+      });
+
+      console.group(`Chart Refresh Diff - ${currentData.first_name} ${currentData.last_name ?? ''}`);
+      console.log('STORED CHART (entire object):', storedChart);
+      console.log('FRESH CHART (entire object):', freshChart);
+
+      // Deep comparison of the actual chart data (not metadata)
+      const chartDiff = findDifferences(storedChart.chart, freshChart.chart);
+      if (Object.keys(chartDiff).length > 0) {
+        console.log('Chart data differences found:', chartDiff);
+      } else {
+        console.log('No chart data differences detected');
+      }
+
+      // Also compare metadata separately
+      console.log('Metadata comparison:');
+      const metaDiff = findDifferences(storedChart.meta, freshChart.meta);
+      if (Object.keys(metaDiff).length > 0) {
+        console.log('Metadata differences (expected):', metaDiff);
+      } else {
+        console.log('No metadata differences');
+      }
+      console.groupEnd();
+
+    } catch (err) {
+      console.error('Failed to refresh chart:', err);
+    } finally {
+      setRefreshing(null);
+    }
+  };
+
+  function findDifferences(obj1: any, obj2: any, path = ''): Record<string, { old: any; new: any }> {
+    const diff: Record<string, { old: any; new: any }> = {};
+
+    const allKeys = new Set([...Object.keys(obj1 || {}), ...Object.keys(obj2 || {})]);
+
+    for (const key of allKeys) {
+      const currentPath = path ? `${path}.${key}` : key;
+      const val1 = obj1?.[key];
+      const val2 = obj2?.[key];
+
+      if (val1 === val2) continue;
+
+      if (typeof val1 === 'object' && val1 !== null && typeof val2 === 'object' && val2 !== null) {
+        if (Array.isArray(val1) && Array.isArray(val2)) {
+          if (JSON.stringify(val1) !== JSON.stringify(val2)) {
+            diff[currentPath] = { old: val1, new: val2 };
+          }
+        } else {
+          const nested = findDifferences(val1, val2, currentPath);
+          Object.assign(diff, nested);
+        }
+      } else {
+        diff[currentPath] = { old: val1, new: val2 };
+      }
+    }
+
+    return diff;
+  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -393,32 +509,52 @@ export default function AdminPage() {
                 onClick={() => handleRowClick(subscriber.id)}
               >
                 <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                  {subscriber.chart?.meta?.birthData?.time?.utc && (() => {
-                    const birthTimeUtc = subscriber.chart.meta.birthData.time.utc;
-                    const time = new Date(birthTimeUtc).getTime();
-                    const timeId = 1e4 * time + 621355968e9;
-                    const chartUrl = `https://cdn.jovianarchive.com/RaveChartGenerator.php?Time=${timeId}`;
-                    return (
-                      <button
-                        onClick={(e) => handleViewChart(chartUrl, e)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          opacity: 0.6
-                        }}
-                        title="View chart"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
-                      </button>
-                    );
-                  })()}
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center', justifyContent: 'center' }}>
+                    {subscriber.chart?.meta?.birthData?.time?.utc && (() => {
+                      const birthTimeUtc = subscriber.chart.meta.birthData.time.utc;
+                      const time = new Date(birthTimeUtc).getTime();
+                      const timeId = 1e4 * time + 621355968e9;
+                      const chartUrl = `https://cdn.jovianarchive.com/RaveChartGenerator.php?Time=${timeId}`;
+                      return (
+                        <button
+                          onClick={(e) => handleViewChart(chartUrl, e)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            opacity: 0.6
+                          }}
+                          title="View chart"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        </button>
+                      );
+                    })()}
+                    <button
+                      onClick={(e) => handleRefreshChart(subscriber.id, e)}
+                      disabled={refreshing === subscriber.id}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: refreshing === subscriber.id ? 'wait' : 'pointer',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        opacity: refreshing === subscriber.id ? 0.3 : 0.6
+                      }}
+                      title="Refresh chart from server"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                      </svg>
+                    </button>
+                  </div>
                 </td>
                 <td>
                   {subscriber.first_name}{' '}
