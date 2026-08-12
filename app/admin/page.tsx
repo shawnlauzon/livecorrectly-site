@@ -222,8 +222,8 @@ export default function AdminPage() {
         ? birthData.location.city
         : birthData.location.city.name;
 
-      const timezone = typeof birthData.location.city === 'string'
-        ? birthData.time.timezone?.id || birthData.time.timezone
+      const timezone: string = typeof birthData.location.city === 'string'
+        ? (typeof birthData.time.timezone === 'string' ? birthData.time.timezone : birthData.time.timezone?.id || '')
         : birthData.location.city.timezone;
 
       const countryAbbr = typeof birthData.location.country === 'string'
