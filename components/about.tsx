@@ -30,8 +30,7 @@ export default function About() {
               teach you strategies to move from frustrated, bitter, and angry to
               successful, satisfied, and at peace. I focus on practical tools
               which you can use immediately, rather than giving you a bunch of
-              theory which you&rsquo;ll immediately forget. Life will never be
-              the same again.
+              theory which you&rsquo;ll immediately forget.
             </p>
           </div>
         </div>
