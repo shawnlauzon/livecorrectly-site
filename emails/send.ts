@@ -44,7 +44,7 @@ export function formatEmailRecipient(
 /**
  * Extract email address from either formatted recipient ("Name <email>") or plain email.
  */
-function extractEmail(recipient: string): string {
+export function extractEmail(recipient: string): string {
   const match = recipient.match(/<(.+)>/);
   return match ? match[1] : recipient;
 }

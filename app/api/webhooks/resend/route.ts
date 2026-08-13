@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSubscriberByEmailForWebhook, updateEmailStatus, touchEngagement } from '@/lib/db';
+import { extractEmail } from '@/emails/send';
 
 /**
  * Resend webhook endpoint.
@@ -93,7 +94,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const recipientEmail = event.data?.to?.[0];
+  // Resend echoes `to` as sent — may include display name ("Name <email>").
+  // Extract the bare email address for DB lookup.
+  const rawRecipient = event.data?.to?.[0];
+  const recipientEmail = rawRecipient ? extractEmail(rawRecipient) : undefined;
 
   switch (event.type) {
     case 'email.bounced': {
@@ -138,7 +142,8 @@ export async function POST(request: NextRequest) {
     case 'email.suppressed':
     case 'suppression.added': {
       // email.suppressed uses data.to[], suppression.added uses data.email
-      const suppressedEmail = event.data?.email ?? recipientEmail;
+      const rawSuppressed = event.data?.email;
+      const suppressedEmail = rawSuppressed ? extractEmail(rawSuppressed) : recipientEmail;
       if (suppressedEmail) {
         const subscriber = await getSubscriberByEmailForWebhook(suppressedEmail);
         if (subscriber) {
@@ -152,7 +157,8 @@ export async function POST(request: NextRequest) {
     }
 
     case 'suppression.removed': {
-      const removedEmail = event.data?.email;
+      const rawRemoved = event.data?.email;
+      const removedEmail = rawRemoved ? extractEmail(rawRemoved) : undefined;
       if (removedEmail) {
         const subscriber = await getSubscriberByEmailForWebhook(removedEmail);
         if (subscriber && subscriber.email_status === 'suppressed') {
