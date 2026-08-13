@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Wrap from './wrap';
@@ -9,16 +9,11 @@ import styles from './hero.module.css';
 let hasAnimated = false;
 
 export default function Hero() {
-  const [skipAnimation, setSkipAnimation] = useState(true);
-
-  useEffect(() => {
-    if (hasAnimated) {
-      setSkipAnimation(true);
-    } else {
-      setSkipAnimation(false);
-      hasAnimated = true;
-    }
-  }, []);
+  const [skipAnimation] = useState(() => {
+    if (hasAnimated) return true;
+    hasAnimated = true;
+    return false;
+  });
 
   const done = skipAnimation ? ` ${styles.done}` : '';
 

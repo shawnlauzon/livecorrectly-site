@@ -461,6 +461,7 @@ export const typeEngagement = new Map<
   ],
   [
     'Advisor',
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     (authority) => {
       return (
         <P>
