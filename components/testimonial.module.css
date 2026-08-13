@@ -3,8 +3,20 @@
   padding-bottom: clamp(4rem, 9vh, 6.5rem);
 }
 
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5rem;
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+  }
+}
+
 .quote {
-  max-width: 46rem;
   margin: 0;
   padding: 0;
   border: none;
@@ -13,7 +25,7 @@
 .quoteText {
   font-family: var(--display);
   font-weight: 300;
-  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.9rem);
+  font-size: clamp(1.15rem, 0.95rem + 0.9vw, 1.45rem);
   line-height: 1.08;
   letter-spacing: -0.015em;
   color: var(--ink);

@@ -9,7 +9,7 @@ export default function Method() {
         <h2 className={styles.h2}>
           I won&rsquo;t just tell you how you&rsquo;re built.{' '}
           <em className={styles.italic}>
-            I&rsquo;ll work with you the way you&rsquo;re built.
+            I&rsquo;ll work with you in a way that feels natural.
           </em>
         </h2>
         <p className={styles.body}>

@@ -6,17 +6,38 @@ export default function Testimonial() {
     <section className={styles.section}>
       <Wrap>
         <p className="eyebrow">What it&rsquo;s like</p>
-        <blockquote className={styles.quote}>
-          <p className={styles.quoteText}>
-            &ldquo;It made me feel seen, at a time when I&rsquo;d been
-            questioning how I want to show up in my work. It felt like{" "}
-            <em className={styles.highlight}>a permission slip</em>&nbsp;&mdash;
-            not only to retreat, but to do things my way.&rdquo;
-          </p>
-          <cite className={styles.cite}>
-            &mdash; A happy client
-          </cite>
-        </blockquote>
+        <div className={styles.grid}>
+          <blockquote className={styles.quote}>
+            <p className={styles.quoteText}>
+              &ldquo;It &lsquo;catalysed&rsquo; something real big&hellip;
+              After our call, I&hellip;entered a pure state of flow&hellip;
+              liberating some emotions and attachment and resistance inside me
+              that I&rsquo;ve been working with for a very long time and
+              started opening for me the access to some closure I&rsquo;d been
+              seeking for just as long&hellip;{" "}
+              <em className={styles.highlight}>
+                You made a difference
+              </em>
+              .&rdquo;
+            </p>
+            <cite className={styles.cite}>&mdash; Sego, Life &amp; Health Coach</cite>
+          </blockquote>
+          <blockquote className={styles.quote}>
+            <p className={styles.quoteText}>
+              &ldquo;&hellip;he explained the aspects of what my results
+              uncovered and answered all of my questions so I could get a{" "}
+              <em className={styles.highlight}>practical understanding</em>.
+              &hellip;HD is a dynamic tool to gain insightful context for
+              career alignment, and new perspective on strengths and struggles.
+              I would highly recommend Shawn&rsquo;s services, and finding out
+              how HD can help you maximize your efforts and play to your
+              strengths.&rdquo;
+            </p>
+            <cite className={styles.cite}>
+              &mdash; Jessica, Director of Publicity &amp; Publishing
+            </cite>
+          </blockquote>
+        </div>
       </Wrap>
     </section>
   );

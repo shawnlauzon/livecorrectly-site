@@ -1,18 +1,18 @@
-import Wrap from "./wrap";
-import styles from "./how-it-helps.module.css";
+import Wrap from './wrap';
+import styles from './how-it-helps.module.css';
 
 const reasons = [
   {
-    tag: "Decisions",
-    text: "Make your own calls with confidence \u2014 without depending on others for advice.",
+    tag: 'Decisions',
+    text: 'Make your own calls with confidence, without depending on others for advice.',
   },
   {
-    tag: "Visibility",
-    text: "Bring in the right people without selling like someone you\u2019re not.",
+    tag: 'Visibility',
+    text: 'Bring in the right people without selling like someone you\u2019re not.',
   },
   {
-    tag: "Relationships",
-    text: "Understand why certain people are hard to reach \u2014 and what to do differently.",
+    tag: 'Relationships',
+    text: 'Understand why certain people are hard to reach, and what to do differently.',
   },
 ];
 
