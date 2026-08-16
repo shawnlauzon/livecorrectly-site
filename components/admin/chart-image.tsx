@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { getChartImageUrl } from '@/lib/chart-image';
 import styles from './chart-image.module.css';
 
 interface ChartImageProps {
@@ -17,9 +18,7 @@ interface ChartImageProps {
 export default function ChartImage({ birthTimeUtc, disableLightbox }: ChartImageProps) {
   const [open, setOpen] = useState(false);
 
-  const time = new Date(birthTimeUtc).getTime();
-  const timeId = 1e4 * time + 621355968e9;
-  const url = `https://cdn.jovianarchive.com/RaveChartGenerator.php?Time=${timeId}`;
+  const url = getChartImageUrl(birthTimeUtc);
 
   const close = useCallback(() => setOpen(false), []);
 

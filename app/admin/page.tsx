@@ -7,6 +7,7 @@ import { ChartRecord } from '@/lib/types/chart';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import hdChart from '@/lib/hd-chart';
 import { innerAuthorityTypes } from '@/lib/hd-chart/constants';
+import { getChartImageUrl } from '@/lib/chart-image';
 import styles from './admin.module.css';
 
 async function fetchSubscribers(pwd: string): Promise<{ ok: true; data: Subscriber[] } | { ok: false; error: string }> {
@@ -607,10 +608,7 @@ function AdminPageContent() {
                 <td style={{ padding: '0.5rem', textAlign: 'center' }}>
                   <div style={{ display: 'flex', gap: '4px', alignItems: 'center', justifyContent: 'center' }}>
                     {subscriber.chart?.meta?.birthData?.time?.utc && (() => {
-                      const birthTimeUtc = subscriber.chart.meta.birthData.time.utc;
-                      const time = new Date(birthTimeUtc).getTime();
-                      const timeId = 1e4 * time + 621355968e9;
-                      const chartUrl = `https://cdn.jovianarchive.com/RaveChartGenerator.php?Time=${timeId}`;
+                      const chartUrl = getChartImageUrl(subscriber.chart.meta.birthData.time.utc);
                       return (
                         <button
                           onClick={(e) => handleViewChart(chartUrl, e)}
