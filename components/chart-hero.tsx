@@ -32,11 +32,9 @@ const heroImages: Record<number, string> = {
 
 interface ChartHeroProps {
   subscriber: Subscriber;
-  onRefresh?: () => void;
-  refreshing?: boolean;
 }
 
-export default function ChartHero({ subscriber, onRefresh, refreshing = false }: ChartHeroProps) {
+export default function ChartHero({ subscriber }: ChartHeroProps) {
   const [chartOpen, setChartOpen] = useState(false);
   const closeLightbox = useCallback(() => setChartOpen(false), []);
 
@@ -69,40 +67,16 @@ export default function ChartHero({ subscriber, onRefresh, refreshing = false }:
           />
           <div className={styles.heroOverlay}>
             <h2 className={styles.heroTitle}>{hd.careerDesign()}</h2>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              {showBodygraph && (
-                <button
-                  type="button"
-                  className={styles.heroBodygraph}
-                  onClick={() => setChartOpen(true)}
-                  aria-label="View full chart"
-                >
-                  <ChartImage birthTimeUtc={birthTimeUtc} disableLightbox />
-                </button>
-              )}
-              {onRefresh && (
-                <button
-                  type="button"
-                  onClick={onRefresh}
-                  disabled={refreshing}
-                  aria-label="Refresh chart"
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.95)',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '10px 16px',
-                    cursor: refreshing ? 'wait' : 'pointer',
-                    fontSize: '0.92rem',
-                    fontWeight: 600,
-                    color: 'var(--ink)',
-                    opacity: refreshing ? 0.6 : 1,
-                    transition: 'opacity 0.2s',
-                  }}
-                >
-                  {refreshing ? 'Refreshing...' : 'Refresh'}
-                </button>
-              )}
-            </div>
+            {showBodygraph && (
+              <button
+                type="button"
+                className={styles.heroBodygraph}
+                onClick={() => setChartOpen(true)}
+                aria-label="View full chart"
+              >
+                <ChartImage birthTimeUtc={birthTimeUtc} disableLightbox />
+              </button>
+            )}
           </div>
         </div>
       )}

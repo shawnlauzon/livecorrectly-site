@@ -18,69 +18,6 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [restartState, setRestartState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [refreshing, setRefreshing] = useState(false);
-
-  async function handleRefresh() {
-    setRefreshing(true);
-    try {
-      const res = await fetch(`/api/subscribers/${subscriberId}`);
-      if (!res.ok) {
-        throw new Error(`Unexpected status: ${res.status}`);
-      }
-      const updatedData = (await res.json()) as Subscriber;
-
-      // Log the diff
-      if (subscriber) {
-        console.group('Chart Refresh Diff');
-        console.log('Previous chart:', subscriber.chart);
-        console.log('Updated chart:', updatedData.chart);
-
-        // Deep comparison
-        const chartDiff = findDifferences(subscriber.chart, updatedData.chart);
-        if (Object.keys(chartDiff).length > 0) {
-          console.log('Differences found:', chartDiff);
-        } else {
-          console.log('No differences detected');
-        }
-        console.groupEnd();
-      }
-
-      setSubscriber(updatedData);
-    } catch (err) {
-      console.error('Failed to refresh chart:', err);
-    } finally {
-      setRefreshing(false);
-    }
-  }
-
-  function findDifferences(obj1: any, obj2: any, path = ''): Record<string, { old: any; new: any }> {
-    const diff: Record<string, { old: any; new: any }> = {};
-
-    const allKeys = new Set([...Object.keys(obj1 || {}), ...Object.keys(obj2 || {})]);
-
-    for (const key of allKeys) {
-      const currentPath = path ? `${path}.${key}` : key;
-      const val1 = obj1?.[key];
-      const val2 = obj2?.[key];
-
-      if (val1 === val2) continue;
-
-      if (typeof val1 === 'object' && val1 !== null && typeof val2 === 'object' && val2 !== null) {
-        if (Array.isArray(val1) && Array.isArray(val2)) {
-          if (JSON.stringify(val1) !== JSON.stringify(val2)) {
-            diff[currentPath] = { old: val1, new: val2 };
-          }
-        } else {
-          const nested = findDifferences(val1, val2, currentPath);
-          Object.assign(diff, nested);
-        }
-      } else {
-        diff[currentPath] = { old: val1, new: val2 };
-      }
-    }
-
-    return diff;
-  }
 
   async function handleRestart() {
     setRestartState('loading');
@@ -147,7 +84,7 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
       <h1 className={styles.chartName}>Your design.</h1>
 
       <div className={styles.card}>
-        <ChartHero subscriber={subscriber} onRefresh={handleRefresh} refreshing={refreshing} />
+        <ChartHero subscriber={subscriber} />
 
         <p className={styles.resultP} style={{ marginTop: 28 }}>
           That&rsquo;s the data. If most of it doesn&rsquo;t mean much to you,
