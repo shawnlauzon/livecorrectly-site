@@ -189,10 +189,16 @@ export async function sendAdminNotification(
     ? `Series restarted: ${subscriber.first_name} (${subscriber.email})`
     : `New subscriber: ${subscriber.first_name} (${subscriber.email})`;
 
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!adminEmail) {
+    console.error('[email] ADMIN_EMAIL not configured, skipping admin notification');
+    return;
+  }
+
   const client = getResend();
   const { error } = await client.emails.send({
     from,
-    to: from,
+    to: adminEmail,
     subject,
     text: [
       bodyPrefix,
