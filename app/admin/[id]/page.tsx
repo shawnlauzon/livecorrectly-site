@@ -8,7 +8,7 @@ import ChartDisplay from '@/components/admin/chart-display';
 import ChartHero from '@/components/chart-hero';
 import ChartImage from '@/components/admin/chart-image';
 import hdChart from '@/lib/hd-chart';
-import { shadowNames, shadowDescriptions, shadowThemes, shadowLessons, shadowPressures, channelStrengths, gateTraits, functionToCenterIndex, centerNames } from '@/lib/hd-chart/constants';
+import { shadowNames, shadowDescriptions, shadowThemes, shadowLessons, shadowPressures, channelStrengths, gateTraits, functionToCenterIndex, centerNames, determinationNames, determinationConditions, environmentNames, environmentConditions, cognitionNames } from '@/lib/hd-chart/constants';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { hangingGateDescriptions } from '@/emails/content';
 import styles from './detail.module.css';
@@ -131,6 +131,8 @@ export default function AdminDetailPage({
       <StrengthsDisplay subscriber={subscriber} />
 
       <ShadowsDisplay subscriber={subscriber} />
+
+      <VariablesDisplay subscriber={subscriber} />
 
       <WelcomeSeries subscriber={subscriber} onSubscriberUpdate={setSubscriber} />
 
@@ -396,6 +398,62 @@ function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
             </div>
             );
           })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VariablesDisplay({ subscriber }: { subscriber: Subscriber }) {
+  const planets = subscriber.chart.chart.planets ?? [];
+
+  // Design Sun: id=0, activation=0 (design side)
+  const designSun = planets.find(p => p.id === 0 && p.activation === 0);
+  // Design South Node: id=3, activation=0 (design side)
+  const designSouthNode = planets.find(p => p.id === 3 && p.activation === 0);
+
+  if (!designSun && !designSouthNode) return null;
+
+  const formatVariable = (
+    color: number,
+    tone: number,
+    names: Record<number, string>,
+    conditions: Record<number, [string, string]>,
+  ): string | null => {
+    const name = names[color];
+    const conditionPair = conditions[color];
+    const cognition = cognitionNames[tone];
+    if (!name || !conditionPair || !cognition) return null;
+    const condition = tone <= 3 ? conditionPair[0] : conditionPair[1];
+    return `${condition} ${name} with ${cognition} Cognition`;
+  };
+
+  const phs = designSun
+    ? formatVariable(designSun.color, designSun.tone, determinationNames, determinationConditions)
+    : null;
+  const env = designSouthNode
+    ? formatVariable(designSouthNode.color, designSouthNode.tone, environmentNames, environmentConditions)
+    : null;
+
+  if (!phs && !env) return null;
+
+  return (
+    <div className={styles.welcomeSection}>
+      <div className={styles.welcomeCard}>
+        <h2 className={styles.welcomeHeading}>Variables</h2>
+        <div className={styles.welcomeMeta}>
+          {phs && (
+            <div className={styles.welcomeMetaItem}>
+              <span className={styles.welcomeMetaLabel}>PHS (Determination)</span>
+              <span>{phs}</span>
+            </div>
+          )}
+          {env && (
+            <div className={styles.welcomeMetaItem}>
+              <span className={styles.welcomeMetaLabel}>Environment</span>
+              <span>{env}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

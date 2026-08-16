@@ -603,3 +603,57 @@ export const awarenessStreams = [
     channels: [[35, 36], [41, 30]],
   },
 ] as const;
+
+// --- Variable (PHS / Environment) ---
+
+/** Determination names by Design Sun color (1-6) */
+export const determinationNames: Record<number, string> = {
+  1: 'Appetite',
+  2: 'Taste',
+  3: 'Thirst',
+  4: 'Touch',
+  5: 'Sound',
+  6: 'Light',
+};
+
+/** Determination left/right conditions by Design Sun color.
+ *  Index 0 = left (tones 1-3), index 1 = right (tones 4-6). */
+export const determinationConditions: Record<number, [string, string]> = {
+  1: ['Consecutive', 'Alternating'],
+  2: ['Open', 'Closed'],
+  3: ['Hot', 'Cold'],
+  4: ['Calm', 'Nervous'],
+  5: ['High', 'Low'],
+  6: ['Direct', 'Indirect'],
+};
+
+/** Environment names by Design South Node color (1-6) */
+export const environmentNames: Record<number, string> = {
+  1: 'Caves',
+  2: 'Markets',
+  3: 'Kitchens',
+  4: 'Mountains',
+  5: 'Valleys',
+  6: 'Shores',
+};
+
+/** Environment left/right conditions by Design South Node color.
+ *  Index 0 = left (tones 1-3), index 1 = right (tones 4-6). */
+export const environmentConditions: Record<number, [string, string]> = {
+  1: ['Selective', 'Blending'],
+  2: ['Internal', 'External'],
+  3: ['Wet', 'Dry'],
+  4: ['Active', 'Passive'],
+  5: ['Narrow', 'Wide'],
+  6: ['Natural', 'Artificial'],
+};
+
+/** Cognition names by tone (1-6) — same for both PHS and Environment */
+export const cognitionNames: Record<number, string> = {
+  1: 'Smell',
+  2: 'Taste',
+  3: 'Outer Vision',
+  4: 'Inner Vision',
+  5: 'Feeling',
+  6: 'Touch',
+};
