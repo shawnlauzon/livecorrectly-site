@@ -110,6 +110,7 @@ export interface BirthTime {
   dst: number | null;
   utc: string;
   local: string;
+  design: string;
   status: string;
   timezone: BirthTimezone;
 }

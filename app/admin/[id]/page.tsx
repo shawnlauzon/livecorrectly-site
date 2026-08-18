@@ -134,6 +134,8 @@ export default function AdminDetailPage({
 
       <VariablesDisplay subscriber={subscriber} />
 
+      <ReturnsDisplay subscriber={subscriber} />
+
       <WelcomeSeries subscriber={subscriber} onSubscriberUpdate={setSubscriber} />
 
       <EmailPreviews subscriber={subscriber} currentEmailStep={emailStep} />
@@ -454,6 +456,150 @@ function VariablesDisplay({ subscriber }: { subscriber: Subscriber }) {
               <span>{env}</span>
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function formatReturnDate(date: Date): string {
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+function formatRelativeDate(date: Date): string {
+  const now = new Date();
+  const diffMs = date.getTime() - now.getTime();
+  const isPast = diffMs < 0;
+  const absDiffMs = Math.abs(diffMs);
+
+  const totalDays = Math.floor(absDiffMs / (1000 * 60 * 60 * 24));
+  const years = Math.floor(totalDays / 365.25);
+  const remainingDays = totalDays - Math.floor(years * 365.25);
+  const months = Math.floor(remainingDays / 30.44);
+
+  const parts: string[] = [];
+  if (years > 0) parts.push(`${years} ${years === 1 ? 'year' : 'years'}`);
+  if (months > 0) parts.push(`${months} ${months === 1 ? 'month' : 'months'}`);
+  if (parts.length === 0) {
+    if (totalDays === 0) return isPast ? 'today' : 'today';
+    parts.push(`${totalDays} ${totalDays === 1 ? 'day' : 'days'}`);
+  }
+
+  const label = parts.join(', ');
+  return isPast ? `${label} ago` : `in ${label}`;
+}
+
+function getNextAnnualReturn(isoTimestamp: string): Date {
+  const origin = new Date(isoTimestamp);
+  const now = new Date();
+  const thisYear = now.getUTCFullYear();
+  const candidate = new Date(Date.UTC(thisYear, origin.getUTCMonth(), origin.getUTCDate()));
+  if (candidate <= now) {
+    candidate.setUTCFullYear(thisYear + 1);
+  }
+  return candidate;
+}
+
+interface ReturnItem {
+  name: string;
+  date: Date;
+  isPast: boolean;
+  isAnnual: boolean;
+}
+
+function ReturnsDisplay({ subscriber }: { subscriber: Subscriber }) {
+  const cycles = subscriber.chart?.chart?.cycles;
+  const birthUtc = subscriber.chart?.meta?.birthData?.time?.utc;
+  const designUtc = subscriber.chart?.meta?.birthData?.time?.design;
+
+  if (!cycles && !birthUtc) return null;
+
+  const cycleReturns: ReturnItem[] = [];
+  const now = new Date();
+
+  if (cycles) {
+    const cycleEntries: { key: string; name: string }[] = [
+      { key: 'saturn', name: 'Saturn Return' },
+      { key: 'chiron', name: 'Chiron Return' },
+      { key: 'uranus', name: 'Uranus Opposition' },
+      { key: 'secondSaturn', name: 'Second Saturn Return' },
+    ];
+
+    for (const { key, name } of cycleEntries) {
+      const value = cycles[key as keyof typeof cycles];
+      if (value) {
+        const date = new Date(value);
+        if (!isNaN(date.getTime())) {
+          cycleReturns.push({
+            name,
+            date,
+            isPast: date <= now,
+            isAnnual: false,
+          });
+        }
+      }
+    }
+  }
+
+  // Sort: upcoming first (soonest), then past (most recent first)
+  const upcoming = cycleReturns.filter(r => !r.isPast).sort((a, b) => a.date.getTime() - b.date.getTime());
+  const past = cycleReturns.filter(r => r.isPast).sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  // Annual returns always at bottom
+  const annualReturns: ReturnItem[] = [];
+  if (birthUtc) {
+    annualReturns.push({
+      name: 'Solar Return',
+      date: getNextAnnualReturn(birthUtc),
+      isPast: false,
+      isAnnual: true,
+    });
+  }
+  if (designUtc) {
+    annualReturns.push({
+      name: 'Design Return',
+      date: getNextAnnualReturn(designUtc),
+      isPast: false,
+      isAnnual: true,
+    });
+  }
+  if (annualReturns.length > 1) {
+    annualReturns.sort((a, b) => a.date.getTime() - b.date.getTime());
+  }
+
+  const allReturns = [...upcoming, ...past, ...annualReturns];
+
+  if (allReturns.length === 0) return null;
+
+  return (
+    <div className={styles.welcomeSection}>
+      <div className={styles.welcomeCard}>
+        <h2 className={styles.welcomeHeading}>Returns</h2>
+        <div className={styles.returnsList}>
+          {allReturns.map((item) => (
+            <div
+              key={item.name}
+              className={`${styles.returnItem} ${item.isPast ? styles.returnPast : ''}`}
+            >
+              <div className={styles.returnHeader}>
+                <span className={styles.returnName}>
+                  {item.name}
+                  {item.isAnnual && (
+                    <span className={styles.returnAnnualBadge}>annual</span>
+                  )}
+                </span>
+                <div className={styles.returnDetails}>
+                  <span className={styles.returnDate}>{formatReturnDate(item.date)}</span>
+                  <span className={styles.returnRelative}>{formatRelativeDate(item.date)}</span>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

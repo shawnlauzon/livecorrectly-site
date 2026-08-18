@@ -506,6 +506,75 @@
   color: var(--ink);
 }
 
+/* Returns section */
+.returnsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.returnItem {
+  padding: 0.75rem 1rem;
+  background: var(--paper);
+  border-radius: 6px;
+  border: 1px solid var(--line);
+}
+
+.returnPast {
+  opacity: 0.5;
+}
+
+.returnHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.returnName {
+  font-family: var(--display);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.returnAnnualBadge {
+  font-family: var(--body);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--grape);
+  background: var(--card);
+  padding: 0.0625rem 0.375rem;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.returnDetails {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.returnDate {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  color: var(--ink);
+}
+
+.returnRelative {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  color: var(--muted);
+  min-width: 10rem;
+  text-align: right;
+}
+
 /* Email preview sections */
 .emailPreviewList {
   display: flex;
