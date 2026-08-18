@@ -100,6 +100,7 @@ export default function ChartHero({ subscriber }: ChartHeroProps) {
             {formatBirthDate(subscriber.birth_date)}
             {subscriber.birth_time && ` at ${formatBirthTime(subscriber.birth_time)}`}
             {subscriber.time_unknown && ' (time unknown)'}
+            {subscriber.birth_place && ` in ${subscriber.birth_place}`}
           </div>
         </div>
       </div>
