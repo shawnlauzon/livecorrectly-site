@@ -1,0 +1,86 @@
+.banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: var(--ink);
+  color: var(--ground);
+  padding: 1rem var(--gutter);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);
+}
+
+.text {
+  max-width: 36rem;
+}
+
+.text a {
+  color: var(--ground);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.text a:hover {
+  opacity: 0.8;
+}
+
+.buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.accept {
+  background: var(--ground);
+  color: var(--ink);
+  border: none;
+  padding: 0.5rem 1.25rem;
+  font-family: var(--body);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: opacity 0.18s ease;
+}
+.accept:hover {
+  opacity: 0.85;
+}
+
+.decline {
+  background: transparent;
+  color: var(--ground);
+  border: 1px solid rgba(250, 248, 244, 0.3);
+  padding: 0.5rem 1.25rem;
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 0.8125rem;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: border-color 0.18s ease;
+}
+.decline:hover {
+  border-color: rgba(250, 248, 244, 0.6);
+}
+
+@media (max-width: 480px) {
+  .banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.25rem var(--gutter);
+  }
+
+  .buttons {
+    width: 100%;
+  }
+
+  .accept,
+  .decline {
+    flex: 1;
+  }
+}

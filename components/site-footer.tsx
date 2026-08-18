@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Wrap from "./wrap";
 import styles from "./site-footer.module.css";
 
@@ -9,6 +10,10 @@ export default function SiteFooter() {
       </a>
       <span className={styles.sep}>&middot;</span>
       <span>Austin, TX</span>
+      <span className={styles.sep}>&middot;</span>
+      <Link className={styles.footerLink} href="/privacy">
+        Privacy
+      </Link>
     </Wrap>
   );
 }
