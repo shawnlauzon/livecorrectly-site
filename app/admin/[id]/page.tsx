@@ -142,6 +142,8 @@ export default function AdminDetailPage({
 
       <BroadcastSection subscriber={subscriber} />
 
+      <NewsletterSection subscriber={subscriber} />
+
       <ChartJson chart={subscriber.chart} />
     </div>
   );
@@ -1404,6 +1406,263 @@ function BroadcastSection({ subscriber }: { subscriber: Subscriber }) {
               </div>
             )}
           </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
+  const [selectedStep, setSelectedStep] = useState<number>(1);
+  const [html, setHtml] = useState<string | null>(null);
+  const [subject, setSubject] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [newsletterCount, setNewsletterCount] = useState<number | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const isActive = subscriber.email_status === 'active';
+  const newsletterStep = subscriber.next_step - WELCOME_SERIES_LENGTH;
+
+  // Determine newsletter state
+  let newsletterState: 'not_started' | 'in_progress' | 'complete';
+  if (subscriber.next_step <= WELCOME_SERIES_LENGTH) {
+    newsletterState = 'not_started';
+  } else if (subscriber.next_send_at) {
+    newsletterState = 'in_progress';
+  } else {
+    newsletterState = 'complete';
+  }
+
+  const loadPreview = useCallback(async (step: number) => {
+    const password = sessionStorage.getItem('adminPassword');
+    if (!password) return;
+
+    setLoading(true);
+    setError(null);
+    setHtml(null);
+    setSubject(null);
+    setPreview(null);
+
+    try {
+      const response = await fetch(`/api/admin/subscribers/${subscriber.id}/preview-newsletter?step=${step}`, {
+        headers: { Authorization: `Bearer ${password}` }
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to load preview');
+      }
+
+      const data: { subject: string; preview: string; html: string; totalNewsletters: number } = await response.json();
+      setSubject(data.subject);
+      setPreview(data.preview);
+      setHtml(data.html);
+      setNewsletterCount(data.totalNewsletters);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load preview';
+      setError(message);
+      console.error('[admin] Error loading newsletter preview:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [subscriber.id]);
+
+  // Load first preview on mount to populate the dropdown and discover newsletter count
+  useEffect(() => {
+    loadPreview(1);
+  }, [loadPreview]);
+
+  const handleSend = useCallback(async () => {
+    const password = sessionStorage.getItem('adminPassword');
+    if (!password) return;
+
+    setSending(true);
+    setFeedback(null);
+
+    try {
+      const response = await fetch(`/api/admin/subscribers/${subscriber.id}/send-newsletter`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${password}`
+        },
+        body: JSON.stringify({ step: selectedStep })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setFeedback({ type: 'error', message: data.error || 'Failed to send newsletter' });
+        return;
+      }
+
+      setFeedback({ type: 'success', message: `Newsletter #${selectedStep} sent successfully` });
+    } catch (err) {
+      console.error('Error sending newsletter:', err);
+      setFeedback({ type: 'error', message: 'Network error — could not send newsletter' });
+    } finally {
+      setSending(false);
+    }
+  }, [subscriber.id, selectedStep]);
+
+  const handleStepChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const step = parseInt(e.target.value, 10);
+    setSelectedStep(step);
+    setFeedback(null);
+    loadPreview(step);
+  }, [loadPreview]);
+
+  // Resize iframe to match content height
+  useEffect(() => {
+    if (!html || !iframeRef.current) return;
+    const iframe = iframeRef.current;
+    const onLoad = () => {
+      try {
+        const doc = iframe.contentDocument;
+        if (doc) {
+          iframe.style.height = doc.documentElement.scrollHeight + 'px';
+        }
+      } catch {
+        // Cross-origin — shouldn't happen with srcdoc
+      }
+    };
+    iframe.addEventListener('load', onLoad);
+    return () => iframe.removeEventListener('load', onLoad);
+  }, [html]);
+
+  const formatDate = (dateStr: string) => {
+    const iso = dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00Z`;
+    const date = new Date(iso);
+    if (isNaN(date.getTime())) return dateStr;
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: 'UTC'
+    });
+  };
+
+  const stepOptions = Array.from({ length: newsletterCount ?? 1 }, (_, i) => i + 1);
+
+  return (
+    <div className={styles.welcomeSection}>
+      <div className={styles.welcomeCard}>
+        <h2 className={styles.welcomeHeading}>Newsletter Series</h2>
+
+        <div className={styles.welcomeMeta}>
+          <div className={styles.welcomeMetaItem}>
+            <span className={styles.welcomeMetaLabel}>Status</span>
+            <span>
+              {newsletterState === 'not_started' && 'Not started (in welcome series)'}
+              {newsletterState === 'in_progress' && `Newsletter ${newsletterStep} of ${newsletterCount ?? '...'}`}
+              {newsletterState === 'complete' && `Complete (${newsletterCount ?? '...'} newsletters)`}
+            </span>
+          </div>
+          {newsletterState === 'in_progress' && subscriber.next_send_at && (
+            <div className={styles.welcomeMetaItem}>
+              <span className={styles.welcomeMetaLabel}>Next send</span>
+              <span>{formatDate(subscriber.next_send_at)}</span>
+            </div>
+          )}
+        </div>
+
+        <div className={styles.welcomeMeta}>
+          <div className={styles.welcomeMetaItem}>
+            <span className={styles.welcomeMetaLabel}>Preview newsletter</span>
+            <div className={styles.nextEmailControl}>
+              <select
+                className={styles.nextEmailSelect}
+                value={selectedStep}
+                onChange={handleStepChange}
+              >
+                {stepOptions.map((n) => (
+                  <option key={n} value={n}>
+                    Newsletter #{n}
+                  </option>
+                ))}
+              </select>
+              <button
+                className={styles.nextEmailSave}
+                onClick={() => loadPreview(selectedStep)}
+                disabled={loading}
+              >
+                {loading ? 'Loading...' : 'Preview'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {(html || loading || error) && (
+          <details className={styles.emailPreview} open>
+            <summary className={styles.emailPreviewSummary}>
+              <span className={styles.emailPreviewLabel}>Newsletter #{selectedStep}</span>
+              <button
+                className={styles.emailPreviewRefresh}
+                onClick={(e) => {
+                  e.preventDefault();
+                  loadPreview(selectedStep);
+                }}
+                disabled={loading}
+                title="Refresh preview"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="23 4 23 10 17 10" />
+                  <polyline points="1 20 1 14 7 14" />
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                </svg>
+                {loading ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </summary>
+            <div className={styles.emailPreviewContent}>
+              {loading && (
+                <p className={styles.emailPreviewParagraph}>Loading preview...</p>
+              )}
+              {error && (
+                <p className={styles.emailPreviewError}>{error}</p>
+              )}
+              {subject && (
+                <div className={styles.emailPreviewSubject}>Subject: {subject}</div>
+              )}
+              {preview && (
+                <div className={styles.emailPreviewPreview}>Preview: {preview}</div>
+              )}
+              {html && (
+                <iframe
+                  ref={iframeRef}
+                  srcDoc={html}
+                  className={styles.emailPreviewIframe}
+                  sandbox="allow-same-origin"
+                  title={`Newsletter #${selectedStep} preview`}
+                />
+              )}
+            </div>
+          </details>
+        )}
+
+        {isActive ? (
+          <div className={styles.welcomeButtons}>
+            <button
+              className={styles.dayButton}
+              disabled={sending || loading}
+              onClick={handleSend}
+            >
+              {sending ? 'Sending...' : `Send Newsletter #${selectedStep}`}
+            </button>
+          </div>
+        ) : (
+          <p className={styles.welcomeDisabled}>
+            Cannot send newsletter — subscriber status is &ldquo;{subscriber.email_status}&rdquo;
+          </p>
+        )}
+
+        {feedback && (
+          <div className={`${styles.welcomeFeedback} ${feedback.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}`}>
+            {feedback.message}
+          </div>
         )}
       </div>
     </div>

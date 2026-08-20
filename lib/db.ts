@@ -257,6 +257,25 @@ export async function touchEngagement(id: string): Promise<void> {
 }
 
 /**
+ * Get active subscribers due for their next newsletter email.
+ * Returns subscribers who have completed the welcome series and whose
+ * next_send_at is today or earlier.
+ */
+export async function getDueNewsletterSubscribers(
+  welcomeSeriesLength: number
+): Promise<Subscriber[]> {
+  const db = getDb();
+  const result = await db`
+    SELECT * FROM subscribers
+    WHERE email_status = 'active'
+      AND next_step > ${welcomeSeriesLength}
+      AND next_send_at <= CURRENT_DATE
+    ORDER BY next_send_at ASC
+  `;
+  return (result as Subscriber[]).map(normalizeSubscriber);
+}
+
+/**
  * Get active subscribers eligible for a broadcast who haven't received it yet.
  * Returns newest registrations first, limited to batch size.
  */

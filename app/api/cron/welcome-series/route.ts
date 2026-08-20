@@ -11,6 +11,12 @@ function getTomorrowDate(): string {
   return d.toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
+function getNextWeekDate(): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + 7);
+  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
 /**
  * Cron endpoint: sends due welcome series emails.
  * Secured by CRON_SECRET (Vercel sends Authorization: Bearer <CRON_SECRET>).
@@ -47,9 +53,9 @@ export async function GET(request: NextRequest) {
   for (const subscriber of dueSubscribers) {
     const step = subscriber.next_step;
 
+    // Skip subscribers who have completed the welcome series —
+    // they are handled by the newsletter cron instead
     if (step > WELCOME_SERIES_LENGTH) {
-      // Series complete — clear next_send_at
-      await advanceEmailSeries(subscriber.id, subscriber.next_step, null);
       skipped++;
       continue;
     }
@@ -73,11 +79,12 @@ export async function GET(request: NextRequest) {
     });
 
     if (result.success) {
-      // Advance to next step; set next_send_at to tomorrow's date
+      // On last welcome: enroll in newsletter sequence (7 days out)
+      // Otherwise: schedule next welcome for tomorrow
       const nextSendAt =
         step < WELCOME_SERIES_LENGTH
           ? getTomorrowDate()
-          : null;
+          : getNextWeekDate();
       await advanceEmailSeries(subscriber.id, step + 1, nextSendAt);
       sent++;
     } else {
