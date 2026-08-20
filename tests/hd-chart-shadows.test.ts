@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import hdChart from '../lib/hd-chart/index';
 import type { Chart, ChartRecord } from '../lib/types/chart';
 import shawnsChartData from './fixtures/shawns-chart.json';
+import sevillaChartData from './fixtures/sevilla-chart.json';
 
 /** Helper to create a minimal Chart with overrides */
 function makeChart(overrides: Partial<Chart>): Chart {
@@ -745,5 +746,57 @@ describe('Channel Bridge Descriptions', () => {
     const hd = hdChart(chart);
     expect(hd.hasChannelBridges()).toBe(false);
     expect(hd.getChannelBridgeDescriptions()).toEqual([]);
+  });
+});
+
+describe('Sevilla Chart (wide split bridge selection)', () => {
+  // Sevilla chart: 1988-02-06, definition=2/split
+  // Components: {Spleen(2), Ego(4)} via 26-44  and  {Throat(6), Ajna(7)} via 23-43+11-56
+  // bridgingFarGates: [20, 57, 51, 31, 33] — all bridge through G Center(5)
+  // Personality Sun on gate 13 (harmonic of far gate 33)
+  // Personality Earth on gate 7 (harmonic of far gate 31)
+  const chartRecord = sevillaChartData[0] as unknown as { chart: { chart: Chart } };
+  const sevillaChart = chartRecord.chart.chart;
+  const hd = hdChart(sevillaChart);
+
+  it('should detect a 2W split', () => {
+    expect(hd.splitType()).toBe('2W');
+  });
+
+  it('should return exactly 2 far bridge descriptions', () => {
+    const farBridges = hd.getFarBridgeDescriptions();
+    expect(farBridges).toHaveLength(2);
+  });
+
+  it('should select gates 51 and 33 as the bridge pair (not 57 and 33)', () => {
+    // {51,33} wins over {57,33} because of harmonic exclusivity:
+    //   {51,33}: harmonics {25,13} → 1+1 = 2 alternatives (more exclusive)
+    //   {57,33}: harmonics {10,13} → 3+1 = 4 alternatives (less exclusive)
+    const farBridges = hd.getFarBridgeDescriptions();
+    const farGates = farBridges.map(b => b.gate).sort((a, b) => a - b);
+    expect(farGates).toEqual([33, 51]);
+  });
+
+  it('should rank gate 33 first (personality Sun on harmonic 13)', () => {
+    const farBridges = hd.getFarBridgeDescriptions();
+    // Gate 33 has score tier 1 (Sun exclusive), gate 51 has score tier 5 (default)
+    expect(farBridges[0].gate).toBe(33);
+    expect(farBridges[0].harmonicGate).toBe(13);
+    expect(farBridges[0].strength).toBe('Witnessing');
+  });
+
+  it('should rank gate 51 second', () => {
+    const farBridges = hd.getFarBridgeDescriptions();
+    expect(farBridges[1].gate).toBe(51);
+    expect(farBridges[1].harmonicGate).toBe(25);
+    expect(farBridges[1].strength).toBe('Competitiveness');
+  });
+
+  it('should return {51, 33} as the top bridge pair', () => {
+    const topPair = hd.getTopBridgePair();
+    expect(topPair).not.toBeNull();
+    expect(topPair!.bridges).toHaveLength(2);
+    const pairGates = topPair!.bridges.map(b => b.gate).sort((a, b) => a - b);
+    expect(pairGates).toEqual([33, 51]);
   });
 });

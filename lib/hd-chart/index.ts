@@ -703,15 +703,26 @@ export default function hdChart(chart: Chart) {
     return results;
   };
 
+  type BridgeScore = {
+    tier: number;           // 1-5 (Sun exclusive / Earth exclusive / stream / non-exclusive Sun|Earth / default)
+    activationCount: number; // how many planets activate the harmonic gate (more = better)
+    bestPlanetId: number;   // lowest planet id on harmonic gate (lower = more important)
+  };
+
   /**
-   * Score a bridge (missing gate + harmonic) using the 4-tier priority system:
+   * Score a bridge (missing gate + harmonic) with full detail for tiebreaking.
+   *
+   * Tier system:
    * 1 (highest): Sun activates the harmonic exclusively
    * 2: Earth activates the harmonic exclusively
    * 3: Bridge completes an awareness stream
    * 4: Sun/Earth activates the harmonic non-exclusively
    * 5 (default): No special priority
+   *
+   * activationCount: how many planets activate the harmonic gate (more = better)
+   * bestPlanetId: lowest planet id on the harmonic gate (lower = more important)
    */
-  const scoreBridge = (missingGate: number, harmonicGate: number): number => {
+  const scoreBridgeDetailed = (missingGate: number, harmonicGate: number): BridgeScore => {
     const planets = chart.planets ?? [];
     const userGates = chart.gates.map(g => g.gate);
 
@@ -723,19 +734,26 @@ export default function hdChart(chart: Chart) {
     }
     const isExclusive = harmonicCount <= 1;
 
-    // Check Sun/Earth activation on the harmonic gate
+    // Planet data on the harmonic gate
+    const harmonicPlanets = planets.filter(p => p.gate === harmonicGate);
+    const activationCount = harmonicPlanets.length;
+    const bestPlanetId = harmonicPlanets.length > 0
+      ? Math.min(...harmonicPlanets.map(p => p.id))
+      : Infinity;
+
     let hasSun = false;
     let hasEarth = false;
-    for (const p of planets) {
-      if (p.gate !== harmonicGate) continue;
+    for (const p of harmonicPlanets) {
       if (p.id === 0) hasSun = true;
       if (p.id === 1) hasEarth = true;
     }
 
-    if (hasSun && isExclusive) return 1;
-    if (hasEarth && isExclusive) return 2;
+    // Tier 1: Sun exclusive
+    if (hasSun && isExclusive) return { tier: 1, activationCount, bestPlanetId };
+    // Tier 2: Earth exclusive
+    if (hasEarth && isExclusive) return { tier: 2, activationCount, bestPlanetId };
 
-    // Check stream completion
+    // Tier 3: Stream completion
     const definedChannelPairs = new Set<string>();
     for (const channelIndex of chart.channels ?? []) {
       if (channelIndex >= 0 && channelIndex < channelStrengths.length) {
@@ -749,17 +767,74 @@ export default function hdChart(chart: Chart) {
       const streamKeys = stream.channels.map(ch => [...ch].sort((a, b) => a - b).join(','));
       if (!streamKeys.includes(bridgeChannelKey)) continue;
       const others = streamKeys.filter(key => key !== bridgeChannelKey);
-      if (others.every(key => definedChannelPairs.has(key))) return 3;
+      if (others.every(key => definedChannelPairs.has(key))) {
+        return { tier: 3, activationCount, bestPlanetId };
+      }
     }
 
-    if ((hasSun || hasEarth) && !isExclusive) return 4;
+    // Tier 4: Non-exclusive Sun/Earth
+    if ((hasSun || hasEarth) && !isExclusive) return { tier: 4, activationCount, bestPlanetId };
 
-    return 5;
+    // Tier 5: Default
+    return { tier: 5, activationCount, bestPlanetId };
+  };
+
+  /**
+   * Compare two BridgeScores. Returns <0 if a is better (higher priority).
+   * Comparison order: tier (ascending), activationCount (descending), bestPlanetId (ascending).
+   */
+  const compareBridgeScores = (a: BridgeScore, b: BridgeScore): number => {
+    if (a.tier !== b.tier) return a.tier - b.tier;
+    if (a.activationCount !== b.activationCount) return b.activationCount - a.activationCount;
+    return a.bestPlanetId - b.bestPlanetId;
+  };
+
+  /**
+   * Compute harmonic exclusivity for a bridge set.
+   * For each missing gate in the set, finds the best harmonic the person has,
+   * then counts how many alternative channel partners that harmonic gate has.
+   * Lower total = more exclusive = preferred.
+   *
+   * Example: gate 25 has harmonicGate: 51 (single) → 1 alternative.
+   *          gate 10 has harmonicGate: [20, 34, 57] → 3 alternatives.
+   * Set {51,33} using harmonics {25,13} → 1+1 = 2 (preferred).
+   * Set {57,33} using harmonics {10,13} → 3+1 = 4.
+   */
+  const getSetExclusivity = (
+    gates: number[],
+    candidates: Map<number, Array<{ c1: number; c2: number; harmonicGate: number; harmonicIndex: number }>>
+  ): number => {
+    let total = 0;
+    for (const gate of gates) {
+      const edges = candidates.get(gate) ?? [];
+      if (edges.length === 0) continue;
+      // Pick the best harmonic edge for this gate (lowest score)
+      let bestEdge = edges[0];
+      let bestScore = scoreBridgeDetailed(gate, bestEdge.harmonicGate);
+      for (let i = 1; i < edges.length; i++) {
+        const score = scoreBridgeDetailed(gate, edges[i].harmonicGate);
+        if (compareBridgeScores(score, bestScore) < 0) {
+          bestScore = score;
+          bestEdge = edges[i];
+        }
+      }
+      // Count how many harmonics the winning harmonic gate has
+      const harmonicTraitInfo = gateTraits[bestEdge.harmonicGate];
+      if (harmonicTraitInfo && Array.isArray(harmonicTraitInfo.harmonicGate)) {
+        total += harmonicTraitInfo.harmonicGate.length;
+      } else {
+        total += 1;
+      }
+    }
+    return total;
   };
 
   /**
    * Rank multiple valid bridge sets and return the best one.
-   * Compares sets by their best bridge scores (lexicographic comparison).
+   *
+   * Comparison order:
+   * 1. Harmonic exclusivity (lower total alternatives = better) — set-level
+   * 2. Per-bridge BridgeScore tuples (lexicographic) — bridge-level
    */
   const rankBridgeSets = (
     validSets: number[][],
@@ -768,13 +843,25 @@ export default function hdChart(chart: Chart) {
     if (validSets.length === 1) return validSets[0];
 
     let bestSet = validSets[0];
+    let bestExclusivity = getSetExclusivity(bestSet, candidates);
     let bestScores = getBestScoresForSet(bestSet, candidates);
 
     for (let i = 1; i < validSets.length; i++) {
+      const exclusivity = getSetExclusivity(validSets[i], candidates);
       const scores = getBestScoresForSet(validSets[i], candidates);
-      if (compareScoreArrays(scores, bestScores) < 0) {
+
+      // Primary: harmonic exclusivity (lower = better)
+      if (exclusivity < bestExclusivity) {
         bestSet = validSets[i];
+        bestExclusivity = exclusivity;
         bestScores = scores;
+      } else if (exclusivity === bestExclusivity) {
+        // Secondary: per-bridge score tuples
+        if (compareBridgeScoreArrays(scores, bestScores) < 0) {
+          bestSet = validSets[i];
+          bestExclusivity = exclusivity;
+          bestScores = scores;
+        }
       }
     }
 
@@ -782,30 +869,38 @@ export default function hdChart(chart: Chart) {
   };
 
   /**
-   * Get the best priority score for each gate in a set,
-   * sorted ascending (best first).
+   * Get the best BridgeScore for each gate in a set,
+   * sorted by compareBridgeScores (best first).
    */
   const getBestScoresForSet = (
     gates: number[],
     candidates: Map<number, Array<{ c1: number; c2: number; harmonicGate: number; harmonicIndex: number }>>
-  ): number[] => {
+  ): BridgeScore[] => {
     return gates
       .map(gate => {
         const edges = candidates.get(gate) ?? [];
-        return Math.min(...edges.map(e => scoreBridge(gate, e.harmonicGate)));
+        let best: BridgeScore = { tier: Infinity, activationCount: 0, bestPlanetId: Infinity };
+        for (const e of edges) {
+          const score = scoreBridgeDetailed(gate, e.harmonicGate);
+          if (compareBridgeScores(score, best) < 0) {
+            best = score;
+          }
+        }
+        return best;
       })
-      .sort((a, b) => a - b);
+      .sort(compareBridgeScores);
   };
 
   /**
-   * Lexicographic comparison of two score arrays (lower = better).
+   * Lexicographic comparison of two BridgeScore arrays (lower = better).
    */
-  const compareScoreArrays = (a: number[], b: number[]): number => {
+  const compareBridgeScoreArrays = (a: BridgeScore[], b: BridgeScore[]): number => {
     const len = Math.max(a.length, b.length);
     for (let i = 0; i < len; i++) {
-      const va = a[i] ?? Infinity;
-      const vb = b[i] ?? Infinity;
-      if (va !== vb) return va - vb;
+      const va = a[i] ?? { tier: Infinity, activationCount: 0, bestPlanetId: Infinity };
+      const vb = b[i] ?? { tier: Infinity, activationCount: 0, bestPlanetId: Infinity };
+      const cmp = compareBridgeScores(va, vb);
+      if (cmp !== 0) return cmp;
     }
     return 0;
   };
@@ -819,7 +914,7 @@ export default function hdChart(chart: Chart) {
     candidates: Map<number, Array<{ c1: number; c2: number; harmonicGate: number; harmonicIndex: number }>>,
     components: Set<number>[]
   ): BridgeDesc[] => {
-    const descs: Array<BridgeDesc & { _score: number }> = [];
+    const descs: Array<BridgeDesc & { _score: BridgeScore }> = [];
 
     for (const missingGate of selectedGates) {
       const edges = candidates.get(missingGate) ?? [];
@@ -831,14 +926,15 @@ export default function hdChart(chart: Chart) {
       // Pick the best harmonic (lowest score = highest priority)
       // For ties, prefer the one that connects different components
       let bestEdge = edges[0];
-      let bestScore = scoreBridge(missingGate, bestEdge.harmonicGate);
+      let bestScore = scoreBridgeDetailed(missingGate, bestEdge.harmonicGate);
 
       for (let i = 1; i < edges.length; i++) {
-        const score = scoreBridge(missingGate, edges[i].harmonicGate);
-        if (score < bestScore) {
+        const score = scoreBridgeDetailed(missingGate, edges[i].harmonicGate);
+        const cmp = compareBridgeScores(score, bestScore);
+        if (cmp < 0) {
           bestScore = score;
           bestEdge = edges[i];
-        } else if (score === bestScore) {
+        } else if (cmp === 0) {
           // Tiebreak: prefer edge that bridges different components
           const bridgesDifferent = (e: typeof bestEdge) => {
             for (const comp of components) {
@@ -881,128 +977,19 @@ export default function hdChart(chart: Chart) {
     }
 
     // Sort by priority score (lower = higher priority)
-    descs.sort((a, b) => a._score - b._score);
+    descs.sort((a, b) => compareBridgeScores(a._score, b._score));
 
     // Strip internal _score field
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     return descs.map(({ _score, ...rest }) => rest);
   };
 
   /**
-   * Prioritize bridging gates using a 4-tier system:
-   * 1. Sun bridge (exclusive) — Sun activates the ONLY harmonic the person has for this bridge
-   * 2. Earth bridge (exclusive) — Earth activates the ONLY harmonic the person has for this bridge
-   * 3. Stream completion — completing that bridge would complete an awareness stream
-   * 4. Sun/Earth bridge (non-exclusive) — Sun/Earth activates a harmonic, but other harmonics
-   *    for the same missing gate also exist in the chart (lower value)
+   * Get the top-priority bridge using unified scoring.
+   * Scores all bridges with scoreBridgeDetailed() and picks the best one.
+   * Generates an annotation describing why the winner was chosen.
    *
-   * For single-harmonic gates, the harmonic is always exclusive by definition,
-   * so Sun/Earth is always tier 1/2 if present.
-   *
-   * A single bridge can appear in multiple lists. The consumer picks the
-   * highest-priority list that has entries.
-   */
-  const getBridgePriority = (): {
-    sunBridges: Array<{ bridge: BridgeDesc; planet: 'personality' | 'design' }>;
-    earthBridges: Array<{ bridge: BridgeDesc; planet: 'personality' | 'design' }>;
-    streamBridges: Array<{ bridge: BridgeDesc; stream: string }>;
-    nonExclusiveSunEarthBridges: Array<{ bridge: BridgeDesc; planet: 'personality' | 'design'; body: 'Sun' | 'Earth' }>;
-    allBridges: BridgeDesc[];
-  } => {
-    const allBridges = getBridgeDescriptions();
-    if (allBridges.length === 0) {
-      return { sunBridges: [], earthBridges: [], streamBridges: [], nonExclusiveSunEarthBridges: [], allBridges };
-    }
-
-    const planets = chart.planets ?? [];
-    const userGates = chart.gates.map(g => g.gate);
-
-    // --- Sun / Earth detection with exclusivity check ---
-    const sunBridges: Array<{ bridge: BridgeDesc; planet: 'personality' | 'design' }> = [];
-    const earthBridges: Array<{ bridge: BridgeDesc; planet: 'personality' | 'design' }> = [];
-    const nonExclusiveSunEarthBridges: Array<{ bridge: BridgeDesc; planet: 'personality' | 'design'; body: 'Sun' | 'Earth' }> = [];
-
-    for (const bridge of allBridges) {
-      // Count how many harmonics the person has for this missing gate
-      const missingTraitInfo = gateTraits[bridge.gate];
-      let harmonicCount = 1; // single-harmonic gates always have exactly 1
-      if (missingTraitInfo && Array.isArray(missingTraitInfo.harmonicGate)) {
-        harmonicCount = missingTraitInfo.harmonicGate.filter(hg => userGates.includes(hg)).length;
-      }
-      const isExclusive = harmonicCount <= 1;
-
-      // Find planets that activate the harmonic gate the person HAS
-      for (const p of planets) {
-        if (p.gate !== bridge.harmonicGate) continue;
-        const side: 'personality' | 'design' = p.activation === 1 ? 'personality' : 'design';
-        if (p.id === 0) {
-          if (isExclusive) {
-            sunBridges.push({ bridge, planet: side });
-          } else {
-            nonExclusiveSunEarthBridges.push({ bridge, planet: side, body: 'Sun' });
-          }
-        } else if (p.id === 1) {
-          if (isExclusive) {
-            earthBridges.push({ bridge, planet: side });
-          } else {
-            nonExclusiveSunEarthBridges.push({ bridge, planet: side, body: 'Earth' });
-          }
-        }
-      }
-    }
-
-    // --- Stream completion detection ---
-    const definedChannelPairs = new Set<string>();
-    for (const channelIndex of chart.channels ?? []) {
-      if (channelIndex >= 0 && channelIndex < channelStrengths.length) {
-        const gates = channelStrengths[channelIndex].gates;
-        const key = [gates[0], gates[1]].sort((a, b) => a - b).join(',');
-        definedChannelPairs.add(key);
-      }
-    }
-
-    const streamBridges: Array<{ bridge: BridgeDesc; stream: string }> = [];
-
-    for (const bridge of allBridges) {
-      const bridgeChannelKey = [bridge.gate, bridge.harmonicGate]
-        .sort((a, b) => a - b)
-        .join(',');
-
-      for (const stream of awarenessStreams) {
-        const streamChannelKeys = stream.channels.map(
-          (ch) => [...ch].sort((a, b) => a - b).join(',')
-        );
-
-        if (!streamChannelKeys.includes(bridgeChannelKey)) continue;
-
-        const otherChannels = streamChannelKeys.filter(
-          (key) => key !== bridgeChannelKey
-        );
-        const allOthersDefined = otherChannels.every((key) =>
-          definedChannelPairs.has(key)
-        );
-
-        if (allOthersDefined) {
-          streamBridges.push({ bridge, stream: stream.name });
-        }
-      }
-    }
-
-    return { sunBridges, earthBridges, streamBridges, nonExclusiveSunEarthBridges, allBridges };
-  };
-
-  /**
-   * Get the top-priority bridge(s) using progressive filtering.
-   * Each tier narrows the candidate pool (keeps filtering, doesn't restart).
-   *
-   * Tiers:
-   * 1. Sun exclusive — harmonic gate activated by Sun, exclusive harmonic
-   * 2. Earth exclusive — harmonic gate activated by Earth, exclusive harmonic
-   * 3. Stream completion — bridge would complete an awareness stream
-   * 4. Sun/Earth non-exclusive — Sun/Earth activates harmonic, but multiple harmonics exist
-   * 5. Most planetary activations on harmonic gate
-   * 6. Most important planet (lowest id) on harmonic gate
-   *
-   * Returns the winning bridge(s) and an annotation describing why.
+   * Returns the winning bridge and an annotation describing why.
    */
   const getTopBridge = (): { bridge: BridgeDesc; annotation: string } | null => {
     const nearBridges = getBridgeDescriptions();
@@ -1014,28 +1001,30 @@ export default function hdChart(chart: Chart) {
     if (all.length === 1) return { bridge: all[0], annotation: '' };
 
     const planets = chart.planets ?? [];
-    const userGates = chart.gates.map(g => g.gate);
 
-    // Annotate each bridge with priority properties
-    const annotated = all.map(bridge => {
-      const traitInfo = gateTraits[bridge.gate];
-      let harmonicCount = 1;
-      if (traitInfo && Array.isArray(traitInfo.harmonicGate)) {
-        harmonicCount = traitInfo.harmonicGate.filter(hg => userGates.includes(hg)).length;
-      }
-      const exclusive = harmonicCount <= 1;
+    // Score each bridge and sort
+    const scored = all.map(bridge => ({
+      bridge,
+      score: scoreBridgeDetailed(bridge.gate, bridge.harmonicGate),
+    }));
+    scored.sort((a, b) => compareBridgeScores(a.score, b.score));
 
-      const harmonicPlanets = planets.filter(p => p.gate === bridge.harmonicGate);
+    const winner = scored[0];
 
-      let hasSun = false, sunSide: 'personality' | 'design' = 'personality';
-      let hasEarth = false, earthSide: 'personality' | 'design' = 'personality';
-      for (const p of harmonicPlanets) {
-        const side: 'personality' | 'design' = p.activation === 1 ? 'personality' : 'design';
-        if (p.id === 0) { hasSun = true; sunSide = side; }
-        if (p.id === 1) { hasEarth = true; earthSide = side; }
-      }
+    // Generate annotation from the winning bridge's score properties
+    const annotations: string[] = [];
+    const planetBodyNames = ['Sun', 'Earth', 'North Node', 'South Node', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
 
-      // Stream check
+    if (winner.score.tier === 1) {
+      const sunPlanet = planets.find(p => p.gate === winner.bridge.harmonicGate && p.id === 0);
+      const side = sunPlanet?.activation === 1 ? 'personality' : 'design';
+      annotations.push(`${side} Sun`);
+    } else if (winner.score.tier === 2) {
+      const earthPlanet = planets.find(p => p.gate === winner.bridge.harmonicGate && p.id === 1);
+      const side = earthPlanet?.activation === 1 ? 'personality' : 'design';
+      annotations.push(`${side} Earth`);
+    } else if (winner.score.tier === 3) {
+      // Find which stream it completes
       const definedChannelPairs = new Set<string>();
       for (const channelIndex of chart.channels ?? []) {
         if (channelIndex >= 0 && channelIndex < channelStrengths.length) {
@@ -1043,94 +1032,33 @@ export default function hdChart(chart: Chart) {
           definedChannelPairs.add([gates[0], gates[1]].sort((a, b) => a - b).join(','));
         }
       }
-      let completesStream: string | null = null;
-      const bridgeKey = [bridge.gate, bridge.harmonicGate].sort((a, b) => a - b).join(',');
+      const bridgeKey = [winner.bridge.gate, winner.bridge.harmonicGate].sort((a, b) => a - b).join(',');
       for (const stream of awarenessStreams) {
         const streamKeys = stream.channels.map(ch => [...ch].sort((a, b) => a - b).join(','));
         if (!streamKeys.includes(bridgeKey)) continue;
         if (streamKeys.filter(k => k !== bridgeKey).every(k => definedChannelPairs.has(k))) {
-          completesStream = stream.name;
+          annotations.push(`completes ${stream.name} stream`);
           break;
         }
       }
-
-      return {
-        bridge,
-        sunExclusive: hasSun && exclusive,
-        sunSide,
-        earthExclusive: hasEarth && exclusive,
-        earthSide,
-        completesStream,
-        nonExclusiveSunEarth: (hasSun || hasEarth) && !exclusive,
-        activationCount: harmonicPlanets.length,
-        bestPlanetId: harmonicPlanets.length > 0 ? Math.min(...harmonicPlanets.map(p => p.id)) : Infinity,
-      };
-    });
-
-    let candidates = annotated;
-    const annotations: string[] = [];
-
-    // Tier 1: Sun exclusive
-    const sunFiltered = candidates.filter(a => a.sunExclusive);
-    if (sunFiltered.length > 0 && sunFiltered.length < candidates.length) {
-      candidates = sunFiltered;
-      annotations.push(`${candidates[0].sunSide} Sun`);
+    } else if (winner.score.tier === 4) {
+      annotations.push('Sun/Earth (non-exclusive)');
     }
 
-    // Tier 2: Earth exclusive
-    if (candidates.length > 1) {
-      const earthFiltered = candidates.filter(a => a.earthExclusive);
-      if (earthFiltered.length > 0 && earthFiltered.length < candidates.length) {
-        candidates = earthFiltered;
-        annotations.push(`${candidates[0].earthSide} Earth`);
-      }
-    }
-
-    // Tier 3: Stream completion
-    if (candidates.length > 1) {
-      const streamFiltered = candidates.filter(a => a.completesStream !== null);
-      if (streamFiltered.length > 0 && streamFiltered.length < candidates.length) {
-        candidates = streamFiltered;
-        annotations.push(`completes ${candidates[0].completesStream} stream`);
-      }
-    }
-
-    // Tier 4: Non-exclusive Sun/Earth
-    if (candidates.length > 1) {
-      const neFiltered = candidates.filter(a => a.nonExclusiveSunEarth);
-      if (neFiltered.length > 0 && neFiltered.length < candidates.length) {
-        candidates = neFiltered;
-        annotations.push('Sun/Earth (non-exclusive)');
-      }
-    }
-
-    // Tier 5: Most activations on harmonic gate
-    if (candidates.length > 1) {
-      const maxAct = Math.max(...candidates.map(a => a.activationCount));
-      const actFiltered = candidates.filter(a => a.activationCount === maxAct);
-      if (actFiltered.length < candidates.length) {
-        candidates = actFiltered;
-        annotations.push(`${maxAct} activation${maxAct !== 1 ? 's' : ''}`);
-      }
-    }
-
-    // Tier 6: Most important planet (lowest id) on harmonic gate
-    const planetBodyNames = ['Sun', 'Earth', 'North Node', 'South Node', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
-    if (candidates.length > 1) {
-      const bestId = Math.min(...candidates.map(a => a.bestPlanetId));
-      const planetFiltered = candidates.filter(a => a.bestPlanetId === bestId);
-      if (planetFiltered.length < candidates.length) {
-        candidates = planetFiltered;
-        // Find which side this planet is on for the winner
-        const winner = candidates[0];
-        const winnerPlanet = planets.find(p => p.gate === winner.bridge.harmonicGate && p.id === bestId);
-        const side = winnerPlanet?.activation === 1 ? 'personality' : 'design';
-        annotations.push(`${side} ${planetBodyNames[bestId] ?? `planet ${bestId}`}`);
+    // Add activation/planet annotation if it was a deciding factor
+    if (scored.length > 1 && scored[1].score.tier === winner.score.tier) {
+      if (winner.score.activationCount > scored[1].score.activationCount) {
+        annotations.push(`${winner.score.activationCount} activation${winner.score.activationCount !== 1 ? 's' : ''}`);
+      } else if (winner.score.activationCount === scored[1].score.activationCount
+        && winner.score.bestPlanetId < scored[1].score.bestPlanetId) {
+        const harmonicPlanet = planets.find(p => p.gate === winner.bridge.harmonicGate && p.id === winner.score.bestPlanetId);
+        const side = harmonicPlanet?.activation === 1 ? 'personality' : 'design';
+        annotations.push(`${side} ${planetBodyNames[winner.score.bestPlanetId] ?? `planet ${winner.score.bestPlanetId}`}`);
       }
     }
 
     return {
-      bridge: candidates[0].bridge,
+      bridge: winner.bridge,
       annotation: annotations.length > 0 ? annotations.join(', ') : 'no priority',
     };
   };
@@ -1138,16 +1066,9 @@ export default function hdChart(chart: Chart) {
   /**
    * Get the top bridge pair for 2W splits.
    * For wide splits, two bridges are needed to connect all components.
-   * This function finds the best PAIR using cascading priority tiers
-   * applied to the pair as a unit.
-   *
-   * Tiers (applied to pairs):
-   * 1. Stream completion — does the pair together complete an awareness stream?
-   * 2. Sun exclusive — does either bridge in the pair have Sun activating its harmonic exclusively?
-   * 3. Earth exclusive — same for Earth
-   * 4. Sun/Earth non-exclusive
-   * 5. Most activations — sum activation counts across both bridges in the pair
-   * 6. Most important planet — lowest planet ID across both bridges
+   * Uses the same scoring as single-bridge ranking:
+   *   1. Harmonic exclusivity (lower = better) — pair-level
+   *   2. Per-bridge BridgeScore tuples (lexicographic) — bridge-level
    *
    * Returns null if not a 2W split or if no valid pair found.
    */
@@ -1165,13 +1086,11 @@ export default function hdChart(chart: Chart) {
     if (all.length < 2) return null;
 
     const planets = chart.planets ?? [];
-    const userGates = chart.gates.map(g => g.gate);
 
     // Generate all valid 2-element combinations that connect all components
     const validPairs: Array<[BridgeDesc, BridgeDesc]> = [];
     for (let i = 0; i < all.length; i++) {
       for (let j = i + 1; j < all.length; j++) {
-        // Build edges for this pair
         const edges: Array<{ c1: number; c2: number }> = [];
         for (const bridge of [all[i], all[j]]) {
           const c1 = gateToCenter[bridge.gate];
@@ -1191,145 +1110,90 @@ export default function hdChart(chart: Chart) {
       return { bridges: validPairs[0], annotation: '' };
     }
 
-    // Annotate each pair with priority properties
-    const definedChannelPairs = new Set<string>();
-    for (const channelIndex of chart.channels ?? []) {
-      if (channelIndex >= 0 && channelIndex < channelStrengths.length) {
-        const gates = channelStrengths[channelIndex].gates;
-        definedChannelPairs.add([gates[0], gates[1]].sort((a, b) => a - b).join(','));
+    // Score each pair using the same exclusivity + BridgeScore system as rankBridgeSets
+    const getPairExclusivity = (pair: [BridgeDesc, BridgeDesc]): number => {
+      let total = 0;
+      for (const bridge of pair) {
+        const harmonicTraitInfo = gateTraits[bridge.harmonicGate];
+        if (harmonicTraitInfo && Array.isArray(harmonicTraitInfo.harmonicGate)) {
+          total += harmonicTraitInfo.harmonicGate.length;
+        } else {
+          total += 1;
+        }
+      }
+      return total;
+    };
+
+    const getPairScores = (pair: [BridgeDesc, BridgeDesc]): BridgeScore[] => {
+      return pair
+        .map(b => scoreBridgeDetailed(b.gate, b.harmonicGate))
+        .sort(compareBridgeScores);
+    };
+
+    let bestPair = validPairs[0];
+    let bestExcl = getPairExclusivity(bestPair);
+    let bestScores = getPairScores(bestPair);
+
+    for (let i = 1; i < validPairs.length; i++) {
+      const excl = getPairExclusivity(validPairs[i]);
+      const scores = getPairScores(validPairs[i]);
+
+      if (excl < bestExcl) {
+        bestPair = validPairs[i];
+        bestExcl = excl;
+        bestScores = scores;
+      } else if (excl === bestExcl && compareBridgeScoreArrays(scores, bestScores) < 0) {
+        bestPair = validPairs[i];
+        bestExcl = excl;
+        bestScores = scores;
       }
     }
 
-    const annotatedPairs = validPairs.map(pair => {
-      // Stream completion: does this pair together complete a stream?
-      let completesStream: string | null = null;
-      const pairChannelKeys = pair.map(b =>
-        [b.gate, b.harmonicGate].sort((a, b) => a - b).join(',')
-      );
+    // Generate annotation from winning pair's best bridge score
+    const annotations: string[] = [];
+    const winnerScore = bestScores[0]; // best individual bridge score in pair
+
+    if (winnerScore.tier === 1) {
+      const bridge = bestPair.find(b => scoreBridgeDetailed(b.gate, b.harmonicGate).tier === 1)!;
+      const sunPlanet = planets.find(p => p.gate === bridge.harmonicGate && p.id === 0);
+      const side = sunPlanet?.activation === 1 ? 'personality' : 'design';
+      annotations.push(`${side} Sun`);
+    } else if (winnerScore.tier === 2) {
+      const bridge = bestPair.find(b => scoreBridgeDetailed(b.gate, b.harmonicGate).tier === 2)!;
+      const earthPlanet = planets.find(p => p.gate === bridge.harmonicGate && p.id === 1);
+      const side = earthPlanet?.activation === 1 ? 'personality' : 'design';
+      annotations.push(`${side} Earth`);
+    } else if (winnerScore.tier === 3) {
+      // Find which stream the winning bridge completes
+      const bridge = bestPair.find(b => scoreBridgeDetailed(b.gate, b.harmonicGate).tier === 3)!;
+      const definedChannelPairs = new Set<string>();
+      for (const channelIndex of chart.channels ?? []) {
+        if (channelIndex >= 0 && channelIndex < channelStrengths.length) {
+          const gates = channelStrengths[channelIndex].gates;
+          definedChannelPairs.add([gates[0], gates[1]].sort((a, b) => a - b).join(','));
+        }
+      }
+      const bridgeKey = [bridge.gate, bridge.harmonicGate].sort((a, b) => a - b).join(',');
       for (const stream of awarenessStreams) {
         const streamKeys = stream.channels.map(ch => [...ch].sort((a, b) => a - b).join(','));
-        // Check if both bridges in the pair are channels in this stream
-        const pairInStream = pairChannelKeys.filter(k => streamKeys.includes(k));
-        if (pairInStream.length >= 2) {
-          // Both pair channels are in this stream — check if the rest are defined
-          const others = streamKeys.filter(k => !pairChannelKeys.includes(k));
-          if (others.every(k => definedChannelPairs.has(k))) {
-            completesStream = stream.name;
-            break;
-          }
+        if (streamKeys.includes(bridgeKey) && streamKeys.filter(k => k !== bridgeKey).every(k => definedChannelPairs.has(k))) {
+          annotations.push(`completes ${stream.name} stream`);
+          break;
         }
       }
-
-      // Sun/Earth analysis per bridge in pair
-      let hasSunExclusive = false;
-      let hasEarthExclusive = false;
-      let hasNonExclusiveSunEarth = false;
-      let totalActivations = 0;
-      let bestPlanetId = Infinity;
-
-      for (const bridge of pair) {
-        const traitInfo = gateTraits[bridge.gate];
-        let harmonicCount = 1;
-        if (traitInfo && Array.isArray(traitInfo.harmonicGate)) {
-          harmonicCount = traitInfo.harmonicGate.filter(hg => userGates.includes(hg)).length;
-        }
-        const exclusive = harmonicCount <= 1;
-
-        const harmonicPlanets = planets.filter(p => p.gate === bridge.harmonicGate);
-        totalActivations += harmonicPlanets.length;
-        if (harmonicPlanets.length > 0) {
-          bestPlanetId = Math.min(bestPlanetId, ...harmonicPlanets.map(p => p.id));
-        }
-
-        for (const p of harmonicPlanets) {
-          if (p.id === 0 && exclusive) hasSunExclusive = true;
-          if (p.id === 1 && exclusive) hasEarthExclusive = true;
-          if ((p.id === 0 || p.id === 1) && !exclusive) hasNonExclusiveSunEarth = true;
-        }
-      }
-
-      return {
-        pair,
-        completesStream,
-        hasSunExclusive,
-        hasEarthExclusive,
-        hasNonExclusiveSunEarth,
-        totalActivations,
-        bestPlanetId,
-      };
-    });
-
-    let candidates = annotatedPairs;
-    const annotations: string[] = [];
-
-    // Tier 1: Stream completion
-    const streamFiltered = candidates.filter(a => a.completesStream !== null);
-    if (streamFiltered.length > 0 && streamFiltered.length < candidates.length) {
-      candidates = streamFiltered;
-      annotations.push(`completes ${candidates[0].completesStream} stream`);
-    }
-
-    // Tier 2: Sun exclusive
-    if (candidates.length > 1) {
-      const sunFiltered = candidates.filter(a => a.hasSunExclusive);
-      if (sunFiltered.length > 0 && sunFiltered.length < candidates.length) {
-        candidates = sunFiltered;
-        annotations.push('Sun exclusive');
-      }
-    }
-
-    // Tier 3: Earth exclusive
-    if (candidates.length > 1) {
-      const earthFiltered = candidates.filter(a => a.hasEarthExclusive);
-      if (earthFiltered.length > 0 && earthFiltered.length < candidates.length) {
-        candidates = earthFiltered;
-        annotations.push('Earth exclusive');
-      }
-    }
-
-    // Tier 4: Non-exclusive Sun/Earth
-    if (candidates.length > 1) {
-      const neFiltered = candidates.filter(a => a.hasNonExclusiveSunEarth);
-      if (neFiltered.length > 0 && neFiltered.length < candidates.length) {
-        candidates = neFiltered;
-        annotations.push('Sun/Earth (non-exclusive)');
-      }
-    }
-
-    // Tier 5: Most activations (sum across pair)
-    if (candidates.length > 1) {
-      const maxAct = Math.max(...candidates.map(a => a.totalActivations));
-      const actFiltered = candidates.filter(a => a.totalActivations === maxAct);
-      if (actFiltered.length < candidates.length) {
-        candidates = actFiltered;
-        annotations.push(`${maxAct} activations`);
-      }
-    }
-
-    // Tier 6: Most important planet (lowest id across pair)
-    if (candidates.length > 1) {
-      const bestId = Math.min(...candidates.map(a => a.bestPlanetId));
-      const planetFiltered = candidates.filter(a => a.bestPlanetId === bestId);
-      if (planetFiltered.length < candidates.length) {
-        candidates = planetFiltered;
-      }
+    } else if (winnerScore.tier === 4) {
+      annotations.push('Sun/Earth (non-exclusive)');
     }
 
     return {
-      bridges: candidates[0].pair,
+      bridges: bestPair,
       annotation: annotations.length > 0 ? annotations.join(', ') : '',
     };
   };
 
   /**
-   * Get all bridges (near + far) sorted by the 5-tier priority system.
-   * Lower score = higher priority.
-   *
-   * 1: Sun activates the harmonic exclusively
-   * 2: Earth activates the harmonic exclusively
-   * 3: Bridge completes an awareness stream
-   * 4: Sun/Earth activates the harmonic non-exclusively
-   * 5: Default (no special priority)
+   * Get all bridges (near + far) sorted by the unified scoring system.
+   * Uses scoreBridgeDetailed() + compareBridgeScores() for consistent ordering.
    */
   const getAllBridgesSorted = (): BridgeDesc[] => {
     const near = getBridgeDescriptions();
@@ -1339,30 +1203,14 @@ export default function hdChart(chart: Chart) {
 
     if (all.length <= 1) return all;
 
-    const planets = chart.planets ?? [];
+    const scored = all.map(bridge => ({
+      ...bridge,
+      _score: scoreBridgeDetailed(bridge.gate, bridge.harmonicGate),
+    }));
+    scored.sort((a, b) => compareBridgeScores(a._score, b._score));
 
-    // Score each bridge with primary score + tiebreakers matching getTopBridge():
-    // - Primary: scoreBridge() tiers 1-5
-    // - Secondary: activation count on harmonic gate (more = better, so negate)
-    // - Tertiary: best planet id on harmonic gate (lower = more important)
-    const scored = all.map(bridge => {
-      const harmonicPlanets = planets.filter(p => p.gate === bridge.harmonicGate);
-      return {
-        ...bridge,
-        _score: scoreBridge(bridge.gate, bridge.harmonicGate),
-        _activationCount: harmonicPlanets.length,
-        _bestPlanetId: harmonicPlanets.length > 0
-          ? Math.min(...harmonicPlanets.map(p => p.id))
-          : Infinity,
-      };
-    });
-    scored.sort((a, b) => {
-      if (a._score !== b._score) return a._score - b._score;
-      if (a._activationCount !== b._activationCount) return b._activationCount - a._activationCount;
-      return a._bestPlanetId - b._bestPlanetId;
-    });
-
-    return scored.map(({ _score, _activationCount, _bestPlanetId, ...rest }) => rest);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    return scored.map(({ _score, ...rest }) => rest);
   };
 
   return {
@@ -1408,7 +1256,6 @@ export default function hdChart(chart: Chart) {
     getBridgeDescriptions,
     getFarBridgeDescriptions,
     getChannelBridgeDescriptions,
-    getBridgePriority,
     getTopBridge,
     getTopBridgePair,
     getAllBridgesSorted,
