@@ -258,9 +258,9 @@ function AdminPageContent() {
         country: countryAbbr,
       });
 
-      // Parse local birth date and time directly from the string (avoid Date constructor timezone issues)
-      const [birthDate, timeWithMs] = birthData.time.local.split('T');
-      const birthTime = currentData.time_unknown ? null : timeWithMs?.substring(0, 5) ?? null; // HH:MM
+      // Use authoritative birth date/time from database columns
+      const birthDate = currentData.birth_date;
+      const birthTime = currentData.time_unknown ? null : currentData.birth_time?.substring(0, 5) ?? null; // HH:MM
 
       console.log('Regenerating chart with:', {
         date: birthDate,
