@@ -1597,7 +1597,7 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
         </div>
 
         {(html || loading || error) && (
-          <details className={styles.emailPreview} open>
+          <details className={styles.emailPreview}>
             <summary className={styles.emailPreviewSummary}>
               <span className={styles.emailPreviewLabel}>Newsletter #{selectedStep}</span>
               <button
