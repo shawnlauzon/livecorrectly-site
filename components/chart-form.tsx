@@ -49,6 +49,14 @@ export default function ChartForm() {
   const [saveError, setSaveError] = useState(false);
   const [emailTaken, setEmailTaken] = useState(false);
   const [timeUnknown, setTimeUnknown] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Set<string>>(new Set());
+  const clearFieldError = (field: string) =>
+    setFieldErrors((prev) => {
+      if (!prev.has(field)) return prev;
+      const next = new Set(prev);
+      next.delete(field);
+      return next;
+    });
   const formStarted = useRef(false);
 
   /* ---- Place picker state ---- */
@@ -138,6 +146,7 @@ export default function ChartForm() {
     setSelectedCity(city);
     setCityQuery(city);
     setDropdownOpen(false);
+    clearFieldError("city");
   }
 
   /* ---- Clear city selection ---- */
@@ -191,17 +200,21 @@ export default function ChartForm() {
     const lastName = lnameInput.value.trim();
     const email = emailInput.value.trim();
 
-    if (!firstName) {
-      fnameInput.focus();
-      return;
-    }
-    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      emailInput.focus();
-      return;
-    }
-    if (!date || !selectedCity) {
-      if (!date) dateInput.focus();
-      else if (!selectedCity) cityInputRef.current?.focus();
+    const errors = new Set<string>();
+    if (!firstName) errors.add("fname");
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) errors.add("email");
+    if (!date) errors.add("bdate");
+    if (timeInput.validity.badInput || (!timeInput.value && !timeUnknown)) errors.add("btime");
+    if (!selectedCity) errors.add("city");
+
+    setFieldErrors(errors);
+    if (errors.size > 0) {
+      // Focus the first invalid field in DOM order
+      if (errors.has("fname")) fnameInput.focus();
+      else if (errors.has("email")) emailInput.focus();
+      else if (errors.has("bdate")) dateInput.focus();
+      else if (errors.has("btime")) timeInput.focus();
+      else if (errors.has("city")) cityInputRef.current?.focus();
       return;
     }
 
@@ -290,12 +303,18 @@ export default function ChartForm() {
                 First name
               </label>
               <input
-                className={styles.input}
+                className={`${styles.input} ${fieldErrors.has("fname") ? styles.inputError : ""}`}
                 type="text"
                 id="fname"
                 name="fname"
                 required
+                onChange={() => clearFieldError("fname")}
               />
+              {fieldErrors.has("fname") && (
+                <p style={{ color: "var(--coral)", fontSize: "0.85rem", marginTop: 6 }}>
+                  First name is required.
+                </p>
+              )}
             </div>
             <div className={styles.field}>
               <label className={styles.label} htmlFor="lname">
@@ -314,14 +333,22 @@ export default function ChartForm() {
               Email
             </label>
             <input
-              className={styles.input}
+              className={`${styles.input} ${fieldErrors.has("email") ? styles.inputError : ""}`}
               type="email"
               id="email"
               name="email"
               placeholder="you@example.com"
               required
-              onChange={() => emailTaken && setEmailTaken(false)}
+              onChange={() => {
+                clearFieldError("email");
+                if (emailTaken) setEmailTaken(false);
+              }}
             />
+            {fieldErrors.has("email") && (
+              <p style={{ color: "var(--coral)", fontSize: "0.85rem", marginTop: 6 }}>
+                Please enter a valid email address.
+              </p>
+            )}
             <p className={styles.hint}>
               Unsubscribe anytime.
             </p>
@@ -331,13 +358,19 @@ export default function ChartForm() {
               Birth date
             </label>
             <input
-              className={styles.input}
+              className={`${styles.input} ${fieldErrors.has("bdate") ? styles.inputError : ""}`}
               type="date"
               id="bdate"
               name="bdate"
               autoComplete="bday"
               required
+              onChange={() => clearFieldError("bdate")}
             />
+            {fieldErrors.has("bdate") && (
+              <p style={{ color: "var(--coral)", fontSize: "0.85rem", marginTop: 6 }}>
+                Birth date is required.
+              </p>
+            )}
           </div>
           <div className={styles.field}>
             <label className={styles.label} htmlFor="btime">
@@ -345,10 +378,11 @@ export default function ChartForm() {
               <span className={styles.hint}>&mdash; as exact as you can</span>
             </label>
             <input
-              className={styles.input}
+              className={`${styles.input} ${fieldErrors.has("btime") ? styles.inputError : ""}`}
               type="time"
               id="btime"
               name="btime"
+              onChange={() => clearFieldError("btime")}
             />
             <div className={styles.checkrow}>
               <input
@@ -356,7 +390,10 @@ export default function ChartForm() {
                 type="checkbox"
                 id="notime"
                 checked={timeUnknown}
-                onChange={(e) => setTimeUnknown(e.target.checked)}
+                onChange={(e) => {
+                  setTimeUnknown(e.target.checked);
+                  if (e.target.checked) clearFieldError("btime");
+                }}
               />
               <label className={styles.checkLabel} htmlFor="notime">
                 I&rsquo;m not sure of my exact time
@@ -369,6 +406,12 @@ export default function ChartForm() {
               Type and Strategy are usually stable; a couple of finer details
               firm up once you track down your birth time.
             </p>
+            {fieldErrors.has("btime") && (
+              <p style={{ color: "var(--coral)", fontSize: "0.85rem", marginTop: 6 }}>
+                Please enter your birth time, or check &ldquo;I&rsquo;m not
+                sure&rdquo; above.
+              </p>
+            )}
           </div>
           <div className={styles.field}>
             <label className={styles.label}>
@@ -394,7 +437,7 @@ export default function ChartForm() {
               <div className={styles.cityWrap} ref={cityWrapRef}>
                 <input
                   ref={cityInputRef}
-                  className={styles.input}
+                  className={`${styles.input} ${fieldErrors.has("city") ? styles.inputError : ""}`}
                   type="text"
                   placeholder={"Start typing a city\u2026"}
                   value={cityQuery}
@@ -402,6 +445,7 @@ export default function ChartForm() {
                     const val = e.target.value;
                     setCityQuery(val);
                     setSelectedCity("");
+                    clearFieldError("city");
                     if (val.length < 2) resetCityResults();
                   }}
                   onFocus={() => {
@@ -448,6 +492,11 @@ export default function ChartForm() {
                 )}
               </div>
             </div>
+            {fieldErrors.has("city") && (
+              <p style={{ color: "var(--coral)", fontSize: "0.85rem", marginTop: 6 }}>
+                Please select a city from the dropdown.
+              </p>
+            )}
           </div>
         <button className={styles.btn} type="submit" disabled={submitting}>
           {submitting ? "Reading your chart\u2026" : "See my design"}

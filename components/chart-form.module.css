@@ -148,6 +148,12 @@
   outline: none;
   border-color: var(--grape);
 }
+.inputError {
+  border-color: var(--coral);
+}
+.inputError:focus {
+  border-color: var(--coral);
+}
 
 .checkrow {
   display: flex;
