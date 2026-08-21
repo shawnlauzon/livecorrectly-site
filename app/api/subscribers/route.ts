@@ -15,11 +15,18 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const { email, first_name, last_name, birth_date, birth_time, time_unknown, birth_place, chart } = body;
+    const { email, first_name, last_name, birth_input, chart } = body;
 
-    if (!email || !first_name || !birth_date || !birth_place || chart == null) {
+    if (!email || !first_name || !birth_input || chart == null) {
       return NextResponse.json(
-        { error: 'Missing required fields: email, first_name, birth_date, birth_place, chart' },
+        { error: 'Missing required fields: email, first_name, birth_input, chart' },
+        { status: 400 }
+      );
+    }
+
+    if (!birth_input.date || !birth_input.city || !birth_input.country) {
+      return NextResponse.json(
+        { error: 'birth_input must include date, city, and country' },
         { status: 400 }
       );
     }
@@ -28,10 +35,13 @@ export async function POST(request: NextRequest) {
       email,
       first_name,
       last_name: last_name ?? null,
-      birth_date,
-      birth_time: birth_time ?? null,
-      time_unknown: !!time_unknown,
-      birth_place,
+      birth_input: {
+        date: birth_input.date,
+        time: birth_input.time ?? null,
+        timeUnknown: !!birth_input.timeUnknown,
+        city: birth_input.city,
+        country: birth_input.country,
+      },
       chart,
     });
 

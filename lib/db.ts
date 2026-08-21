@@ -1,5 +1,5 @@
 import { neon, NeonQueryFunction } from '@neondatabase/serverless';
-import { EmailStatus, Subscriber } from './types/subscriber';
+import { BirthInput, EmailStatus, Subscriber } from './types/subscriber';
 import type { ChartGroup, ChartRecord } from './types/chart';
 
 let sql: NeonQueryFunction<false, false>;
@@ -80,29 +80,21 @@ export async function createSubscriber(data: {
   email: string;
   first_name: string;
   last_name: string | null;
-  birth_date: string;
-  birth_time: string | null;
-  time_unknown: boolean;
-  birth_place: string;
+  birth_input: BirthInput;
   chart: unknown;
 }): Promise<Subscriber> {
   const db = getDb();
   const result = await db`
     INSERT INTO subscribers (
-      email, first_name, last_name, birth_date, birth_time, time_unknown,
-      birth_place, chart, last_engaged_at
+      email, first_name, last_name, birth_input, chart, last_engaged_at
     ) VALUES (
-      ${data.email}, ${data.first_name}, ${data.last_name}, ${data.birth_date},
-      ${data.birth_time}, ${data.time_unknown}, ${data.birth_place},
-      ${JSON.stringify(data.chart)}, now()
+      ${data.email}, ${data.first_name}, ${data.last_name},
+      ${JSON.stringify(data.birth_input)}, ${JSON.stringify(data.chart)}, now()
     )
     ON CONFLICT (email) DO UPDATE SET
       first_name = EXCLUDED.first_name,
       last_name = EXCLUDED.last_name,
-      birth_date = EXCLUDED.birth_date,
-      birth_time = EXCLUDED.birth_time,
-      time_unknown = EXCLUDED.time_unknown,
-      birth_place = EXCLUDED.birth_place,
+      birth_input = EXCLUDED.birth_input,
       chart = EXCLUDED.chart,
       last_engaged_at = now()
     RETURNING *

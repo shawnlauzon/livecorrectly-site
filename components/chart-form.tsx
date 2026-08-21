@@ -6,7 +6,7 @@ import styles from "./chart-form.module.css";
 import { countries } from "@/lib/countries";
 import { ChartRecord } from "@/lib/types/chart";
 import hdChart from "@/lib/hd-chart";
-import { generateChart as generateChartAPI } from "@/lib/generate-chart";
+import { generateChart as generateChartAPI, BirthDetails } from "@/lib/generate-chart";
 
 /* ---- Analytics wrapper ---- */
 function track(name: string, params?: Record<string, unknown>) {
@@ -20,16 +20,6 @@ function track(name: string, params?: Record<string, unknown>) {
   } catch {
     // Analytics should never break the UI
   }
-}
-
-/* ---- Birth details ---- */
-interface BirthDetails {
-  date: string;
-  time: string | null;
-  timeUnknown: boolean;
-  countryAbbr: string;
-  city: string;
-  timezone: string;
 }
 
 /** Shape returned by the Maia Mechanics places API: { [timezone]: city[] } */
@@ -65,11 +55,7 @@ export default function ChartForm() {
   const [countryAbbr, setCountryAbbr] = useState("US");
   const [cityQuery, setCityQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
-  const [timezone, setTimezone] = useState("");
   const [cities, setCities] = useState<string[]>([]);
-  const [timeZoneCities, setTimeZoneCities] = useState<TimeZoneCities | null>(
-    null
-  );
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
 
@@ -87,7 +73,6 @@ export default function ChartForm() {
   /* ---- Reset city results when query is too short ---- */
   const resetCityResults = useCallback(() => {
     setCities([]);
-    setTimeZoneCities(null);
     setDropdownOpen(false);
   }, []);
 
@@ -122,7 +107,6 @@ export default function ChartForm() {
           return;
         }
         const data = (await res.json()) as TimeZoneCities;
-        setTimeZoneCities(data);
         const flat = Object.values(data).flat();
         setCities(flat);
         setDropdownOpen(flat.length > 0);
@@ -154,23 +138,13 @@ export default function ChartForm() {
     setSelectedCity(city);
     setCityQuery(city);
     setDropdownOpen(false);
-
-    // Resolve timezone from the API response keys
-    if (timeZoneCities) {
-      const tz = Object.keys(timeZoneCities).find((key) =>
-        timeZoneCities[key].includes(city)
-      );
-      if (tz) setTimezone(tz);
-    }
   }
 
   /* ---- Clear city selection ---- */
   function clearCity() {
     setSelectedCity("");
     setCityQuery("");
-    setTimezone("");
     setCities([]);
-    setTimeZoneCities(null);
     setDropdownOpen(false);
     setActiveIndex(-1);
     cityInputRef.current?.focus();
@@ -225,7 +199,7 @@ export default function ChartForm() {
       emailInput.focus();
       return;
     }
-    if (!date || !selectedCity || !timezone) {
+    if (!date || !selectedCity) {
       if (!date) dateInput.focus();
       else if (!selectedCity) cityInputRef.current?.focus();
       return;
@@ -254,21 +228,27 @@ export default function ChartForm() {
       // If the check itself fails, let the flow continue rather than blocking
     }
 
-    const details: BirthDetails = {
+    const birthInput = {
       date,
       time: timeInput.value || null,
       timeUnknown,
-      countryAbbr,
       city: selectedCity,
-      timezone,
+      country: countryAbbr,
+    };
+
+    const chartDetails: BirthDetails = {
+      date: birthInput.date,
+      time: birthInput.time || "12:00",
+      city: birthInput.city,
+      country: birthInput.country,
     };
     try {
-      const result = await generateChart(details);
+      const result = await generateChart(chartDetails);
 
       const hd = hdChart(result.chart);
       track("chart_generated", {
         type: hd.type(),
-        time_unknown: details.timeUnknown,
+        time_unknown: birthInput.timeUnknown,
       });
 
       const saveRes = await fetch("/api/subscribers", {
@@ -278,10 +258,7 @@ export default function ChartForm() {
           email,
           first_name: firstName,
           last_name: lastName || null,
-          birth_date: details.date,
-          birth_time: details.time,
-          time_unknown: details.timeUnknown,
-          birth_place: details.city,
+          birth_input: birthInput,
           chart: result,
         }),
       });
@@ -425,7 +402,6 @@ export default function ChartForm() {
                     const val = e.target.value;
                     setCityQuery(val);
                     setSelectedCity("");
-                    setTimezone("");
                     if (val.length < 2) resetCityResults();
                   }}
                   onFocus={() => {

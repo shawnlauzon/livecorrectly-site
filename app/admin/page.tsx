@@ -224,64 +224,19 @@ function AdminPageContent() {
         return;
       }
 
-      // Extract birth details from database columns (original user input)
-      console.log('Original birth data from database:', {
-        birth_date: currentData.birth_date,
-        birth_time: currentData.birth_time,
-        time_unknown: currentData.time_unknown,
-        birth_place: currentData.birth_place,
-        birth_lat: currentData.birth_lat,
-        birth_lng: currentData.birth_lng,
-      });
+      const bi = currentData.birth_input;
+      console.log('Regenerating chart from birth_input:', bi);
 
-      // Extract birth details from stored chart metadata
-      const storedChart = currentData.chart;
-      const birthData = storedChart.meta.birthData;
-
-      // Handle both old format (nested objects) and new format (strings)
-      const city = typeof birthData.location.city === 'string'
-        ? birthData.location.city
-        : birthData.location.city.name;
-
-      const timezone: string = typeof birthData.location.city === 'string'
-        ? (typeof birthData.time.timezone === 'string' ? birthData.time.timezone : birthData.time.timezone?.id || '')
-        : birthData.location.city.timezone;
-
-      const countryAbbr = typeof birthData.location.country === 'string'
-        ? birthData.location.country
-        : birthData.location.country.id;
-
-      console.log('Birth data from chart metadata:', {
-        local_time: birthData.time.local,
-        city,
-        timezone,
-        country: countryAbbr,
-      });
-
-      // Use authoritative birth date/time from database columns
-      // Neon returns date columns as ISO timestamps ("1993-03-04T00:00:00.000Z"); extract YYYY-MM-DD
-      const birthDate = currentData.birth_date.split('T')[0];
-      const birthTime = currentData.time_unknown ? null : currentData.birth_time?.substring(0, 5) ?? null; // HH:MM
-
-      console.log('Regenerating chart with:', {
-        date: birthDate,
-        time: birthTime,
-        timeUnknown: currentData.time_unknown,
-        city,
-        timezone,
-        country: countryAbbr,
-      });
-
-      // Re-generate chart using Maia Mechanics API
+      // Re-generate chart using Maia Mechanics API — same code path as the form
       const { generateChart } = await import('@/lib/generate-chart');
       const freshChart = await generateChart({
-        date: birthDate,
-        time: birthTime,
-        timeUnknown: currentData.time_unknown,
-        city,
-        timezone,
-        countryAbbr,
+        date: bi.date,
+        time: bi.timeUnknown ? "12:00" : (bi.time ?? "12:00"),
+        city: bi.city,
+        country: bi.country,
       });
+
+      const storedChart = currentData.chart;
 
       console.group(`Chart Refresh Diff - ${currentData.first_name} ${currentData.last_name ?? ''}`);
       console.log('STORED CHART (entire object):', storedChart);

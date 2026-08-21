@@ -50,7 +50,7 @@ export default function ChartHero({ subscriber }: ChartHeroProps) {
   const chartRecord = subscriber.chart;
   const hd = hdChart(chartRecord.chart);
   const birthTimeUtc = chartRecord?.meta?.birthData?.time?.utc ?? null;
-  const showBodygraph = !!birthTimeUtc && !subscriber.time_unknown;
+  const showBodygraph = !!birthTimeUtc && !subscriber.birth_input.timeUnknown;
   const heroSrc = chartRecord.chart.type !== undefined ? heroImages[chartRecord.chart.type] : undefined;
 
   return (
@@ -97,10 +97,10 @@ export default function ChartHero({ subscriber }: ChartHeroProps) {
         <div className={styles.rowitem}>
           <div className={styles.k}>Born</div>
           <div className={styles.v}>
-            {formatBirthDate(subscriber.birth_date)}
-            {subscriber.birth_time && ` at ${formatBirthTime(subscriber.birth_time)}`}
-            {subscriber.time_unknown && ' (time unknown)'}
-            {subscriber.birth_place && ` in ${subscriber.birth_place}`}
+            {formatBirthDate(subscriber.birth_input.date)}
+            {subscriber.birth_input.time && ` at ${formatBirthTime(subscriber.birth_input.time)}`}
+            {subscriber.birth_input.timeUnknown && ' (time unknown)'}
+            {subscriber.birth_input.city && ` in ${subscriber.birth_input.city}`}
           </div>
         </div>
       </div>

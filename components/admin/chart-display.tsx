@@ -32,11 +32,11 @@ export default function ChartDisplay({
           <div className={styles.item}>
             <dt className={styles.label}>Birth Info</dt>
             <dd className={styles.value}>
-              {subscriber.birth_date}
-              {subscriber.birth_time && ` at ${subscriber.birth_time}`}
-              {subscriber.time_unknown && ' (time unknown)'}
+              {subscriber.birth_input.date}
+              {subscriber.birth_input.time && ` at ${subscriber.birth_input.time}`}
+              {subscriber.birth_input.timeUnknown && ' (time unknown)'}
               <br />
-              {subscriber.birth_place}
+              {subscriber.birth_input.city}
             </dd>
           </div>
         )}

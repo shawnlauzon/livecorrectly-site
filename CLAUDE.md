@@ -56,12 +56,7 @@ subscribers
   email           text unique
   first_name      text
   last_name       text null          -- optional; don't gate anything on it
-  birth_date      date
-  birth_time      time null
-  time_unknown    boolean
-  birth_place     text
-  birth_lat       float null
-  birth_lng       float null
+  birth_input     jsonb not null       -- { date, time, timeUnknown, city, country }
   chart           jsonb              -- engine output, VERBATIM. identity fields never go in here.
   next_step       int default 0      -- next email to send (0 = welcome0 is next, 6 = series complete)
   next_send_at    date null          -- date the next email is due (YYYY-MM-DD)
