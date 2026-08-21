@@ -259,7 +259,8 @@ function AdminPageContent() {
       });
 
       // Use authoritative birth date/time from database columns
-      const birthDate = currentData.birth_date;
+      // Neon returns date columns as ISO timestamps ("1993-03-04T00:00:00.000Z"); extract YYYY-MM-DD
+      const birthDate = currentData.birth_date.split('T')[0];
       const birthTime = currentData.time_unknown ? null : currentData.birth_time?.substring(0, 5) ?? null; // HH:MM
 
       console.log('Regenerating chart with:', {
