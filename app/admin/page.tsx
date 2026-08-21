@@ -114,20 +114,10 @@ function AdminPageContent() {
     return param === 'asc' || param === 'desc' ? param : 'desc';
   })();
 
-  const [password, setPassword] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return sessionStorage.getItem('adminPassword') ?? '';
-    }
-    return '';
-  });
+  const [password, setPassword] = useState('');
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
-  const [loading, setLoading] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return !!sessionStorage.getItem('adminPassword');
-    }
-    return false;
-  });
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [lightboxChart, setLightboxChart] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState<string | null>(null);
@@ -151,6 +141,9 @@ function AdminPageContent() {
   useEffect(() => {
     const savedPassword = sessionStorage.getItem('adminPassword');
     if (!savedPassword) return;
+
+    setPassword(savedPassword);
+    setLoading(true);
 
     let cancelled = false;
 
