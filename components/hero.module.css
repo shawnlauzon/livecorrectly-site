@@ -99,6 +99,13 @@
   gap: 1rem;
 }
 
+.ctaGroup :global(.btn) {
+  text-align: center;
+}
+.ctaGroup :global(.btn):hover {
+  background: var(--action-hover);
+}
+
 .ctaSub {
   font-size: 0.9375rem;
   line-height: 1.5;

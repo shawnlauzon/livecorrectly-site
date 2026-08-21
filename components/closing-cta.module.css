@@ -15,6 +15,13 @@
   margin-bottom: 2rem;
 }
 
+.cta :global(.btn) {
+  text-align: center;
+}
+.cta :global(.btn):hover {
+  background: var(--action-hover);
+}
+
 .ctaSub {
   margin-top: 1rem;
   font-size: 0.9375rem;

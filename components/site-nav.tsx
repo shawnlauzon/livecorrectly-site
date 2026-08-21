@@ -14,7 +14,7 @@ export default function SiteNav({
       </Link>
       {variant === "landing" ? (
         <Link className={styles.quiet} href="/see-your-design">
-          See how you&rsquo;re designed
+          Do it your way
         </Link>
       ) : (
         <Link className={styles.back} href="/">

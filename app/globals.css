@@ -8,6 +8,8 @@
   --stone-line: #C9C2B4;
   --pulse: #8C4A6B;
   --pulse-soft: #F0E6EB;
+  --action: #158377;
+  --action-hover: #1A9B8C;
 
   --display: var(--font-display), Georgia, serif;
   --body: var(--font-body), system-ui, -apple-system, sans-serif;
@@ -20,8 +22,8 @@
   --grape-deep: var(--pulse);
   --paper: var(--ground);
   --card: #FFFFFF;
-  --marigold: var(--pulse);
-  --coral: var(--pulse);
+  --marigold: #FFB020;
+  --coral: #FF6B57;
   --muted: var(--ink-soft);
   --line: var(--stone-line);
   --serif: var(--display);
@@ -62,19 +64,19 @@ h1, h2, h3 {
 /* ========== Shared ========== */
 .btn {
   display: inline-block;
-  background: var(--ink);
+  background: var(--action);
   color: var(--ground);
   text-decoration: none;
   font-family: var(--body);
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 1.125rem;
   padding: 1rem 2rem;
   border-radius: 2px;
   border: none;
   cursor: pointer;
   transition: background 0.18s ease, transform 0.18s ease;
 }
-.btn:hover { background: var(--pulse); transform: translateY(-1px); }
+.btn:hover { background: var(--action-hover); transform: translateY(-1px); }
 .btn:active { transform: translateY(0); }
 
 .link {

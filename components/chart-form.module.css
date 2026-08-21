@@ -195,18 +195,18 @@
   cursor: pointer;
   font-family: var(--body);
   font-weight: 600;
-  font-size: 1.02rem;
+  font-size: 1.125rem;
   color: #fff;
-  background: var(--grape);
+  background: var(--action);
   border: none;
   padding: 16px 26px;
   border-radius: 12px;
-  box-shadow: 0 8px 22px -10px rgba(106, 75, 214, 0.7);
+  box-shadow: 0 8px 22px -10px rgba(21, 131, 119, 0.5);
   transition: transform 0.18s ease, background 0.2s ease;
   margin-top: 28px;
 }
 .btn:hover {
-  background: var(--grape-deep);
+  background: var(--action-hover);
   transform: translateY(-2px);
 }
 .btn:disabled {
