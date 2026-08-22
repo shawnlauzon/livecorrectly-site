@@ -707,7 +707,7 @@
   border: 1px solid var(--line);
   border-radius: 4px;
   background: white;
-  min-height: 200px;
+  min-height: 600px;
 }
 
 /* Chart JSON section */
