@@ -59,7 +59,7 @@ export async function POST(
     }
 
     const chart = parseChartForEmail(subscriber.chart.chart);
-    const subject = getNewsletterSubject(step, subscriber.first_name);
+    const subject = getNewsletterSubject(step, subscriber.first_name, subscriber.id);
     const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
     const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${subscriber.unsub_token}`;
     const emailComponent = getNewsletterEmail(step, subscriber, chart, unsubscribeUrl);

@@ -51,7 +51,7 @@ export async function GET(
     }
 
     const chart = parseChartForEmail(subscriber.chart.chart);
-    const subject = getNewsletterSubject(step, subscriber.first_name);
+    const subject = getNewsletterSubject(step, subscriber.first_name, subscriber.id);
     const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
     const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${subscriber.unsub_token}`;
 
@@ -60,7 +60,7 @@ export async function GET(
       return NextResponse.json({ error: `No newsletter template for step ${step}` }, { status: 400 });
     }
 
-    const newsletter = getNewsletter(step, subscriber.first_name);
+    const newsletter = getNewsletter(step, subscriber.first_name, subscriber.id);
     const preview = newsletter?.preview ?? '';
     const html = await renderEmail(emailComponent);
 

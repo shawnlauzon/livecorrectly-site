@@ -135,13 +135,17 @@ function loadAll(): Map<number, Newsletter> {
 }
 
 /**
- * Replace template variables: {{firstName}}, {{appUrl}}.
+ * Replace template variables: {{firstName}}, {{appUrl}}, {{chartUrl}}.
  */
-function replaceVariables(newsletter: Newsletter, firstName: string): Newsletter {
+function replaceVariables(newsletter: Newsletter, firstName: string, subscriberId?: string): Newsletter {
   const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
+  const chartUrl = subscriberId
+    ? `${appUrl}/see-your-design/${subscriberId}?utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletter.number}`
+    : '';
   const rewrite = (s: string) =>
     s.replace(/\{\{firstName\}\}/g, firstName)
-     .replace(/\{\{appUrl\}\}/g, appUrl);
+     .replace(/\{\{appUrl\}\}/g, appUrl)
+     .replace(/\{\{chartUrl\}\}/g, chartUrl);
   return {
     ...newsletter,
     subject: rewrite(newsletter.subject),
@@ -153,13 +157,13 @@ function replaceVariables(newsletter: Newsletter, firstName: string): Newsletter
 /**
  * Get a newsletter by its 1-based step number (newsletter #1 = step 1).
  * Returns null if the newsletter doesn't exist.
- * Replaces {{firstName}} with the subscriber's first name.
+ * Replaces {{firstName}}, {{appUrl}}, and {{chartUrl}} template variables.
  */
-export function getNewsletter(step: number, firstName: string): Newsletter | null {
+export function getNewsletter(step: number, firstName: string, subscriberId?: string): Newsletter | null {
   const all = loadAll();
   const newsletter = all.get(step);
   if (!newsletter) return null;
-  return replaceVariables(newsletter, firstName);
+  return replaceVariables(newsletter, firstName, subscriberId);
 }
 
 /**

@@ -2,23 +2,33 @@ import * as React from 'react';
 import { Section } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import type { EmailChartData } from '../lib/hd-chart/parse-for-email';
+import { Newsletter01Personalization } from './newsletter-personalizations/01';
 
 interface NewsletterTemplateProps {
   preview: string;
   bodyHtml: string;
   chart: EmailChartData;
   unsubscribeUrl: string;
+  number: number;
 }
 
 /**
- * Placeholder for future personalized chart content at the end of newsletters.
- * Returns null initially — the owner will fill in conditional logic later.
+ * Map of newsletter number → personalization component.
+ * Newsletters without an entry render normally with no per-type section.
  */
-function NewsletterPersonalization({ chart: _chart }: { chart: EmailChartData }) {
-  // TODO: Add personalized chart-specific section here.
-  // This component receives the subscriber's chart data and can branch
-  // on type, authority, etc. to add relevant content after the markdown body.
-  return null;
+const personalizations: Record<number, React.ComponentType<{ chart: EmailChartData }>> = {
+  1: Newsletter01Personalization,
+};
+
+/**
+ * Renders per-type personalized content after the shared newsletter body.
+ * Looks up the component by newsletter number; returns null when no
+ * personalization exists for that issue.
+ */
+function NewsletterPersonalization({ number, chart }: { number: number; chart: EmailChartData }) {
+  const Component = personalizations[number];
+  if (!Component) return null;
+  return <Component chart={chart} />;
 }
 
 /**
@@ -30,7 +40,8 @@ export function NewsletterTemplate({
   preview,
   bodyHtml,
   chart,
-  unsubscribeUrl
+  unsubscribeUrl,
+  number
 }: NewsletterTemplateProps) {
   return (
     <EmailLayout preview={preview} unsubscribeUrl={unsubscribeUrl}>
@@ -38,7 +49,7 @@ export function NewsletterTemplate({
         <div dangerouslySetInnerHTML={{ __html: bodyHtml }} />
       </Section>
 
-      <NewsletterPersonalization chart={chart} />
+      <NewsletterPersonalization number={number} chart={chart} />
     </EmailLayout>
   );
 }

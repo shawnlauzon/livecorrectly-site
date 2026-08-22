@@ -17,21 +17,22 @@ export function getNewsletterEmail(
   chart: ReturnType<typeof parseChartForEmail>,
   unsubscribeUrl: string
 ): React.ReactElement | null {
-  const newsletter = getNewsletter(step, subscriber.first_name);
+  const newsletter = getNewsletter(step, subscriber.first_name, subscriber.id);
   if (!newsletter) return null;
 
   return React.createElement(NewsletterTemplate, {
     preview: newsletter.preview,
     bodyHtml: newsletter.bodyHtml,
     chart,
-    unsubscribeUrl
+    unsubscribeUrl,
+    number: newsletter.number
   });
 }
 
 /**
  * Get the subject line for a newsletter step, with firstName replacement.
  */
-export function getNewsletterSubject(step: number, firstName: string): string {
-  const newsletter = getNewsletter(step, firstName);
+export function getNewsletterSubject(step: number, firstName: string, subscriberId?: string): string {
+  const newsletter = getNewsletter(step, firstName, subscriberId);
   return newsletter?.subject ?? '';
 }
