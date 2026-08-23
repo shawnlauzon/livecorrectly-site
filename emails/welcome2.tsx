@@ -86,7 +86,7 @@ export const Welcome2 = ({
         designed for it.
       </Text>
 
-      <Text className="mb-[16px] text-[16px] leading-[24px]">— Shawn</Text>
+      <Text className="mb-[16px] text-[16px] leading-[24px]">&mdash;Shawn</Text>
     </EmailLayout>
   );
 };
@@ -113,8 +113,7 @@ Welcome2.PreviewProps = {
       'wait to respond before engaging, and then wait for emotional clarity',
     isEmotionalAuthority: true,
     typeVideo: 'https://youtu.be/9PVgkBzpPqs',
-    typeButtonGif:
-      'https://livecorrectly.com/generator-button.gif',
+    typeButtonGif: 'https://livecorrectly.com/generator-button.gif',
     strategyVideo: 'https://youtu.be/_g3cx77EeLs',
     innerAuthorityVideo: 'https://youtu.be/e9g6q1pKJeo',
     signatureVideo: 'https://youtu.be/fHGRdJSyE34',

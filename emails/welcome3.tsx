@@ -31,13 +31,6 @@ export const Welcome3 = ({
     <EmailLayout
       preview="Being honest about the limit."
       unsubscribeUrl={unsubscribeUrl}
-      postscripts={[
-        <>
-          If you&apos;re not sure whether you&apos;ve got something worth
-          bringing: you do. Bring the decision you&apos;ve been putting off.
-          That&apos;s the one.
-        </>,
-      ]}
     >
       <Text className="mb-[16px] text-[16px] leading-[24px]">{firstName},</Text>
 
@@ -79,60 +72,51 @@ export const Welcome3 = ({
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        <strong>An offer, and a trade</strong>
+        <strong>Five spots, $50</strong>
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        So, here&apos;s where I&apos;m at: I&apos;m looking for 5 people to work
-        with one-on-one, at no charge.
+        I just wrapped up a handful of these sessions for free, to make sure
+        they actually work before I charged for anything. They did. So I&apos;ve
+        opened up five more at a $50 introductory rate.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        Sixty minutes, on whatever&apos;s actually keeping you up at night. You
-        bring the situation; I show you what your design says about it. We will
-        look through your chart, but this is not a &ldquo;reading&rdquo;; this
-        is problem solving.
+        We&apos;ll meet online or in person for 90 minutes. You bring whatever
+        you&apos;re struggling with today: it could be something with your
+        career, or something more personal. We discuss, and I support you to
+        discover the answers that you already have within you but don&apos;t
+        know how to access.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        Here&apos;s what I ask in return:
+        <b>But wait, there&apos;s more!</b>&nbsp;Before the session, I&apos;ll
+        send you a personalized guide that I create by hand. It&apos;ll give
+        more detail about the things contained in the emails, as well as parts
+        not even touched on like your ideal work environments and how you best
+        interact with others. You&apos;ll receive it before the session so that
+        you can ask any questions, or simply have it ready for any future
+        challenges.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        I&apos;m building this practice, and what I don&apos;t have yet is
-        documented results. So the trade is: we talk now, and then we talk again
-        in 2 weeks, and you tell me honestly what you did
-        differently&mdash;including <em>nothing</em>. If something did shift,
-        I&apos;d want your permission to write it up. Anonymously if you&apos;d
-        prefer.
+        If you want one of the five, just reply to this email with any questions
+        you have, and I&apos;ll do my best to answer them. Or if you&apos;d
+        rather skip straight to it,{' '}
+        <a href="https://calendar.app.google/YKfU8X1PdH5X3EJi6">
+          you can book here
+        </a>
+        .
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        That&apos;s the whole deal. You get the session; I get to find out
-        whether it works and to say so publicly.
+        And if now&apos;s not the right time, no problem at all. You&apos;ve got
+        your strategy and your signposts, and that might be all you need for
+        right now. If you find yourself needing something more in the future,
+        I&apos;ll be here.
       </Text>
 
-      <Text className="mb-[16px] text-[16px] leading-[24px]">
-        I&apos;m building this practice and what I don&apos;t have yet is
-        documented evidence of the impact. That&apos;s the trade.
-      </Text>
-
-      <Text className="mb-[16px] text-[16px] leading-[24px]">
-        Reply to this email if you want one of the 5 spots.
-      </Text>
-
-      <Text className="mb-[16px] text-[16px] leading-[24px]">
-        If that&apos;s not for you, the weekly <em>Decisions You Can Trust</em>{' '}
-        session I mentioned previously is still running and always free. Reply
-        and I&apos;ll send you the link for that instead.
-      </Text>
-
-      <Text className="mb-[16px] text-[16px] leading-[24px]">
-        Either way, you&apos;ve got your decision making strategy and your
-        signposts, and those work whether or not we ever talk.
-      </Text>
-
-      <Text className="mb-[16px] text-[16px] leading-[24px]">— Shawn</Text>
+      <Text className="mb-[16px] text-[16px] leading-[24px]">&mdash;Shawn</Text>
     </EmailLayout>
   );
 };
@@ -159,8 +143,7 @@ Welcome3.PreviewProps = {
       'wait to respond before engaging, and then wait for emotional clarity',
     isEmotionalAuthority: true,
     typeVideo: 'https://youtu.be/9PVgkBzpPqs',
-    typeButtonGif:
-      'https://livecorrectly.com/generator-button.gif',
+    typeButtonGif: 'https://livecorrectly.com/generator-button.gif',
     strategyVideo: 'https://youtu.be/_g3cx77EeLs',
     innerAuthorityVideo: 'https://youtu.be/e9g6q1pKJeo',
     signatureVideo: 'https://youtu.be/fHGRdJSyE34',
