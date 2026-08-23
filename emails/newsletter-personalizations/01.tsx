@@ -32,8 +32,9 @@ export function Newsletter01Personalization({
         <P>
           <em>
             As a Builder yourself, do you feel like Neo? Do you feel exhausted
-            when doing work that you don&apos;t enjoy, but then when doing
-            something you love, immediately have tons of energy? Let me know!
+            when doing work that you don&apos;t enjoy? Do you have tons of
+            energy when doing something you love, even towards the end of the
+            day? Let me know!
           </em>
         </P>
       </Section>

@@ -116,7 +116,11 @@ export const Welcome3 = ({
         I&apos;ll be here.
       </Text>
 
-      <Text className="mb-[16px] text-[16px] leading-[24px]">&mdash;Shawn</Text>
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        With love,
+        <br />
+        Shawn
+      </Text>
     </EmailLayout>
   );
 };
