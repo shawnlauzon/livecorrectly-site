@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Text } from 'react-email';
 import { EmailLayout } from './components/email-layout';
+import { PullQuote } from './components/pull-quote';
 import { EmailChartData } from '../lib/hd-chart/parse-for-email';
 
 interface Welcome3Props {
@@ -77,8 +78,20 @@ export const Welcome3 = ({
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
         I just wrapped up a handful of these sessions for free, to make sure
-        they actually work before I charged for anything. They did. So I&apos;ve
-        opened up five more at a $50 introductory rate.
+        they actually work before I charged for anything. They did. Here&apos;s
+        what one client said:
+      </Text>
+
+      <PullQuote>
+        Working with Shawn has been a wonderful experience. He helped me
+        figure out where I was and wasn&apos;t supposed to be putting my
+        energy. Doing this unlocked so much creative potential for me. People
+        take supplements for bio-hacking, but I think this is the real
+        bio-hacking.
+      </PullQuote>
+
+      <Text className="mb-[16px] text-[16px] leading-[24px]">
+        So I&apos;ve opened up five more at a $50 introductory rate.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">

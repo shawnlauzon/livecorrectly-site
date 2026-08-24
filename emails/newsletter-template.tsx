@@ -3,6 +3,7 @@ import { Section } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import type { EmailChartData } from '../lib/hd-chart/parse-for-email';
 import { Newsletter01Personalization } from './newsletter-personalizations/01';
+import { Newsletter02Personalization } from './newsletter-personalizations/02';
 
 interface NewsletterTemplateProps {
   preview: string;
@@ -18,6 +19,7 @@ interface NewsletterTemplateProps {
  */
 const personalizations: Record<number, React.ComponentType<{ chart: EmailChartData }>> = {
   1: Newsletter01Personalization,
+  2: Newsletter02Personalization,
 };
 
 /**
