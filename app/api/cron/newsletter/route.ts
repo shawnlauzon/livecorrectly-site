@@ -8,7 +8,7 @@ import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 /**
  * Cron endpoint: sends due newsletter emails.
  * Secured by CRON_SECRET (Vercel sends Authorization: Bearer <CRON_SECRET>).
- * Runs weekly on Tuesdays at 14:47 UTC (configured in vercel.json).
+ * Runs weekly on Wednesdays at 14:47 UTC (configured in vercel.json).
  *
  * The CRON_EMAIL_ENABLED kill switch is checked here — when not 'true',
  * the route returns early without querying or sending anything.
