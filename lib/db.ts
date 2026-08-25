@@ -149,33 +149,35 @@ export async function getActiveSubscriberByEmail(
 }
 
 /**
- * Get subscribers who are due for their next email.
- * Returns active subscribers where next_send_at <= today.
+ * Get active subscribers due for their next welcome series email.
+ * Returns subscribers with next_step between 1 and welcomeSeriesLength (inclusive).
+ * Step 0 (welcome0) is sent at signup, not by cron.
  */
-export async function getDueSubscribers(): Promise<Subscriber[]> {
+export async function getWelcomeDueSubscribers(
+  welcomeSeriesLength: number
+): Promise<Subscriber[]> {
   const db = getDb();
   const result = await db`
     SELECT * FROM subscribers
     WHERE email_status = 'active'
-      AND next_send_at <= CURRENT_DATE
-    ORDER BY next_send_at ASC
+      AND next_step >= 1
+      AND next_step <= ${welcomeSeriesLength}
+    ORDER BY created_at ASC
   `;
   return (result as Subscriber[]).map(normalizeSubscriber);
 }
 
 /**
- * Advance a subscriber's email series to the next step and set the next send date.
+ * Advance a subscriber's email series to the next step.
  */
 export async function advanceEmailSeries(
   id: string,
-  nextStep: number,
-  nextSendAt: string | null
+  nextStep: number
 ): Promise<void> {
   const db = getDb();
   await db`
     UPDATE subscribers
-    SET next_step = ${nextStep},
-        next_send_at = ${nextSendAt}
+    SET next_step = ${nextStep}
     WHERE id = ${id}
   `;
 }
@@ -216,19 +218,17 @@ export async function updateSubscriberChart(
 }
 
 /**
- * Update a subscriber's email series next step and next send date.
+ * Update a subscriber's email series next step.
  * Used by admin to manually adjust pipeline position.
  */
 export async function updateEmailSeries(
   id: string,
-  nextStep: number,
-  nextSendAt: string | null
+  nextStep: number
 ): Promise<Subscriber> {
   const db = getDb();
   const result = await db`
     UPDATE subscribers
-    SET next_step = ${nextStep},
-        next_send_at = ${nextSendAt}
+    SET next_step = ${nextStep}
     WHERE id = ${id}
     RETURNING *
   `;
@@ -250,10 +250,9 @@ export async function touchEngagement(id: string): Promise<void> {
 
 /**
  * Get active subscribers due for their next newsletter email.
- * Returns subscribers who have completed the welcome series and whose
- * next_send_at is today or earlier.
+ * Returns subscribers who have completed the welcome series (next_step > welcomeSeriesLength).
  */
-export async function getDueNewsletterSubscribers(
+export async function getNewsletterDueSubscribers(
   welcomeSeriesLength: number
 ): Promise<Subscriber[]> {
   const db = getDb();
@@ -261,8 +260,7 @@ export async function getDueNewsletterSubscribers(
     SELECT * FROM subscribers
     WHERE email_status = 'active'
       AND next_step > ${welcomeSeriesLength}
-      AND next_send_at <= CURRENT_DATE
-    ORDER BY next_send_at ASC
+    ORDER BY created_at ASC
   `;
   return (result as Subscriber[]).map(normalizeSubscriber);
 }

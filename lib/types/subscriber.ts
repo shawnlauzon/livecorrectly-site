@@ -20,7 +20,6 @@ export interface Subscriber {
   birth_input: BirthInput;
   chart: ChartRecord;
   next_step: number;
-  next_send_at: string | null; // ISO date (YYYY-MM-DD)
   email_status: EmailStatus;
   email_status_at: string | null; // ISO timestamp
   unsub_token: string;

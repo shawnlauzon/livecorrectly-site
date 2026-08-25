@@ -380,9 +380,8 @@ function AdminPageContent() {
   const getNextEmailLabel = (sub: Subscriber): string => {
     if (sub.email_status !== 'active') return '—';
     if (sub.next_step > WELCOME_SERIES_LENGTH) return 'Done';
-    if (sub.next_send_at) return `Day ${sub.next_step}`;
     if (sub.next_step === 0) return 'Not started';
-    return `Paused @ ${sub.next_step}`;
+    return `Day ${sub.next_step}`;
   };
 
   const handleSort = (column: SortColumn) => {

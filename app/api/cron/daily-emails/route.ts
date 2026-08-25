@@ -1,24 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDueSubscribers, advanceEmailSeries } from '@/lib/db';
+import { getWelcomeDueSubscribers, advanceEmailSeries } from '@/lib/db';
 import { sendWelcomeEmail, formatEmailRecipient } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/emails/subjects';
 import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 
-function getTomorrowDate(): string {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString().slice(0, 10); // YYYY-MM-DD
-}
-
-function getNextWeekDate(): string {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() + 7);
-  return d.toISOString().slice(0, 10); // YYYY-MM-DD
-}
-
 /**
- * Cron endpoint: sends due welcome series emails.
+ * Cron endpoint: sends per-subscriber daily emails.
+ * Currently handles the welcome series (days 1-3).
  * Secured by CRON_SECRET (Vercel sends Authorization: Bearer <CRON_SECRET>).
  * Runs daily at 14:00 UTC (configured in vercel.json).
  *
@@ -38,27 +27,21 @@ export async function GET(request: NextRequest) {
   // Kill switch: only the automated cron respects this flag.
   // Admin manual sends bypass it intentionally.
   if (process.env.CRON_EMAIL_ENABLED !== 'true') {
-    console.log('[cron] Welcome series disabled (CRON_EMAIL_ENABLED !== true)');
+    console.log('[cron] Daily emails disabled (CRON_EMAIL_ENABLED !== true)');
     return NextResponse.json({ disabled: true });
   }
 
-  console.log(`[cron] Welcome series tick at ${new Date().toISOString()}`);
+  console.log(`[cron] Daily emails tick at ${new Date().toISOString()}`);
 
-  const dueSubscribers = await getDueSubscribers();
-  console.log(`[cron] Found ${dueSubscribers.length} due subscriber(s)`);
+  // --- Welcome series ---
+  const welcomeDue = await getWelcomeDueSubscribers(WELCOME_SERIES_LENGTH);
+  console.log(`[cron] Found ${welcomeDue.length} welcome-due subscriber(s)`);
 
   let sent = 0;
   let skipped = 0;
 
-  for (const subscriber of dueSubscribers) {
+  for (const subscriber of welcomeDue) {
     const step = subscriber.next_step;
-
-    // Skip subscribers who have completed the welcome series —
-    // they are handled by the newsletter cron instead
-    if (step > WELCOME_SERIES_LENGTH) {
-      skipped++;
-      continue;
-    }
 
     const chart = parseChartForEmail(subscriber.chart.chart);
     const subject = getWelcomeSubject(step, subscriber.first_name, chart);
@@ -79,18 +62,14 @@ export async function GET(request: NextRequest) {
     });
 
     if (result.success) {
-      // On last welcome: enroll in newsletter sequence (7 days out)
-      // Otherwise: schedule next welcome for tomorrow
-      const nextSendAt =
-        step < WELCOME_SERIES_LENGTH
-          ? getTomorrowDate()
-          : getNextWeekDate();
-      await advanceEmailSeries(subscriber.id, step + 1, nextSendAt);
+      await advanceEmailSeries(subscriber.id, step + 1);
       sent++;
     } else {
       skipped++;
     }
   }
+
+  // --- Future: birthday emails, one-off broadcasts via broadcast_sends, etc. ---
 
   console.log(`[cron] Done: sent=${sent} skipped=${skipped}`);
   return NextResponse.json({ ok: true, sent, skipped });

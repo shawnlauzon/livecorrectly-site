@@ -58,8 +58,7 @@ subscribers
   last_name       text null          -- optional; don't gate anything on it
   birth_input     jsonb not null       -- { date, time, timeUnknown, city, country }
   chart           jsonb              -- engine output, VERBATIM. identity fields never go in here.
-  next_step       int default 0      -- next email to send (0 = welcome0 is next, 6 = series complete)
-  next_send_at    date null          -- date the next email is due (YYYY-MM-DD)
+  next_step       int default 0      -- next email to send (0 = welcome0 is next, 4 = welcome done, 4+ = newsletter progression)
   email_status    text default 'active'  -- active | unsubscribed | bounced | complained | failed | suppressed
   email_status_at timestamptz null
   unsub_token     uuid default gen_random_uuid()
@@ -173,9 +172,10 @@ Use `utm_source=workcorrectly` when linking to livecorrectly.com from Work Corre
 
 - **Kill switch**: the automated cron only runs when `CRON_EMAIL_ENABLED=true`. Admin manual sends (from `/admin/[id]`) bypass this flag — they always send if `RESEND_API_KEY` is set. Omit `RESEND_API_KEY` in `.env.local` to prevent any sends during local development.
 - **Sole call site**: `emails/send.ts` is the only file that calls `resend.emails.send()`. All emails go through `sendEmail()`, which checks `canSendTo()` (subscriber must be `active`), sets `List-Unsubscribe` / `List-Unsubscribe-Post` headers, and renders the React component to HTML.
-- **Welcome series**: 5-day drip (career type → strategy → authority → indicators → conclusion+CTA). Templates are in `emails/welcome[1-5].tsx`. Each receives `firstName`, `chart` (flat `EmailChartData` from `parseChartForEmail()`), and `unsubscribeUrl`.
-- **Scheduler**: daily Vercel Cron at 14:00 UTC (`/api/cron/welcome-series`, configured in `vercel.json`). Queries `next_send_at <= CURRENT_DATE` where `email_status = 'active'`, sends the email at `next_step`, advances `next_step`, sets `next_send_at` to tomorrow.
-- **Admin manual send**: `POST /api/admin/subscribers/[id]/send-welcome` with `{ step: 1-5 }`. Sends a specific welcome email without advancing `next_step` or `next_send_at`. Requires admin auth. Returns 422 if subscriber is not active.
+- **Welcome series**: 3-day drip (career type → signposts → invitation). Templates are in `emails/welcome[1-3].tsx`. Each receives `firstName`, `chart` (flat `EmailChartData` from `parseChartForEmail()`), and `unsubscribeUrl`.
+- **Daily cron**: Vercel Cron at 14:00 UTC (`/api/cron/daily-emails`, configured in `vercel.json`). Queries active subscribers with `next_step` between 1 and `WELCOME_SERIES_LENGTH`, sends the email at `next_step`, advances `next_step`. Extensible for future per-subscriber emails (birthday, milestones).
+- **Newsletter cron**: Vercel Cron on Tuesdays at 14:47 UTC (`/api/cron/newsletter`). Queries active subscribers with `next_step > WELCOME_SERIES_LENGTH`, sends the next newsletter in sequence, advances `next_step`.
+- **Admin manual send**: `POST /api/admin/subscribers/[id]/send-welcome` with `{ step: 1-3 }`. Sends a specific welcome email without advancing `next_step`. Requires admin auth. Returns 422 if subscriber is not active.
 - **Personalization**: templates branch on chart type booleans (`isGenerator`, `isProjector`, etc.) and pull content from maps in `emails/content.ts` (strategy writeups, authority writeups/tips keyed by authority type).
 - **Compliance**: `List-Unsubscribe` header + footer link in every email; `GET /api/unsubscribe?token=<uuid>` and `POST` (RFC 8058 one-click); physical address in footer; bounce/complaint webhook at `/api/webhooks/resend` updates `email_status`.
 - **Content maps**: `emails/content.ts` holds `strategyWriteups`, `authorityWriteups`, `authorityTips` — ported from the old `WelcomeCampaignText.tsx`. Use `lookupByAuthority()` to handle casing normalization.
@@ -193,7 +193,8 @@ app/api/admin/                      password-protected admin API
 app/api/admin/subscribers/[id]/send-welcome/  POST — manual welcome email send
 app/api/unsubscribe/route.ts        GET/POST — unsubscribe (token-based)
 app/api/webhooks/resend/route.ts    POST — Resend bounce/complaint webhook
-app/api/cron/welcome-series/route.ts GET — daily cron: send due welcome emails
+app/api/cron/daily-emails/route.ts   GET — daily cron: welcome series + future per-subscriber emails
+app/api/cron/newsletter/route.ts     GET — weekly cron (Tuesdays): newsletter sequence
 lib/db.ts                           all database queries (raw SQL via Neon)
 emails/send.ts                      sole Resend call site (sendEmail + canSendTo)
 emails/welcome.ts                   shared getWelcomeEmail() + WELCOME_SERIES_LENGTH
@@ -206,7 +207,7 @@ lib/hd-chart/parse-for-email.ts     flat chart data for email templates
 lib/types/chart.ts                  ChartRecord type (Maia API response shape)
 lib/types/subscriber.ts             Subscriber interface + EmailStatus type
 emails/components/                  shared email layout, signature, Ra quote
-emails/welcome[1-5].tsx             welcome series templates
+emails/welcome[1-3].tsx             welcome series templates
 components/chart-form.tsx           birth-details form + chart generation
 components/chart-readout.tsx        10-field chart interpretation display
 migrations/                         SQL migration files (run manually)

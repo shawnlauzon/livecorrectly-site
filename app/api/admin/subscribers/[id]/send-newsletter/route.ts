@@ -9,7 +9,7 @@ import { getNewsletterEmail, getNewsletterSubject, getNewsletterCount } from '@/
  * POST /api/admin/subscribers/[id]/send-newsletter
  *
  * Manually send a specific newsletter email to a subscriber.
- * Does NOT advance next_step or modify next_send_at — manual sends
+ * Does NOT advance next_step — manual sends
  * are independent of the automated series.
  *
  * Body: { step: 1-N } (1-based newsletter number)

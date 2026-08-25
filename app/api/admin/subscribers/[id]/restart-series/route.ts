@@ -12,9 +12,8 @@ import hdChart from '@/lib/hd-chart';
  *
  * Restarts the welcome series for a subscriber:
  * 1. Sends welcome0 immediately
- * 2. Sets next_step = 1
- * 3. Sets next_send_at = tomorrow (so cron will send day 1 the next day)
- * 4. Sends admin notification about the restart
+ * 2. Sets next_step = 1 (so the daily cron will send day 1 next)
+ * 3. Sends admin notification about the restart
  *
  * Auth: Bearer <ADMIN_PASSWORD>
  */
@@ -84,13 +83,8 @@ export async function POST(
 
     console.log(`[admin] Sent welcome0 to ${subscriber.email} as part of series restart (id=${result.id})`);
 
-    // Calculate tomorrow's date for next_send_at
-    const tomorrow = new Date();
-    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-    const nextSendAt = tomorrow.toISOString().slice(0, 10); // YYYY-MM-DD
-
-    // Update subscriber to next_step = 1, next_send_at = tomorrow
-    const updated = await updateEmailSeries(id, 1, nextSendAt);
+    // Update subscriber to next_step = 1 (daily cron will send day 1 next)
+    const updated = await updateEmailSeries(id, 1);
 
     // Send admin notification
     const hd = hdChart(subscriber.chart.chart);
@@ -100,8 +94,7 @@ export async function POST(
     return NextResponse.json({
       ok: true,
       emailId: result.id,
-      next_step: updated.next_step,
-      next_send_at: updated.next_send_at
+      next_step: updated.next_step
     });
   } catch (error) {
     console.error('[admin] Error restarting series:', error);

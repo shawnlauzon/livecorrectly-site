@@ -618,20 +618,13 @@ function formatRelativeEngagement(dateString: string | null): string {
   return `${days} days ago`;
 }
 
-type NextEmailValue = 'not_started' | 'day1' | 'day2' | 'day3' | 'done' | 'paused';
+type NextEmailValue = 'not_started' | 'day1' | 'day2' | 'day3' | 'done';
 
 function deriveNextEmailValue(sub: Subscriber): NextEmailValue {
   if (sub.next_step > WELCOME_SERIES_LENGTH) return 'done';
-  if (sub.next_step === 0 && !sub.next_send_at) return 'not_started';
-  if (!sub.next_send_at && sub.next_step > 0) return 'paused';
+  if (sub.next_step === 0) return 'not_started';
   if (sub.next_step >= 1 && sub.next_step <= 3) return `day${sub.next_step}` as NextEmailValue;
   return 'not_started';
-}
-
-function getTomorrowDate(): string {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
 function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscriber; onSubscriberUpdate: (s: Subscriber) => void }) {
@@ -646,7 +639,7 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
   const nextEmailValue = localOverride ?? derivedValue;
 
   // Reset local override when subscriber data changes (e.g. after save)
-  const subscriberKey = `${subscriber.next_step}:${subscriber.next_send_at}`;
+  const subscriberKey = `${subscriber.next_step}`;
   const [lastSubscriberKey, setLastSubscriberKey] = useState(subscriberKey);
   if (subscriberKey !== lastSubscriberKey) {
     setLocalOverride(null);
@@ -662,32 +655,22 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
     if (!password) return;
 
     let next_step: number;
-    let next_send_at: string | null;
 
     switch (nextEmailValue) {
       case 'not_started':
         next_step = 0;
-        next_send_at = null;
         break;
       case 'day1':
         next_step = 1;
-        next_send_at = getTomorrowDate();
         break;
       case 'day2':
         next_step = 2;
-        next_send_at = getTomorrowDate();
         break;
       case 'day3':
         next_step = 3;
-        next_send_at = getTomorrowDate();
         break;
       case 'done':
         next_step = 4;
-        next_send_at = null;
-        break;
-      case 'paused':
-        next_step = subscriber.next_step;
-        next_send_at = null;
         break;
     }
 
@@ -701,7 +684,7 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
           'Content-Type': 'application/json',
           Authorization: `Bearer ${password}`
         },
-        body: JSON.stringify({ next_step, next_send_at })
+        body: JSON.stringify({ next_step })
       });
 
       const data = await response.json();
@@ -719,7 +702,7 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
     } finally {
       setSaving(false);
     }
-  }, [nextEmailValue, subscriber.id, subscriber.next_step, onSubscriberUpdate]);
+  }, [nextEmailValue, subscriber.id, onSubscriberUpdate]);
 
   const handleSend = useCallback(async (step: number) => {
     const password = sessionStorage.getItem('adminPassword');
@@ -780,7 +763,7 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
         return;
       }
 
-      // Refetch subscriber to get updated next_step and next_send_at
+      // Refetch subscriber to get updated next_step
       const refetchResponse = await fetch(`/api/admin/subscribers/${subscriber.id}`, {
         headers: {
           Authorization: `Bearer ${password}`
@@ -794,7 +777,7 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
 
       setFeedback({
         type: 'success',
-        message: 'Series restarted — Welcome sent, Day 1 scheduled for tomorrow'
+        message: 'Series restarted — Welcome sent, Day 1 queued for next cron run'
       });
     } catch (err) {
       console.error('Error restarting series:', err);
@@ -836,19 +819,6 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
     }
   }, [subscriber, onSubscriberUpdate]);
 
-  const formatDate = (dateStr: string) => {
-    // next_send_at may arrive as YYYY-MM-DD or a full ISO timestamp
-    const iso = dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00Z`;
-    const date = new Date(iso);
-    if (isNaN(date.getTime())) return dateStr;
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      timeZone: 'UTC'
-    });
-  };
-
   return (
     <div className={styles.welcomeSection}>
       <div className={styles.welcomeCard}>
@@ -877,12 +847,6 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
               </button>
             </div>
           </div>
-          {subscriber.next_send_at && (
-            <div className={styles.welcomeMetaItem}>
-              <span className={styles.welcomeMetaLabel}>Next scheduled</span>
-              <span>{formatDate(subscriber.next_send_at)}</span>
-            </div>
-          )}
           <div className={styles.welcomeMetaItem}>
             <span className={styles.welcomeMetaLabel}>Next email</span>
             <div className={styles.nextEmailControl}>
@@ -896,7 +860,6 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
                 <option value="day2">Day 2</option>
                 <option value="day3">Day 3</option>
                 <option value="done">Done</option>
-                <option value="paused">Paused</option>
               </select>
               <button
                 className={styles.nextEmailSave}
@@ -1431,10 +1394,11 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
   let newsletterState: 'not_started' | 'in_progress' | 'complete';
   if (subscriber.next_step <= WELCOME_SERIES_LENGTH) {
     newsletterState = 'not_started';
-  } else if (subscriber.next_send_at) {
+  } else if (newsletterCount !== null && newsletterStep <= newsletterCount) {
     newsletterState = 'in_progress';
   } else {
-    newsletterState = 'complete';
+    // Either complete or waiting for newsletter count to load
+    newsletterState = newsletterCount === null ? 'in_progress' : 'complete';
   }
 
   const loadPreview = useCallback(async (step: number) => {
@@ -1534,18 +1498,6 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
     return () => iframe.removeEventListener('load', onLoad);
   }, [html]);
 
-  const formatDate = (dateStr: string) => {
-    const iso = dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00Z`;
-    const date = new Date(iso);
-    if (isNaN(date.getTime())) return dateStr;
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      timeZone: 'UTC'
-    });
-  };
-
   const stepOptions = Array.from({ length: newsletterCount ?? 1 }, (_, i) => i + 1);
 
   return (
@@ -1562,12 +1514,6 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
               {newsletterState === 'complete' && `Complete (${newsletterCount ?? '...'} newsletters)`}
             </span>
           </div>
-          {newsletterState === 'in_progress' && subscriber.next_send_at && (
-            <div className={styles.welcomeMetaItem}>
-              <span className={styles.welcomeMetaLabel}>Next send</span>
-              <span>{formatDate(subscriber.next_send_at)}</span>
-            </div>
-          )}
         </div>
 
         <div className={styles.welcomeMeta}>

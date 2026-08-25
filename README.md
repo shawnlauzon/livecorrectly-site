@@ -47,24 +47,23 @@ Or paste the file contents into the Neon dashboard SQL Editor.
 
 ## Email system
 
-A 5-day welcome series sent via Resend with React Email templates. The automated cron only runs when `CRON_EMAIL_ENABLED=true`. Admin manual sends (from `/admin/[id]`) bypass this flag.
+A welcome series + newsletter pipeline sent via Resend with React Email templates. The automated crons only run when `CRON_EMAIL_ENABLED=true`. Admin manual sends (from `/admin/[id]`) bypass this flag.
 
 ### How it works
 
 1. Subscriber fills out the chart form and is inserted into the `subscribers` table
-2. A daily Vercel cron (`/api/cron/welcome-series`, 14:00 UTC) queries subscribers where `next_send_at <= CURRENT_DATE`
+2. A daily Vercel cron (`/api/cron/daily-emails`, 14:00 UTC) queries active subscribers with `next_step` between 1 and 3
 3. For each due subscriber, it renders the welcome email at `next_step` with their personalized chart data and calls Resend
-4. After sending, it advances `next_step` and sets `next_send_at` to the next day
+4. After sending, it advances `next_step`
+5. A weekly newsletter cron (`/api/cron/newsletter`, Tuesdays at 14:47 UTC) picks up subscribers who completed welcome (`next_step > 3`) and sends the next newsletter
 
 ### Welcome series
 
 | Email | Subject | Content |
 |-------|---------|---------|
-| Day 1 | Career Type | Type description, Ra quote, career tip, video |
-| Day 2 | Personal Interaction Style | Strategy explanation, waiting section, video |
-| Day 3 | Decision-Making Strategy | Inner authority, authority tip, "This is the way" |
-| Day 4 | Key Indicators | Not-self theme, signature theme, adjective forms |
-| Day 5 | Conclusion | Bumper sticker summary, "fair selection" comic, booking CTA |
+| Day 1 | Career Type | Type description, Ra quote, career tip |
+| Day 2 | Signposts | Strategy explanation, signature/not-self themes |
+| Day 3 | Invitation | Decision-making strategy, booking CTA |
 
 ### Key files
 

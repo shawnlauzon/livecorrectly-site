@@ -5,12 +5,6 @@ import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/emails/subjects';
 import { getWelcomeEmail } from '@/emails/welcome';
 
-function getTomorrowDate(): string {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString().slice(0, 10); // YYYY-MM-DD
-}
-
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -43,10 +37,9 @@ export async function POST(
       );
     }
 
-    // Advance to step 1 with tomorrow's date so the cron picks up Welcome1 tomorrow.
+    // Advance to step 1 so the daily cron picks up Welcome1.
     // Do this first, regardless of whether the immediate email send succeeds.
-    const tomorrow = getTomorrowDate();
-    await advanceEmailSeries(id, 1, tomorrow);
+    await advanceEmailSeries(id, 1);
 
     // Immediately send Welcome0 (matching the initial signup flow)
     const chartData = parseChartForEmail(subscriber.chart.chart);
