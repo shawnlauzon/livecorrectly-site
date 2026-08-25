@@ -59,7 +59,7 @@ export function Newsletter01Personalization({
       <Section>
         <P>
           <em>
-            As an Evalutor yourself, how did you feel about seeing yourself as
+            As an Evaluator yourself, how did you feel about seeing yourself as
             the Architect? Is that something that resonates with you, or is
             there something different?
           </em>
