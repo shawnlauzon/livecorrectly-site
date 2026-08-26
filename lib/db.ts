@@ -143,7 +143,7 @@ export async function getActiveSubscriberByEmail(
   const result = await db`
     SELECT * FROM subscribers
     WHERE email = ${email}
-      AND email_status = 'active'
+      AND email_status IN ('active', 'failed')
   `;
   return result.length > 0 ? normalizeSubscriber(result[0] as Subscriber) : null;
 }
@@ -159,7 +159,7 @@ export async function getWelcomeDueSubscribers(
   const db = getDb();
   const result = await db`
     SELECT * FROM subscribers
-    WHERE email_status = 'active'
+    WHERE email_status IN ('active', 'failed')
       AND next_step >= 1
       AND next_step <= ${welcomeSeriesLength}
     ORDER BY created_at ASC
@@ -178,6 +178,19 @@ export async function advanceEmailSeries(
   await db`
     UPDATE subscribers
     SET next_step = ${nextStep}
+    WHERE id = ${id}
+  `;
+}
+
+/**
+ * Roll back a subscriber's email series by one step (floored at 0).
+ * Called on email.failed so the missed email is retried on the next cron run.
+ */
+export async function rollBackEmailSeries(id: string): Promise<void> {
+  const db = getDb();
+  await db`
+    UPDATE subscribers
+    SET next_step = GREATEST(next_step - 1, 0)
     WHERE id = ${id}
   `;
 }
@@ -258,7 +271,7 @@ export async function getNewsletterDueSubscribers(
   const db = getDb();
   const result = await db`
     SELECT * FROM subscribers
-    WHERE email_status = 'active'
+    WHERE email_status IN ('active', 'failed')
       AND next_step > ${welcomeSeriesLength}
     ORDER BY created_at ASC
   `;
@@ -277,7 +290,7 @@ export async function getBroadcastRecipients(
   const db = getDb();
   const result = await db`
     SELECT s.* FROM subscribers s
-    WHERE s.email_status = 'active'
+    WHERE s.email_status IN ('active', 'failed')
       AND s.created_at < ${cutoffDate}
       AND NOT EXISTS (
         SELECT 1 FROM broadcast_sends bs

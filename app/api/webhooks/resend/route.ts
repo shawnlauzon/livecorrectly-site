@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSubscriberByEmailForWebhook, updateEmailStatus, touchEngagement } from '@/lib/db';
+import { getSubscriberByEmailForWebhook, updateEmailStatus, rollBackEmailSeries, touchEngagement } from '@/lib/db';
 import { extractEmail } from '@/emails/send';
 
 /**
@@ -131,8 +131,9 @@ export async function POST(request: NextRequest) {
         const subscriber = await getSubscriberByEmailForWebhook(recipientEmail);
         if (subscriber) {
           await updateEmailStatus(subscriber.id, 'failed');
+          await rollBackEmailSeries(subscriber.id);
           console.log(
-            `[webhook] Failed: ${recipientEmail} (subscriber ${subscriber.id})`
+            `[webhook] Failed: ${recipientEmail} (subscriber ${subscriber.id}), rolled back next_step`
           );
         }
       }
