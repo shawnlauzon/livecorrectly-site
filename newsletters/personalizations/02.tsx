@@ -89,24 +89,50 @@ export function Newsletter02Personalization({
         <P>
           So always remember to be looking out for that frustration. And if
           it&apos;s there, and you didn&apos;t actually Respond to something,
-          you might want to pause and see if this is the correct thing for you
-          to be doing.
+          pause for a bit and see if it&apos;s still something you want to be
+          doing. And if not, give yourself permission to quit. It frees up the
+          time to do what you&apos;re really called to be doing.
         </P>
       </Section>
     );
-  }
-
-  if (chart.isPureGenerator) {
   }
 
   if (chart.isProjector) {
     return (
       <Section>
         <P>
-          <em>
-            As an Advisor yourself, how do you relate to the idea of being like
-            the Oracle? How can you spend time becoming a master of your craft?
-          </em>
+          Ahhh my dear Advisor! It can feel hard to wait, and wait, and feel
+          bitter that you have all the answers and{' '}
+          <em>if only someone would ask you!</em>
+        </P>
+        <P>
+          The coaching industry (you know you&apos;re designed to be a coach,
+          right?) really makes this worse. They tell people that anyone can help
+          anyone, and that all that is needed is to know how to market yourself.
+          This creates really bad coaches, giving the whole industry a bad name.
+          (I know because I was seduced by it.)
+        </P>
+        <P>
+          You are designed not like them. You are designed to be one of the
+          great coaches. A coach who can really see where people are stuck, to
+          literally feel what they are feeling, and to be able to guide them to
+          success.
+        </P>
+        <P>
+          But although this is your design, it doesn&apos;t happen
+          automatically. It takes practice. It takes training. It takes mastery.
+          And this is what you can do while you are &quot;waiting&quot;:
+          becoming a master. And when you have mastery, in whatever field calls
+          to you, you will be one of the best.
+        </P>
+        <P>
+          So don&apos;t push yourself out there before you&apos;re ready to
+          shine. Wait until you know you have something amazing to
+          share&mdash;that&apos;s the time to let your light shine.
+        </P>
+        <P>
+          And when that time comes, you won&apos;t need to try to be
+          seen&mdash;it will be obvious to everyone that the master has arrived.
         </P>
       </Section>
     );
@@ -116,11 +142,25 @@ export function Newsletter02Personalization({
     return (
       <Section>
         <P>
-          <em>
-            As an Evaluator yourself, how did you feel about seeing yourself as
-            the Architect? Is that something that resonates with you, or is
-            there something different?
-          </em>
+          Congratulations, you win the award for the longest time to wait: a
+          full moon cycle!
+        </P>
+        <P>
+          I have to be straight with you: although I know a surprising number of
+          Evaluators, I haven&apos;t had enough clients to really give advice
+          grounded in what I&apos;ve seen. And so I won&apos;t go into detail
+          here.
+        </P>
+        <P>
+          But this is good news for you! If you resonate with what I have
+          written, I am looking for a single person to work with and explore how
+          waiting through the entire lunar cycle works in practice. It will be a
+          great experience, and I&apos;ll be able to create software which will
+          help you be able to live correctly.
+        </P>
+        <P>
+          If you&apos;re interested, please reply to this email and we can
+          discuss further.
         </P>
       </Section>
     );
