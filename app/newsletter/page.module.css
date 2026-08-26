@@ -28,6 +28,38 @@
   border-top: 1px solid var(--stone-line);
 }
 
+.itemLink {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+  text-decoration: none;
+  color: inherit;
+}
+
+.thumb {
+  flex-shrink: 0;
+  width: 160px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+@media (max-width: 480px) {
+  .itemLink {
+    flex-direction: column;
+  }
+  .thumb {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+  }
+}
+
+.itemText {
+  flex: 1;
+  min-width: 0;
+}
+
 .date {
   font-size: 0.75rem;
   font-weight: 600;
@@ -43,13 +75,10 @@
   font-size: 1.25rem;
   line-height: 1.2;
   margin-bottom: 0.35rem;
-}
-
-.title a {
-  text-decoration: none;
   color: var(--ink);
 }
-.title a:hover {
+
+.itemLink:hover .title {
   color: var(--pulse);
 }
 

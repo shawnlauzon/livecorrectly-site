@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import SiteNav from "@/components/site-nav";
 import SiteFooter from "@/components/site-footer";
@@ -76,9 +77,19 @@ export default async function NewsletterIssuePage({ params }: Props) {
 
   return (
     <>
-      <SiteNav variant="back" backHref="/newsletter" />
+      <SiteNav variant="back" backHref="/newsletter" hideNewsletterLink />
       <main className={styles.page}>
         <article>
+          {issue.image && (
+            <Image
+              src={`/newsletter/${issue.image}`}
+              alt=""
+              width={672}
+              height={380}
+              className={styles.hero}
+              priority
+            />
+          )}
           <p className={styles.date}>
             <time dateTime={issue.publishedAt}>
               {formatDate(issue.publishedAt)}

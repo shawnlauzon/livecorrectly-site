@@ -5,9 +5,11 @@ import styles from "./site-nav.module.css";
 export default function SiteNav({
   variant = "landing",
   backHref = "/",
+  hideNewsletterLink = false,
 }: {
   variant?: "landing" | "back";
   backHref?: string;
+  hideNewsletterLink?: boolean;
 }) {
   return (
     <Wrap as="header" className={styles.nav}>
@@ -15,9 +17,11 @@ export default function SiteNav({
         Live <em className={styles.markAccent}>Correctly</em>
       </Link>
       <nav className={styles.links}>
-        <Link className={styles.link} href="/newsletter">
-          Newsletter
-        </Link>
+        {!hideNewsletterLink && (
+          <Link className={styles.link} href="/newsletter">
+            Newsletter
+          </Link>
+        )}
         {variant === "landing" ? (
           <Link className={styles.quiet} href="/see-your-design">
             Do it your way

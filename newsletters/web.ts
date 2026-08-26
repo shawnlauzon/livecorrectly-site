@@ -9,7 +9,12 @@ export interface WebNewsletter {
   number: number;
   /** Display title (from front-matter `subject`) */
   title: string;
+  /** SEO-only description (used in metadata, not displayed on index) */
   description: string;
+  /** Short teaser shown on the index page (from front-matter `preview`) */
+  preview: string;
+  /** Filename in /public/newsletter/ (e.g. "matrix01.jpg"), or null if unset */
+  image: string | null;
   publishedAt: string;
   /** Semantic HTML rendered from markdown body */
   bodyHtml: string;
@@ -50,11 +55,13 @@ function parseForWeb(raw: string, number: number, publishedAt: string): WebNewsl
 
   const title = typeof data.subject === 'string' ? data.subject : '';
   const description = typeof data.description === 'string' ? data.description : '';
+  const preview = typeof data.preview === 'string' ? data.preview : '';
+  const image = typeof data.image === 'string' ? data.image : null;
 
   const cleaned = replaceVariables(stripGreeting(body.trim()));
   const bodyHtml = marked.parse(cleaned) as string;
 
-  return { slug, number, title, description, publishedAt, bodyHtml };
+  return { slug, number, title, description, preview, image, publishedAt, bodyHtml };
 }
 
 /** Directory containing newsletter markdown files */

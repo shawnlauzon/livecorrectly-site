@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import SiteNav from "@/components/site-nav";
 import SiteFooter from "@/components/site-footer";
@@ -39,15 +40,26 @@ export default async function NewsletterIndexPage() {
         <ul className={styles.list}>
           {issues.map((issue) => (
             <li key={issue.slug} className={styles.item}>
-              <p className={styles.date}>
-                <time dateTime={issue.publishedAt}>
-                  {formatDate(issue.publishedAt)}
-                </time>
-              </p>
-              <h2 className={styles.title}>
-                <Link href={`/newsletter/${issue.slug}`}>{issue.title}</Link>
-              </h2>
-              <p className={styles.description}>{issue.description}</p>
+              <Link href={`/newsletter/${issue.slug}`} className={styles.itemLink}>
+                {issue.image && (
+                  <Image
+                    src={`/newsletter/${issue.image}`}
+                    alt=""
+                    width={160}
+                    height={100}
+                    className={styles.thumb}
+                  />
+                )}
+                <div className={styles.itemText}>
+                  <p className={styles.date}>
+                    <time dateTime={issue.publishedAt}>
+                      {formatDate(issue.publishedAt)}
+                    </time>
+                  </p>
+                  <h2 className={styles.title}>{issue.title}</h2>
+                  <p className={styles.description}>{issue.preview}</p>
+                </div>
+              </Link>
             </li>
           ))}
         </ul>
