@@ -89,9 +89,7 @@ export default async function NewsletterIssuePage({ params }: Props) {
             className={styles.body}
             dangerouslySetInnerHTML={{ __html: issue.bodyHtml }}
           />
-          {issue.personalizationNote && (
-            <PersonalizationCallout note={issue.personalizationNote} />
-          )}
+          <PersonalizationCallout />
         </article>
         <NewsletterCta />
       </main>
