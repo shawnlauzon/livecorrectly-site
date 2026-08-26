@@ -20,6 +20,22 @@
   color: var(--pulse);
 }
 
+.links {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.link {
+  font-size: 0.9375rem;
+  text-decoration: none;
+  color: var(--ink-soft);
+  transition: color 0.2s ease;
+}
+.link:hover {
+  color: var(--pulse);
+}
+
 .quiet {
   font-size: 0.9375rem;
   text-decoration: none;
@@ -47,6 +63,12 @@
   .nav {
     padding-top: 1.25rem;
     padding-bottom: 1.25rem;
+  }
+  .links {
+    gap: 1rem;
+  }
+  .link {
+    font-size: 0.8125rem;
   }
   .quiet {
     font-size: 0.8125rem;

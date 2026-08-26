@@ -12,15 +12,20 @@ export default function SiteNav({
       <Link className={styles.mark} href="/">
         Live <em className={styles.markAccent}>Correctly</em>
       </Link>
-      {variant === "landing" ? (
-        <Link className={styles.quiet} href="/see-your-design">
-          Do it your way
+      <nav className={styles.links}>
+        <Link className={styles.link} href="/newsletter">
+          Newsletter
         </Link>
-      ) : (
-        <Link className={styles.back} href="/">
-          &larr; Back
-        </Link>
-      )}
+        {variant === "landing" ? (
+          <Link className={styles.quiet} href="/see-your-design">
+            Do it your way
+          </Link>
+        ) : (
+          <Link className={styles.back} href="/">
+            &larr; Back
+          </Link>
+        )}
+      </nav>
     </Wrap>
   );
 }

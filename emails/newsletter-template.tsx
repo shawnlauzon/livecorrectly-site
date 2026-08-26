@@ -2,8 +2,8 @@ import * as React from 'react';
 import { Section } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import type { EmailChartData } from '../lib/hd-chart/parse-for-email';
-import { Newsletter01Personalization } from './newsletter-personalizations/01';
-import { Newsletter02Personalization } from './newsletter-personalizations/02';
+import { Newsletter01Personalization } from '@/newsletters/personalizations/01';
+import { Newsletter02Personalization } from '@/newsletters/personalizations/02';
 
 interface NewsletterTemplateProps {
   preview: string;

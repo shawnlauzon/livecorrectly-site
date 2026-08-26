@@ -113,7 +113,7 @@ function loadAll(): Map<number, Newsletter> {
   if (cache && process.env.NODE_ENV === 'production') return cache;
 
   cache = new Map();
-  const dir = path.join(process.cwd(), 'emails', 'newsletters');
+  const dir = path.join(process.cwd(), 'newsletters');
 
   let files: string[];
   try {

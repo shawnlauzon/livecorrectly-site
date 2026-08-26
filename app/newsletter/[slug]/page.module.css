@@ -1,0 +1,141 @@
+.page {
+  flex: 1;
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: clamp(3rem, 8vh, 5rem) var(--gutter) clamp(4rem, 10vh, 6rem);
+}
+
+.date {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 0.75rem;
+}
+
+.h1 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 2.5rem;
+}
+
+/* ---- Prose ---- */
+
+.body p {
+  margin-bottom: 1rem;
+  color: var(--ink);
+}
+
+.body h2 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.25rem;
+  line-height: 1.2;
+  margin-top: 2.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.body h3 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.1rem;
+  line-height: 1.25;
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.body a {
+  color: var(--pulse);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.body a:hover {
+  opacity: 0.8;
+}
+
+.body ul,
+.body ol {
+  margin: 0 0 1rem 1.25rem;
+  padding: 0;
+}
+
+.body li {
+  margin-bottom: 0.35rem;
+}
+
+.body img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1.5rem 0;
+  border-radius: 8px;
+}
+
+.body blockquote {
+  margin: 1.5rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--pulse);
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.body strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.body hr {
+  border: 0;
+  border-top: 1px solid var(--stone-line);
+  margin: 2rem 0;
+}
+
+/* ---- Personalization callout ---- */
+
+.callout {
+  background: var(--pulse-soft);
+  border-left: 3px solid var(--pulse);
+  border-radius: 4px;
+  padding: 1rem 1.25rem;
+  margin-top: 2.5rem;
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+
+.callout p {
+  margin: 0 0 0.5rem;
+}
+.callout p:last-child {
+  margin-bottom: 0;
+}
+
+.callout a {
+  color: var(--pulse);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ---- Bottom CTA ---- */
+
+.cta {
+  border-top: 1px solid var(--stone-line);
+  margin-top: 3rem;
+  padding-top: 2.5rem;
+  text-align: center;
+}
+
+.cta h2 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.cta p {
+  color: var(--ink-soft);
+  margin-bottom: 1.5rem;
+}

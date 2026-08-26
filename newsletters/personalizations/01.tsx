@@ -1,13 +1,13 @@
 import * as React from 'react';
-import { Head, Heading, Section } from 'react-email';
-import { P } from '../content';
-import type { EmailChartData } from '../../lib/hd-chart/parse-for-email';
+import { Section } from 'react-email';
+import { P } from '@/emails/content';
+import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 
 /**
- * Per-type personalization section for Newsletter #2.
+ * Per-type personalization section for Newsletter #1.
  * Renders a closing section tailored to the subscriber's HD type.
  */
-export function Newsletter02Personalization({
+export function Newsletter01Personalization({
   chart,
 }: {
   chart: EmailChartData;
@@ -15,14 +15,12 @@ export function Newsletter02Personalization({
   if (chart.isManifestor) {
     return (
       <Section>
-        <Heading>Per-type advice</Heading>
         <P>
-          Congratulations! You are among the 10% of people who do NOT need to
-          wait!
-        </P>
-        <P>
-          The funny thing I&apos;ve found is that it is the Initiators who get
-          angry that they always have to be the ones to start something.
+          <em>
+            As an Initiator yourself, I&apos;m curious if you resonate with
+            Morpheus, the person who gets everything started. I would love to
+            hear a story!
+          </em>
         </P>
       </Section>
     );
@@ -31,7 +29,6 @@ export function Newsletter02Personalization({
   if (chart.isPureGenerator || chart.isManifestingGenerator) {
     return (
       <Section>
-        <Heading as="h3">Per-type advice</Heading>
         <P>
           <em>
             As a Builder yourself, do you feel like Neo? Do you feel exhausted
@@ -62,7 +59,7 @@ export function Newsletter02Personalization({
       <Section>
         <P>
           <em>
-            As an Evalutor yourself, how did you feel about seeing yourself as
+            As an Evaluator yourself, how did you feel about seeing yourself as
             the Architect? Is that something that resonates with you, or is
             there something different?
           </em>
