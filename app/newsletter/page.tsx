@@ -25,7 +25,7 @@ export default async function NewsletterIndexPage() {
 
   return (
     <>
-      <SiteNav variant="back" />
+      <SiteNav />
       <main className={styles.page}>
         <h1 className={styles.h1}>Newsletter</h1>
         <section className={styles.cta}>

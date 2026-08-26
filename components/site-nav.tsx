@@ -4,8 +4,10 @@ import styles from "./site-nav.module.css";
 
 export default function SiteNav({
   variant = "landing",
+  backHref = "/",
 }: {
   variant?: "landing" | "back";
+  backHref?: string;
 }) {
   return (
     <Wrap as="header" className={styles.nav}>
@@ -21,7 +23,7 @@ export default function SiteNav({
             Do it your way
           </Link>
         ) : (
-          <Link className={styles.back} href="/">
+          <Link className={styles.back} href={backHref}>
             &larr; Back
           </Link>
         )}

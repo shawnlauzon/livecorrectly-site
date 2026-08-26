@@ -76,7 +76,7 @@ export default async function NewsletterIssuePage({ params }: Props) {
 
   return (
     <>
-      <SiteNav variant="back" />
+      <SiteNav variant="back" backHref="/newsletter" />
       <main className={styles.page}>
         <article>
           <p className={styles.date}>
