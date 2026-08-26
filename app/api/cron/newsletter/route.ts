@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { getNewsletterDueSubscribers, advanceEmailSeries, recordNewsletterSend, acquireCronLock } from '@/lib/db';
 import { sendWelcomeEmail, formatEmailRecipient } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
@@ -85,6 +86,10 @@ export async function GET(request: NextRequest) {
     } else {
       skipped++;
     }
+  }
+
+  if (sent > 0) {
+    revalidatePath('/newsletter');
   }
 
   console.log(`[cron] Newsletter done: sent=${sent} skipped=${skipped}`);
