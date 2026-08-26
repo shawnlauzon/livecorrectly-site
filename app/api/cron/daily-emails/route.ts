@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getWelcomeDueSubscribers, advanceEmailSeries } from '@/lib/db';
+import { getWelcomeDueSubscribers, advanceEmailSeries, acquireCronLock } from '@/lib/db';
 import { sendWelcomeEmail, formatEmailRecipient } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/emails/subjects';
@@ -32,6 +32,13 @@ export async function GET(request: NextRequest) {
   }
 
   console.log(`[cron] Daily emails tick at ${new Date().toISOString()}`);
+
+  // Idempotency: only one run per calendar day
+  const acquired = await acquireCronLock('daily-emails');
+  if (!acquired) {
+    console.log('[cron] Daily emails already ran today, skipping duplicate execution');
+    return NextResponse.json({ ok: true, duplicate: true, sent: 0, skipped: 0 });
+  }
 
   // --- Welcome series ---
   const welcomeDue = await getWelcomeDueSubscribers(WELCOME_SERIES_LENGTH);

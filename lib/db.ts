@@ -325,6 +325,22 @@ export async function getNewsletterSendDates(): Promise<Map<number, string>> {
 }
 
 /**
+ * Attempt to acquire a per-day lock for a cron job.
+ * Uses INSERT … ON CONFLICT DO NOTHING against the (cron_name, run_date) PK.
+ * Returns true if the lock was acquired (first run today), false if already ran.
+ */
+export async function acquireCronLock(cronName: string): Promise<boolean> {
+  const db = getDb();
+  const result = await db`
+    INSERT INTO cron_runs (cron_name, run_date)
+    VALUES (${cronName}, CURRENT_DATE)
+    ON CONFLICT DO NOTHING
+    RETURNING *
+  `;
+  return result.length > 0;
+}
+
+/**
  * Record that a broadcast was sent to a subscriber.
  * Uses ON CONFLICT DO NOTHING for idempotency (safe if cron retries after interruption).
  */

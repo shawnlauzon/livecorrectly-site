@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getNewsletterDueSubscribers, advanceEmailSeries, recordNewsletterSend } from '@/lib/db';
+import { getNewsletterDueSubscribers, advanceEmailSeries, recordNewsletterSend, acquireCronLock } from '@/lib/db';
 import { sendWelcomeEmail, formatEmailRecipient } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getNewsletterEmail, getNewsletterSubject, getNewsletterCount } from '@/emails/newsletter';
@@ -30,6 +30,13 @@ export async function GET(request: NextRequest) {
   }
 
   console.log(`[cron] Newsletter tick at ${new Date().toISOString()}`);
+
+  // Idempotency: only one run per calendar day
+  const acquired = await acquireCronLock('newsletter');
+  if (!acquired) {
+    console.log('[cron] Newsletter already ran today, skipping duplicate execution');
+    return NextResponse.json({ ok: true, duplicate: true, sent: 0, skipped: 0 });
+  }
 
   const totalNewsletters = getNewsletterCount();
   if (totalNewsletters === 0) {
