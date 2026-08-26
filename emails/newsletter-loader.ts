@@ -8,6 +8,8 @@ export interface Newsletter {
   number: number;
   subject: string;
   preview: string;
+  /** URL-safe slug for the web version (from front-matter), or null if email-only */
+  slug: string | null;
   /** Email-styled HTML rendered from markdown body */
   bodyHtml: string;
 }
@@ -96,9 +98,10 @@ export function parseNewsletter(content: string, number: number): Newsletter {
 
   const subject = typeof data.subject === 'string' ? data.subject : '';
   const preview = typeof data.preview === 'string' ? data.preview : '';
+  const slug = typeof data.slug === 'string' ? data.slug : null;
   const bodyHtml = marked.parse(body.trim()) as string;
 
-  return { number, subject, preview, bodyHtml };
+  return { number, subject, preview, slug, bodyHtml };
 }
 
 /** Cached newsletters loaded from disk, keyed by 1-based number */

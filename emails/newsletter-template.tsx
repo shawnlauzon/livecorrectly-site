@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Section } from 'react-email';
+import { Section, Text, Link } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import type { EmailChartData } from '../lib/hd-chart/parse-for-email';
 import { Newsletter01Personalization } from '@/newsletters/personalizations/01';
@@ -11,6 +11,7 @@ interface NewsletterTemplateProps {
   chart: EmailChartData;
   unsubscribeUrl: string;
   number: number;
+  webUrl: string | null;
 }
 
 /**
@@ -43,7 +44,8 @@ export function NewsletterTemplate({
   bodyHtml,
   chart,
   unsubscribeUrl,
-  number
+  number,
+  webUrl
 }: NewsletterTemplateProps) {
   return (
     <EmailLayout preview={preview} unsubscribeUrl={unsubscribeUrl}>
@@ -52,6 +54,18 @@ export function NewsletterTemplate({
       </Section>
 
       <NewsletterPersonalization number={number} chart={chart} />
+
+      {webUrl && (
+        <Section>
+          <Text className="mt-[24px] text-[13px] leading-[20px] text-[#6E688A] text-center">
+            <Link href={webUrl} className="text-[#6A4BD6] underline">
+              Read on the web
+            </Link>
+            {' \u2014 '}
+            a shareable version without the personalized sections.
+          </Text>
+        </Section>
+      )}
     </EmailLayout>
   );
 }
