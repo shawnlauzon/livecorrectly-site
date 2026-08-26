@@ -291,6 +291,40 @@ export async function getBroadcastRecipients(
 }
 
 /**
+ * Record that a newsletter number was sent for the first time.
+ * Uses ON CONFLICT DO NOTHING so only the first send per newsletter inserts.
+ */
+export async function recordNewsletterSend(
+  newsletterNumber: number
+): Promise<void> {
+  const db = getDb();
+  await db`
+    INSERT INTO newsletter_sends (newsletter_number)
+    VALUES (${newsletterNumber})
+    ON CONFLICT DO NOTHING
+  `;
+}
+
+/**
+ * Get send dates for all newsletters that have been sent.
+ * Returns a Map from newsletter number to ISO timestamp string.
+ */
+export async function getNewsletterSendDates(): Promise<Map<number, string>> {
+  const db = getDb();
+  const rows = await db`
+    SELECT newsletter_number, sent_at FROM newsletter_sends
+  `;
+  const map = new Map<number, string>();
+  for (const row of rows) {
+    map.set(
+      row.newsletter_number as number,
+      (row.sent_at as Date).toISOString()
+    );
+  }
+  return map;
+}
+
+/**
  * Record that a broadcast was sent to a subscriber.
  * Uses ON CONFLICT DO NOTHING for idempotency (safe if cron retries after interruption).
  */

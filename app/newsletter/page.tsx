@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 function formatDate(iso: string): string {
-  const d = new Date(iso + "T00:00:00");
+  const d = new Date(iso);
   return d.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -20,14 +20,22 @@ function formatDate(iso: string): string {
   });
 }
 
-export default function NewsletterIndexPage() {
-  const issues = getWebNewsletters();
+export default async function NewsletterIndexPage() {
+  const issues = await getWebNewsletters();
 
   return (
     <>
       <SiteNav variant="back" />
       <main className={styles.page}>
         <h1 className={styles.h1}>Newsletter</h1>
+        <section className={styles.cta}>
+          <p>
+            Sent every Wednesday, personalized to your specific Human Design.
+          </p>
+          <Link className="btn" href="/see-your-design">
+            Subscribe for free
+          </Link>
+        </section>
         <ul className={styles.list}>
           {issues.map((issue) => (
             <li key={issue.slug} className={styles.item}>

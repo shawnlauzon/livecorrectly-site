@@ -56,6 +56,10 @@ export default function SeeYourDesign() {
           also send you a short series on how you&rsquo;re specifically
           designed, and use it both in and outside of work.
         </p>
+        <p className={styles.lead}>
+          After that, you&rsquo;ll receive a weekly newsletter every
+          Wednesday&mdash;personalized to your unique design.
+        </p>
 
         <ChartForm />
       </main>

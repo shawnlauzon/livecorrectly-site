@@ -12,12 +12,12 @@ interface Props {
 }
 
 export async function generateStaticParams() {
-  return getAllSlugs().map((slug) => ({ slug }));
+  return (await getAllSlugs()).map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const issue = getWebNewsletter(slug);
+  const issue = await getWebNewsletter(slug);
   if (!issue) return {};
 
   const url = `https://livecorrectly.com/newsletter/${issue.slug}`;
@@ -43,7 +43,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 function formatDate(iso: string): string {
-  const d = new Date(iso + "T00:00:00");
+  const d = new Date(iso);
   return d.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -53,7 +53,7 @@ function formatDate(iso: string): string {
 
 export default async function NewsletterIssuePage({ params }: Props) {
   const { slug } = await params;
-  const issue = getWebNewsletter(slug);
+  const issue = await getWebNewsletter(slug);
   if (!issue) notFound();
 
   const jsonLd = {

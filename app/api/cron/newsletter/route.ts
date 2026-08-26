@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getNewsletterDueSubscribers, advanceEmailSeries } from '@/lib/db';
+import { getNewsletterDueSubscribers, advanceEmailSeries, recordNewsletterSend } from '@/lib/db';
 import { sendWelcomeEmail, formatEmailRecipient } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getNewsletterEmail, getNewsletterSubject, getNewsletterCount } from '@/emails/newsletter';
@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
 
     if (result.success) {
       await advanceEmailSeries(subscriber.id, subscriber.next_step + 1);
+      await recordNewsletterSend(newsletterStep);
       sent++;
     } else {
       skipped++;

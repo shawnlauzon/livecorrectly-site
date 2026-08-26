@@ -58,3 +58,15 @@
   font-size: 0.9375rem;
   margin: 0;
 }
+
+/* ---- Subscribe CTA ---- */
+
+.cta {
+  margin-bottom: 2.5rem;
+  text-align: center;
+}
+
+.cta p {
+  color: var(--ink-soft);
+  margin-bottom: 1.25rem;
+}

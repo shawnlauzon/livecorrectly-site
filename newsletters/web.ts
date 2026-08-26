@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 import { Marked } from 'marked';
+import { getNewsletterSendDates } from '@/lib/db';
 
 export interface WebNewsletter {
   slug: string;
@@ -43,7 +44,7 @@ const marked = new Marked();
  * Parse a single newsletter markdown file for web display.
  * Returns null if the file has no `slug` (email-only issue).
  */
-function parseForWeb(raw: string, number: number): WebNewsletter | null {
+function parseForWeb(raw: string, number: number, publishedAt: string): WebNewsletter | null {
   const { data, content: body } = matter(raw);
 
   const slug = typeof data.slug === 'string' ? data.slug : null;
@@ -51,7 +52,6 @@ function parseForWeb(raw: string, number: number): WebNewsletter | null {
 
   const title = typeof data.subject === 'string' ? data.subject : '';
   const description = typeof data.description === 'string' ? data.description : '';
-  const publishedAt = typeof data.publishedAt === 'string' ? data.publishedAt : '';
   const personalizationNote =
     typeof data.personalizationNote === 'string' ? data.personalizationNote : null;
 
@@ -65,21 +65,12 @@ function parseForWeb(raw: string, number: number): WebNewsletter | null {
 const DIR = path.join(process.cwd(), 'newsletters');
 
 /**
- * Check whether a newsletter's publishedAt date is today or in the past.
+ * Load all newsletters that have a `slug` and have been sent (recorded in the DB),
+ * sorted newest-first.
  */
-function isPublished(publishedAt: string): boolean {
-  if (!publishedAt) return false;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const pub = new Date(publishedAt + 'T00:00:00');
-  return pub <= today;
-}
+export async function getWebNewsletters(): Promise<WebNewsletter[]> {
+  const sendDates = await getNewsletterSendDates();
 
-/**
- * Load all newsletters that have a `slug` and a publishedAt date that is
- * today or earlier, sorted newest-first.
- */
-export function getWebNewsletters(): WebNewsletter[] {
   let files: string[];
   try {
     files = fs.readdirSync(DIR).filter(f => f.endsWith('.md')).sort();
@@ -93,9 +84,12 @@ export function getWebNewsletters(): WebNewsletter[] {
     const num = parseInt(file.replace('.md', ''), 10);
     if (isNaN(num) || num < 1) continue;
 
+    const sentAt = sendDates.get(num);
+    if (!sentAt) continue;
+
     const raw = fs.readFileSync(path.join(DIR, file), 'utf-8');
-    const parsed = parseForWeb(raw, num);
-    if (parsed && isPublished(parsed.publishedAt)) results.push(parsed);
+    const parsed = parseForWeb(raw, num, sentAt);
+    if (parsed) results.push(parsed);
   }
 
   // Newest first
@@ -106,14 +100,14 @@ export function getWebNewsletters(): WebNewsletter[] {
 /**
  * Get a single newsletter by its slug.
  */
-export function getWebNewsletter(slug: string): WebNewsletter | null {
-  const all = getWebNewsletters();
+export async function getWebNewsletter(slug: string): Promise<WebNewsletter | null> {
+  const all = await getWebNewsletters();
   return all.find(n => n.slug === slug) ?? null;
 }
 
 /**
  * All published slugs — for generateStaticParams.
  */
-export function getAllSlugs(): string[] {
-  return getWebNewsletters().map(n => n.slug);
+export async function getAllSlugs(): Promise<string[]> {
+  return (await getWebNewsletters()).map(n => n.slug);
 }

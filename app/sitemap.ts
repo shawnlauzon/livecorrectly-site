@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getWebNewsletters } from "@/newsletters/web";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = "https://livecorrectly.com";
 
   const staticPages: MetadataRoute.Sitemap = [
@@ -11,12 +11,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/newsletter`, lastModified: new Date() },
   ];
 
-  const newsletterPages: MetadataRoute.Sitemap = getWebNewsletters().map(
-    (issue) => ({
-      url: `${base}/newsletter/${issue.slug}`,
-      lastModified: new Date(issue.publishedAt + "T00:00:00"),
-    })
-  );
+  const issues = await getWebNewsletters();
+  const newsletterPages: MetadataRoute.Sitemap = issues.map((issue) => ({
+    url: `${base}/newsletter/${issue.slug}`,
+    lastModified: new Date(issue.publishedAt),
+  }));
 
   return [...staticPages, ...newsletterPages];
 }
