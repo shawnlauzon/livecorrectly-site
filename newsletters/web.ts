@@ -16,6 +16,8 @@ export interface WebNewsletter {
   /** Filename in /public/newsletter/ (e.g. "matrix01.jpg"), or null if unset */
   image: string | null;
   publishedAt: string;
+  /** Whether this newsletter has been sent (has a DB send record) */
+  published: boolean;
   /** Semantic HTML rendered from markdown body */
   bodyHtml: string;
 }
@@ -47,7 +49,7 @@ const marked = new Marked();
  * Parse a single newsletter markdown file for web display.
  * Returns null if the file has no `slug` (email-only issue).
  */
-function parseForWeb(raw: string, number: number, publishedAt: string): WebNewsletter | null {
+function parseForWeb(raw: string, number: number, publishedAt: string, published: boolean): WebNewsletter | null {
   const { data, content: body } = matter(raw);
 
   const slug = typeof data.slug === 'string' ? data.slug : null;
@@ -61,7 +63,7 @@ function parseForWeb(raw: string, number: number, publishedAt: string): WebNewsl
   const cleaned = replaceVariables(stripGreeting(body.trim()));
   const bodyHtml = marked.parse(cleaned) as string;
 
-  return { slug, number, title, description, preview, image, publishedAt, bodyHtml };
+  return { slug, number, title, description, preview, image, publishedAt, published, bodyHtml };
 }
 
 /** Directory containing newsletter markdown files */
@@ -69,10 +71,12 @@ const DIR = path.join(process.cwd(), 'newsletters');
 
 /**
  * Load all newsletters that have a `slug` and have been sent (recorded in the DB),
- * sorted newest-first.
+ * sorted newest-first. In development, also includes unsent newsletters with
+ * `published: false` so they can be previewed during authoring.
  */
 export async function getWebNewsletters(): Promise<WebNewsletter[]> {
   const sendDates = await getNewsletterSendDates();
+  const isDev = process.env.NODE_ENV === 'development';
 
   let files: string[];
   try {
@@ -88,11 +92,21 @@ export async function getWebNewsletters(): Promise<WebNewsletter[]> {
     if (isNaN(num) || num < 1) continue;
 
     const sentAt = sendDates.get(num);
-    if (!sentAt) continue;
 
-    const raw = fs.readFileSync(path.join(DIR, file), 'utf-8');
-    const parsed = parseForWeb(raw, num, sentAt);
-    if (parsed) results.push(parsed);
+    if (!sentAt && !isDev) continue;
+
+    const filePath = path.join(DIR, file);
+    const raw = fs.readFileSync(filePath, 'utf-8');
+
+    if (sentAt) {
+      const parsed = parseForWeb(raw, num, sentAt, true);
+      if (parsed) results.push(parsed);
+    } else {
+      // Dev-only: use file mtime as a fallback date
+      const mtime = fs.statSync(filePath).mtime.toISOString();
+      const parsed = parseForWeb(raw, num, mtime, false);
+      if (parsed) results.push(parsed);
+    }
   }
 
   // Newest first

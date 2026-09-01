@@ -80,6 +80,9 @@ export default async function NewsletterIssuePage({ params }: Props) {
       <SiteNav variant="back" backHref="/newsletter" hideNewsletterLink />
       <main className={styles.page}>
         <article>
+          {!issue.published && (
+            <p className={styles.draftBanner}>Unpublished draft</p>
+          )}
           {issue.image && (
             <Image
               src={`/newsletter/${issue.image}`}
@@ -105,10 +108,12 @@ export default async function NewsletterIssuePage({ params }: Props) {
         <NewsletterCta />
       </main>
       <SiteFooter />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      {issue.published && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
     </>
   );
 }

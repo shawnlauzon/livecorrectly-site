@@ -51,12 +51,21 @@ export default async function NewsletterIndexPage() {
                   />
                 )}
                 <div className={styles.itemText}>
-                  <p className={styles.date}>
-                    <time dateTime={issue.publishedAt}>
-                      {formatDate(issue.publishedAt)}
-                    </time>
-                  </p>
-                  <h2 className={styles.title}>{issue.title}</h2>
+                  {issue.published ? (
+                    <p className={styles.date}>
+                      <time dateTime={issue.publishedAt}>
+                        {formatDate(issue.publishedAt)}
+                      </time>
+                    </p>
+                  ) : (
+                    <p className={`${styles.date} ${styles.draft}`}>Draft</p>
+                  )}
+                  <h2 className={styles.title}>
+                    {issue.title}
+                    {!issue.published && (
+                      <span className={styles.badge}>Unpublished</span>
+                    )}
+                  </h2>
                   <p className={styles.description}>{issue.preview}</p>
                 </div>
               </Link>

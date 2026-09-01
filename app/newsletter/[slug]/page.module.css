@@ -5,6 +5,20 @@
   padding: clamp(3rem, 8vh, 5rem) var(--gutter) clamp(4rem, 10vh, 6rem);
 }
 
+.draftBanner {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--line);
+  border: 1px dashed var(--muted);
+  border-radius: 4px;
+  padding: 0.4em 0.75em;
+  margin-bottom: 1.5rem;
+  display: inline-block;
+}
+
 .hero {
   width: 100%;
   height: auto;
