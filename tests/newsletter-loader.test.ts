@@ -118,8 +118,8 @@ Below
 
 describe('getNewsletter', () => {
   it('replaces {{firstName}} in subject, preview, and body', () => {
-    // getNewsletter reads from disk — use the actual 01.md file
-    const result = getNewsletter(1, 'Alice');
+    // getNewsletter reads from disk — use the actual 04.md file (first newsletter, matches next_step 4)
+    const result = getNewsletter(4, 'Alice');
     expect(result).not.toBeNull();
     expect(result!.bodyHtml).toContain('Alice');
     expect(result!.bodyHtml).not.toContain('{{firstName}}');
@@ -132,7 +132,7 @@ describe('getNewsletter', () => {
 
 describe('getNewsletterRaw', () => {
   it('returns newsletter without variable replacement', () => {
-    const result = getNewsletterRaw(1);
+    const result = getNewsletterRaw(4);
     expect(result).not.toBeNull();
     expect(result!.bodyHtml).toContain('{{firstName}}');
   });

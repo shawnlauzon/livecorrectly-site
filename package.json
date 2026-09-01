@@ -10,7 +10,8 @@
     "lint": "eslint",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "dry-run": "tsx --env-file=.env.local scripts/dry-run-emails.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -31,6 +32,7 @@
     "@vitest/ui": "^4.1.10",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.2.12",
+    "tsx": "^4.23.13",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   }

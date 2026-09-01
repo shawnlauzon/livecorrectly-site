@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# dry-run output
+scripts/dry-run-output/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
