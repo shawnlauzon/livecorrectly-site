@@ -1376,7 +1376,7 @@ function BroadcastSection({ subscriber }: { subscriber: Subscriber }) {
 }
 
 function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
-  const [selectedStep, setSelectedStep] = useState<number>(1);
+  const [selectedStep, setSelectedStep] = useState<number | null>(null);
   const [html, setHtml] = useState<string | null>(null);
   const [subject, setSubject] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -1384,21 +1384,19 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [newsletterCount, setNewsletterCount] = useState<number | null>(null);
+  const [newsletterNumbers, setNewsletterNumbers] = useState<number[] | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const isActive = subscriber.email_status === 'active';
-  const newsletterStep = subscriber.next_step - WELCOME_SERIES_LENGTH;
 
   // Determine newsletter state
   let newsletterState: 'not_started' | 'in_progress' | 'complete';
   if (subscriber.next_step <= WELCOME_SERIES_LENGTH) {
     newsletterState = 'not_started';
-  } else if (newsletterCount !== null && newsletterStep <= newsletterCount) {
+  } else if (newsletterNumbers !== null && newsletterNumbers.includes(subscriber.next_step)) {
     newsletterState = 'in_progress';
   } else {
-    // Either complete or waiting for newsletter count to load
-    newsletterState = newsletterCount === null ? 'in_progress' : 'complete';
+    newsletterState = newsletterNumbers === null ? 'in_progress' : 'complete';
   }
 
   const loadPreview = useCallback(async (step: number) => {
@@ -1421,11 +1419,12 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
         throw new Error(data.error || 'Failed to load preview');
       }
 
-      const data: { subject: string; preview: string; html: string; totalNewsletters: number } = await response.json();
+      const data: { subject: string; preview: string; html: string; newsletterNumbers: number[] } = await response.json();
       setSubject(data.subject);
       setPreview(data.preview);
       setHtml(data.html);
-      setNewsletterCount(data.totalNewsletters);
+      setNewsletterNumbers(data.newsletterNumbers);
+      if (selectedStep === null) setSelectedStep(step);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load preview';
       setError(message);
@@ -1433,14 +1432,39 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
     } finally {
       setLoading(false);
     }
+  }, [subscriber.id, selectedStep]);
+
+  // Load first newsletter on mount to populate the dropdown and discover available numbers
+  useEffect(() => {
+    const password = sessionStorage.getItem('adminPassword');
+    if (!password) return;
+
+    // Fetch preview for the first available newsletter to discover the full list
+    fetch(`/api/admin/subscribers/${subscriber.id}/preview-newsletter?step=4`, {
+      headers: { Authorization: `Bearer ${password}` }
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to load preview');
+        }
+        return res.json();
+      })
+      .then((data: { subject: string; preview: string; html: string; newsletterNumbers: number[] }) => {
+        setSubject(data.subject);
+        setPreview(data.preview);
+        setHtml(data.html);
+        setNewsletterNumbers(data.newsletterNumbers);
+        setSelectedStep(data.newsletterNumbers[0] ?? 4);
+      })
+      .catch((err: Error) => {
+        setError(err.message);
+        console.error('[admin] Error loading initial newsletter preview:', err);
+      });
   }, [subscriber.id]);
 
-  // Load first preview on mount to populate the dropdown and discover newsletter count
-  useEffect(() => {
-    loadPreview(1);
-  }, [loadPreview]);
-
   const handleSend = useCallback(async () => {
+    if (selectedStep === null) return;
     const password = sessionStorage.getItem('adminPassword');
     if (!password) return;
 
@@ -1498,7 +1522,7 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
     return () => iframe.removeEventListener('load', onLoad);
   }, [html]);
 
-  const stepOptions = Array.from({ length: newsletterCount ?? 1 }, (_, i) => i + 1);
+  const stepOptions = newsletterNumbers ?? [];
 
   return (
     <div className={styles.welcomeSection}>
@@ -1510,8 +1534,8 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
             <span className={styles.welcomeMetaLabel}>Status</span>
             <span>
               {newsletterState === 'not_started' && 'Not started (in welcome series)'}
-              {newsletterState === 'in_progress' && `Newsletter ${newsletterStep} of ${newsletterCount ?? '...'}`}
-              {newsletterState === 'complete' && `Complete (${newsletterCount ?? '...'} newsletters)`}
+              {newsletterState === 'in_progress' && `Next: #${subscriber.next_step} of ${newsletterNumbers ? newsletterNumbers.length : '...'}`}
+              {newsletterState === 'complete' && `Complete (${newsletterNumbers ? newsletterNumbers.length : '...'} newsletters)`}
             </span>
           </div>
         </div>
@@ -1522,7 +1546,7 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
             <div className={styles.nextEmailControl}>
               <select
                 className={styles.nextEmailSelect}
-                value={selectedStep}
+                value={selectedStep ?? ''}
                 onChange={handleStepChange}
               >
                 {stepOptions.map((n) => (
@@ -1533,8 +1557,8 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
               </select>
               <button
                 className={styles.nextEmailSave}
-                onClick={() => loadPreview(selectedStep)}
-                disabled={loading}
+                onClick={() => selectedStep !== null && loadPreview(selectedStep)}
+                disabled={loading || selectedStep === null}
               >
                 {loading ? 'Loading...' : 'Preview'}
               </button>
@@ -1545,14 +1569,14 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
         {(html || loading || error) && (
           <details className={styles.emailPreview}>
             <summary className={styles.emailPreviewSummary}>
-              <span className={styles.emailPreviewLabel}>Newsletter #{selectedStep}</span>
+              <span className={styles.emailPreviewLabel}>Newsletter #{selectedStep ?? ''}</span>
               <button
                 className={styles.emailPreviewRefresh}
                 onClick={(e) => {
                   e.preventDefault();
-                  loadPreview(selectedStep);
+                  if (selectedStep !== null) loadPreview(selectedStep);
                 }}
-                disabled={loading}
+                disabled={loading || selectedStep === null}
                 title="Refresh preview"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1582,7 +1606,7 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
                   srcDoc={html}
                   className={styles.emailPreviewIframe}
                   sandbox="allow-same-origin"
-                  title={`Newsletter #${selectedStep} preview`}
+                  title={`Newsletter #${selectedStep ?? ''} preview`}
                 />
               )}
             </div>
@@ -1593,10 +1617,10 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
           <div className={styles.welcomeButtons}>
             <button
               className={styles.dayButton}
-              disabled={sending || loading}
+              disabled={sending || loading || selectedStep === null}
               onClick={handleSend}
             >
-              {sending ? 'Sending...' : `Send Newsletter #${selectedStep}`}
+              {sending ? 'Sending...' : `Send Newsletter #${selectedStep ?? ''}`}
             </button>
           </div>
         ) : (

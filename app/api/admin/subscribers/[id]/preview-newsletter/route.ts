@@ -3,7 +3,7 @@ import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { renderEmail } from '@/emails/send';
-import { getNewsletterEmail, getNewsletterSubject, getNewsletterCount } from '@/emails/newsletter';
+import { getNewsletterEmail, getNewsletterSubject, getNewsletterNumbers } from '@/emails/newsletter';
 import { getNewsletter } from '@/emails/newsletter-loader';
 
 /**
@@ -36,11 +36,11 @@ export async function GET(
     }
 
     const step = parseInt(stepParam, 10);
-    const totalNewsletters = getNewsletterCount();
+    const newsletterNumbers = getNewsletterNumbers();
 
-    if (isNaN(step) || step < 1 || step > totalNewsletters) {
+    if (isNaN(step) || !newsletterNumbers.includes(step)) {
       return NextResponse.json(
-        { error: `step must be between 1 and ${totalNewsletters}` },
+        { error: `step must be one of [${newsletterNumbers.join(', ')}]` },
         { status: 400 }
       );
     }
@@ -64,7 +64,7 @@ export async function GET(
     const preview = newsletter?.preview ?? '';
     const html = await renderEmail(emailComponent);
 
-    return NextResponse.json({ subject, preview, html, totalNewsletters });
+    return NextResponse.json({ subject, preview, html, newsletterNumbers });
   } catch (error) {
     console.error('[admin] Error rendering newsletter preview:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

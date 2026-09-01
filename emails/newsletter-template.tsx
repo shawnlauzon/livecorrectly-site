@@ -2,8 +2,8 @@ import * as React from 'react';
 import { Section, Text, Link } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import type { EmailChartData } from '../lib/hd-chart/parse-for-email';
-import { Newsletter01Personalization } from '@/newsletters/personalizations/01';
-import { Newsletter02Personalization } from '@/newsletters/personalizations/02';
+import { Newsletter04Personalization } from '@/newsletters/personalizations/04';
+import { Newsletter05Personalization } from '@/newsletters/personalizations/05';
 
 interface NewsletterTemplateProps {
   preview: string;
@@ -19,8 +19,8 @@ interface NewsletterTemplateProps {
  * Newsletters without an entry render normally with no per-type section.
  */
 const personalizations: Record<number, React.ComponentType<{ chart: EmailChartData }>> = {
-  1: Newsletter01Personalization,
-  2: Newsletter02Personalization,
+  4: Newsletter04Personalization,
+  5: Newsletter05Personalization,
 };
 
 /**

@@ -4,10 +4,10 @@ import { P } from '@/emails/content';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 
 /**
- * Per-type personalization section for Newsletter #2.
+ * Per-type personalization section for Newsletter #5.
  * Renders a closing section tailored to the subscriber's HD type.
  */
-export function Newsletter02Personalization({
+export function Newsletter05Personalization({
   chart,
 }: {
   chart: EmailChartData;

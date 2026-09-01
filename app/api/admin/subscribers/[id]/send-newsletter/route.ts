@@ -3,7 +3,7 @@ import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
 import { sendWelcomeEmail, formatEmailRecipient } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getNewsletterEmail, getNewsletterSubject, getNewsletterCount } from '@/emails/newsletter';
+import { getNewsletterEmail, getNewsletterSubject, getNewsletterNumbers } from '@/emails/newsletter';
 
 /**
  * POST /api/admin/subscribers/[id]/send-newsletter
@@ -12,7 +12,7 @@ import { getNewsletterEmail, getNewsletterSubject, getNewsletterCount } from '@/
  * Does NOT advance next_step — manual sends
  * are independent of the automated series.
  *
- * Body: { step: 1-N } (1-based newsletter number)
+ * Body: { step: N } (newsletter number, matches next_step)
  * Auth: Bearer <ADMIN_PASSWORD>
  */
 export async function POST(
@@ -34,11 +34,11 @@ export async function POST(
 
     const body = await request.json();
     const step = body.step;
-    const totalNewsletters = getNewsletterCount();
+    const newsletterNumbers = getNewsletterNumbers();
 
-    if (typeof step !== 'number' || step < 1 || step > totalNewsletters) {
+    if (typeof step !== 'number' || !newsletterNumbers.includes(step)) {
       return NextResponse.json(
-        { error: `step must be a number between 1 and ${totalNewsletters}` },
+        { error: `step must be one of [${newsletterNumbers.join(', ')}]` },
         { status: 400 }
       );
     }

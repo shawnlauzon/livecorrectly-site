@@ -4,11 +4,11 @@ import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getNewsletter, getNewsletterCount } from './newsletter-loader';
 import { NewsletterTemplate } from './newsletter-template';
 
-export { getNewsletterCount } from './newsletter-loader';
+export { getNewsletterCount, getMaxNewsletterNumber, getNewsletterNumbers } from './newsletter-loader';
 
 /**
  * Build the React element for a newsletter step.
- * Step is 1-based (newsletter #1 = step 1).
+ * Step matches subscriber.next_step directly.
  * Returns null if the newsletter doesn't exist.
  */
 export function getNewsletterEmail(

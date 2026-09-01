@@ -4,7 +4,7 @@ import matter from 'gray-matter';
 import { Marked, Renderer, type Tokens } from 'marked';
 
 export interface Newsletter {
-  /** 1-based newsletter number (from filename) */
+  /** Newsletter number (from filename, matches next_step) */
   number: number;
   subject: string;
   preview: string;
@@ -104,7 +104,7 @@ export function parseNewsletter(content: string, number: number): Newsletter {
   return { number, subject, preview, slug, bodyHtml };
 }
 
-/** Cached newsletters loaded from disk, keyed by 1-based number */
+/** Cached newsletters loaded from disk, keyed by number (matches next_step) */
 let cache: Map<number, Newsletter> | null = null;
 
 /**
@@ -158,7 +158,7 @@ function replaceVariables(newsletter: Newsletter, firstName: string, subscriberI
 }
 
 /**
- * Get a newsletter by its 1-based step number (newsletter #1 = step 1).
+ * Get a newsletter by its step number (matches subscriber.next_step).
  * Returns null if the newsletter doesn't exist.
  * Replaces {{firstName}}, {{appUrl}}, and {{chartUrl}} template variables.
  */
@@ -182,6 +182,21 @@ export function getNewsletterRaw(step: number): Newsletter | null {
  */
 export function getNewsletterCount(): number {
   return loadAll().size;
+}
+
+/**
+ * The highest newsletter number on disk, or 0 if none exist.
+ */
+export function getMaxNewsletterNumber(): number {
+  const keys = [...loadAll().keys()];
+  return keys.length > 0 ? Math.max(...keys) : 0;
+}
+
+/**
+ * Sorted array of all newsletter numbers on disk.
+ */
+export function getNewsletterNumbers(): number[] {
+  return [...loadAll().keys()].sort((a, b) => a - b);
 }
 
 /**

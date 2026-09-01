@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { getNewsletterDueSubscribers, advanceEmailSeries, recordNewsletterSend, acquireCronLock } from '@/lib/db';
 import { sendWelcomeEmail, formatEmailRecipient } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getNewsletterEmail, getNewsletterSubject, getNewsletterCount } from '@/emails/newsletter';
+import { getNewsletterEmail, getNewsletterSubject, getMaxNewsletterNumber } from '@/emails/newsletter';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 
 /**
@@ -39,8 +39,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, duplicate: true, sent: 0, skipped: 0 });
   }
 
-  const totalNewsletters = getNewsletterCount();
-  if (totalNewsletters === 0) {
+  const maxNewsletterNumber = getMaxNewsletterNumber();
+  if (maxNewsletterNumber === 0) {
     console.log('[cron] No newsletter files found, skipping');
     return NextResponse.json({ ok: true, sent: 0, skipped: 0, noNewsletters: true });
   }
@@ -52,20 +52,17 @@ export async function GET(request: NextRequest) {
   let skipped = 0;
 
   for (const subscriber of dueSubscribers) {
-    // Convert next_step to newsletter number (1-based)
-    const newsletterStep = subscriber.next_step - WELCOME_SERIES_LENGTH;
-
-    if (newsletterStep > totalNewsletters) {
+    if (subscriber.next_step > maxNewsletterNumber) {
       // All available newsletters sent — no action needed
       skipped++;
       continue;
     }
 
     const chart = parseChartForEmail(subscriber.chart.chart);
-    const subject = getNewsletterSubject(newsletterStep, subscriber.first_name, subscriber.id);
+    const subject = getNewsletterSubject(subscriber.next_step, subscriber.first_name, subscriber.id);
     const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
     const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${subscriber.unsub_token}`;
-    const emailComponent = getNewsletterEmail(newsletterStep, subscriber, chart, unsubscribeUrl);
+    const emailComponent = getNewsletterEmail(subscriber.next_step, subscriber, chart, unsubscribeUrl);
 
     if (!emailComponent) {
       skipped++;
@@ -81,7 +78,7 @@ export async function GET(request: NextRequest) {
 
     if (result.success) {
       await advanceEmailSeries(subscriber.id, subscriber.next_step + 1);
-      await recordNewsletterSend(newsletterStep);
+      await recordNewsletterSend(subscriber.next_step);
       sent++;
     } else {
       skipped++;
