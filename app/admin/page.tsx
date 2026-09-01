@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Subscriber } from '@/lib/types/subscriber';
 import { ChartRecord } from '@/lib/types/chart';
-import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import hdChart from '@/lib/hd-chart';
 import { innerAuthorityTypes } from '@/lib/hd-chart/constants';
 import { getChartImageUrl } from '@/lib/chart-image';
@@ -379,9 +378,7 @@ function AdminPageContent() {
 
   const getNextEmailLabel = (sub: Subscriber): string => {
     if (sub.email_status !== 'active') return '—';
-    if (sub.next_step > WELCOME_SERIES_LENGTH) return 'Done';
-    if (sub.next_step === 0) return 'Not started';
-    return `Day ${sub.next_step}`;
+    return String(sub.next_step);
   };
 
   const handleSort = (column: SortColumn) => {
@@ -416,7 +413,7 @@ function AdminPageContent() {
       case 'status':
         return subscriber.email_status;
       case 'nextEmail':
-        return getNextEmailLabel(subscriber);
+        return subscriber.next_step;
       case 'created':
         return new Date(subscriber.created_at).getTime();
       case 'lastActive':
@@ -522,14 +519,14 @@ function AdminPageContent() {
                   {sortColumn === 'shadow' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
                 </span>
               </th>
+              <th onClick={() => handleSort('nextEmail')} style={{ textAlign: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                Email<span style={{ display: 'inline-block', width: '1em', textAlign: 'center' }}>
+                  {sortColumn === 'nextEmail' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                </span>
+              </th>
               <th onClick={() => handleSort('status')} style={{ textAlign: 'center', width: '4rem', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 Status<span style={{ display: 'inline-block', width: '1em', textAlign: 'center' }}>
                   {sortColumn === 'status' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
-                </span>
-              </th>
-              <th onClick={() => handleSort('nextEmail')} style={{ textAlign: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                Welcome<span style={{ display: 'inline-block', width: '1em', textAlign: 'center' }}>
-                  {sortColumn === 'nextEmail' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
                 </span>
               </th>
               <th onClick={() => handleSort('created')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -677,15 +674,15 @@ function AdminPageContent() {
                 </td>
                 <td>{getSplitLabel(subscriber)}</td>
                 <td>{getFirstShadowLabel(subscriber)}</td>
+                <td className={styles.nextEmail}>
+                  {getNextEmailLabel(subscriber)}
+                </td>
                 <td className={subscriber.email_status === 'active' ? styles.statusOk : styles.statusBad}>
                   {subscriber.email_status === 'active' ? (
                     '✓'
                   ) : (
                     <span title={subscriber.email_status}>✗</span>
                   )}
-                </td>
-                <td className={styles.nextEmail}>
-                  {getNextEmailLabel(subscriber)}
                 </td>
                 <td>{formatDate(subscriber.created_at)}</td>
                 <td className={engagement.stale ? styles.engagementStale : undefined}>
