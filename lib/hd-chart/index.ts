@@ -980,7 +980,6 @@ export default function hdChart(chart: Chart) {
     descs.sort((a, b) => compareBridgeScores(a._score, b._score));
 
     // Strip internal _score field
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     return descs.map(({ _score, ...rest }) => rest);
   };
 
@@ -1209,7 +1208,6 @@ export default function hdChart(chart: Chart) {
     }));
     scored.sort((a, b) => compareBridgeScores(a._score, b._score));
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     return scored.map(({ _score, ...rest }) => rest);
   };
 

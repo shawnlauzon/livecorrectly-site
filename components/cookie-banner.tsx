@@ -1,24 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore, useState } from "react";
 import Link from "next/link";
 import styles from "./cookie-banner.module.css";
 
 const STORAGE_KEY = "cookie-consent";
 
-export default function CookieBanner() {
-  const [visible, setVisible] = useState(false);
+function subscribeNoop() {
+  // localStorage doesn't fire events on same-window writes;
+  // the banner only needs the value on mount, so this is a no-op.
+  return () => {};
+}
 
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      setVisible(true);
-    }
-  }, []);
+function getConsentSnapshot(): string | null {
+  return localStorage.getItem(STORAGE_KEY);
+}
+
+function getServerSnapshot(): string | null {
+  // During SSR, assume consent hasn't been given yet (return null to hide
+  // the banner server-side, then hydrate with the real value on the client).
+  return "pending";
+}
+
+export default function CookieBanner() {
+  const consent = useSyncExternalStore(subscribeNoop, getConsentSnapshot, getServerSnapshot);
+  const [dismissed, setDismissed] = useState(false);
+
+  const visible = consent === null && !dismissed;
 
   function accept() {
     localStorage.setItem(STORAGE_KEY, "granted");
-    setVisible(false);
+    setDismissed(true);
 
     // Update Google Consent Mode to allow analytics
     const w = window as Window & { gtag?: (...args: unknown[]) => void };
@@ -31,7 +43,7 @@ export default function CookieBanner() {
 
   function decline() {
     localStorage.setItem(STORAGE_KEY, "denied");
-    setVisible(false);
+    setDismissed(true);
   }
 
   if (!visible) return null;

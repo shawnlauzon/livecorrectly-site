@@ -23,11 +23,6 @@ export const Welcome3 = ({
   chart,
   unsubscribeUrl,
 }: Welcome3Props) => {
-  const authority =
-    chart.innerAuthority === 'None'
-      ? 'Lunar Authority'
-      : `${chart.innerAuthority} Authority`;
-
   return (
     <EmailLayout
       preview="Being honest about the limit."

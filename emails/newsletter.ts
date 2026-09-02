@@ -1,7 +1,7 @@
 import React from 'react';
 import { Subscriber } from '@/lib/types/subscriber';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getNewsletter, getNewsletterCount } from './newsletter-loader';
+import { getNewsletter } from './newsletter-loader';
 import { NewsletterTemplate } from './newsletter-template';
 
 export { getNewsletterCount, getMaxNewsletterNumber, getNewsletterNumbers } from './newsletter-loader';

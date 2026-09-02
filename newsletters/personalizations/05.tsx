@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Head, Heading, Section } from 'react-email';
+import { Heading, Section } from 'react-email';
 import { P } from '@/emails/content';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 

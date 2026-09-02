@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { Subscriber } from '@/lib/types/subscriber';
 import { ChartRecord } from '@/lib/types/chart';
 import hdChart from '@/lib/hd-chart';
@@ -86,6 +87,72 @@ function getFirstShadowLabel(subscriber: Subscriber): string {
   return firstShadowFunction;
 }
 
+/* eslint-disable @typescript-eslint/no-explicit-any -- deep structural comparison of arbitrary JSONB chart data */
+function findDifferences(obj1: any, obj2: any, path = ''): Record<string, { old: any; new: any }> {
+  const diff: Record<string, { old: any; new: any }> = {};
+
+  const allKeys = new Set([...Object.keys(obj1 || {}), ...Object.keys(obj2 || {})]);
+
+  for (const key of allKeys) {
+    const currentPath = path ? `${path}.${key}` : key;
+    const val1 = obj1?.[key];
+    const val2 = obj2?.[key];
+
+    if (val1 === val2) continue;
+
+    if (typeof val1 === 'object' && val1 !== null && typeof val2 === 'object' && val2 !== null) {
+      if (Array.isArray(val1) && Array.isArray(val2)) {
+        // Compare arrays element by element (recursively)
+        if (val1.length !== val2.length) {
+          diff[currentPath] = { old: val1, new: val2 };
+        } else {
+          // Deep compare each element
+          const arrayDiff: Record<string, { old: any; new: any }> = {};
+          for (let i = 0; i < val1.length; i++) {
+            const elemDiff = findDifferences(val1[i], val2[i], `${currentPath}[${i}]`);
+            Object.assign(arrayDiff, elemDiff);
+          }
+          if (Object.keys(arrayDiff).length > 0) {
+            Object.assign(diff, arrayDiff);
+          }
+        }
+      } else {
+        const nested = findDifferences(val1, val2, currentPath);
+        Object.assign(diff, nested);
+      }
+    } else {
+      diff[currentPath] = { old: val1, new: val2 };
+    }
+  }
+
+  return diff;
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+function getEngagementLabel(sub: Subscriber, now: number): { label: string; stale: boolean } {
+  if (!sub.last_engaged_at) return { label: '\u2014', stale: false };
+  const then = new Date(sub.last_engaged_at).getTime();
+  const totalDays = Math.floor((now - then) / (1000 * 60 * 60 * 24));
+
+  if (totalDays <= 0) return { label: 'Today', stale: false };
+
+  const yearsFull = totalDays / 365;
+  const months = Math.floor(totalDays / 30);
+  const days = totalDays;
+
+  let label: string;
+  if (yearsFull >= 1) {
+    const yearsRounded = Math.round(yearsFull * 10) / 10;
+    label = `${yearsRounded}\u00A0${yearsRounded === 1 ? 'year' : 'years'}`;
+  } else if (months > 0) {
+    label = `${months}\u00A0${months === 1 ? 'month' : 'months'}`;
+  } else {
+    label = `${days}\u00A0${days === 1 ? 'day' : 'days'}`;
+  }
+
+  return { label, stale: totalDays > 90 };
+}
+
 type SortColumn = 'name' | 'email' | 'profile' | 'authority' | 'type' | 'split' | 'shadow' | 'status' | 'nextEmail' | 'created' | 'lastActive';
 type SortDirection = 'asc' | 'desc';
 
@@ -123,12 +190,18 @@ function AdminPageContent() {
   const [freshCharts, setFreshCharts] = useState<Record<string, ChartRecord>>({});
   const [saving, setSaving] = useState<string | null>(null);
 
+  // Timestamp captured when subscribers are loaded, used for engagement
+  // label computation. Stored alongside subscriber data so it's available
+  // during render without calling Date.now() (which is impure).
+  const [subscribersFetchedAt, setSubscribersFetchedAt] = useState(0);
+
   const loadSubscribers = useCallback(async (pwd: string) => {
     setLoading(true);
     setError('');
     const result = await fetchSubscribers(pwd);
     if (result.ok) {
       setSubscribers(result.data);
+      setSubscribersFetchedAt(Date.now());
       setIsAuthorized(true);
     } else {
       setError(result.error);
@@ -136,21 +209,26 @@ function AdminPageContent() {
     setLoading(false);
   }, []);
 
-  // Check for existing session on mount
+  // Check for existing session on mount.
+  // State updates are deferred to avoid synchronous setState in the effect body.
   useEffect(() => {
     const savedPassword = sessionStorage.getItem('adminPassword');
     if (!savedPassword) return;
 
-    setPassword(savedPassword);
-    setLoading(true);
-
     let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setPassword(savedPassword);
+      setLoading(true);
+    });
 
     (async () => {
       const result = await fetchSubscribers(savedPassword);
       if (cancelled) return;
       if (result.ok) {
         setSubscribers(result.data);
+        setSubscribersFetchedAt(Date.now());
         setIsAuthorized(true);
       } else {
         setError(result.error);
@@ -174,6 +252,7 @@ function AdminPageContent() {
     window.addEventListener('pageshow', handlePageShow);
     return () => window.removeEventListener('pageshow', handlePageShow);
   }, [loadSubscribers]);
+
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -303,77 +382,12 @@ function AdminPageContent() {
     }
   };
 
-  function findDifferences(obj1: any, obj2: any, path = ''): Record<string, { old: any; new: any }> {
-    const diff: Record<string, { old: any; new: any }> = {};
-
-    const allKeys = new Set([...Object.keys(obj1 || {}), ...Object.keys(obj2 || {})]);
-
-    for (const key of allKeys) {
-      const currentPath = path ? `${path}.${key}` : key;
-      const val1 = obj1?.[key];
-      const val2 = obj2?.[key];
-
-      if (val1 === val2) continue;
-
-      if (typeof val1 === 'object' && val1 !== null && typeof val2 === 'object' && val2 !== null) {
-        if (Array.isArray(val1) && Array.isArray(val2)) {
-          // Compare arrays element by element (recursively)
-          if (val1.length !== val2.length) {
-            diff[currentPath] = { old: val1, new: val2 };
-          } else {
-            // Deep compare each element
-            const arrayDiff: Record<string, { old: any; new: any }> = {};
-            for (let i = 0; i < val1.length; i++) {
-              const elemDiff = findDifferences(val1[i], val2[i], `${currentPath}[${i}]`);
-              Object.assign(arrayDiff, elemDiff);
-            }
-            if (Object.keys(arrayDiff).length > 0) {
-              Object.assign(diff, arrayDiff);
-            }
-          }
-        } else {
-          const nested = findDifferences(val1, val2, currentPath);
-          Object.assign(diff, nested);
-        }
-      } else {
-        diff[currentPath] = { old: val1, new: val2 };
-      }
-    }
-
-    return diff;
-  }
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
-  };
-
-  const getEngagementLabel = (sub: Subscriber): { label: string; stale: boolean } => {
-    if (!sub.last_engaged_at) return { label: '\u2014', stale: false };
-    const now = Date.now();
-    const then = new Date(sub.last_engaged_at).getTime();
-    const totalDays = Math.floor((now - then) / (1000 * 60 * 60 * 24));
-
-    if (totalDays <= 0) return { label: 'Today', stale: false };
-
-    const yearsFull = totalDays / 365;
-    const months = Math.floor(totalDays / 30);
-    const days = totalDays;
-
-    let label: string;
-    if (yearsFull >= 1) {
-      const yearsRounded = Math.round(yearsFull * 10) / 10;
-      label = `${yearsRounded}\u00A0${yearsRounded === 1 ? 'year' : 'years'}`;
-    } else if (months > 0) {
-      label = `${months}\u00A0${months === 1 ? 'month' : 'months'}`;
-    } else {
-      label = `${days}\u00A0${days === 1 ? 'day' : 'days'}`;
-    }
-
-    return { label, stale: totalDays > 90 };
   };
 
   const getNextEmailLabel = (sub: Subscriber): string => {
@@ -543,8 +557,7 @@ function AdminPageContent() {
           </thead>
           <tbody>
             {sortedSubscribers.map((subscriber) => {
-              const engagement = getEngagementLabel(subscriber);
-              const hd = subscriber.chart?.chart ? hdChart(subscriber.chart.chart) : null;
+              const engagement = getEngagementLabel(subscriber, subscribersFetchedAt);
               return (
               <tr
                 key={subscriber.id}
@@ -712,13 +725,18 @@ function AdminPageContent() {
           }}
           onClick={() => setLightboxChart(null)}
         >
-          <img
+          <Image
             src={lightboxChart}
             alt="Chart"
+            width={800}
+            height={800}
+            unoptimized
             style={{
               maxWidth: '92vw',
               maxHeight: '92vh',
-              borderRadius: '8px'
+              borderRadius: '8px',
+              width: 'auto',
+              height: 'auto'
             }}
           />
         </div>

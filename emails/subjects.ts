@@ -2,8 +2,8 @@ import { EmailChartData } from '../lib/hd-chart/parse-for-email';
 
 export function getWelcomePreview(
   step: number,
-  firstName: string,
-  chart: EmailChartData,
+  _firstName: string,
+  _chart: EmailChartData,
 ): string {
   switch (step) {
     case 0:
@@ -21,8 +21,8 @@ export function getWelcomePreview(
 
 export function getWelcomeSubject(
   step: number,
-  firstName: string,
-  chart: EmailChartData,
+  _firstName: string,
+  _chart: EmailChartData,
 ): string {
   switch (step) {
     case 0:

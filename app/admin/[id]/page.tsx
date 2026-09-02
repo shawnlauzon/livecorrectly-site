@@ -4,9 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Subscriber } from '@/lib/types/subscriber';
-import ChartDisplay from '@/components/admin/chart-display';
 import ChartHero from '@/components/chart-hero';
-import ChartImage from '@/components/admin/chart-image';
 import hdChart from '@/lib/hd-chart';
 import { shadowNames, shadowDescriptions, shadowThemes, shadowLessons, shadowPressures, channelStrengths, gateTraits, functionToCenterIndex, centerNames, determinationNames, determinationConditions, environmentNames, environmentConditions, cognitionNames } from '@/lib/hd-chart/constants';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
@@ -98,7 +96,6 @@ export default function AdminDetailPage({
     );
   }
 
-  const birthTimeUtc = subscriber.chart?.meta?.birthData?.time?.utc;
   const emailStep = searchParams.get('email');
 
   return (
@@ -1050,10 +1047,14 @@ function EmailPreviewItem({
     loadPreview(true);
   }, [loadPreview]);
 
-  // Load preview when opened (either manually or auto-opened)
+  // Load preview when opened (either manually or auto-opened).
+  // loadPreview sets state synchronously (setLoading, setError), so we
+  // schedule it via requestAnimationFrame to avoid a synchronous setState
+  // inside the effect body.
   useEffect(() => {
     if (isOpen) {
-      loadPreview();
+      const id = requestAnimationFrame(() => loadPreview());
+      return () => cancelAnimationFrame(id);
     }
   }, [isOpen, loadPreview]);
 
