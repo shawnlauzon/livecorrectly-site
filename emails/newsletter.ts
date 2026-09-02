@@ -31,7 +31,8 @@ export function getNewsletterEmail(
     chart,
     unsubscribeUrl,
     number: newsletter.number,
-    webUrl
+    webUrl,
+    ps: newsletter.ps
   });
 }
 

@@ -117,6 +117,24 @@
   margin: 2rem 0;
 }
 
+/* ---- Postscript ---- */
+
+.ps {
+  margin-top: 2rem;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.ps p {
+  display: inline;
+}
+
+.ps a {
+  color: var(--pulse);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* ---- Personalization callout ---- */
 
 .callout {

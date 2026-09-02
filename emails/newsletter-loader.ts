@@ -12,6 +12,8 @@ export interface Newsletter {
   slug: string | null;
   /** Email-styled HTML rendered from markdown body */
   bodyHtml: string;
+  /** Optional postscript rendered after the signature (markdown → inline-styled HTML) */
+  ps: string | null;
 }
 
 /**
@@ -100,8 +102,11 @@ export function parseNewsletter(content: string, number: number): Newsletter {
   const preview = typeof data.preview === 'string' ? data.preview : '';
   const slug = typeof data.slug === 'string' ? data.slug : null;
   const bodyHtml = marked.parse(body.trim()) as string;
+  const ps = typeof data.ps === 'string'
+    ? (marked.parse(data.ps.trim()) as string)
+    : null;
 
-  return { number, subject, preview, slug, bodyHtml };
+  return { number, subject, preview, slug, bodyHtml, ps };
 }
 
 /** Cached newsletters loaded from disk, keyed by number (matches next_step) */
@@ -154,6 +159,7 @@ function replaceVariables(newsletter: Newsletter, firstName: string, subscriberI
     subject: rewrite(newsletter.subject),
     preview: rewrite(newsletter.preview),
     bodyHtml: rewrite(newsletter.bodyHtml),
+    ps: newsletter.ps ? rewrite(newsletter.ps) : null,
   };
 }
 

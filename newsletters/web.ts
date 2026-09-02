@@ -20,6 +20,8 @@ export interface WebNewsletter {
   published: boolean;
   /** Semantic HTML rendered from markdown body */
   bodyHtml: string;
+  /** Optional postscript (semantic HTML from markdown), or null if unset */
+  ps: string | null;
 }
 
 const APP_URL = 'https://livecorrectly.com';
@@ -62,8 +64,11 @@ function parseForWeb(raw: string, number: number, publishedAt: string, published
 
   const cleaned = replaceVariables(stripGreeting(body.trim()));
   const bodyHtml = marked.parse(cleaned) as string;
+  const ps = typeof data.ps === 'string'
+    ? (marked.parse(replaceVariables(data.ps.trim())) as string)
+    : null;
 
-  return { slug, number, title, description, preview, image, publishedAt, published, bodyHtml };
+  return { slug, number, title, description, preview, image, publishedAt, published, bodyHtml, ps };
 }
 
 /** Directory containing newsletter markdown files */

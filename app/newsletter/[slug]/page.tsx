@@ -103,6 +103,12 @@ export default async function NewsletterIssuePage({ params }: Props) {
             className={styles.body}
             dangerouslySetInnerHTML={{ __html: issue.bodyHtml }}
           />
+          {issue.ps && (
+            <div className={styles.ps}>
+              <strong>P.S.</strong>{' '}
+              <span dangerouslySetInnerHTML={{ __html: issue.ps }} />
+            </div>
+          )}
           <PersonalizationCallout />
         </article>
         <NewsletterCta />

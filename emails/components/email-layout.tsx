@@ -18,6 +18,8 @@ interface EmailLayoutProps {
   unsubscribeUrl: string;
   children: React.ReactNode;
   postscripts?: React.ReactNode[];
+  /** Optional content rendered after postscripts, before the divider (e.g. "Read on the web") */
+  bottomNote?: React.ReactNode;
 }
 
 /**
@@ -40,7 +42,8 @@ export function EmailLayout({
   preview,
   unsubscribeUrl,
   children,
-  postscripts = []
+  postscripts = [],
+  bottomNote
 }: EmailLayoutProps) {
   return (
     <Tailwind>
@@ -61,6 +64,8 @@ export function EmailLayout({
                 {getPostscriptPrefix(index)} {content}
               </Text>
             ))}
+
+            {bottomNote}
 
             <Hr className="my-[24px] border-[#E6E1F4]" />
 

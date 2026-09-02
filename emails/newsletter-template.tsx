@@ -12,6 +12,7 @@ interface NewsletterTemplateProps {
   unsubscribeUrl: string;
   number: number;
   webUrl: string | null;
+  ps: string | null;
 }
 
 /**
@@ -45,27 +46,37 @@ export function NewsletterTemplate({
   chart,
   unsubscribeUrl,
   number,
-  webUrl
+  webUrl,
+  ps
 }: NewsletterTemplateProps) {
+  const postscripts = ps
+    ? [<span key="ps" dangerouslySetInnerHTML={{ __html: ps }} />]
+    : [];
+
+  const bottomNote = webUrl ? (
+    <Section>
+      <Text className="mt-[24px] text-[13px] leading-[20px] text-[#6E688A] text-center">
+        <Link href={webUrl} className="text-[#6A4BD6] underline">
+          Read on the web
+        </Link>
+        {' \u2014 '}
+        a shareable version without the personalized sections.
+      </Text>
+    </Section>
+  ) : undefined;
+
   return (
-    <EmailLayout preview={preview} unsubscribeUrl={unsubscribeUrl}>
+    <EmailLayout
+      preview={preview}
+      unsubscribeUrl={unsubscribeUrl}
+      postscripts={postscripts}
+      bottomNote={bottomNote}
+    >
       <Section>
         <div dangerouslySetInnerHTML={{ __html: bodyHtml }} />
       </Section>
 
       <NewsletterPersonalization number={number} chart={chart} />
-
-      {webUrl && (
-        <Section>
-          <Text className="mt-[24px] text-[13px] leading-[20px] text-[#6E688A] text-center">
-            <Link href={webUrl} className="text-[#6A4BD6] underline">
-              Read on the web
-            </Link>
-            {' \u2014 '}
-            a shareable version without the personalized sections.
-          </Text>
-        </Section>
-      )}
     </EmailLayout>
   );
 }
