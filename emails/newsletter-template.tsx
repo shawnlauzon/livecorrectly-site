@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Section, Text, Link } from 'react-email';
+import { Section, Text, Link, Img } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import type { EmailChartData } from '../lib/hd-chart/parse-for-email';
 import { Newsletter04Personalization } from '@/newsletters/personalizations/04';
@@ -8,6 +8,8 @@ import { Newsletter05Personalization } from '@/newsletters/personalizations/05';
 interface NewsletterTemplateProps {
   preview: string;
   bodyHtml: string;
+  /** Hero image filename, or null to skip */
+  image: string | null;
   chart: EmailChartData;
   unsubscribeUrl: string;
   number: number;
@@ -43,12 +45,14 @@ function NewsletterPersonalization({ number, chart }: { number: number; chart: E
 export function NewsletterTemplate({
   preview,
   bodyHtml,
+  image,
   chart,
   unsubscribeUrl,
   number,
   webUrl,
   ps
 }: NewsletterTemplateProps) {
+  const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
   const postscripts = ps
     ? [<span key="ps" dangerouslySetInnerHTML={{ __html: ps }} />]
     : [];
@@ -72,6 +76,14 @@ export function NewsletterTemplate({
       postscripts={postscripts}
       bottomNote={bottomNote}
     >
+      {image && (
+        <Img
+          src={`${appUrl}/newsletter/${image}`}
+          alt=""
+          width={536}
+          style={{ display: 'block', borderRadius: '8px', marginBottom: '24px', width: '100%', height: 'auto' }}
+        />
+      )}
       <Section>
         <div dangerouslySetInnerHTML={{ __html: bodyHtml }} />
       </Section>

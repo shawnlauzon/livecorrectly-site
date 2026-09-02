@@ -15,6 +15,9 @@ export interface WebNewsletter {
   preview: string;
   /** Filename in /public/newsletter/ (e.g. "matrix01.jpg"), or null if unset */
   image: string | null;
+  /** Whether the detail page should render image as a hero above the body.
+   *  False when the image already appears inline in the markdown body. */
+  showHeroImage: boolean;
   publishedAt: string;
   /** Whether this newsletter has been sent (has a DB send record) */
   published: boolean;
@@ -61,6 +64,8 @@ function parseForWeb(raw: string, number: number, publishedAt: string, published
   const description = typeof data.description === 'string' ? data.description : '';
   const preview = typeof data.preview === 'string' ? data.preview : '';
   const image = typeof data.image === 'string' ? data.image : null;
+  // Show hero on the detail page only when the image isn't already inline in the body.
+  const showHeroImage = !!image && !body.includes(image);
 
   const cleaned = replaceVariables(stripGreeting(body.trim()));
   const bodyHtml = marked.parse(cleaned) as string;
@@ -68,7 +73,7 @@ function parseForWeb(raw: string, number: number, publishedAt: string, published
     ? (marked.parse(replaceVariables(data.ps.trim())) as string)
     : null;
 
-  return { slug, number, title, description, preview, image, publishedAt, published, bodyHtml, ps };
+  return { slug, number, title, description, preview, image, showHeroImage, publishedAt, published, bodyHtml, ps };
 }
 
 /** Directory containing newsletter markdown files */

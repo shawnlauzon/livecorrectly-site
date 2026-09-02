@@ -10,6 +10,8 @@ export interface Newsletter {
   preview: string;
   /** URL-safe slug for the web version (from front-matter), or null if email-only */
   slug: string | null;
+  /** Hero image filename (e.g. "lightning.jpg"), or null if unset or already in body */
+  image: string | null;
   /** Email-styled HTML rendered from markdown body */
   bodyHtml: string;
   /** Optional postscript rendered after the signature (markdown → inline-styled HTML) */
@@ -101,12 +103,18 @@ export function parseNewsletter(content: string, number: number): Newsletter {
   const subject = typeof data.subject === 'string' ? data.subject : '';
   const preview = typeof data.preview === 'string' ? data.preview : '';
   const slug = typeof data.slug === 'string' ? data.slug : null;
+
+  // Extract hero image from frontmatter, but suppress it if the body already
+  // contains the same image inline (let the author's placement win).
+  const rawImage = typeof data.image === 'string' ? data.image : null;
+  const image = rawImage && body.includes(rawImage) ? null : rawImage;
+
   const bodyHtml = marked.parse(body.trim()) as string;
   const ps = typeof data.ps === 'string'
     ? (marked.parse(data.ps.trim()) as string)
     : null;
 
-  return { number, subject, preview, slug, bodyHtml, ps };
+  return { number, subject, preview, slug, image, bodyHtml, ps };
 }
 
 /** Cached newsletters loaded from disk, keyed by number (matches next_step) */

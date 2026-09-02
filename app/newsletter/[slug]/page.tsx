@@ -83,7 +83,7 @@ export default async function NewsletterIssuePage({ params }: Props) {
           {!issue.published && (
             <p className={styles.draftBanner}>Unpublished draft</p>
           )}
-          {issue.image && (
+          {issue.showHeroImage && (
             <Image
               src={`/newsletter/${issue.image}`}
               alt=""
