@@ -20,19 +20,20 @@ const CONFIRMATION_HTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
-async function handleUnsubscribe(token: string | null): Promise<void> {
+async function handleUnsubscribe(token: string | null, from: string | null): Promise<void> {
   if (!token) return;
 
   const subscriber = await getSubscriberByUnsubToken(token);
   if (subscriber && subscriber.email_status === 'active') {
-    await updateEmailStatus(subscriber.id, 'unsubscribed');
-    console.log(`[unsubscribe] Unsubscribed subscriber ${subscriber.id}`);
+    await updateEmailStatus(subscriber.id, 'unsubscribed', from ?? undefined);
+    console.log(`[unsubscribe] Unsubscribed subscriber ${subscriber.id} (from=${from ?? 'unknown'})`);
   }
 }
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token');
-  await handleUnsubscribe(token);
+  const from = request.nextUrl.searchParams.get('utm_campaign');
+  await handleUnsubscribe(token, from);
 
   return new NextResponse(CONFIRMATION_HTML, {
     status: 200,
@@ -41,8 +42,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  // RFC 8058: token may come from query string or form body
+  // RFC 8058: one-click POST goes to the full URL including query params
   let token = request.nextUrl.searchParams.get('token');
+  const from = request.nextUrl.searchParams.get('utm_campaign');
 
   if (!token) {
     try {
@@ -59,6 +61,6 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  await handleUnsubscribe(token);
+  await handleUnsubscribe(token, from);
   return new NextResponse(null, { status: 200 });
 }

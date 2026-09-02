@@ -61,7 +61,7 @@ export async function POST(
     }
 
     // Build and send the email using shared broadcast config
-    const { element, subject } = buildBroadcastEmail(
+    const { element, subject, emailLabel } = buildBroadcastEmail(
       slug as BroadcastSlug,
       id,
       subscriber.first_name,
@@ -74,6 +74,7 @@ export async function POST(
       subject,
       react: element,
       unsubToken: subscriber.unsub_token,
+      emailLabel,
     });
 
     if (!result.success) {

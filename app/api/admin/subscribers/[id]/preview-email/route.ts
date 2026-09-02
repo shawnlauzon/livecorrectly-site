@@ -4,7 +4,7 @@ import { getSubscriberById } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject, getWelcomePreview } from '@/emails/subjects';
 import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
-import { renderEmail } from '@/emails/send';
+import { renderEmail, buildUnsubscribeUrl } from '@/emails/send';
 
 /**
  * GET /api/admin/subscribers/[id]/preview-email?step=0
@@ -51,7 +51,7 @@ export async function GET(
     const chart = parseChartForEmail(subscriber.chart.chart);
     const subject = getWelcomeSubject(step, subscriber.first_name, chart);
     const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
-    const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${subscriber.unsub_token}`;
+    const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, `welcome${step}`);
     const chartUrl = `${appUrl}/see-your-design/${id}`;
 
     const emailComponent = getWelcomeEmail(step, subscriber, chart, unsubscribeUrl, chartUrl);

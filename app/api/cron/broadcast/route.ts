@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
 
   for (const subscriber of recipients) {
     // Use shared broadcast builder to ensure identical output across all code paths
-    const { element, subject } = buildBroadcastEmail(
+    const { element, subject, emailLabel } = buildBroadcastEmail(
       BROADCAST_SLUG,
       subscriber.id,
       subscriber.first_name,
@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
       subject,
       react: element,
       unsubToken: subscriber.unsub_token,
+      emailLabel,
     });
 
     if (result.success) {

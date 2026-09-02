@@ -119,16 +119,20 @@ export async function getSubscriberByUnsubToken(
 
 /**
  * Update a subscriber's email status (e.g. unsubscribed, bounced, complained).
+ * Optional `unsubFrom` records which email triggered the unsubscribe (utm_campaign value).
+ * When omitted, the existing unsub_from value is preserved (e.g. webhook-triggered status changes).
  */
 export async function updateEmailStatus(
   id: string,
-  status: EmailStatus
+  status: EmailStatus,
+  unsubFrom?: string
 ): Promise<void> {
   const db = getDb();
   await db`
     UPDATE subscribers
     SET email_status = ${status},
-        email_status_at = now()
+        email_status_at = now(),
+        unsub_from = COALESCE(${unsubFrom ?? null}, unsub_from)
     WHERE id = ${id}
   `;
 }

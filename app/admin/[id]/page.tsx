@@ -831,7 +831,12 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
           </div>
           <div className={styles.welcomeMetaItem}>
             <span className={styles.welcomeMetaLabel}>Email status</span>
-            <span>{subscriber.email_status}</span>
+            <span>
+              {subscriber.email_status}
+              {subscriber.email_status === 'unsubscribed' && subscriber.unsub_from && (
+                <> (from {subscriber.unsub_from})</>
+              )}
+            </span>
           </div>
           <div className={styles.welcomeMetaItem}>
             <span className={styles.welcomeMetaLabel}>Last active</span>

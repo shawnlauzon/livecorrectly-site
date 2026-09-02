@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { renderEmail } from '@/emails/send';
+import { renderEmail, buildUnsubscribeUrl } from '@/emails/send';
 import { getNewsletterEmail, getNewsletterSubject, getNewsletterNumbers } from '@/emails/newsletter';
 import { getNewsletter } from '@/emails/newsletter-loader';
 
@@ -52,8 +52,7 @@ export async function GET(
 
     const chart = parseChartForEmail(subscriber.chart.chart);
     const subject = getNewsletterSubject(step, subscriber.first_name, subscriber.id);
-    const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
-    const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${subscriber.unsub_token}`;
+    const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, `newsletter_${step}`);
 
     const emailComponent = getNewsletterEmail(step, subscriber, chart, unsubscribeUrl);
     if (!emailComponent) {

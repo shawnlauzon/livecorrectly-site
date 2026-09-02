@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
-import { sendWelcomeEmail, formatEmailRecipient } from '@/emails/send';
+import { sendWelcomeEmail, formatEmailRecipient, buildUnsubscribeUrl } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/emails/subjects';
 import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
@@ -66,7 +66,8 @@ export async function POST(
     const chart = parseChartForEmail(subscriber.chart.chart);
     const subject = getWelcomeSubject(step, subscriber.first_name, chart);
     const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
-    const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${subscriber.unsub_token}`;
+    const emailLabel = `welcome${step}`;
+    const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
     const chartUrl = `${appUrl}/see-your-design/${id}`;
     const emailComponent = getWelcomeEmail(step, subscriber, chart, unsubscribeUrl, chartUrl);
 
@@ -81,7 +82,8 @@ export async function POST(
       to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
       subject,
       react: emailComponent,
-      unsubToken: subscriber.unsub_token
+      unsubToken: subscriber.unsub_token,
+      emailLabel
     });
 
     if (!result.success) {

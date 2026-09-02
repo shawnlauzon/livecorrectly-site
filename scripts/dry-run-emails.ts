@@ -19,7 +19,7 @@ import { parseChartForEmail } from '../lib/hd-chart/parse-for-email';
 import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '../emails/welcome';
 import { getWelcomeSubject } from '../emails/subjects';
 import { getNewsletterEmail, getNewsletterSubject, getMaxNewsletterNumber } from '../emails/newsletter';
-import { renderEmail, formatEmailRecipient, canSendTo } from '../emails/send';
+import { renderEmail, formatEmailRecipient, canSendTo, buildUnsubscribeUrl } from '../emails/send';
 import type { Subscriber } from '../lib/types/subscriber';
 import fs from 'fs';
 import path from 'path';
@@ -140,8 +140,7 @@ async function run(): Promise<void> {
       const step = subscriber.next_step;
       const chart = parseChartForEmail(subscriber.chart.chart);
       const subject = getWelcomeSubject(step, subscriber.first_name, chart);
-      const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
-      const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${subscriber.unsub_token}`;
+      const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, `welcome${step}`);
       const emailComponent = getWelcomeEmail(step, subscriber, chart, unsubscribeUrl);
 
       const recipient = formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email);
@@ -218,8 +217,7 @@ async function run(): Promise<void> {
 
       const chart = parseChartForEmail(subscriber.chart.chart);
       const subject = getNewsletterSubject(step, subscriber.first_name, subscriber.id);
-      const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
-      const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${subscriber.unsub_token}`;
+      const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, `newsletter_${step}`);
       const emailComponent = getNewsletterEmail(step, subscriber, chart, unsubscribeUrl);
 
       const recipient = formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email);

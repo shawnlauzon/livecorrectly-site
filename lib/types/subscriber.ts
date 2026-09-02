@@ -22,6 +22,7 @@ export interface Subscriber {
   next_step: number;
   email_status: EmailStatus;
   email_status_at: string | null; // ISO timestamp
+  unsub_from: string | null; // utm_campaign value from the email that triggered unsubscribe
   unsub_token: string;
   created_at: string; // ISO timestamp
   last_engaged_at: string | null; // ISO timestamp — most recent proof of life

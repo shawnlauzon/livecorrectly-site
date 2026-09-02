@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
-import { sendWelcomeEmail, formatEmailRecipient } from '@/emails/send';
+import { sendWelcomeEmail, formatEmailRecipient, buildUnsubscribeUrl } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getNewsletterEmail, getNewsletterSubject, getNewsletterNumbers } from '@/emails/newsletter';
 
@@ -60,8 +60,8 @@ export async function POST(
 
     const chart = parseChartForEmail(subscriber.chart.chart);
     const subject = getNewsletterSubject(step, subscriber.first_name, subscriber.id);
-    const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
-    const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${subscriber.unsub_token}`;
+    const emailLabel = `newsletter_${step}`;
+    const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
     const emailComponent = getNewsletterEmail(step, subscriber, chart, unsubscribeUrl);
 
     if (!emailComponent) {
@@ -75,7 +75,8 @@ export async function POST(
       to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
       subject,
       react: emailComponent,
-      unsubToken: subscriber.unsub_token
+      unsubToken: subscriber.unsub_token,
+      emailLabel
     });
 
     if (!result.success) {

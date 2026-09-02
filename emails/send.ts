@@ -50,6 +50,16 @@ export function extractEmail(recipient: string): string {
 }
 
 /**
+ * Build the unsubscribe URL for an email, optionally tagged with the email's campaign label.
+ * Used both in List-Unsubscribe headers and in email body footer links.
+ */
+export function buildUnsubscribeUrl(unsubToken: string, emailLabel?: string): string {
+  const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
+  const base = `${appUrl}/api/unsubscribe?token=${unsubToken}`;
+  return emailLabel ? `${base}&utm_campaign=${encodeURIComponent(emailLabel)}` : base;
+}
+
+/**
  * Check if we can send email to an address.
  * Returns false if the subscriber is not active (unsubscribed, bounced, complained).
  * Handles both formatted recipients ("Name <email>") and plain email addresses.
@@ -67,6 +77,7 @@ interface _SendEmailOptions {
   unsubToken: string;
   from: string;
   replyTo?: string;
+  emailLabel?: string;
 }
 
 /**
@@ -91,7 +102,8 @@ export async function _sendEmail({
   react,
   unsubToken,
   from,
-  replyTo
+  replyTo,
+  emailLabel
 }: _SendEmailOptions): Promise<{ success: boolean; id?: string }> {
   const sendable = await canSendTo(to);
   if (!sendable) {
@@ -100,8 +112,7 @@ export async function _sendEmail({
     return { success: false };
   }
 
-  const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
-  const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${unsubToken}`;
+  const unsubscribeUrl = buildUnsubscribeUrl(unsubToken, emailLabel);
   const html = await renderEmail(react);
 
   const client = getResend();
@@ -132,6 +143,7 @@ interface SendEmailOptions {
   subject: string;
   react: React.ReactElement;
   unsubToken: string;
+  emailLabel?: string;
 }
 
 /**

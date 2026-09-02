@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Reengagement } from './reengagement';
+import { buildUnsubscribeUrl } from './send';
 
 /**
  * Shared broadcast email configuration
@@ -53,7 +54,7 @@ export function buildBroadcastEmail(
   firstName: string,
   createdAt: string,
   unsubToken: string,
-): { element: React.ReactElement; subject: string; preview: string } {
+): { element: React.ReactElement; subject: string; preview: string; emailLabel: string } {
   const broadcast = BROADCASTS[slug];
   if (!broadcast) {
     throw new Error(`Unknown broadcast slug: ${slug}`);
@@ -62,8 +63,9 @@ export function buildBroadcastEmail(
   const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
   const monthYear = formatMonthYear(createdAt);
   const monthsSinceSignup = monthsSince(createdAt);
-  const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${unsubToken}`;
-  const chartUrl = `${appUrl}/see-your-design/${subscriberId}?utm_source=livecorrectly&utm_medium=email&utm_campaign=${slug.replace(/-/g, '_')}`;
+  const emailLabel = slug.replace(/-/g, '_');
+  const unsubscribeUrl = buildUnsubscribeUrl(unsubToken, emailLabel);
+  const chartUrl = `${appUrl}/see-your-design/${subscriberId}?utm_source=livecorrectly&utm_medium=email&utm_campaign=${emailLabel}`;
 
   const element = React.createElement(broadcast.component, {
     preview: broadcast.preview,
@@ -78,5 +80,6 @@ export function buildBroadcastEmail(
     element,
     subject: broadcast.subject,
     preview: broadcast.preview,
+    emailLabel,
   };
 }
