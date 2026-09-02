@@ -391,8 +391,12 @@ function AdminPageContent() {
   };
 
   const getNextEmailLabel = (sub: Subscriber): string => {
-    if (sub.email_status !== 'active') return '—';
-    return String(sub.next_step);
+    if (sub.email_status === 'active') return String(sub.next_step);
+
+    const parts: string[] = [sub.email_status];
+    if (sub.unsub_from) parts.push(`from ${sub.unsub_from}`);
+    if (sub.email_status_at) parts.push(formatDate(sub.email_status_at));
+    return parts.join(' · ');
   };
 
   const handleSort = (column: SortColumn) => {
@@ -451,7 +455,7 @@ function AdminPageContent() {
   if (loading) {
     return (
       <div className={styles.container}>
-        <p className={styles.loading}>Loading subscribers...</p>
+        <p className={styles.loading}>Loading registrations...</p>
       </div>
     );
   }
@@ -487,12 +491,12 @@ function AdminPageContent() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1 className={styles.title}>Subscribers</h1>
-        <p className={styles.subtitle}>{subscribers.length} total</p>
+        <h1 className={styles.title}>Registrations</h1>
+        <p className={styles.subtitle}>{subscribers.length} registered · {subscribers.filter(s => s.email_status === 'active').length} subscribed</p>
       </div>
 
       {subscribers.length === 0 ? (
-        <div className={styles.empty}>No subscribers yet</div>
+        <div className={styles.empty}>No registrations yet</div>
       ) : (
         <table className={styles.table}>
           <thead>
