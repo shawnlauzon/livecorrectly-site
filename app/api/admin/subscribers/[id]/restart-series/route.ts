@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
-import { getSubscriberById, updateEmailSeries } from '@/lib/db';
+import { getSubscriberById, updateEmailSeries, setWelcomeResendStep } from '@/lib/db';
 import { sendWelcomeEmail, formatEmailRecipient, sendAdminNotification, buildUnsubscribeUrl } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/emails/subjects';
-import { getWelcomeEmail } from '@/emails/welcome';
+import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import hdChart from '@/lib/hd-chart';
 
 /**
@@ -85,8 +85,20 @@ export async function POST(
 
     console.log(`[admin] Sent welcome0 to ${subscriber.email} as part of series restart (id=${result.id})`);
 
-    // Update subscriber to next_step = 1 (daily cron will send day 1 next)
-    const updated = await updateEmailSeries(id, 1);
+    // Queue Welcome1 for the daily cron.
+    // If subscriber is past the welcome series (in newsletter phase), use the
+    // resend column to preserve their newsletter position. Otherwise, reset
+    // next_step directly (no newsletter position to lose).
+    let updated;
+    if (subscriber.next_step > WELCOME_SERIES_LENGTH) {
+      await setWelcomeResendStep(id, 1);
+      // Re-fetch to get the updated row (updateEmailSeries returns it, but
+      // setWelcomeResendStep doesn't, so we need a separate fetch)
+      const refetched = await getSubscriberById(id);
+      updated = refetched ?? subscriber;
+    } else {
+      updated = await updateEmailSeries(id, 1);
+    }
 
     // Send admin notification
     const hd = hdChart(subscriber.chart.chart);
@@ -96,7 +108,8 @@ export async function POST(
     return NextResponse.json({
       ok: true,
       emailId: result.id,
-      next_step: updated.next_step
+      next_step: updated.next_step,
+      welcome_resend_step: updated.welcome_resend_step
     });
   } catch (error) {
     console.error('[admin] Error restarting series:', error);

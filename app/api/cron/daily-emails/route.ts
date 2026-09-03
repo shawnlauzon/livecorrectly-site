@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getWelcomeDueSubscribers, advanceEmailSeries, acquireCronLock } from '@/lib/db';
+import { getWelcomeDueSubscribers, getWelcomeResendDueSubscribers, advanceEmailSeries, setWelcomeResendStep, acquireCronLock } from '@/lib/db';
 import { sendWelcomeEmail, formatEmailRecipient, buildUnsubscribeUrl } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/emails/subjects';
@@ -71,6 +71,45 @@ export async function GET(request: NextRequest) {
 
     if (result.success) {
       await advanceEmailSeries(subscriber.id, step + 1);
+      sent++;
+    } else {
+      skipped++;
+    }
+  }
+
+  // --- Welcome series resends ---
+  const resendDue = await getWelcomeResendDueSubscribers(WELCOME_SERIES_LENGTH);
+  console.log(`[cron] Found ${resendDue.length} welcome-resend-due subscriber(s)`);
+
+  for (const subscriber of resendDue) {
+    const step = subscriber.welcome_resend_step!;
+
+    const chart = parseChartForEmail(subscriber.chart.chart);
+    const subject = getWelcomeSubject(step, subscriber.first_name, chart);
+    const emailLabel = `welcome${step}`;
+    const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
+    const emailComponent = getWelcomeEmail(step, subscriber, chart, unsubscribeUrl);
+
+    if (!emailComponent) {
+      skipped++;
+      continue;
+    }
+
+    const result = await sendWelcomeEmail({
+      to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
+      subject,
+      react: emailComponent,
+      unsubToken: subscriber.unsub_token,
+      emailLabel
+    });
+
+    if (result.success) {
+      const nextResendStep = step + 1;
+      if (nextResendStep > WELCOME_SERIES_LENGTH) {
+        await setWelcomeResendStep(subscriber.id, null); // resend complete
+      } else {
+        await setWelcomeResendStep(subscriber.id, nextResendStep);
+      }
       sent++;
     } else {
       skipped++;

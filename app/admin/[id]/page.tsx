@@ -912,8 +912,13 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
                 disabled={sendingStep !== null || restarting}
                 onClick={handleRestart}
               >
-                {restarting ? 'Restarting...' : '↻ Restart Series'}
+                {restarting ? 'Restarting...' : '\u21BB Restart Series'}
               </button>
+              {subscriber.welcome_resend_step != null && (
+                <span className={styles.resendIndicator}>
+                  (resending: day {subscriber.welcome_resend_step} of {WELCOME_SERIES_LENGTH})
+                </span>
+              )}
             </div>
           </>
         ) : (

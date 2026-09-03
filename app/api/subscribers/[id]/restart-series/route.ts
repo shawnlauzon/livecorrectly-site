@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSubscriberById, advanceEmailSeries } from '@/lib/db';
+import { getSubscriberById, advanceEmailSeries, setWelcomeResendStep } from '@/lib/db';
 import { sendWelcomeEmail, sendAdminNotification, formatEmailRecipient, buildUnsubscribeUrl } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/emails/subjects';
-import { getWelcomeEmail } from '@/emails/welcome';
+import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 
 export async function POST(
   _request: NextRequest,
@@ -37,9 +37,15 @@ export async function POST(
       );
     }
 
-    // Advance to step 1 so the daily cron picks up Welcome1.
-    // Do this first, regardless of whether the immediate email send succeeds.
-    await advanceEmailSeries(id, 1);
+    // Queue Welcome1 for the daily cron.
+    // If subscriber is past the welcome series (in newsletter phase), use the
+    // resend column to preserve their newsletter position. Otherwise, reset
+    // next_step directly (no newsletter position to lose).
+    if (subscriber.next_step > WELCOME_SERIES_LENGTH) {
+      await setWelcomeResendStep(id, 1);
+    } else {
+      await advanceEmailSeries(id, 1);
+    }
 
     // Immediately send Welcome0 (matching the initial signup flow)
     const chartData = parseChartForEmail(subscriber.chart.chart);

@@ -391,7 +391,13 @@ function AdminPageContent() {
   };
 
   const getNextEmailLabel = (sub: Subscriber): string => {
-    if (sub.email_status === 'active') return String(sub.next_step);
+    if (sub.email_status === 'active') {
+      const label = String(sub.next_step);
+      if (sub.welcome_resend_step != null) {
+        return `${label} \u21BB${sub.welcome_resend_step}`;
+      }
+      return label;
+    }
 
     const parts: string[] = [sub.email_status];
     if (sub.unsub_from) parts.push(`from ${sub.unsub_from}`);

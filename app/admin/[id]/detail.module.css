@@ -239,6 +239,15 @@
   cursor: not-allowed;
 }
 
+.resendIndicator {
+  display: inline-block;
+  margin-left: 0.75rem;
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
 .welcomeFeedback {
   margin-top: 0.75rem;
   font-family: var(--body);

@@ -266,6 +266,40 @@ export async function touchEngagement(id: string): Promise<void> {
 }
 
 /**
+ * Get active subscribers due for their next welcome series resend.
+ * Returns subscribers with welcome_resend_step between 1 and welcomeSeriesLength.
+ */
+export async function getWelcomeResendDueSubscribers(
+  welcomeSeriesLength: number
+): Promise<Subscriber[]> {
+  const db = getDb();
+  const result = await db`
+    SELECT * FROM subscribers
+    WHERE email_status IN ('active', 'failed')
+      AND welcome_resend_step >= 1
+      AND welcome_resend_step <= ${welcomeSeriesLength}
+    ORDER BY created_at ASC
+  `;
+  return (result as Subscriber[]).map(normalizeSubscriber);
+}
+
+/**
+ * Set or clear the welcome_resend_step column.
+ * Pass null to clear (resend complete or not in progress).
+ */
+export async function setWelcomeResendStep(
+  id: string,
+  step: number | null
+): Promise<void> {
+  const db = getDb();
+  await db`
+    UPDATE subscribers
+    SET welcome_resend_step = ${step}
+    WHERE id = ${id}
+  `;
+}
+
+/**
  * Get active subscribers due for their next newsletter email.
  * Returns subscribers who have completed the welcome series (next_step > welcomeSeriesLength).
  */

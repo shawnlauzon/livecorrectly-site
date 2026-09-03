@@ -20,6 +20,7 @@ export interface Subscriber {
   birth_input: BirthInput;
   chart: ChartRecord;
   next_step: number;
+  welcome_resend_step: number | null;
   email_status: EmailStatus;
   email_status_at: string | null; // ISO timestamp
   unsub_from: string | null; // utm_campaign value from the email that triggered unsubscribe
