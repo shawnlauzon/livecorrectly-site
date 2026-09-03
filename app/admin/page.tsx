@@ -431,7 +431,16 @@ function AdminPageContent() {
       case 'status':
         return subscriber.email_status;
       case 'nextEmail':
-        return subscriber.next_step;
+        if (subscriber.email_status !== 'active') {
+          // Inactive subscribers sort after active ones (higher values in ascending).
+          // Within inactive, most recent status change sorts first (negate timestamp).
+          const ts = subscriber.email_status_at
+            ? new Date(subscriber.email_status_at).getTime()
+            : 0;
+          return 1e15 - ts;
+        }
+        // Active subscribers sort highest next_step first (negate so 7 < 6 < ... < 0).
+        return -subscriber.next_step;
       case 'created':
         return new Date(subscriber.created_at).getTime();
       case 'lastActive':
