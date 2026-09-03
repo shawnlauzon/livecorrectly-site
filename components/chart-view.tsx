@@ -35,10 +35,13 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
     }
   }
 
+  const isPreview = searchParams.get('preview') === 'true';
+
   useEffect(() => {
     async function fetchSubscriber() {
       try {
-        const res = await fetch(`/api/subscribers/${subscriberId}`);
+        const url = `/api/subscribers/${subscriberId}${isPreview ? '?preview=true' : ''}`;
+        const res = await fetch(url);
         if (res.status === 404 || res.status === 400) {
           setNotFound(true);
           setLoading(false);
@@ -57,7 +60,7 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
       }
     }
     fetchSubscriber();
-  }, [subscriberId]);
+  }, [subscriberId, isPreview]);
 
   if (loading) {
     return (

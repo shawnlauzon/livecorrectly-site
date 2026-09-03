@@ -110,7 +110,7 @@ export default function AdminDetailPage({
         </h1>
         <p className={styles.subtitle}>{subscriber.email}</p>
         <Link
-          href={`/see-your-design/${subscriber.id}`}
+          href={`/see-your-design/${subscriber.id}?preview=true`}
           className={styles.publicLink}
           target="_blank"
           rel="noopener noreferrer"

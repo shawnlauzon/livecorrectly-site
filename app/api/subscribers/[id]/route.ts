@@ -26,10 +26,13 @@ export async function GET(
       );
     }
 
-    // Fire-and-forget: record chart page visit as engagement
-    touchEngagement(id).catch((err) => {
-      console.error(`[engagement] Failed to touch engagement for ${id}:`, err);
-    });
+    // Fire-and-forget: record chart page visit as engagement (skip for admin previews)
+    const isPreview = _request.nextUrl.searchParams.get('preview') === 'true';
+    if (!isPreview) {
+      touchEngagement(id).catch((err) => {
+        console.error(`[engagement] Failed to touch engagement for ${id}:`, err);
+      });
+    }
 
     return NextResponse.json(subscriber);
   } catch (error) {
