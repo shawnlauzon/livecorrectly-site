@@ -8,6 +8,7 @@ interface BodygraphChartProps {
   planets: PlanetActivation[];
   showGateNumbers?: boolean;
   showSidebars?: boolean;
+  notation?: 'classic' | 'bg5';
 }
 
 /**
@@ -23,16 +24,17 @@ export function BodygraphChart({
   planets,
   showGateNumbers = true,
   showSidebars = true,
+  notation,
 }: BodygraphChartProps) {
   return (
     <div className={styles.bodygraphChart}>
-      {showSidebars && <PlanetSidebar planets={planets} side="design" />}
+      {showSidebars && <PlanetSidebar planets={planets} side="design" notation={notation} />}
       <Bodygraph
         chart={chart}
         showGateNumbers={showGateNumbers}
         className={styles.bodygraphSvgWrapper}
       />
-      {showSidebars && <PlanetSidebar planets={planets} side="personality" />}
+      {showSidebars && <PlanetSidebar planets={planets} side="personality" notation={notation} />}
     </div>
   );
 }

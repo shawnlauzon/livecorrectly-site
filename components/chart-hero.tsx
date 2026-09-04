@@ -79,6 +79,7 @@ export default function ChartHero({ subscriber }: ChartHeroProps) {
                 planets={chartRecord.chart.planets}
                 showGateNumbers={true}
                 showSidebars={true}
+                notation="bg5"
               />
               {chartOpen && (
                 <button
