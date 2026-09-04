@@ -2,12 +2,11 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 import { Subscriber } from '@/lib/types/subscriber';
-import { ChartRecord } from '@/lib/types/chart';
+import type { Chart, ChartRecord } from '@/lib/types/chart';
 import hdChart from '@/lib/hd-chart';
 import { innerAuthorityTypes } from '@/lib/hd-chart/constants';
-import { getChartImageUrl } from '@/lib/chart-image';
+import { BodygraphChart } from '@/components/bodygraph/bodygraph-chart';
 import styles from './admin.module.css';
 
 async function fetchSubscribers(pwd: string): Promise<{ ok: true; data: Subscriber[] } | { ok: false; error: string }> {
@@ -185,7 +184,7 @@ function AdminPageContent() {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [lightboxChart, setLightboxChart] = useState<string | null>(null);
+  const [lightboxChart, setLightboxChart] = useState<Chart | null>(null);
   const [refreshing, setRefreshing] = useState<string | null>(null);
   const [freshCharts, setFreshCharts] = useState<Record<string, ChartRecord>>({});
   const [saving, setSaving] = useState<string | null>(null);
@@ -278,9 +277,9 @@ function AdminPageContent() {
     }
   };
 
-  const handleViewChart = (chartUrl: string, e: React.MouseEvent) => {
+  const handleViewChart = (chart: Chart, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row click
-    setLightboxChart(chartUrl);
+    setLightboxChart(chart);
   };
 
   const handleRefreshChart = async (subscriberId: string, e: React.MouseEvent) => {
@@ -584,11 +583,9 @@ function AdminPageContent() {
               >
                 <td style={{ padding: '0.5rem', textAlign: 'center' }}>
                   <div style={{ display: 'flex', gap: '4px', alignItems: 'center', justifyContent: 'center' }}>
-                    {subscriber.chart?.meta?.birthData?.time?.utc && (() => {
-                      const chartUrl = getChartImageUrl(subscriber.chart.meta.birthData.time.utc);
-                      return (
+                    {subscriber.chart?.chart && (
                         <button
-                          onClick={(e) => handleViewChart(chartUrl, e)}
+                          onClick={(e) => handleViewChart(subscriber.chart.chart, e)}
                           style={{
                             background: 'none',
                             border: 'none',
@@ -605,8 +602,7 @@ function AdminPageContent() {
                             <circle cx="12" cy="12" r="3" />
                           </svg>
                         </button>
-                      );
-                    })()}
+                    )}
                     {freshCharts[subscriber.id] ? (
                       <button
                         onClick={(e) => handleSaveChart(subscriber.id, e)}
@@ -744,20 +740,15 @@ function AdminPageContent() {
           }}
           onClick={() => setLightboxChart(null)}
         >
-          <Image
-            src={lightboxChart}
-            alt="Chart"
-            width={800}
-            height={800}
-            unoptimized
+          <div
             style={{
-              maxWidth: '92vw',
-              maxHeight: '92vh',
-              borderRadius: '8px',
-              width: 'auto',
-              height: 'auto'
+              maxWidth: 'min(92vw, 560px)',
+              width: '100%',
             }}
-          />
+            onClick={(e) => e.stopPropagation()}
+          >
+            <BodygraphChart chart={lightboxChart} planets={lightboxChart.planets} />
+          </div>
         </div>
       )}
     </div>

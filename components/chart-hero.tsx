@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import ChartImage from "./admin/chart-image";
+import { Bodygraph } from "./bodygraph/bodygraph";
 import ChartReadout from "./chart-readout";
 import hdChart from "@/lib/hd-chart";
 import { careerDesignSubtitles } from "@/lib/hd-chart/constants";
@@ -49,8 +49,7 @@ export default function ChartHero({ subscriber }: ChartHeroProps) {
 
   const chartRecord = subscriber.chart;
   const hd = hdChart(chartRecord.chart);
-  const birthTimeUtc = chartRecord?.meta?.birthData?.time?.utc ?? null;
-  const showBodygraph = !!birthTimeUtc && !subscriber.birth_input.timeUnknown;
+  const showBodygraph = !!chartRecord.chart && !subscriber.birth_input.timeUnknown;
   const heroSrc = chartRecord.chart.type !== undefined ? heroImages[chartRecord.chart.type] : undefined;
 
   return (
@@ -74,7 +73,7 @@ export default function ChartHero({ subscriber }: ChartHeroProps) {
                 onClick={() => setChartOpen(true)}
                 aria-label="View full chart"
               >
-                <ChartImage birthTimeUtc={birthTimeUtc} disableLightbox />
+                <Bodygraph chart={chartRecord.chart} showGateNumbers={false} />
               </button>
             )}
           </div>
@@ -126,7 +125,7 @@ export default function ChartHero({ subscriber }: ChartHeroProps) {
             >
               &times;
             </button>
-            <ChartImage birthTimeUtc={birthTimeUtc} />
+            <Bodygraph chart={chartRecord.chart} />
           </div>
         </div>
       )}
