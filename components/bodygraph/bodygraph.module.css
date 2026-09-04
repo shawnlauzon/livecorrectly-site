@@ -104,42 +104,13 @@
  * ------------------------------------------------ */
 
 @media (max-width: 640px) {
-  .bodygraphChart {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .bodygraphSvgWrapper {
-    max-width: 100%;
-    order: 1;
-  }
-
   .planetSidebar {
-    padding-top: 0;
-    order: 2;
+    min-width: 70px;
+    padding-top: 40px;
+    font-size: 0.72rem;
   }
 
-  .designSide {
-    text-align: left;
-    padding-right: 0;
-    padding-left: 0;
-  }
-
-  .personalitySide {
-    padding-left: 0;
-  }
-
-  .designSide .planetRow {
-    justify-content: flex-start;
-  }
-
-  /* Stack sidebars side by side below the chart on mobile */
-  .bodygraphChart {
-    flex-wrap: wrap;
-  }
-
-  .planetSidebar {
-    flex: 1 1 45%;
-    min-width: 120px;
+  .sidebarHeader {
+    font-size: 0.6rem;
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import type { Chart } from '@/lib/types/chart';
 import { BODYGRAPH_SVG } from './bodygraph-svg';
 import { BODYGRAPH_CSS } from './bodygraph-css';
@@ -12,6 +12,9 @@ import {
   INTEGRATION_GATES,
   type BodygraphState,
 } from './bodygraph-state';
+
+/** Pre-built HTML — never changes, safe to share across all instances. */
+const SVG_HTML = `<style>${BODYGRAPH_CSS}</style>${BODYGRAPH_SVG.replace('<svg', '<svg class="theme-light bg-standard"')}`;
 
 interface BodygraphProps {
   chart: Chart;
@@ -32,20 +35,19 @@ export function Bodygraph({
   className,
 }: BodygraphProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const stateRef = useRef<BodygraphState | null>(null);
 
-  // Compute state once when chart changes
-  useEffect(() => {
-    stateRef.current = computeBodygraphState(chart);
-  }, [chart]);
+  const state = useMemo(() => computeBodygraphState(chart), [chart]);
 
-  // Apply state to the DOM after mount / chart change
-  useEffect(() => {
+  // Apply activation classes to the SVG DOM on every render.
+  // The SVG is injected via dangerouslySetInnerHTML (static template);
+  // gate/channel/center visibility is driven by adding CSS classes to
+  // those elements. Re-applying on every render is cheap (a handful of
+  // classList ops) and guarantees classes survive if React ever replaces
+  // the innerHTML (e.g. when an ancestor re-renders and the __html
+  // object reference changes).
+  useLayoutEffect(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
-
-    const state = computeBodygraphState(chart);
-    stateRef.current = state;
 
     const svg = wrapper.querySelector('svg');
     if (!svg) return;
@@ -65,15 +67,16 @@ export function Bodygraph({
     renderGates(svg, state, showGateNumbers);
     renderChannels(svg, state);
     renderCenters(svg, state);
-  }, [chart, showGateNumbers]);
+  });
+
+  // Stable reference — never changes, prevents React from replacing innerHTML.
+  const html = useMemo(() => ({ __html: SVG_HTML }), []);
 
   return (
     <div
       ref={wrapperRef}
       className={className}
-      dangerouslySetInnerHTML={{
-        __html: `<style>${BODYGRAPH_CSS}</style>${BODYGRAPH_SVG.replace('<svg', '<svg class="theme-light bg-standard"')}`,
-      }}
+      dangerouslySetInnerHTML={html}
     />
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { Bodygraph } from "./bodygraph/bodygraph";
+import { BodygraphChart } from "./bodygraph/bodygraph-chart";
 import ChartReadout from "./chart-readout";
 import hdChart from "@/lib/hd-chart";
 import { careerDesignSubtitles } from "@/lib/hd-chart/constants";
@@ -56,29 +56,46 @@ export default function ChartHero({ subscriber }: ChartHeroProps) {
     <>
       {heroSrc && (
         <div className={styles.hero}>
-          <Image
-            src={heroSrc}
-            alt={hd.careerDesign() ?? ""}
-            width={1400}
-            height={700}
-            priority
-            className={styles.heroImg}
-          />
-          <div className={styles.heroOverlay}>
-            <h2 className={styles.heroTitle}>{hd.careerDesign()}</h2>
-            {showBodygraph && (
-              <button
-                type="button"
-                className={styles.heroBodygraph}
-                onClick={() => setChartOpen(true)}
-                aria-label="View full chart"
-              >
-                <Bodygraph chart={chartRecord.chart} showGateNumbers={false} />
-              </button>
-            )}
+          <div className={styles.heroImageWrap}>
+            <Image
+              src={heroSrc}
+              alt={hd.careerDesign() ?? ""}
+              width={1400}
+              height={700}
+              priority
+              className={styles.heroImg}
+            />
+            <div className={styles.heroOverlay}>
+              <h2 className={styles.heroTitle}>{hd.careerDesign()}</h2>
+            </div>
           </div>
+          {showBodygraph && (
+            <div
+              className={`${styles.heroBodygraphSide} ${chartOpen ? styles.heroBodygraphExpanded : ''}`}
+              onClick={chartOpen ? undefined : () => setChartOpen(true)}
+            >
+              <BodygraphChart
+                chart={chartRecord.chart}
+                planets={chartRecord.chart.planets}
+                showGateNumbers={true}
+                showSidebars={true}
+              />
+              {chartOpen && (
+                <button
+                  type="button"
+                  className={styles.lightboxClose}
+                  onClick={(e) => { e.stopPropagation(); setChartOpen(false); }}
+                  aria-label="Close chart"
+                >
+                  &times;
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
+
+      {chartOpen && <div className={styles.lightboxBackdrop} onClick={() => setChartOpen(false)} />}
 
       {chartRecord.chart.type !== undefined && (
         <p className={styles.heroSubtitle}>{careerDesignSubtitles[chartRecord.chart.type]}</p>
@@ -113,22 +130,6 @@ export default function ChartHero({ subscriber }: ChartHeroProps) {
           v: styles.v,
         }}
       />
-
-      {chartOpen && showBodygraph && (
-        <div className={styles.lightbox} onClick={() => setChartOpen(false)}>
-          <div className={styles.lightboxInner} onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className={styles.lightboxClose}
-              onClick={() => setChartOpen(false)}
-              aria-label="Close chart"
-            >
-              &times;
-            </button>
-            <Bodygraph chart={chartRecord.chart} />
-          </div>
-        </div>
-      )}
     </>
   );
 }

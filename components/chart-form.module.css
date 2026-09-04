@@ -17,17 +17,27 @@
 }
 
 .hero {
-  position: relative;
+  display: flex;
   margin: calc(-1 * clamp(24px, 4vw, 38px));
   margin-bottom: clamp(24px, 4vw, 38px);
+}
+
+.heroImageWrap {
+  flex: 1;
+  min-width: 0;
+  position: relative;
   overflow: hidden;
+  border-radius: 20px 0 0 0;
+}
+
+.heroImageWrap:last-child {
   border-radius: 20px 20px 0 0;
 }
 
 .heroImg {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
   object-fit: cover;
 }
 
@@ -36,7 +46,6 @@
   inset: 0;
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
   padding: clamp(16px, 3vw, 28px);
   background: linear-gradient(to top, rgba(34, 27, 61, 0.7) 0%, transparent 60%);
 }
@@ -51,48 +60,55 @@
   margin: 0;
 }
 
-.heroBodygraph {
-  width: 100px;
-  flex: none;
-  border-radius: 12px;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(6px);
-  border: none;
+.heroBodygraphSide {
+  flex: 0 0 auto;
+  position: relative;
+  background: var(--paper);
   cursor: pointer;
-  transition: transform 0.18s ease;
+  padding: 12px 8px;
+  border-radius: 0 20px 0 0;
+  transition: background 0.18s ease;
 }
 
-.heroBodygraph:hover {
-  transform: scale(1.05);
+.heroBodygraphSide:hover {
+  background: var(--line);
 }
 
-.lightbox {
+.heroBodygraphExpanded:hover {
+  background: var(--card);
+}
+
+/* Expanded state — same element, lifted to lightbox position */
+.heroBodygraphExpanded {
+  position: fixed;
+  z-index: 1001;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--card);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: min(94vw, 820px);
+  width: 94vw;
+  max-height: 94vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px -10px rgba(34, 27, 61, 0.5);
+  cursor: default;
+}
+
+.lightboxBackdrop {
   position: fixed;
   inset: 0;
   z-index: 1000;
   background: rgba(34, 27, 61, 0.8);
   backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-
-.lightboxInner {
-  position: relative;
-  background: var(--card);
-  border-radius: 16px;
-  padding: 24px;
-  max-width: min(90vw, 540px);
-  width: 100%;
-  box-shadow: 0 20px 60px -10px rgba(34, 27, 61, 0.5);
 }
 
 .lightboxClose {
   position: absolute;
   top: 8px;
   right: 12px;
+  z-index: 1;
   background: none;
   border: none;
   font-size: 1.5rem;
@@ -389,6 +405,18 @@
 .dropdownItemActive {
   background: var(--paper);
   color: var(--grape);
+}
+
+@media (max-width: 640px) {
+  .hero {
+    flex-direction: column;
+  }
+  .heroImageWrap {
+    max-height: 200px;
+  }
+  .heroBodygraphSide {
+    padding: 16px 8px;
+  }
 }
 
 @media (max-width: 560px) {
