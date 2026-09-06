@@ -17,7 +17,6 @@ export interface SerializedMoonTransit {
 
 interface LunarTimelineProps {
   transits: SerializedMoonTransit[];
-  firstName: string;
   chart: Chart;
   startMonth: string; // "YYYY-MM"
   subscriberId: string;
@@ -46,7 +45,7 @@ function getGroupedTimezones(): Map<string, string[]> {
   return grouped;
 }
 
-export default function LunarTimeline({ transits, firstName, chart, startMonth, subscriberId }: LunarTimelineProps) {
+export default function LunarTimeline({ transits, chart, startMonth, subscriberId }: LunarTimelineProps) {
   const browserTimezone = useMemo(
     () => Intl.DateTimeFormat().resolvedOptions().timeZone,
     [],
@@ -54,46 +53,8 @@ export default function LunarTimeline({ transits, firstName, chart, startMonth, 
   const [timezone, setTimezone] = useState(browserTimezone);
   const groupedZones = useMemo(getGroupedTimezones, []);
 
-  const now = Date.now();
-
-  // Find the current transit (the one whose window contains "now")
-  const currentIndex = transits.findIndex((t) => {
-    const enter = new Date(t.enterTime).getTime();
-    const exit = new Date(t.exitTime).getTime();
-    return now >= enter && now < exit;
-  });
-
-  // Count how many transits activate channels
-  const activeCount = transits.filter((t) => t.completedChannels.length > 0).length;
-
   return (
     <div>
-      {/* Summary */}
-      <div style={{ marginBottom: 28 }}>
-        <p style={{ fontSize: '1.05rem', lineHeight: 1.5 }}>
-          {firstName}, <strong>{activeCount}</strong> of the{' '}
-          <strong>{transits.length}</strong> Moon gate transits this cycle activate
-          channels for you.
-        </p>
-        {currentIndex >= 0 && (
-          <p
-            style={{
-              marginTop: 8,
-              fontSize: '0.95rem',
-              color: transits[currentIndex].completedChannels.length > 0
-                ? 'var(--ink)'
-                : 'var(--muted)',
-            }}
-          >
-            Right now the Moon is in gate{' '}
-            <strong>{transits[currentIndex].gate}</strong>
-            {transits[currentIndex].completedChannels.length > 0
-              ? ` \u2014 you\u2019re experiencing ${transits[currentIndex].resultingType} energy.`
-              : ' \u2014 Evaluator mode, no channels completing.'}
-          </p>
-        )}
-      </div>
-
       {/* Timezone selector */}
       <div style={{ marginBottom: 20 }}>
         <label

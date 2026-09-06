@@ -122,7 +122,6 @@ export default async function LunarCyclePage({
 
         <LunarTimeline
           transits={serializedTransits}
-          firstName={subscriber.first_name}
           chart={subscriber.chart.chart}
           startMonth={startMonth}
           subscriberId={id}

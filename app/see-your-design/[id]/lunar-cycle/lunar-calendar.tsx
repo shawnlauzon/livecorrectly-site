@@ -69,6 +69,21 @@ function formatTime(isoString: string, timezone: string): string {
   }).format(new Date(isoString));
 }
 
+/** Format a compact time like "2:45p" for timeline labels. */
+function formatCompactTime(isoString: string, timezone: string): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).formatToParts(new Date(isoString));
+  const hour = parts.find((p) => p.type === 'hour')!.value;
+  const min = parts.find((p) => p.type === 'minute')!.value;
+  const dp = parts.find((p) => p.type === 'dayPeriod')!.value;
+  const suffix = dp.toLowerCase().startsWith('a') ? 'a' : 'p';
+  return min === '00' ? `${hour}${suffix}` : `${hour}:${min}${suffix}`;
+}
+
 /** A segment within a day — one transit's slice of a 24h period. */
 interface DaySegment {
   startPct: number;
@@ -76,6 +91,18 @@ interface DaySegment {
   type: string;
   color: string;
   gate: number;
+}
+
+/** Timeline segment — unmerged, with back-reference to transit index. */
+interface TimelineSegment {
+  startPct: number;
+  endPct: number;
+  type: string;
+  color: string;
+  gate: number;
+  transitIndex: number;
+  enterTime: string;
+  exitTime: string;
 }
 
 interface DayTransits {
@@ -208,6 +235,11 @@ export default function LunarCalendar({
   const todayKey = useMemo(
     () => dateKeyInTimezone(new Date(), timezone),
     [timezone],
+  );
+
+  const sortedDayKeys = useMemo(
+    () => Array.from(transitsByDay.keys()).sort(),
+    [transitsByDay],
   );
 
   const selectedDayTransits = useMemo(() => {
@@ -431,11 +463,13 @@ export default function LunarCalendar({
         <div style={{ flex: '0 0 40%', minWidth: 0 }}>
           {selectedDate && selectedDayTransits ? (
             <DayDetailPane
+              key={selectedDate}
               dateKey={selectedDate}
               dayData={selectedDayTransits}
               timezone={timezone}
               chart={chart}
-              onClose={() => setSelectedDate(null)}
+              onSelectDate={setSelectedDate}
+              dayKeys={sortedDayKeys}
             />
           ) : (
             <div
@@ -526,10 +560,11 @@ interface DayDetailPaneProps {
   dayData: DayTransits;
   timezone: string;
   chart: Chart;
-  onClose: () => void;
+  onSelectDate: (dateKey: string) => void;
+  dayKeys: string[];
 }
 
-function DayDetailPane({ dateKey, dayData, timezone, chart, onClose }: DayDetailPaneProps) {
+function DayDetailPane({ dateKey, dayData, timezone, chart, onSelectDate, dayKeys }: DayDetailPaneProps) {
   const [y, m, d] = dateKey.split('-').map(Number);
   const dateObj = new Date(y, m - 1, d);
   const dateLabel = dateObj.toLocaleDateString('en-US', {
@@ -538,8 +573,81 @@ function DayDetailPane({ dateKey, dayData, timezone, chart, onClose }: DayDetail
     day: 'numeric',
   });
 
-  const nonEvaluatorTransits = dayData.transits.filter((t) => t.completedChannels.length > 0);
-  const evaluatorTransits = dayData.transits.filter((t) => t.completedChannels.length === 0);
+  const [selectedTransitIndex, setSelectedTransitIndex] = useState<number | null>(null);
+
+  // Prev/next day navigation
+  const currentDayIdx = dayKeys.indexOf(dateKey);
+  const prevDayKey = currentDayIdx > 0 ? dayKeys[currentDayIdx - 1] : null;
+  const nextDayKey = currentDayIdx < dayKeys.length - 1 ? dayKeys[currentDayIdx + 1] : null;
+
+  // Compute timeline segments, collapsing consecutive Evaluator transits
+  const timelineSegments = useMemo(() => {
+    const dayStartMs = midnightInTimezone(dateKey, timezone);
+    const dayEndMs = dayStartMs + MS_PER_DAY;
+    const raw: TimelineSegment[] = [];
+
+    for (let i = 0; i < dayData.transits.length; i++) {
+      const t = dayData.transits[i];
+      const enterMs = new Date(t.enterTime).getTime();
+      const exitMs = new Date(t.exitTime).getTime();
+      const clampedStart = Math.max(enterMs, dayStartMs);
+      const clampedEnd = Math.min(exitMs, dayEndMs);
+      if (clampedEnd <= clampedStart) continue;
+
+      const startPct = ((clampedStart - dayStartMs) / MS_PER_DAY) * 100;
+      const endPct = ((clampedEnd - dayStartMs) / MS_PER_DAY) * 100;
+      const color = TYPE_COLORS[t.resultingType] ?? 'var(--muted)';
+      raw.push({
+        startPct,
+        endPct,
+        type: t.resultingType,
+        color,
+        gate: t.gate,
+        transitIndex: i,
+        enterTime: t.enterTime,
+        exitTime: t.exitTime,
+      });
+    }
+    raw.sort((a, b) => a.startPct - b.startPct);
+
+    // Merge consecutive Evaluator segments into one
+    const merged: TimelineSegment[] = [];
+    for (const seg of raw) {
+      const prev = merged[merged.length - 1];
+      if (seg.type === 'Evaluator' && prev?.type === 'Evaluator') {
+        prev.endPct = seg.endPct;
+        prev.exitTime = seg.exitTime;
+        // transitIndex = -1 signals a collapsed group (not individually selectable)
+        prev.transitIndex = -1;
+      } else {
+        merged.push({ ...seg });
+      }
+    }
+    return merged;
+  }, [dateKey, dayData.transits, timezone]);
+
+  // Compute transition boundary times (where one segment ends and another begins)
+  const transitionTimes = useMemo(() => {
+    const times: { pct: number; label: string }[] = [];
+    for (let i = 1; i < timelineSegments.length; i++) {
+      const boundaryPct = timelineSegments[i].startPct;
+      // Skip boundaries near midnight (< 1% or > 99%) — implicit from hour marks
+      if (boundaryPct < 1 || boundaryPct > 99) continue;
+      const label = formatCompactTime(timelineSegments[i].enterTime, timezone);
+      times.push({ pct: boundaryPct, label });
+    }
+    return times;
+  }, [timelineSegments, timezone]);
+
+  const selectedTransit = selectedTransitIndex !== null ? dayData.transits[selectedTransitIndex] : null;
+
+  // Hour mark positions: 12am=0%, 6am=25%, 12pm=50%, 6pm=75%
+  const hourMarks = [
+    { pct: 0, label: '12a' },
+    { pct: 25, label: '6a' },
+    { pct: 50, label: '12p' },
+    { pct: 75, label: '6p' },
+  ];
 
   return (
     <div
@@ -551,96 +659,101 @@ function DayDetailPane({ dateKey, dayData, timezone, chart, onClose }: DayDetail
       }}
     >
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 16,
-        }}
-      >
-        <h3
-          style={{
-            fontFamily: 'var(--display)',
-            fontWeight: 700,
-            fontSize: '1rem',
-            margin: 0,
-          }}
-        >
-          {dateLabel}
-        </h3>
+      <div className={css.dayDetailHeader}>
         <button
-          onClick={onClose}
-          style={{
-            all: 'unset',
-            cursor: 'pointer',
-            fontSize: '1.2rem',
-            color: 'var(--muted)',
-            lineHeight: 1,
-            padding: '4px 8px',
-          }}
-          aria-label="Close detail pane"
+          className={css.dayNavButton}
+          onClick={() => prevDayKey && onSelectDate(prevDayKey)}
+          disabled={!prevDayKey}
+          aria-label="Previous day"
         >
-          &times;
+          &#8249;
+        </button>
+        <h3 className={css.dayDetailTitle}>{dateLabel}</h3>
+        <button
+          className={css.dayNavButton}
+          onClick={() => nextDayKey && onSelectDate(nextDayKey)}
+          disabled={!nextDayKey}
+          aria-label="Next day"
+        >
+          &#8250;
         </button>
       </div>
 
-      {/* Channel-completing transits */}
-      {nonEvaluatorTransits.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {nonEvaluatorTransits.map((transit, i) => (
-            <TransitDetail key={`${transit.gate}-${i}`} transit={transit} timezone={timezone} chart={chart} />
-          ))}
+      {/* 24-hour timeline */}
+      <div className={css.timeline}>
+        {/* Row 1: Hour labels + tick marks */}
+        <div className={css.timelineHours}>
+          {Array.from({ length: 24 }, (_, h) => {
+            const pct = (h / 24) * 100;
+            const isMajor = h % 6 === 0;
+            const mark = hourMarks.find((hm) => hm.pct === pct);
+            return (
+              <span key={h}>
+                {mark && (
+                  <span className={css.hourLabel} style={{ left: `${pct}%` }}>
+                    {mark.label}
+                  </span>
+                )}
+                <span
+                  className={`${css.hourTick}${isMajor ? ` ${css.hourTickMajor}` : ''}`}
+                  style={{ left: `${pct}%` }}
+                />
+              </span>
+            );
+          })}
         </div>
-      )}
 
-      {/* Evaluator transits */}
-      {evaluatorTransits.length > 0 && (
-        <div style={{ marginTop: nonEvaluatorTransits.length > 0 ? 16 : 0 }}>
-          {nonEvaluatorTransits.length === 0 && (
-            <p
-              style={{
-                fontSize: '0.92rem',
-                color: 'var(--muted)',
-                marginBottom: 12,
-              }}
-            >
-              No channels completing &mdash; pure Evaluator mode.
-            </p>
-          )}
-          {evaluatorTransits.map((transit, i) => (
-            <div
-              key={`eval-${transit.gate}-${i}`}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '6px 0',
-                borderTop: i === 0 && nonEvaluatorTransits.length > 0 ? '1px solid var(--line)' : undefined,
-              }}
-            >
-              <span
+        {/* Row 2: Segment bar */}
+        <div className={css.timelineBar}>
+          {timelineSegments.map((seg, i) => {
+            const isEvaluator = seg.type === 'Evaluator';
+            const isSelected = !isEvaluator && selectedTransitIndex === seg.transitIndex;
+            const classNames = [css.timelineSegment];
+            if (isSelected) classNames.push(css.timelineSegmentSelected);
+            if (isEvaluator) classNames.push(css.timelineSegmentEvaluator);
+
+            return (
+              <button
+                key={`${seg.type}-${i}`}
+                className={classNames.join(' ')}
                 style={{
-                  display: 'inline-block',
-                  padding: '2px 8px',
-                  borderRadius: 4,
-                  fontSize: '0.78rem',
-                  fontWeight: 500,
-                  background: 'var(--stone, #f0edf7)',
-                  color: 'var(--muted)',
+                  left: `${seg.startPct}%`,
+                  width: `${seg.endPct - seg.startPct}%`,
+                  background: isEvaluator ? 'var(--stone, #f0edf7)' : seg.color,
+                  cursor: isEvaluator ? 'default' : 'pointer',
                 }}
+                onClick={isEvaluator ? undefined : () => setSelectedTransitIndex(
+                  isSelected ? null : seg.transitIndex,
+                )}
+                title={isEvaluator ? 'Evaluator' : `${seg.type} — Gate ${seg.gate}`}
               >
-                Evaluator
-              </span>
-              <span style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
-                Gate {transit.gate} &middot;{' '}
-                {formatTime(transit.enterTime, timezone)}
-                {' \u2192 '}
-                {formatTime(transit.exitTime, timezone)}
-              </span>
-            </div>
-          ))}
+                {!isEvaluator && seg.type}
+              </button>
+            );
+          })}
         </div>
+
+        {/* Row 3: Transition times */}
+        {transitionTimes.length > 0 && (
+          <div className={css.transitionTimes}>
+            {transitionTimes.map((tt, i) => (
+              <span
+                key={i}
+                className={css.transitionTime}
+                style={{ left: `${tt.pct}%` }}
+              >
+                {tt.label}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Detail area */}
+      {selectedTransit === null ? (
+        <p className={css.detailPrompt}>Tap a transit to see details</p>
+      ) : (
+        <TransitDetail transit={selectedTransit} timezone={timezone} chart={chart} />
       )}
     </div>
   );
