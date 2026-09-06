@@ -25,16 +25,28 @@ export default async function LunarCyclePage({
   // Extract natal gates from the chart
   const natalGates = subscriber.chart.chart.gates.map((g) => g.gate);
 
-  // Compute date range: 1st of current month through end of next month
+  // Compute date range: current month's calendar grid
+  // Includes trailing days from prev month (first week) and next month (last week)
   const now = new Date();
-  const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const endOfNextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 0, 23, 59, 59));
-  const days = Math.ceil((endOfNextMonth.getTime() - startOfMonth.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  const year = now.getUTCFullYear();
+  const mo = now.getUTCMonth();
 
-  const startMonth = `${startOfMonth.getUTCFullYear()}-${String(startOfMonth.getUTCMonth() + 1).padStart(2, '0')}`;
+  const firstOfMonth = new Date(Date.UTC(year, mo, 1));
+  const startDow = firstOfMonth.getUTCDay(); // 0=Sun
+  const leadingDays = startDow;
 
-  // Calculate transits spanning both months (gate transitions are cached in-memory)
-  const transits = calculateLunarCycle(startOfMonth, natalGates, days);
+  const lastOfMonth = new Date(Date.UTC(year, mo + 1, 0));
+  const daysInMonth = lastOfMonth.getUTCDate();
+  const endDow = lastOfMonth.getUTCDay();
+  const trailingDays = endDow === 6 ? 0 : 6 - endDow;
+
+  const startDate = new Date(Date.UTC(year, mo, 1 - leadingDays));
+  const totalDays = leadingDays + daysInMonth + trailingDays;
+
+  const startMonth = `${year}-${String(mo + 1).padStart(2, '0')}`;
+
+  // Calculate transits for the current month grid (gate transitions are cached in-memory)
+  const transits = calculateLunarCycle(startDate, natalGates, totalDays);
 
   // Serialize Date objects to ISO strings for the client
   const serializedTransits: SerializedMoonTransit[] = transits.map((t) => ({
@@ -113,6 +125,7 @@ export default async function LunarCyclePage({
           firstName={subscriber.first_name}
           chart={subscriber.chart.chart}
           startMonth={startMonth}
+          subscriberId={id}
         />
       </main>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { Chart } from '@/lib/types/chart';
 import type { SerializedMoonTransit } from './lunar-timeline';
 import { centerIndexToFunction } from '@/lib/hd-chart/constants';
@@ -9,34 +9,14 @@ import { computeTransitBodygraphState } from '@/components/bodygraph/bodygraph-s
 import { TYPE_COLORS } from '@/lib/lunar/type-colors';
 import css from './lunar-calendar.module.css';
 
-/** Priority ordering: higher = "stronger" type for day-cell coloring. */
-const TYPE_PRIORITY: Record<string, number> = {
-  'Express Builder': 4,
-  'Classic Builder': 3,
-  Initiator: 2,
-  Advisor: 1,
-  Evaluator: 0,
-};
-
-const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 interface LunarCalendarProps {
   transits: SerializedMoonTransit[];
   timezone: string;
   chart: Chart;
   startMonth: string; // "YYYY-MM"
-}
-
-/** Format a time string in the user's timezone. */
-function formatTime(isoString: string, timezone: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(isoString));
+  subscriberId: string;
 }
 
 /** Get the YYYY-MM-DD key for a date in a given timezone. */
@@ -58,22 +38,15 @@ const MS_PER_DAY = 86_400_000;
 
 /**
  * Get epoch ms for midnight of a YYYY-MM-DD date in a given timezone.
- * Uses dateKeyInTimezone to calibrate: starts with a UTC estimate and
- * adjusts until the formatted date matches the target.
  */
 function midnightInTimezone(dateKey: string, timezone: string): number {
   const [y, m, d] = dateKey.split('-').map(Number);
-  // Start with a UTC estimate of noon on that date (avoids DST edge at midnight)
   let guess = Date.UTC(y, m - 1, d, 12);
-  // Find what date this guess maps to in the target timezone
   const guessKey = dateKeyInTimezone(new Date(guess), timezone);
-  // Adjust by the difference in days
   const [gy, gm, gd] = guessKey.split('-').map(Number);
   const guessDays = Math.floor(Date.UTC(gy, gm - 1, gd) / MS_PER_DAY);
   const targetDays = Math.floor(Date.UTC(y, m - 1, d) / MS_PER_DAY);
   guess += (targetDays - guessDays) * MS_PER_DAY;
-  // Now guess is noon on the right day; walk back to midnight
-  // by finding the hour offset
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     hour: 'numeric',
@@ -84,17 +57,29 @@ function midnightInTimezone(dateKey: string, timezone: string): number {
   return guess - hour * 3600_000;
 }
 
-/** A colored vertical segment within a day cell. */
+/** Format a time string in the user's timezone. */
+function formatTime(isoString: string, timezone: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(isoString));
+}
+
+/** A segment within a day — one transit's slice of a 24h period. */
 interface DaySegment {
   startPct: number;
   endPct: number;
   type: string;
   color: string;
+  gate: number;
 }
 
 interface DayTransits {
   transits: SerializedMoonTransit[];
-  strongestType: string;
   hasNonEvaluator: boolean;
   segments: DaySegment[];
 }
@@ -116,7 +101,6 @@ function groupTransitsByDay(
     if (!byDay.has(enterKey)) byDay.set(enterKey, []);
     byDay.get(enterKey)!.push(t);
 
-    // If the transit spans into a different day, add it there too
     if (exitKey !== enterKey) {
       if (!byDay.has(exitKey)) byDay.set(exitKey, []);
       byDay.get(exitKey)!.push(t);
@@ -125,81 +109,100 @@ function groupTransitsByDay(
 
   const result = new Map<string, DayTransits>();
   for (const [key, dayTransits] of byDay) {
-    let strongestType = 'Evaluator';
-    let strongestPriority = -1;
     let hasNonEvaluator = false;
 
-    for (const t of dayTransits) {
-      const priority = TYPE_PRIORITY[t.resultingType] ?? 0;
-      if (t.resultingType !== 'Evaluator') hasNonEvaluator = true;
-      if (priority > strongestPriority) {
-        strongestPriority = priority;
-        strongestType = t.resultingType;
-      }
-    }
-
-    // Compute hour-proportional segments for non-Evaluator transits
     const segments: DaySegment[] = [];
-    if (hasNonEvaluator) {
-      const dayStartMs = midnightInTimezone(key, timezone);
-      const dayEndMs = dayStartMs + MS_PER_DAY;
+    const dayStartMs = midnightInTimezone(key, timezone);
+    const dayEndMs = dayStartMs + MS_PER_DAY;
 
-      for (const t of dayTransits) {
-        if (t.resultingType === 'Evaluator') continue;
-        const enterMs = new Date(t.enterTime).getTime();
-        const exitMs = new Date(t.exitTime).getTime();
-        const clampedStart = Math.max(enterMs, dayStartMs);
-        const clampedEnd = Math.min(exitMs, dayEndMs);
-        if (clampedEnd <= clampedStart) continue;
+    for (const t of dayTransits) {
+      if (t.resultingType !== 'Evaluator') hasNonEvaluator = true;
 
-        const startPct = ((clampedStart - dayStartMs) / MS_PER_DAY) * 100;
-        const endPct = ((clampedEnd - dayStartMs) / MS_PER_DAY) * 100;
-        const color = TYPE_COLORS[t.resultingType] ?? 'var(--muted)';
-        segments.push({ startPct, endPct, type: t.resultingType, color });
+      const enterMs = new Date(t.enterTime).getTime();
+      const exitMs = new Date(t.exitTime).getTime();
+      const clampedStart = Math.max(enterMs, dayStartMs);
+      const clampedEnd = Math.min(exitMs, dayEndMs);
+      if (clampedEnd <= clampedStart) continue;
+
+      const startPct = ((clampedStart - dayStartMs) / MS_PER_DAY) * 100;
+      const endPct = ((clampedEnd - dayStartMs) / MS_PER_DAY) * 100;
+      const color = TYPE_COLORS[t.resultingType] ?? 'var(--muted)';
+      segments.push({ startPct, endPct, type: t.resultingType, color, gate: t.gate });
+    }
+    segments.sort((a, b) => a.startPct - b.startPct);
+
+    // Merge consecutive segments of the same type into one block
+    const merged: DaySegment[] = [];
+    for (const seg of segments) {
+      const prev = merged[merged.length - 1];
+      if (prev && prev.type === seg.type) {
+        prev.endPct = seg.endPct;
+      } else {
+        merged.push({ ...seg });
       }
-      // Sort segments by start position
-      segments.sort((a, b) => a.startPct - b.startPct);
     }
 
-    result.set(key, { transits: dayTransits, strongestType, hasNonEvaluator, segments });
+    result.set(key, { transits: dayTransits, hasNonEvaluator, segments: merged });
   }
 
   return result;
 }
 
-/**
- * Get calendar grid info for a given year/month.
- * Returns { year, month, monthName, startDow (0=Sun), daysInMonth }.
- */
-function getMonthInfo(year: number, month: number) {
-  const monthName = new Date(year, month, 1).toLocaleString('en-US', { month: 'long' });
-  const startDow = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  return { year, month, monthName, startDow, daysInMonth };
-}
-
 /** Build the YYYY-MM-DD key for a given year/month/day. */
 function buildDateKey(year: number, month: number, day: number): string {
-  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  // Handle overflow/underflow — normalize with Date
+  const d = new Date(year, month, day);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/** Parse "YYYY-MM" into { year, month (0-indexed) }. */
+function parseMonth(ym: string): { year: number; month: number } {
+  const [y, m] = ym.split('-').map(Number);
+  return { year: y, month: m - 1 };
+}
+
+/** Format { year, month (0-indexed) } into "YYYY-MM". */
+function formatMonth(year: number, month: number): string {
+  // Normalize overflow (month=12 → next year Jan, month=-1 → prev year Dec)
+  const d = new Date(year, month, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** Get month info for rendering. */
+function getMonthInfo(year: number, month: number) {
+  const d = new Date(year, month, 1);
+  const monthName = d.toLocaleString('en-US', { month: 'long' });
+  const startDow = d.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  return { year: d.getFullYear(), month: d.getMonth(), monthName, startDow, daysInMonth };
+}
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
+
 export default function LunarCalendar({
-  transits,
+  transits: initialTransits,
   timezone,
   chart,
   startMonth,
+  subscriberId,
 }: LunarCalendarProps) {
+  const [displayMonth, setDisplayMonth] = useState(startMonth);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  // Parse startMonth into year/month
-  const [startYear, startMo] = startMonth.split('-').map(Number);
-  const month1 = { year: startYear, month: startMo - 1 }; // JS months are 0-indexed
-  const month2Year = startMo === 12 ? startYear + 1 : startYear;
-  const month2Mo = startMo === 12 ? 0 : startMo; // next month (0-indexed)
+  // Cache of transit data by month key
+  const transitCacheRef = useRef<Map<string, SerializedMoonTransit[]>>(
+    new Map([[startMonth, initialTransits]]),
+  );
+
+  // Current transits for the displayed month
+  const currentTransits = transitCacheRef.current.get(displayMonth) ?? [];
 
   const transitsByDay = useMemo(
-    () => groupTransitsByDay(transits, timezone),
-    [transits, timezone],
+    () => groupTransitsByDay(currentTransits, timezone),
+    [currentTransits, timezone],
   );
 
   const todayKey = useMemo(
@@ -212,129 +215,102 @@ export default function LunarCalendar({
     return transitsByDay.get(selectedDate) ?? null;
   }, [selectedDate, transitsByDay]);
 
-  function renderMonthGrid(year: number, month: number) {
-    const info = getMonthInfo(year, month);
-    const cells: React.ReactNode[] = [];
-
-    // Empty cells before the first day
-    for (let i = 0; i < info.startDow; i++) {
-      cells.push(<div key={`empty-${i}`} />);
-    }
-
-    for (let day = 1; day <= info.daysInMonth; day++) {
-      const dateKey = buildDateKey(year, month, day);
-      const dayData = transitsByDay.get(dateKey);
-      const isToday = dateKey === todayKey;
-      const isPast = dateKey < todayKey;
-      const isSelected = dateKey === selectedDate;
-      const hasNonEvaluator = dayData?.hasNonEvaluator ?? false;
-      const hasData = !!dayData;
-
-      // Build background: gradient bands for non-Evaluator segments, solid for no data
-      let background: string;
-      if (hasNonEvaluator && dayData!.segments.length > 0) {
-        const stops: string[] = [];
-        const segs = dayData!.segments;
-        // Add transparent gap before first segment if it doesn't start at 0
-        if (segs[0].startPct > 0) {
-          stops.push(`transparent 0%`);
-          stops.push(`transparent ${segs[0].startPct}%`);
+  const fetchMonth = useCallback(
+    async (monthKey: string) => {
+      if (transitCacheRef.current.has(monthKey)) return;
+      setLoading(true);
+      try {
+        const res = await fetch(
+          `/api/lunar-transits?subscriberId=${subscriberId}&month=${monthKey}`,
+        );
+        if (res.ok) {
+          const data = await res.json();
+          transitCacheRef.current.set(monthKey, data.transits);
         }
-        for (let s = 0; s < segs.length; s++) {
-          const seg = segs[s];
-          stops.push(`${seg.color} ${seg.startPct}%`);
-          stops.push(`${seg.color} ${seg.endPct}%`);
-          // Add transparent gap between this segment and next
-          if (s < segs.length - 1) {
-            const nextStart = segs[s + 1].startPct;
-            if (seg.endPct < nextStart) {
-              stops.push(`transparent ${seg.endPct}%`);
-              stops.push(`transparent ${nextStart}%`);
-            }
-          }
-        }
-        // Add transparent gap after last segment if it doesn't end at 100
-        const lastEnd = segs[segs.length - 1].endPct;
-        if (lastEnd < 100) {
-          stops.push(`transparent ${lastEnd}%`);
-          stops.push(`transparent 100%`);
-        }
-        background = `linear-gradient(to bottom, ${stops.join(', ')})`;
-      } else if (hasData) {
-        background = 'var(--stone, #f0edf7)';
-      } else {
-        background = 'transparent';
+      } finally {
+        setLoading(false);
       }
+    },
+    [subscriberId],
+  );
 
-      cells.push(
-        <button
-          key={dateKey}
-          className={`${css.dayCell}${hasNonEvaluator ? ` ${css.clickable}` : ''}`}
-          onClick={() => {
-            if (hasNonEvaluator) {
-              setSelectedDate(isSelected ? null : dateKey);
-            }
-          }}
-          style={{
-            fontWeight: isToday || isSelected ? 700 : 400,
-            background,
-            filter: isSelected ? 'brightness(1.15)' : undefined,
-            color: hasNonEvaluator
-              ? '#fff'
-              : isPast || !hasData
-                ? 'var(--muted)'
-                : 'var(--ink)',
-            opacity: isPast && !hasData ? 0.35 : isPast ? 0.6 : 1,
-            outline: isSelected
-              ? '2.5px solid var(--ink)'
-              : isToday
-                ? '2px solid var(--grape)'
-                : 'none',
-            outlineOffset: isSelected ? -1 : isToday ? -2 : 0,
-          }}
-        >
-          {day}
-        </button>,
-      );
-    }
+  const navigateMonth = useCallback(
+    async (delta: number) => {
+      const { year, month } = parseMonth(displayMonth);
+      const nextKey = formatMonth(year, month + delta);
+      setDisplayMonth(nextKey);
+      setSelectedDate(null);
+      await fetchMonth(nextKey);
+    },
+    [displayMonth, fetchMonth],
+  );
 
-    return (
-      <div>
-        <h3
-          style={{
-            fontFamily: 'var(--display)',
-            fontWeight: 700,
-            fontSize: '1.1rem',
-            textAlign: 'center',
-            marginBottom: 10,
-          }}
-        >
-          {info.monthName} {info.year}
-        </h3>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(7, 1fr)',
-            gap: 6,
-            textAlign: 'center',
-          }}
-        >
-          {DAY_LABELS.map((label, i) => (
-            <div
-              key={`hdr-${i}`}
-              style={{
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                color: 'var(--muted)',
-                paddingBottom: 4,
-              }}
-            >
-              {label}
-            </div>
-          ))}
-          {cells}
-        </div>
-      </div>
+  const goToToday = useCallback(async () => {
+    // todayKey is "YYYY-MM-DD"; extract the month portion
+    const todayMonth = todayKey.slice(0, 7); // "YYYY-MM"
+    setDisplayMonth(todayMonth);
+    setSelectedDate(todayKey);
+    await fetchMonth(todayMonth);
+  }, [todayKey, fetchMonth]);
+
+  const { year, month } = parseMonth(displayMonth);
+  const info = getMonthInfo(year, month);
+
+  // Build grid cells including trailing days
+  const cells: React.ReactNode[] = [];
+
+  // Leading days from previous month
+  const prevMonthLastDay = new Date(info.year, info.month, 0).getDate();
+  for (let i = info.startDow - 1; i >= 0; i--) {
+    const day = prevMonthLastDay - i;
+    const dateKey = buildDateKey(info.year, info.month - 1, day);
+    cells.push(
+      <DayCell
+        key={dateKey}
+        dateKey={dateKey}
+        day={day}
+        dayData={transitsByDay.get(dateKey) ?? null}
+        isToday={dateKey === todayKey}
+        isSelected={dateKey === selectedDate}
+        outsideMonth
+        onSelect={setSelectedDate}
+      />,
+    );
+  }
+
+  // Current month days
+  for (let day = 1; day <= info.daysInMonth; day++) {
+    const dateKey = buildDateKey(info.year, info.month, day);
+    cells.push(
+      <DayCell
+        key={dateKey}
+        dateKey={dateKey}
+        day={day}
+        dayData={transitsByDay.get(dateKey) ?? null}
+        isToday={dateKey === todayKey}
+        isSelected={dateKey === selectedDate}
+        outsideMonth={false}
+        onSelect={setSelectedDate}
+      />,
+    );
+  }
+
+  // Trailing days from next month
+  const totalCells = cells.length;
+  const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+  for (let day = 1; day <= remainingCells; day++) {
+    const dateKey = buildDateKey(info.year, info.month + 1, day);
+    cells.push(
+      <DayCell
+        key={dateKey}
+        dateKey={dateKey}
+        day={day}
+        dayData={transitsByDay.get(dateKey) ?? null}
+        isToday={dateKey === todayKey}
+        isSelected={dateKey === selectedDate}
+        outsideMonth
+        onSelect={setSelectedDate}
+      />,
     );
   }
 
@@ -347,18 +323,65 @@ export default function LunarCalendar({
           alignItems: 'flex-start',
         }}
       >
-        {/* Left half — calendar grids + legend */}
-        <div style={{ flex: '0 0 50%', minWidth: 0 }}>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 28,
-            }}
-          >
-            {renderMonthGrid(month1.year, month1.month)}
-            {renderMonthGrid(month2Year, month2Mo)}
+        {/* Left half — calendar grid + legend */}
+        <div style={{ flex: '0 0 60%', minWidth: 0 }}>
+          {/* Month header with navigation */}
+          <div className={css.monthHeader}>
+            <button
+              className={css.navButton}
+              onClick={() => navigateMonth(-1)}
+              aria-label="Previous month"
+            >
+              &#8249;
+            </button>
+            <h3 className={css.monthTitle}>
+              {info.monthName} {info.year}
+            </h3>
+            <button
+              className={css.navButton}
+              onClick={() => navigateMonth(1)}
+              aria-label="Next month"
+            >
+              &#8250;
+            </button>
+            <button
+              className={css.todayButton}
+              onClick={goToToday}
+            >
+              Today
+            </button>
           </div>
+
+          {loading ? (
+            <div className={css.loadingOverlay}>
+              <span className={css.loadingDot} />
+              Loading&hellip;
+            </div>
+          ) : (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(7, 1fr)',
+                gap: 4,
+              }}
+            >
+              {DAY_LABELS.map((label, i) => (
+                <div
+                  key={`hdr-${i}`}
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: 'var(--muted)',
+                    paddingBottom: 4,
+                    textAlign: 'center',
+                  }}
+                >
+                  {label}
+                </div>
+              ))}
+              {cells}
+            </div>
+          )}
 
           {/* Legend */}
           <div
@@ -372,7 +395,7 @@ export default function LunarCalendar({
               alignItems: 'center',
             }}
           >
-            {(['Express Builder', 'Classic Builder', 'Initiator', 'Advisor'] as const).map(
+            {(['Express Builder', 'Classic Builder', 'Initiator', 'Advisor', 'Evaluator'] as const).map(
               (type) => (
                 <span key={type} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <span
@@ -381,7 +404,7 @@ export default function LunarCalendar({
                       width: 12,
                       height: 12,
                       borderRadius: 3,
-                      background: TYPE_COLORS[type],
+                      background: type === 'Evaluator' ? 'var(--stone, #f0edf7)' : TYPE_COLORS[type],
                     }}
                   />
                   {type}
@@ -405,7 +428,7 @@ export default function LunarCalendar({
         </div>
 
         {/* Right half — detail pane */}
-        <div style={{ flex: '0 0 50%', minWidth: 0 }}>
+        <div style={{ flex: '0 0 40%', minWidth: 0 }}>
           {selectedDate && selectedDayTransits ? (
             <DayDetailPane
               dateKey={selectedDate}
@@ -425,12 +448,72 @@ export default function LunarCalendar({
                 borderRadius: 12,
               }}
             >
-              Click a highlighted day to see transit details.
+              Click any day to see transit details.
             </div>
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Day cell component
+// ---------------------------------------------------------------------------
+
+interface DayCellProps {
+  dateKey: string;
+  day: number;
+  dayData: DayTransits | null;
+  isToday: boolean;
+  isSelected: boolean;
+  outsideMonth: boolean;
+  onSelect: (dateKey: string | null) => void;
+}
+
+/** Total content area height in pixels (used for proportional sizing). */
+const AGENDA_CONTENT_HEIGHT = 68;
+
+function DayCell({ dateKey, day, dayData, isToday, isSelected, outsideMonth, onSelect }: DayCellProps) {
+  const hasData = !!dayData;
+
+  const classNames = [css.dayCell];
+  if (outsideMonth) classNames.push(css.outsideMonth);
+  if (isSelected) classNames.push(css.selected);
+  if (isToday && !isSelected) classNames.push(css.today);
+
+  const dayNumberClasses = [css.dayNumber];
+  if (isToday) dayNumberClasses.push(css.todayNumber);
+  if (isSelected) dayNumberClasses.push(css.selectedNumber);
+
+  return (
+    <button
+      className={classNames.join(' ')}
+      onClick={() => onSelect(isSelected ? null : dateKey)}
+    >
+      <span className={dayNumberClasses.join(' ')}>{day}</span>
+      {hasData && (
+        <div className={css.agendaArea}>
+          {dayData.segments.map((seg, i) => {
+            const heightPct = seg.endPct - seg.startPct;
+            const heightPx = (heightPct / 100) * AGENDA_CONTENT_HEIGHT;
+            const isEvaluator = seg.type === 'Evaluator';
+
+            return (
+              <div
+                key={`${seg.type}-${i}`}
+                className={`${css.agendaItem}${isEvaluator ? ` ${css.agendaItemEvaluator}` : ''}`}
+                style={{
+                  height: Math.max(heightPx, 4),
+                  background: isEvaluator ? 'var(--stone, #f0edf7)' : seg.color,
+                }}
+                title={seg.type}
+              />
+            );
+          })}
+        </div>
+      )}
+    </button>
   );
 }
 
@@ -447,7 +530,6 @@ interface DayDetailPaneProps {
 }
 
 function DayDetailPane({ dateKey, dayData, timezone, chart, onClose }: DayDetailPaneProps) {
-  // Format the date for the header
   const [y, m, d] = dateKey.split('-').map(Number);
   const dateObj = new Date(y, m - 1, d);
   const dateLabel = dateObj.toLocaleDateString('en-US', {
@@ -455,6 +537,9 @@ function DayDetailPane({ dateKey, dayData, timezone, chart, onClose }: DayDetail
     month: 'long',
     day: 'numeric',
   });
+
+  const nonEvaluatorTransits = dayData.transits.filter((t) => t.completedChannels.length > 0);
+  const evaluatorTransits = dayData.transits.filter((t) => t.completedChannels.length === 0);
 
   return (
     <div
@@ -500,19 +585,63 @@ function DayDetailPane({ dateKey, dayData, timezone, chart, onClose }: DayDetail
         </button>
       </div>
 
-      {/* Transits for the day */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {dayData.transits
-          .filter((t) => t.completedChannels.length > 0)
-          .map((transit, i) => (
+      {/* Channel-completing transits */}
+      {nonEvaluatorTransits.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {nonEvaluatorTransits.map((transit, i) => (
             <TransitDetail key={`${transit.gate}-${i}`} transit={transit} timezone={timezone} chart={chart} />
           ))}
-        {dayData.transits.filter((t) => t.completedChannels.length > 0).length === 0 && (
-          <p style={{ fontSize: '0.88rem', color: 'var(--muted)' }}>
-            No channel-completing transits on this day.
-          </p>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Evaluator transits */}
+      {evaluatorTransits.length > 0 && (
+        <div style={{ marginTop: nonEvaluatorTransits.length > 0 ? 16 : 0 }}>
+          {nonEvaluatorTransits.length === 0 && (
+            <p
+              style={{
+                fontSize: '0.92rem',
+                color: 'var(--muted)',
+                marginBottom: 12,
+              }}
+            >
+              No channels completing &mdash; pure Evaluator mode.
+            </p>
+          )}
+          {evaluatorTransits.map((transit, i) => (
+            <div
+              key={`eval-${transit.gate}-${i}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '6px 0',
+                borderTop: i === 0 && nonEvaluatorTransits.length > 0 ? '1px solid var(--line)' : undefined,
+              }}
+            >
+              <span
+                style={{
+                  display: 'inline-block',
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  fontSize: '0.78rem',
+                  fontWeight: 500,
+                  background: 'var(--stone, #f0edf7)',
+                  color: 'var(--muted)',
+                }}
+              >
+                Evaluator
+              </span>
+              <span style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
+                Gate {transit.gate} &middot;{' '}
+                {formatTime(transit.enterTime, timezone)}
+                {' \u2192 '}
+                {formatTime(transit.exitTime, timezone)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

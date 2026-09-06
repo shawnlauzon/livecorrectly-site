@@ -3,10 +3,9 @@
 import { useMemo, useState } from 'react';
 import type { Chart } from '@/lib/types/chart';
 import type { CompletedChannel } from '@/lib/lunar';
-import TransitCard from './transit-card';
 import LunarCalendar from './lunar-calendar';
 
-/** Wire format — dates are ISO strings after server→client serialization. */
+/** Wire format — dates are ISO strings after server->client serialization. */
 export interface SerializedMoonTransit {
   gate: number;
   enterTime: string;
@@ -21,6 +20,7 @@ interface LunarTimelineProps {
   firstName: string;
   chart: Chart;
   startMonth: string; // "YYYY-MM"
+  subscriberId: string;
 }
 
 /**
@@ -46,7 +46,7 @@ function getGroupedTimezones(): Map<string, string[]> {
   return grouped;
 }
 
-export default function LunarTimeline({ transits, firstName, chart, startMonth }: LunarTimelineProps) {
+export default function LunarTimeline({ transits, firstName, chart, startMonth, subscriberId }: LunarTimelineProps) {
   const browserTimezone = useMemo(
     () => Intl.DateTimeFormat().resolvedOptions().timeZone,
     [],
@@ -133,20 +133,8 @@ export default function LunarTimeline({ transits, firstName, chart, startMonth }
         timezone={timezone}
         chart={chart}
         startMonth={startMonth}
+        subscriberId={subscriberId}
       />
-
-      {/* Timeline */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {transits.map((transit, i) => (
-          <TransitCard
-            key={`${transit.gate}-${i}`}
-            transit={transit}
-            isCurrent={i === currentIndex}
-            timezone={timezone}
-            chart={chart}
-          />
-        ))}
-      </div>
     </div>
   );
 }
