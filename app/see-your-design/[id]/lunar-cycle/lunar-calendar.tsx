@@ -573,7 +573,10 @@ function DayDetailPane({ dateKey, dayData, timezone, chart, onSelectDate, onClos
     day: 'numeric',
   });
 
-  const [selectedTransitIndex, setSelectedTransitIndex] = useState<number | null>(null);
+  const [selectedTransitIndex, setSelectedTransitIndex] = useState<number | null>(() => {
+    const idx = dayData.transits.findIndex(t => t.resultingType !== 'Evaluator');
+    return idx >= 0 ? idx : null;
+  });
 
   // Prev/next day navigation
   const currentDayIdx = dayKeys.indexOf(dateKey);
