@@ -3,18 +3,10 @@
 import { useMemo, useState } from 'react';
 import type { Chart } from '@/lib/types/chart';
 import type { SerializedMoonTransit } from './lunar-timeline';
-import { centerNames } from '@/lib/hd-chart/constants';
+import { centerIndexToFunction } from '@/lib/hd-chart/constants';
 import { Bodygraph } from '@/components/bodygraph/bodygraph';
 import { computeTransitBodygraphState } from '@/components/bodygraph/bodygraph-state';
-
-/** Color mapping for BG5 career design types. */
-const TYPE_COLORS: Record<string, string> = {
-  'Classic Builder': 'var(--coral)',
-  'Express Builder': 'var(--coral)',
-  Initiator: 'var(--marigold)',
-  Advisor: 'var(--grape)',
-  Evaluator: 'var(--muted)',
-};
+import { TYPE_COLORS } from '@/lib/lunar/type-colors';
 
 interface TransitCardProps {
   transit: SerializedMoonTransit;
@@ -185,7 +177,7 @@ export default function TransitCard({ transit, isCurrent, timezone, chart }: Tra
                   </span>
                 </p>
                 <p style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>
-                  {ch.centerNames[0]} &harr; {ch.centerNames[1]}
+                  {centerIndexToFunction[ch.centers[0]]} &harr; {centerIndexToFunction[ch.centers[1]]}
                   <span style={{ marginLeft: 8 }}>
                     &middot; {ch.thematic}
                   </span>
@@ -195,8 +187,8 @@ export default function TransitCard({ transit, isCurrent, timezone, chart }: Tra
 
             {transit.definedCenters.length > 0 && (
               <p style={{ fontSize: '0.82rem', color: 'var(--muted)', marginTop: 4 }}>
-                Centers activated:{' '}
-                {transit.definedCenters.map((c) => centerNames[c]).join(', ')}
+                Functions activated:{' '}
+                {transit.definedCenters.map((c) => centerIndexToFunction[c]).join(', ')}
               </p>
             )}
           </div>

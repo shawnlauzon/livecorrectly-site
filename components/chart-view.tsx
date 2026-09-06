@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import ChartHero from './chart-hero';
 import styles from './chart-form.module.css';
 import { Subscriber } from '@/lib/types/subscriber';
@@ -88,26 +87,7 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
       <h1 className={styles.chartName}>Your design.</h1>
 
       <div className={styles.card}>
-        <ChartHero subscriber={subscriber} />
-
-        {subscriber.chart.chart.type === 4 && (
-          <Link
-            href={`/see-your-design/${subscriberId}/lunar-cycle`}
-            style={{
-              display: 'inline-block',
-              marginTop: 20,
-              padding: '10px 20px',
-              borderRadius: 8,
-              background: 'var(--grape)',
-              color: '#fff',
-              fontWeight: 600,
-              fontSize: '0.92rem',
-              textDecoration: 'none',
-            }}
-          >
-            See your lunar cycle &rarr;
-          </Link>
-        )}
+        <ChartHero subscriber={subscriber} subscriberId={subscriberId} />
 
         <p className={styles.resultP} style={{ marginTop: 28 }}>
           That&rsquo;s the data. If most of it doesn&rsquo;t mean much to you,

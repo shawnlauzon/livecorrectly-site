@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import type { Chart } from '@/lib/types/chart';
 import type { CompletedChannel } from '@/lib/lunar';
 import TransitCard from './transit-card';
+import LunarCalendar from './lunar-calendar';
 
 /** Wire format — dates are ISO strings after server→client serialization. */
 export interface SerializedMoonTransit {
@@ -19,6 +20,7 @@ interface LunarTimelineProps {
   transits: SerializedMoonTransit[];
   firstName: string;
   chart: Chart;
+  startMonth: string; // "YYYY-MM"
 }
 
 /**
@@ -44,7 +46,7 @@ function getGroupedTimezones(): Map<string, string[]> {
   return grouped;
 }
 
-export default function LunarTimeline({ transits, firstName, chart }: LunarTimelineProps) {
+export default function LunarTimeline({ transits, firstName, chart, startMonth }: LunarTimelineProps) {
   const browserTimezone = useMemo(
     () => Intl.DateTimeFormat().resolvedOptions().timeZone,
     [],
@@ -124,6 +126,14 @@ export default function LunarTimeline({ transits, firstName, chart }: LunarTimel
           ))}
         </select>
       </div>
+
+      {/* Calendar view */}
+      <LunarCalendar
+        transits={transits}
+        timezone={timezone}
+        chart={chart}
+        startMonth={startMonth}
+      />
 
       {/* Timeline */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

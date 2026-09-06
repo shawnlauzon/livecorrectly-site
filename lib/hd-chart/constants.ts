@@ -262,6 +262,16 @@ export const functionToCenterIndex: Record<string, number | null> = {
 };
 
 /**
+ * Reverse mapping: center array index → BG5 function name.
+ * Built by inverting functionToCenterIndex (excluding the null entry).
+ */
+export const centerIndexToFunction: Record<number, string> = Object.fromEntries(
+  Object.entries(functionToCenterIndex)
+    .filter((entry): entry is [string, number] => entry[1] !== null)
+    .map(([fn, idx]) => [idx, fn]),
+);
+
+/**
  * Shadow themes - the learning focus for each shadow.
  */
 export const shadowThemes: Record<string, string> = {

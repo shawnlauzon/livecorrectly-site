@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { BodygraphChart } from "./bodygraph/bodygraph-chart";
 import ChartReadout from "./chart-readout";
 import hdChart from "@/lib/hd-chart";
@@ -32,9 +33,10 @@ const heroImages: Record<number, string> = {
 
 interface ChartHeroProps {
   subscriber: Subscriber;
+  subscriberId: string;
 }
 
-export default function ChartHero({ subscriber }: ChartHeroProps) {
+export default function ChartHero({ subscriber, subscriberId }: ChartHeroProps) {
   const [chartOpen, setChartOpen] = useState(false);
   const closeLightbox = useCallback(() => setChartOpen(false), []);
 
@@ -66,7 +68,17 @@ export default function ChartHero({ subscriber }: ChartHeroProps) {
               className={styles.heroImg}
             />
             <div className={styles.heroOverlay}>
-              <h2 className={styles.heroTitle}>{hd.careerDesign()}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                <h2 className={styles.heroTitle} style={{ margin: 0 }}>{hd.careerDesign()}</h2>
+                {chartRecord.chart.type === 4 && (
+                  <Link
+                    href={`/see-your-design/${subscriberId}/lunar-cycle`}
+                    className={styles.lunarCalBtn}
+                  >
+                    See your lunar calendar &rarr;
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
           {showBodygraph && (

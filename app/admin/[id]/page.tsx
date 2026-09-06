@@ -122,7 +122,7 @@ export default function AdminDetailPage({
       <EmailPreviewSelector subscriberId={subscriber.id} currentStep={emailStep} />
 
       <div className={styles.card}>
-        <ChartHero subscriber={subscriber} />
+        <ChartHero subscriber={subscriber} subscriberId={subscriber.id} />
       </div>
 
       <StrengthsDisplay subscriber={subscriber} />

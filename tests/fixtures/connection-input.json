@@ -1,0 +1,1630 @@
+{
+  "chart": {
+    "planets": [
+      {
+        "activation": 1,
+        "base": 3,
+        "color": 4,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 63,
+        "line": 4,
+        "tone": 1,
+        "basePercent": 38,
+        "colorPercent": 7,
+        "fx": [],
+        "gatePercent": 58,
+        "id": 0,
+        "longitude": 344.6686721685891,
+        "linePercent": 51,
+        "tonePercent": 47,
+        "chartId": 0,
+        "baseAlignment": 0
+      },
+      {
+        "activation": 1,
+        "base": 3,
+        "color": 4,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 64,
+        "line": 4,
+        "tone": 1,
+        "basePercent": 38,
+        "colorPercent": 7,
+        "fx": [],
+        "gatePercent": 58,
+        "id": 1,
+        "longitude": 164.66867216858918,
+        "linePercent": 51,
+        "tonePercent": 47,
+        "chartId": 0,
+        "baseAlignment": 0
+      },
+      {
+        "activation": 1,
+        "base": 2,
+        "color": 6,
+        "fixing": {
+          "triggers": [
+            {
+              "state": 2,
+              "planet": 2,
+              "activation": 1,
+              "gate": 56,
+              "line": 4,
+              "chartId": 0
+            }
+          ],
+          "state": 2,
+          "conditioned": false
+        },
+        "gate": 56,
+        "line": 4,
+        "tone": 4,
+        "basePercent": 98,
+        "colorPercent": 56,
+        "fx": [
+          {
+            "activation": 1,
+            "id": 2
+          }
+        ],
+        "gatePercent": 65,
+        "id": 2,
+        "longitude": 120.05720652682638,
+        "linePercent": 92,
+        "tonePercent": 39,
+        "chartId": 0
+      },
+      {
+        "activation": 1,
+        "base": 4,
+        "color": 2,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 26,
+        "line": 1,
+        "tone": 2,
+        "basePercent": 98,
+        "colorPercent": 29,
+        "fx": [],
+        "gatePercent": 3,
+        "id": 3,
+        "longitude": 257.2030213740856,
+        "linePercent": 21,
+        "tonePercent": 79,
+        "chartId": 0,
+        "baseAlignment": 3
+      },
+      {
+        "activation": 1,
+        "base": 4,
+        "color": 2,
+        "fixing": {
+          "triggers": [
+            {
+              "state": 1,
+              "planet": 7,
+              "activation": 1,
+              "gate": 45,
+              "line": 6,
+              "chartId": 1
+            }
+          ],
+          "state": 1,
+          "conditioned": true
+        },
+        "gate": 45,
+        "line": 1,
+        "tone": 2,
+        "basePercent": 98,
+        "colorPercent": 29,
+        "fx": [],
+        "gatePercent": 3,
+        "id": 4,
+        "longitude": 77.20302137408561,
+        "linePercent": 21,
+        "tonePercent": 79,
+        "chartId": 0,
+        "baseAlignment": 3
+      },
+      {
+        "activation": 1,
+        "base": 3,
+        "color": 3,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 22,
+        "line": 6,
+        "tone": 5,
+        "basePercent": 52,
+        "colorPercent": 75,
+        "fx": [],
+        "gatePercent": 90,
+        "id": 5,
+        "longitude": 352.1173071408945,
+        "linePercent": 45,
+        "tonePercent": 50,
+        "chartId": 0
+      },
+      {
+        "activation": 1,
+        "base": 3,
+        "color": 3,
+        "fixing": {
+          "triggers": [
+            {
+              "state": 2,
+              "planet": 0,
+              "activation": 1,
+              "gate": 51,
+              "line": 3,
+              "chartId": 1
+            }
+          ],
+          "state": 2,
+          "conditioned": true
+        },
+        "gate": 51,
+        "line": 5,
+        "tone": 4,
+        "basePercent": 90,
+        "colorPercent": 59,
+        "fx": [],
+        "gatePercent": 73,
+        "id": 6,
+        "longitude": 19.280763481899136,
+        "linePercent": 43,
+        "tonePercent": 58,
+        "chartId": 0
+      },
+      {
+        "activation": 1,
+        "base": 5,
+        "color": 1,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 39,
+        "line": 2,
+        "tone": 3,
+        "basePercent": 65,
+        "colorPercent": 48,
+        "fx": [],
+        "gatePercent": 18,
+        "id": 7,
+        "longitude": 100.51380959789144,
+        "linePercent": 8,
+        "tonePercent": 93,
+        "chartId": 0
+      },
+      {
+        "activation": 1,
+        "base": 1,
+        "color": 4,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 48,
+        "line": 4,
+        "tone": 2,
+        "basePercent": 96,
+        "colorPercent": 19,
+        "fx": [],
+        "gatePercent": 58,
+        "id": 8,
+        "longitude": 192.81229402304805,
+        "linePercent": 53,
+        "tonePercent": 19,
+        "chartId": 0
+      },
+      {
+        "activation": 1,
+        "base": 3,
+        "color": 2,
+        "fixing": {
+          "triggers": [
+            {
+              "state": 1,
+              "planet": 9,
+              "activation": 1,
+              "gate": 49,
+              "line": 6,
+              "chartId": 0
+            }
+          ],
+          "state": 1,
+          "conditioned": false
+        },
+        "gate": 49,
+        "line": 6,
+        "tone": 1,
+        "basePercent": 51,
+        "colorPercent": 8,
+        "fx": [
+          {
+            "activation": 1,
+            "id": 9
+          }
+        ],
+        "gatePercent": 86,
+        "id": 9,
+        "longitude": 323.7318551605952,
+        "linePercent": 18,
+        "tonePercent": 50,
+        "chartId": 0
+      },
+      {
+        "activation": 1,
+        "base": 3,
+        "color": 3,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 61,
+        "line": 1,
+        "tone": 1,
+        "basePercent": 91,
+        "colorPercent": 9,
+        "fx": [],
+        "gatePercent": 5,
+        "id": 10,
+        "longitude": 291.07769355022464,
+        "linePercent": 34,
+        "tonePercent": 58,
+        "chartId": 0
+      },
+      {
+        "activation": 1,
+        "base": 5,
+        "color": 5,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 54,
+        "line": 6,
+        "tone": 3,
+        "basePercent": 79,
+        "colorPercent": 49,
+        "fx": [],
+        "gatePercent": 95,
+        "id": 11,
+        "longitude": 290.51457110530805,
+        "linePercent": 74,
+        "tonePercent": 95,
+        "chartId": 0
+      },
+      {
+        "activation": 1,
+        "base": 4,
+        "color": 1,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 14,
+        "line": 2,
+        "tone": 3,
+        "basePercent": 92,
+        "colorPercent": 46,
+        "fx": [],
+        "gatePercent": 17,
+        "id": 12,
+        "longitude": 235.51002049274766,
+        "linePercent": 7,
+        "tonePercent": 78,
+        "chartId": 0
+      },
+      {
+        "activation": 0,
+        "base": 2,
+        "color": 4,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 5,
+        "line": 6,
+        "tone": 6,
+        "basePercent": 38,
+        "colorPercent": 87,
+        "fx": [],
+        "gatePercent": 94,
+        "id": 0,
+        "longitude": 256.66867216947054,
+        "linePercent": 64,
+        "tonePercent": 27,
+        "chartId": 0,
+        "baseAlignment": 1
+      },
+      {
+        "activation": 0,
+        "base": 2,
+        "color": 4,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 35,
+        "line": 6,
+        "tone": 6,
+        "basePercent": 38,
+        "colorPercent": 87,
+        "fx": [],
+        "gatePercent": 94,
+        "id": 1,
+        "longitude": 76.66867216947054,
+        "linePercent": 64,
+        "tonePercent": 27,
+        "chartId": 0,
+        "baseAlignment": 1
+      },
+      {
+        "activation": 0,
+        "base": 5,
+        "color": 5,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 8,
+        "line": 4,
+        "tone": 6,
+        "basePercent": 27,
+        "colorPercent": 97,
+        "fx": [],
+        "gatePercent": 63,
+        "id": 2,
+        "longitude": 58.08994816319747,
+        "linePercent": 82,
+        "tonePercent": 85,
+        "chartId": 0
+      },
+      {
+        "activation": 0,
+        "base": 5,
+        "color": 5,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 26,
+        "line": 5,
+        "tone": 5,
+        "basePercent": 47,
+        "colorPercent": 81,
+        "fx": [],
+        "gatePercent": 80,
+        "id": 3,
+        "longitude": 261.5024930192784,
+        "linePercent": 80,
+        "tonePercent": 89,
+        "chartId": 0,
+        "baseAlignment": 4
+      },
+      {
+        "activation": 0,
+        "base": 5,
+        "color": 5,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 45,
+        "line": 5,
+        "tone": 5,
+        "basePercent": 47,
+        "colorPercent": 81,
+        "fx": [],
+        "gatePercent": 80,
+        "id": 4,
+        "longitude": 81.5024930192784,
+        "linePercent": 80,
+        "tonePercent": 89,
+        "chartId": 0,
+        "baseAlignment": 4
+      },
+      {
+        "activation": 0,
+        "base": 5,
+        "color": 4,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 14,
+        "line": 2,
+        "tone": 2,
+        "basePercent": 33,
+        "colorPercent": 31,
+        "fx": [],
+        "gatePercent": 25,
+        "id": 5,
+        "longitude": 235.95485193583295,
+        "linePercent": 55,
+        "tonePercent": 86,
+        "chartId": 0
+      },
+      {
+        "activation": 0,
+        "base": 4,
+        "color": 4,
+        "fixing": {
+          "triggers": [
+            {
+              "state": 1,
+              "planet": 6,
+              "activation": 0,
+              "gate": 60,
+              "line": 4,
+              "chartId": 0
+            }
+          ],
+          "state": 1,
+          "conditioned": false
+        },
+        "gate": 60,
+        "line": 4,
+        "tone": 3,
+        "basePercent": 7,
+        "colorPercent": 43,
+        "fx": [
+          {
+            "activation": 0,
+            "id": 6
+          }
+        ],
+        "gatePercent": 59,
+        "id": 6,
+        "longitude": 299.7243278120609,
+        "linePercent": 57,
+        "tonePercent": 61,
+        "chartId": 0
+      },
+      {
+        "activation": 0,
+        "base": 4,
+        "color": 4,
+        "fixing": {
+          "triggers": [
+            {
+              "state": 2,
+              "planet": 2,
+              "activation": 1,
+              "gate": 56,
+              "line": 4,
+              "chartId": 0
+            },
+            {
+              "state": 1,
+              "planet": 7,
+              "activation": 0,
+              "gate": 56,
+              "line": 1,
+              "chartId": 0
+            }
+          ],
+          "state": 3,
+          "conditioned": false
+        },
+        "gate": 56,
+        "line": 1,
+        "tone": 6,
+        "basePercent": 58,
+        "colorPercent": 95,
+        "fx": [
+          {
+            "activation": 0,
+            "id": 7
+          },
+          {
+            "activation": 1,
+            "id": 2
+          }
+        ],
+        "gatePercent": 10,
+        "id": 7,
+        "longitude": 116.99262949006854,
+        "linePercent": 65,
+        "tonePercent": 71,
+        "chartId": 0
+      },
+      {
+        "activation": 0,
+        "base": 3,
+        "color": 3,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 48,
+        "line": 2,
+        "tone": 3,
+        "basePercent": 61,
+        "colorPercent": 42,
+        "fx": [],
+        "gatePercent": 23,
+        "id": 8,
+        "longitude": 190.81569741497876,
+        "linePercent": 40,
+        "tonePercent": 52,
+        "chartId": 0
+      },
+      {
+        "activation": 0,
+        "base": 5,
+        "color": 6,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 13,
+        "line": 1,
+        "tone": 4,
+        "basePercent": 41,
+        "colorPercent": 64,
+        "fx": [],
+        "gatePercent": 15,
+        "id": 9,
+        "longitude": 314.13236302370416,
+        "linePercent": 94,
+        "tonePercent": 88,
+        "chartId": 0
+      },
+      {
+        "activation": 0,
+        "base": 2,
+        "color": 2,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 54,
+        "line": 2,
+        "tone": 5,
+        "basePercent": 70,
+        "colorPercent": 72,
+        "fx": [],
+        "gatePercent": 21,
+        "id": 10,
+        "longitude": 286.3317712308519,
+        "linePercent": 28,
+        "tonePercent": 34,
+        "chartId": 0
+      },
+      {
+        "activation": 0,
+        "base": 3,
+        "color": 4,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 54,
+        "line": 3,
+        "tone": 2,
+        "basePercent": 89,
+        "colorPercent": 26,
+        "fx": [],
+        "gatePercent": 42,
+        "id": 11,
+        "longitude": 287.5098555665623,
+        "linePercent": 54,
+        "tonePercent": 57,
+        "chartId": 0
+      },
+      {
+        "activation": 0,
+        "base": 5,
+        "color": 2,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 43,
+        "line": 6,
+        "tone": 3,
+        "basePercent": 57,
+        "colorPercent": 48,
+        "fx": [],
+        "gatePercent": 87,
+        "id": 12,
+        "longitude": 233.79467399353018,
+        "linePercent": 24,
+        "tonePercent": 91,
+        "chartId": 0
+      },
+      {
+        "activation": 1,
+        "base": 2,
+        "color": 5,
+        "fixing": {
+          "triggers": [
+            {
+              "state": 2,
+              "planet": 0,
+              "activation": 1,
+              "gate": 51,
+              "line": 3,
+              "chartId": 1
+            }
+          ],
+          "state": 2,
+          "conditioned": false
+        },
+        "gate": 51,
+        "line": 3,
+        "tone": 2,
+        "basePercent": 76,
+        "colorPercent": 22,
+        "fx": [
+          {
+            "activation": 1,
+            "id": 0
+          }
+        ],
+        "gatePercent": 45,
+        "id": 0,
+        "longitude": 17.66025083384061,
+        "linePercent": 70,
+        "tonePercent": 35,
+        "chartId": 1,
+        "baseAlignment": 1
+      },
+      {
+        "activation": 1,
+        "base": 2,
+        "color": 5,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 57,
+        "line": 3,
+        "tone": 2,
+        "basePercent": 76,
+        "colorPercent": 22,
+        "fx": [],
+        "gatePercent": 45,
+        "id": 1,
+        "longitude": 197.66025083384062,
+        "linePercent": 70,
+        "tonePercent": 35,
+        "chartId": 1,
+        "baseAlignment": 1
+      },
+      {
+        "activation": 1,
+        "base": 5,
+        "color": 2,
+        "fixing": {
+          "triggers": [
+            {
+              "state": 1,
+              "planet": 7,
+              "activation": 0,
+              "gate": 27,
+              "line": 5,
+              "chartId": 1
+            }
+          ],
+          "state": 1,
+          "conditioned": false
+        },
+        "gate": 50,
+        "line": 5,
+        "tone": 2,
+        "basePercent": 43,
+        "colorPercent": 31,
+        "fx": [
+          {
+            "activation": 0,
+            "id": 7
+          }
+        ],
+        "gatePercent": 70,
+        "id": 2,
+        "longitude": 210.33038352090517,
+        "linePercent": 21,
+        "tonePercent": 88,
+        "chartId": 1
+      },
+      {
+        "activation": 1,
+        "base": 5,
+        "color": 4,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 26,
+        "line": 5,
+        "tone": 6,
+        "basePercent": 37,
+        "colorPercent": 97,
+        "fx": [],
+        "gatePercent": 77,
+        "id": 3,
+        "longitude": 261.3717554924931,
+        "linePercent": 66,
+        "tonePercent": 87,
+        "chartId": 1,
+        "baseAlignment": 2
+      },
+      {
+        "activation": 1,
+        "base": 5,
+        "color": 4,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 45,
+        "line": 5,
+        "tone": 6,
+        "basePercent": 37,
+        "colorPercent": 97,
+        "fx": [],
+        "gatePercent": 77,
+        "id": 4,
+        "longitude": 81.3717554924931,
+        "linePercent": 66,
+        "tonePercent": 87,
+        "chartId": 1,
+        "baseAlignment": 2
+      },
+      {
+        "activation": 1,
+        "base": 2,
+        "color": 4,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 36,
+        "line": 2,
+        "tone": 6,
+        "basePercent": 7,
+        "colorPercent": 86,
+        "fx": [],
+        "gatePercent": 27,
+        "id": 5,
+        "longitude": 354.16707030022087,
+        "linePercent": 64,
+        "tonePercent": 21,
+        "chartId": 1
+      },
+      {
+        "activation": 1,
+        "base": 3,
+        "color": 2,
+        "fixing": {
+          "triggers": [
+            {
+              "state": 2,
+              "planet": 6,
+              "activation": 1,
+              "gate": 55,
+              "line": 2,
+              "chartId": 1
+            }
+          ],
+          "state": 2,
+          "conditioned": false
+        },
+        "gate": 55,
+        "line": 2,
+        "tone": 3,
+        "basePercent": 27,
+        "colorPercent": 40,
+        "fx": [
+          {
+            "activation": 1,
+            "id": 6
+          }
+        ],
+        "gatePercent": 20,
+        "id": 6,
+        "longitude": 331.28268390348836,
+        "linePercent": 23,
+        "tonePercent": 45,
+        "chartId": 1
+      },
+      {
+        "activation": 1,
+        "base": 4,
+        "color": 6,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 45,
+        "line": 6,
+        "tone": 6,
+        "basePercent": 45,
+        "colorPercent": 94,
+        "fx": [],
+        "gatePercent": 99,
+        "id": 7,
+        "longitude": 82.61696988928033,
+        "linePercent": 99,
+        "tonePercent": 69,
+        "chartId": 1
+      },
+      {
+        "activation": 1,
+        "base": 3,
+        "color": 1,
+        "fixing": {
+          "triggers": [
+            {
+              "state": 2,
+              "planet": 8,
+              "activation": 1,
+              "gate": 37,
+              "line": 2,
+              "chartId": 1
+            }
+          ],
+          "state": 2,
+          "conditioned": false
+        },
+        "gate": 37,
+        "line": 2,
+        "tone": 5,
+        "basePercent": 31,
+        "colorPercent": 74,
+        "fx": [
+          {
+            "activation": 1,
+            "id": 8
+          }
+        ],
+        "gatePercent": 18,
+        "id": 8,
+        "longitude": 336.80374058051973,
+        "linePercent": 12,
+        "tonePercent": 46,
+        "chartId": 1
+      },
+      {
+        "activation": 1,
+        "base": 5,
+        "color": 6,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 15,
+        "line": 1,
+        "tone": 5,
+        "basePercent": 75,
+        "colorPercent": 82,
+        "fx": [],
+        "gatePercent": 16,
+        "id": 9,
+        "longitude": 89.16017121535457,
+        "linePercent": 97,
+        "tonePercent": 95,
+        "chartId": 1
+      },
+      {
+        "activation": 1,
+        "base": 4,
+        "color": 5,
+        "fixing": {
+          "triggers": [
+            {
+              "state": 1,
+              "planet": 11,
+              "activation": 1,
+              "gate": 54,
+              "line": 6,
+              "chartId": 0
+            },
+            {
+              "state": 1,
+              "planet": 11,
+              "activation": 0,
+              "gate": 54,
+              "line": 3,
+              "chartId": 0
+            }
+          ],
+          "state": 1,
+          "conditioned": true
+        },
+        "gate": 32,
+        "line": 6,
+        "tone": 2,
+        "basePercent": 5,
+        "colorPercent": 26,
+        "fx": [],
+        "gatePercent": 95,
+        "id": 10,
+        "longitude": 206.10445485662171,
+        "linePercent": 71,
+        "tonePercent": 61,
+        "chartId": 1
+      },
+      {
+        "activation": 1,
+        "base": 1,
+        "color": 6,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 9,
+        "line": 4,
+        "tone": 4,
+        "basePercent": 48,
+        "colorPercent": 51,
+        "fx": [],
+        "gatePercent": 65,
+        "id": 11,
+        "longitude": 249.42440659214355,
+        "linePercent": 91,
+        "tonePercent": 9,
+        "chartId": 1
+      },
+      {
+        "activation": 1,
+        "base": 2,
+        "color": 3,
+        "fixing": {
+          "triggers": [
+            {
+              "state": 2,
+              "planet": 12,
+              "activation": 1,
+              "gate": 18,
+              "line": 2,
+              "chartId": 1
+            },
+            {
+              "state": 2,
+              "planet": 12,
+              "activation": 0,
+              "gate": 18,
+              "line": 4,
+              "chartId": 1
+            }
+          ],
+          "state": 2,
+          "conditioned": false
+        },
+        "gate": 18,
+        "line": 2,
+        "tone": 1,
+        "basePercent": 74,
+        "colorPercent": 5,
+        "fx": [
+          {
+            "activation": 1,
+            "id": 12
+          },
+          {
+            "activation": 0,
+            "id": 12
+          }
+        ],
+        "gatePercent": 22,
+        "id": 12,
+        "longitude": 185.13410711887337,
+        "linePercent": 34,
+        "tonePercent": 34,
+        "chartId": 1
+      },
+      {
+        "activation": 0,
+        "base": 1,
+        "color": 6,
+        "fixing": {
+          "triggers": [
+            {
+              "state": 2,
+              "planet": 0,
+              "activation": 0,
+              "gate": 54,
+              "line": 5,
+              "chartId": 1
+            }
+          ],
+          "state": 2,
+          "conditioned": false
+        },
+        "gate": 54,
+        "line": 5,
+        "tone": 1,
+        "basePercent": 76,
+        "colorPercent": 2,
+        "fx": [
+          {
+            "activation": 0,
+            "id": 0
+          }
+        ],
+        "gatePercent": 80,
+        "id": 0,
+        "longitude": 289.66025083446897,
+        "linePercent": 83,
+        "tonePercent": 15,
+        "chartId": 1,
+        "baseAlignment": 0
+      },
+      {
+        "activation": 0,
+        "base": 1,
+        "color": 6,
+        "fixing": {
+          "triggers": [
+            {
+              "state": 1,
+              "planet": 1,
+              "activation": 0,
+              "gate": 53,
+              "line": 5,
+              "chartId": 1
+            }
+          ],
+          "state": 1,
+          "conditioned": false
+        },
+        "gate": 53,
+        "line": 5,
+        "tone": 1,
+        "basePercent": 76,
+        "colorPercent": 2,
+        "fx": [
+          {
+            "activation": 0,
+            "id": 1
+          }
+        ],
+        "gatePercent": 80,
+        "id": 1,
+        "longitude": 109.66025083446897,
+        "linePercent": 83,
+        "tonePercent": 15,
+        "chartId": 1,
+        "baseAlignment": 0
+      },
+      {
+        "activation": 0,
+        "base": 3,
+        "color": 4,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 7,
+        "line": 2,
+        "tone": 5,
+        "basePercent": 54,
+        "colorPercent": 75,
+        "fx": [],
+        "gatePercent": 27,
+        "id": 2,
+        "longitude": 134.77365896957775,
+        "linePercent": 62,
+        "tonePercent": 50,
+        "chartId": 1
+      },
+      {
+        "activation": 0,
+        "base": 4,
+        "color": 2,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 10,
+        "line": 1,
+        "tone": 4,
+        "basePercent": 51,
+        "colorPercent": 61,
+        "fx": [],
+        "gatePercent": 4,
+        "id": 3,
+        "longitude": 268.5026569167411,
+        "linePercent": 26,
+        "tonePercent": 70,
+        "chartId": 1,
+        "baseAlignment": 3
+      },
+      {
+        "activation": 0,
+        "base": 4,
+        "color": 2,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 15,
+        "line": 1,
+        "tone": 4,
+        "basePercent": 51,
+        "colorPercent": 61,
+        "fx": [],
+        "gatePercent": 4,
+        "id": 4,
+        "longitude": 88.5026569167411,
+        "linePercent": 26,
+        "tonePercent": 70,
+        "chartId": 1,
+        "baseAlignment": 3
+      },
+      {
+        "activation": 0,
+        "base": 4,
+        "color": 3,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 54,
+        "line": 6,
+        "tone": 5,
+        "basePercent": 20,
+        "colorPercent": 77,
+        "fx": [],
+        "gatePercent": 91,
+        "id": 5,
+        "longitude": 290.24586819278244,
+        "linePercent": 46,
+        "tonePercent": 64,
+        "chartId": 1
+      },
+      {
+        "activation": 0,
+        "base": 1,
+        "color": 6,
+        "fixing": {
+          "triggers": [
+            {
+              "state": 2,
+              "planet": 6,
+              "activation": 0,
+              "gate": 19,
+              "line": 3,
+              "chartId": 1
+            }
+          ],
+          "state": 2,
+          "conditioned": false
+        },
+        "gate": 19,
+        "line": 3,
+        "tone": 3,
+        "basePercent": 9,
+        "colorPercent": 33,
+        "fx": [
+          {
+            "activation": 0,
+            "id": 6
+          }
+        ],
+        "gatePercent": 48,
+        "id": 6,
+        "longitude": 310.3338266055299,
+        "linePercent": 88,
+        "tonePercent": 1,
+        "chartId": 1
+      },
+      {
+        "activation": 0,
+        "base": 5,
+        "color": 3,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 27,
+        "line": 5,
+        "tone": 3,
+        "basePercent": 17,
+        "colorPercent": 47,
+        "fx": [],
+        "gatePercent": 73,
+        "id": 7,
+        "longitude": 36.136313338689824,
+        "linePercent": 41,
+        "tonePercent": 83,
+        "chartId": 1
+      },
+      {
+        "activation": 0,
+        "base": 5,
+        "color": 3,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 13,
+        "line": 4,
+        "tone": 4,
+        "basePercent": 82,
+        "colorPercent": 66,
+        "fx": [],
+        "gatePercent": 57,
+        "id": 8,
+        "longitude": 316.47825557918736,
+        "linePercent": 44,
+        "tonePercent": 96,
+        "chartId": 1
+      },
+      {
+        "activation": 0,
+        "base": 1,
+        "color": 5,
+        "fixing": {
+          "triggers": [
+            {
+              "state": 2,
+              "planet": 0,
+              "activation": 0,
+              "gate": 5,
+              "line": 6,
+              "chartId": 0
+            }
+          ],
+          "state": 2,
+          "conditioned": true
+        },
+        "gate": 15,
+        "line": 2,
+        "tone": 1,
+        "basePercent": 35,
+        "colorPercent": 1,
+        "fx": [],
+        "gatePercent": 27,
+        "id": 9,
+        "longitude": 89.81434788160267,
+        "linePercent": 66,
+        "tonePercent": 7,
+        "chartId": 1
+      },
+      {
+        "activation": 0,
+        "base": 3,
+        "color": 2,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 50,
+        "line": 2,
+        "tone": 4,
+        "basePercent": 11,
+        "colorPercent": 57,
+        "fx": [],
+        "gatePercent": 21,
+        "id": 10,
+        "longitude": 207.5579090264132,
+        "linePercent": 26,
+        "tonePercent": 42,
+        "chartId": 1
+      },
+      {
+        "activation": 0,
+        "base": 4,
+        "color": 1,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 9,
+        "line": 4,
+        "tone": 3,
+        "basePercent": 27,
+        "colorPercent": 44,
+        "fx": [],
+        "gatePercent": 51,
+        "id": 11,
+        "longitude": 248.63165262450755,
+        "linePercent": 7,
+        "tonePercent": 65,
+        "chartId": 1
+      },
+      {
+        "activation": 0,
+        "base": 2,
+        "color": 1,
+        "fixing": {
+          "triggers": [],
+          "state": 0,
+          "conditioned": false
+        },
+        "gate": 18,
+        "line": 4,
+        "tone": 6,
+        "basePercent": 97,
+        "colorPercent": 89,
+        "fx": [],
+        "gatePercent": 52,
+        "id": 12,
+        "longitude": 186.8280180353467,
+        "linePercent": 14,
+        "tonePercent": 39,
+        "chartId": 1
+      }
+    ],
+    "gates": [
+      {
+        "gate": 5,
+        "mode": 0
+      },
+      {
+        "gate": 7,
+        "mode": 1
+      },
+      {
+        "gate": 8,
+        "mode": 0
+      },
+      {
+        "gate": 9,
+        "mode": 1
+      },
+      {
+        "gate": 10,
+        "mode": 1
+      },
+      {
+        "gate": 13,
+        "mode": 2
+      },
+      {
+        "gate": 14,
+        "mode": 0
+      },
+      {
+        "gate": 15,
+        "mode": 1
+      },
+      {
+        "gate": 18,
+        "mode": 1
+      },
+      {
+        "gate": 19,
+        "mode": 1
+      },
+      {
+        "gate": 22,
+        "mode": 0
+      },
+      {
+        "gate": 26,
+        "mode": 2
+      },
+      {
+        "gate": 27,
+        "mode": 1
+      },
+      {
+        "gate": 32,
+        "mode": 1
+      },
+      {
+        "gate": 35,
+        "mode": 0
+      },
+      {
+        "gate": 36,
+        "mode": 1
+      },
+      {
+        "gate": 37,
+        "mode": 1
+      },
+      {
+        "gate": 39,
+        "mode": 0
+      },
+      {
+        "gate": 43,
+        "mode": 0
+      },
+      {
+        "gate": 45,
+        "mode": 2
+      },
+      {
+        "gate": 48,
+        "mode": 0
+      },
+      {
+        "gate": 49,
+        "mode": 0
+      },
+      {
+        "gate": 50,
+        "mode": 1
+      },
+      {
+        "gate": 51,
+        "mode": 2
+      },
+      {
+        "gate": 53,
+        "mode": 1
+      },
+      {
+        "gate": 54,
+        "mode": 2
+      },
+      {
+        "gate": 55,
+        "mode": 1
+      },
+      {
+        "gate": 56,
+        "mode": 0
+      },
+      {
+        "gate": 57,
+        "mode": 1
+      },
+      {
+        "gate": 60,
+        "mode": 0
+      },
+      {
+        "gate": 61,
+        "mode": 0
+      },
+      {
+        "gate": 63,
+        "mode": 0
+      },
+      {
+        "gate": 64,
+        "mode": 0
+      }
+    ],
+    "channels": [
+      {
+        "state": 0,
+        "id": 8
+      },
+      {
+        "state": 0,
+        "id": 31
+      },
+      {
+        "state": 2,
+        "dominantChartId": 1,
+        "id": 29
+      },
+      {
+        "state": 0,
+        "id": 20
+      },
+      {
+        "state": 0,
+        "id": 23
+      },
+      {
+        "state": 3,
+        "dominantChartId": 1,
+        "id": 3
+      },
+      {
+        "state": 3,
+        "dominantChartId": 1,
+        "id": 35
+      }
+    ],
+    "centers": [2, 2, 2, 2, 1, 2, 2, 1, 1],
+    "type": 1,
+    "authority": 0,
+    "definition": 1,
+    "bridges": null,
+    "authorityFilter": 0
+  },
+  "meta": {
+    "name": "Tina & Shawn",
+    "tags": [],
+    "notes": null,
+    "dirty": true,
+    "type": "CONNECTION_CHART",
+    "person1": {
+      "id": "953c6107-eb1d-4707-bf9a-fa308ea6331e",
+      "name": "Tina Gerken",
+      "type": 4,
+      "profile": 46,
+      "authority": 6,
+      "cross": 128,
+      "channels": [],
+      "centers": [1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "definition": 0,
+      "variable": 3,
+      "birthData": {
+        "time": {
+          "utc": "1993-03-05T05:46:00Z"
+        }
+      },
+      "environment": null,
+      "largebusiness": null,
+      "thematic": null,
+      "attributes": null,
+      "skills": null,
+      "triggers": null
+    },
+    "person2": {
+      "id": "4b802259-36d9-4ce6-bbcb-53f0b96dcdf8",
+      "name": "Shawn Lauzon",
+      "type": 0,
+      "profile": 35,
+      "authority": 1,
+      "cross": 156,
+      "channels": [3, 35, 29],
+      "centers": [2, 2, 2, 1, 1, 2, 1, 0, 0],
+      "definition": 1,
+      "variable": 5,
+      "birthData": {
+        "time": {
+          "utc": "1974-04-07T21:00:00Z"
+        }
+      },
+      "environment": null,
+      "largebusiness": null,
+      "thematic": null,
+      "attributes": null,
+      "skills": null,
+      "triggers": null
+    }
+  },
+  "tags": [],
+  "flags": []
+}
