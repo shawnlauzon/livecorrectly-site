@@ -116,7 +116,7 @@ export default async function LunarCyclePage({
           }}
         >
           As the Moon moves through the 64 gates, it completes channels with your
-          natal activations &mdash; giving you a taste of different energy types
+          natal activations &mdash; giving you a sample of different energy types
           throughout your ~28-day cycle.
         </p>
 

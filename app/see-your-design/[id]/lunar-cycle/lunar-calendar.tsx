@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Chart } from '@/lib/types/chart';
 import type { SerializedMoonTransit } from './lunar-timeline';
 import { centerIndexToFunction } from '@/lib/hd-chart/constants';
@@ -218,6 +218,7 @@ export default function LunarCalendar({
   const [displayMonth, setDisplayMonth] = useState(startMonth);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pendingSelect, setPendingSelect] = useState<{ direction: 1 | -1; fromDate: string } | null>(null);
 
   // Cache of transit data by month key (state so reads during render are safe)
   const [transitCache, setTransitCache] = useState<Record<string, SerializedMoonTransit[]>>(
@@ -286,6 +287,31 @@ export default function LunarCalendar({
     setSelectedDate(todayKey);
     await fetchMonth(todayMonth);
   }, [todayKey, fetchMonth]);
+
+  // Navigate month from day detail pane when prev/next day goes past boundary
+  const handleDayBoundary = useCallback(
+    async (direction: 1 | -1) => {
+      const fromDate = selectedDate ?? '';
+      const { year: y, month: m } = parseMonth(displayMonth);
+      const nextKey = formatMonth(y, m + direction);
+      setDisplayMonth(nextKey);
+      setSelectedDate(null);
+      setPendingSelect({ direction, fromDate });
+      await fetchMonth(nextKey);
+    },
+    [displayMonth, fetchMonth, selectedDate],
+  );
+
+  // Auto-select the next day strictly after/before the boundary date
+  useEffect(() => {
+    if (!pendingSelect || sortedDayKeys.length === 0) return;
+    const { direction, fromDate } = pendingSelect;
+    const key = direction === 1
+      ? sortedDayKeys.find(k => k > fromDate)
+      : sortedDayKeys.findLast(k => k < fromDate);
+    if (key) setSelectedDate(key);
+    setPendingSelect(null);
+  }, [pendingSelect, sortedDayKeys]);
 
   const { year, month } = parseMonth(displayMonth);
   const info = getMonthInfo(year, month);
@@ -469,6 +495,7 @@ export default function LunarCalendar({
               onSelectDate={setSelectedDate}
               onClose={() => setSelectedDate(null)}
               dayKeys={sortedDayKeys}
+              onDayBoundary={handleDayBoundary}
             />
           ) : (
             <div
@@ -562,9 +589,10 @@ interface DayDetailPaneProps {
   onSelectDate: (dateKey: string) => void;
   onClose?: () => void;
   dayKeys: string[];
+  onDayBoundary: (direction: 1 | -1) => void;
 }
 
-function DayDetailPane({ dateKey, dayData, timezone, chart, onSelectDate, onClose, dayKeys }: DayDetailPaneProps) {
+function DayDetailPane({ dateKey, dayData, timezone, chart, onSelectDate, onClose, dayKeys, onDayBoundary }: DayDetailPaneProps) {
   const [y, m, d] = dateKey.split('-').map(Number);
   const dateObj = new Date(y, m - 1, d);
   const dateLabel = dateObj.toLocaleDateString('en-US', {
@@ -671,8 +699,7 @@ function DayDetailPane({ dateKey, dayData, timezone, chart, onSelectDate, onClos
       <div className={css.dayDetailHeader}>
         <button
           className={css.dayNavButton}
-          onClick={() => prevDayKey && onSelectDate(prevDayKey)}
-          disabled={!prevDayKey}
+          onClick={() => prevDayKey ? onSelectDate(prevDayKey) : onDayBoundary(-1)}
           aria-label="Previous day"
         >
           &#8249;
@@ -680,8 +707,7 @@ function DayDetailPane({ dateKey, dayData, timezone, chart, onSelectDate, onClos
         <h3 className={css.dayDetailTitle}>{dateLabel}</h3>
         <button
           className={css.dayNavButton}
-          onClick={() => nextDayKey && onSelectDate(nextDayKey)}
-          disabled={!nextDayKey}
+          onClick={() => nextDayKey ? onSelectDate(nextDayKey) : onDayBoundary(1)}
           aria-label="Next day"
         >
           &#8250;
@@ -760,7 +786,11 @@ function DayDetailPane({ dateKey, dayData, timezone, chart, onSelectDate, onClos
 
       {/* Detail area */}
       {selectedTransit === null ? (
-        <p className={css.detailPrompt}>Tap a transit to see details</p>
+        <p className={css.detailPrompt}>
+          {!dayData.hasNonEvaluator
+            ? 'The Moon doesn\u2019t bring any energies to sample today.'
+            : 'Tap a transit to see details'}
+        </p>
       ) : (
         <TransitDetail transit={selectedTransit} timezone={timezone} chart={chart} />
       )}
