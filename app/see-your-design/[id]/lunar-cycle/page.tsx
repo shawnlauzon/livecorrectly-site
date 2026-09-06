@@ -25,8 +25,16 @@ export default async function LunarCyclePage({
   // Extract natal gates from the chart
   const natalGates = subscriber.chart.chart.gates.map((g) => g.gate);
 
-  // Calculate the full lunar cycle starting from now
-  const transits = calculateLunarCycle(new Date(), natalGates);
+  // Compute date range: 1st of current month through end of next month
+  const now = new Date();
+  const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const endOfNextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 0, 23, 59, 59));
+  const days = Math.ceil((endOfNextMonth.getTime() - startOfMonth.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+  const startMonth = `${startOfMonth.getUTCFullYear()}-${String(startOfMonth.getUTCMonth() + 1).padStart(2, '0')}`;
+
+  // Calculate transits spanning both months (gate transitions are cached in-memory)
+  const transits = calculateLunarCycle(startOfMonth, natalGates, days);
 
   // Serialize Date objects to ISO strings for the client
   const serializedTransits: SerializedMoonTransit[] = transits.map((t) => ({
@@ -104,6 +112,7 @@ export default async function LunarCyclePage({
           transits={serializedTransits}
           firstName={subscriber.first_name}
           chart={subscriber.chart.chart}
+          startMonth={startMonth}
         />
       </main>
 
