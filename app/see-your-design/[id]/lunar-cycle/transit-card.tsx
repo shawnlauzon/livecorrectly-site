@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { Chart } from '@/lib/types/chart';
 import type { SerializedMoonTransit } from './lunar-timeline';
 import { centerNames } from '@/lib/hd-chart/constants';
+import { Bodygraph } from '@/components/bodygraph/bodygraph';
+import { computeTransitBodygraphState } from '@/components/bodygraph/bodygraph-state';
 
 /** Color mapping for BG5 career design types. */
 const TYPE_COLORS: Record<string, string> = {
@@ -17,6 +20,7 @@ interface TransitCardProps {
   transit: SerializedMoonTransit;
   isCurrent: boolean;
   timezone: string;
+  chart: Chart;
 }
 
 function formatTime(isoString: string, timezone: string): string {
@@ -30,10 +34,15 @@ function formatTime(isoString: string, timezone: string): string {
   }).format(new Date(isoString));
 }
 
-export default function TransitCard({ transit, isCurrent, timezone }: TransitCardProps) {
+export default function TransitCard({ transit, isCurrent, timezone, chart }: TransitCardProps) {
   const [expanded, setExpanded] = useState(isCurrent);
   const hasChannels = transit.completedChannels.length > 0;
   const typeColor = TYPE_COLORS[transit.resultingType] ?? 'var(--muted)';
+
+  const transitState = useMemo(
+    () => hasChannels ? computeTransitBodygraphState(chart, transit.gate) : null,
+    [chart, transit.gate, hasChannels],
+  );
 
   const row = (
     <>
@@ -159,6 +168,12 @@ export default function TransitCard({ transit, isCurrent, timezone }: TransitCar
             {' \u2192 '}
             {formatTime(transit.exitTime, timezone)}
           </p>
+
+          {transitState && (
+            <div style={{ width: 180, margin: '8px auto 12px' }}>
+              <Bodygraph state={transitState} showGateNumbers={false} />
+            </div>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {transit.completedChannels.map((ch) => (

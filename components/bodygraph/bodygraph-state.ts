@@ -10,7 +10,7 @@ import { channelStrengths, gateToCenter } from '@/lib/hd-chart/constants';
 // Types
 // ---------------------------------------------------------------------------
 
-export type Activation = 'design' | 'personality' | 'mixed';
+export type Activation = 'design' | 'personality' | 'mixed' | 'transit';
 
 export interface GateState {
   activation: Activation | null;
@@ -66,6 +66,7 @@ export const ACTIVATION_CSS: Record<Activation, string> = {
   design: 'c1',
   personality: 'c2',
   mixed: 'mixed',
+  transit: 'transit',
 };
 
 // ---------------------------------------------------------------------------
@@ -268,4 +269,88 @@ export function channelSvgId(channelKey: string): string {
  */
 export function channelHighlightSvgId(channelKey: string): string {
   return `hlc${channelKey.replace('-', '')}`;
+}
+
+/**
+ * Compute a bodygraph state that overlays a Moon transit gate on top of
+ * the natal chart. The natal chart renders in normal design/personality
+ * colors; the Moon transit gate renders with `activation: 'transit'`
+ * (silver). Channels completed by the transit are marked defined, and
+ * their centers light up.
+ *
+ * Used on the Reflector lunar-cycle page to show a mini bodygraph per
+ * transit card.
+ */
+export function computeTransitBodygraphState(
+  chart: Chart,
+  transitGate: number,
+): BodygraphState {
+  // Start from the natal chart state
+  const base = computeBodygraphState(chart);
+
+  // Check if the transit gate is already natally activated
+  const existingGate = base.gates.get(transitGate);
+  const isNatallyActivated = existingGate?.activation !== null;
+
+  // If NOT natally activated, add it as a transit activation
+  if (!isNatallyActivated) {
+    base.gates.set(transitGate, {
+      activation: 'transit',
+      defined: true,
+      inChannel: false, // will be updated below if it completes a channel
+    });
+  }
+
+  // Find channels completed by the transit gate + natal gates
+  for (const ch of CHANNEL_DEFS) {
+    const channelKey = ch.key;
+    // Skip channels already defined in the natal chart
+    if (base.channels.has(channelKey)) continue;
+
+    const gate0 = ch.gates[0];
+    const gate1 = ch.gates[1];
+
+    // Check if this channel is completed by combining the transit gate
+    // with a natal gate
+    let transitCompletes = false;
+    if (gate0 === transitGate) {
+      const otherState = base.gates.get(gate1);
+      if (otherState?.activation !== null && otherState?.activation !== undefined) {
+        transitCompletes = true;
+      }
+    } else if (gate1 === transitGate) {
+      const otherState = base.gates.get(gate0);
+      if (otherState?.activation !== null && otherState?.activation !== undefined) {
+        transitCompletes = true;
+      }
+    }
+
+    if (transitCompletes) {
+      // Add the completed channel
+      base.channels.set(channelKey, {
+        gateIds: [ch.lower, ch.upper],
+        activation: 'transit',
+      });
+
+      // Mark both gates as inChannel
+      const g0State = base.gates.get(gate0);
+      if (g0State) g0State.inChannel = true;
+      const g1State = base.gates.get(gate1);
+      if (g1State) g1State.inChannel = true;
+
+      // Define the centers at both ends
+      const center0 = gateToCenterSvgId(gate0);
+      const center1 = gateToCenterSvgId(gate1);
+      if (center0) {
+        const cs = base.centers.get(center0);
+        if (cs) cs.defined = true;
+      }
+      if (center1) {
+        const cs = base.centers.get(center1);
+        if (cs) cs.defined = true;
+      }
+    }
+  }
+
+  return base;
 }

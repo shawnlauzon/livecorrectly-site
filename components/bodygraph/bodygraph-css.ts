@@ -648,4 +648,18 @@ export const BODYGRAPH_CSS = `/* @format */
 .theme-light.composite.tripleColor #gates .defined.c1-act-0-1 .m {
   fill: url(#triple-activation-l) !important;
 }
+
+
+/* === Transit activation (silver Moon gate) === */
+
+#gates .defined.transit .s {
+  fill: green;
+  color: green;
+}
+
+#gates .defined.transit .m {
+  fill: green;
+  display: block;
+  opacity: 1;
+}
 `;

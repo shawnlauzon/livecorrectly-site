@@ -17,7 +17,9 @@ import {
 const SVG_HTML = `<style>${BODYGRAPH_CSS}</style>${BODYGRAPH_SVG.replace('<svg', '<svg class="theme-light bg-standard"')}`;
 
 interface BodygraphProps {
-  chart: Chart;
+  chart?: Chart;
+  /** Pre-computed state (alternative to `chart`). When provided, `chart` is ignored. */
+  state?: BodygraphState;
   showGateNumbers?: boolean;
   className?: string;
 }
@@ -31,12 +33,16 @@ interface BodygraphProps {
  */
 export function Bodygraph({
   chart,
+  state: externalState,
   showGateNumbers = true,
   className,
 }: BodygraphProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const state = useMemo(() => computeBodygraphState(chart), [chart]);
+  const state = useMemo(
+    () => externalState ?? computeBodygraphState(chart!),
+    [externalState, chart],
+  );
 
   // Apply activation classes to the SVG DOM on every render.
   // The SVG is injected via dangerouslySetInnerHTML (static template);
@@ -93,7 +99,7 @@ function renderGates(
   for (const [gateNum, gateState] of state.gates) {
     const gateEl = svg.querySelector(`#g${gateNum}`);
     if (gateEl) {
-      gateEl.classList.remove('defined', 'c1', 'c2', 'mixed', 'inChannel');
+      gateEl.classList.remove('defined', 'c1', 'c2', 'mixed', 'transit', 'inChannel');
 
       // Reset inline styles on sub-elements
       const sEl = gateEl.querySelector('.s') as SVGElement | null;
