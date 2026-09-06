@@ -105,7 +105,7 @@ export default async function LunarCyclePage({
             marginBottom: 8,
           }}
         >
-          Your Moon cycle.
+          Moon cycle for {subscriber.first_name}{subscriber.last_name ? ` ${subscriber.last_name}` : ''}
         </h1>
         <p
           style={{
