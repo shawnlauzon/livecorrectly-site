@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { Chart } from '@/lib/types/chart';
 import type { SerializedMoonTransit } from './lunar-timeline';
 import { centerIndexToFunction } from '@/lib/hd-chart/constants';
@@ -216,9 +216,10 @@ export default function LunarCalendar({
   subscriberId,
 }: LunarCalendarProps) {
   const [displayMonth, setDisplayMonth] = useState(startMonth);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(
+    () => dateKeyInTimezone(new Date(), timezone),
+  );
   const [loading, setLoading] = useState(false);
-  const [pendingSelect, setPendingSelect] = useState<{ direction: 1 | -1; fromDate: string } | null>(null);
 
   // Cache of transit data by month key (state so reads during render are safe)
   const [transitCache, setTransitCache] = useState<Record<string, SerializedMoonTransit[]>>(
@@ -250,8 +251,10 @@ export default function LunarCalendar({
   }, [selectedDate, transitsByDay]);
 
   const fetchMonth = useCallback(
-    async (monthKey: string) => {
-      if (fetchedMonthsRef.current.has(monthKey)) return;
+    async (monthKey: string): Promise<SerializedMoonTransit[]> => {
+      if (fetchedMonthsRef.current.has(monthKey)) {
+        return transitCache[monthKey] ?? [];
+      }
       setLoading(true);
       try {
         const res = await fetch(
@@ -259,14 +262,17 @@ export default function LunarCalendar({
         );
         if (res.ok) {
           const data = await res.json();
+          const transits = data.transits as SerializedMoonTransit[];
           fetchedMonthsRef.current.add(monthKey);
-          setTransitCache(prev => ({ ...prev, [monthKey]: data.transits }));
+          setTransitCache(prev => ({ ...prev, [monthKey]: transits }));
+          return transits;
         }
       } finally {
         setLoading(false);
       }
+      return [];
     },
-    [subscriberId],
+    [subscriberId, transitCache],
   );
 
   const navigateMonth = useCallback(
@@ -296,22 +302,15 @@ export default function LunarCalendar({
       const nextKey = formatMonth(y, m + direction);
       setDisplayMonth(nextKey);
       setSelectedDate(null);
-      setPendingSelect({ direction, fromDate });
-      await fetchMonth(nextKey);
+      const transits = await fetchMonth(nextKey);
+      const dayKeys = Array.from(groupTransitsByDay(transits, timezone).keys()).sort();
+      const target = direction === 1
+        ? dayKeys.find(k => k > fromDate)
+        : dayKeys.findLast(k => k < fromDate);
+      if (target) setSelectedDate(target);
     },
-    [displayMonth, fetchMonth, selectedDate],
+    [displayMonth, fetchMonth, selectedDate, timezone],
   );
-
-  // Auto-select the next day strictly after/before the boundary date
-  useEffect(() => {
-    if (!pendingSelect || sortedDayKeys.length === 0) return;
-    const { direction, fromDate } = pendingSelect;
-    const key = direction === 1
-      ? sortedDayKeys.find(k => k > fromDate)
-      : sortedDayKeys.findLast(k => k < fromDate);
-    if (key) setSelectedDate(key);
-    setPendingSelect(null);
-  }, [pendingSelect, sortedDayKeys]);
 
   const { year, month } = parseMonth(displayMonth);
   const info = getMonthInfo(year, month);
