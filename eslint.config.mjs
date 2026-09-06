@@ -23,6 +23,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored/generated script — not our code to lint:
+    "scripts/mm-v2.js",
   ]),
 ]);
 

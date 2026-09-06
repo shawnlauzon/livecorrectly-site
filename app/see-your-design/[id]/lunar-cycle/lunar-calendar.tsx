@@ -219,16 +219,17 @@ export default function LunarCalendar({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Cache of transit data by month key
-  const transitCacheRef = useRef<Map<string, SerializedMoonTransit[]>>(
-    new Map([[startMonth, initialTransits]]),
+  // Cache of transit data by month key (state so reads during render are safe)
+  const [transitCache, setTransitCache] = useState<Record<string, SerializedMoonTransit[]>>(
+    () => ({ [startMonth]: initialTransits }),
   );
+  // Guard ref — tracks which months have been fetched (only read in event handlers)
+  const fetchedMonthsRef = useRef(new Set([startMonth]));
 
-  // Current transits for the displayed month
-  const currentTransits = transitCacheRef.current.get(displayMonth) ?? [];
+  const currentTransits = transitCache[displayMonth];
 
   const transitsByDay = useMemo(
-    () => groupTransitsByDay(currentTransits, timezone),
+    () => groupTransitsByDay(currentTransits ?? [], timezone),
     [currentTransits, timezone],
   );
 
@@ -249,7 +250,7 @@ export default function LunarCalendar({
 
   const fetchMonth = useCallback(
     async (monthKey: string) => {
-      if (transitCacheRef.current.has(monthKey)) return;
+      if (fetchedMonthsRef.current.has(monthKey)) return;
       setLoading(true);
       try {
         const res = await fetch(
@@ -257,7 +258,8 @@ export default function LunarCalendar({
         );
         if (res.ok) {
           const data = await res.json();
-          transitCacheRef.current.set(monthKey, data.transits);
+          fetchedMonthsRef.current.add(monthKey);
+          setTransitCache(prev => ({ ...prev, [monthKey]: data.transits }));
         }
       } finally {
         setLoading(false);

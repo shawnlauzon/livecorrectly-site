@@ -51,7 +51,7 @@ export default function LunarTimeline({ transits, chart, startMonth, subscriberI
     [],
   );
   const [timezone, setTimezone] = useState(browserTimezone);
-  const groupedZones = useMemo(getGroupedTimezones, []);
+  const groupedZones = useMemo(() => getGroupedTimezones(), []);
 
   return (
     <div>

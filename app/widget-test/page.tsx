@@ -45,7 +45,7 @@ export default function WidgetTestPage() {
             Warning: NEXT_PUBLIC_MAIA_API_KEY is not set
           </p>
         )}
-        {/* @ts-ignore - custom element not in TypeScript definitions */}
+        {/* @ts-expect-error - custom element not in TypeScript definitions */}
         <mmi-widget apikey={apiKey}></mmi-widget>
       </div>
     </>
