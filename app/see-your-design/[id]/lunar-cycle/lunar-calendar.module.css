@@ -293,3 +293,82 @@
   font-size: 0.88rem;
   padding: 20px 0;
 }
+
+/* ------------------------------------------------------------------ */
+/* Layout: 60/40 split (replaces inline styles)                        */
+/* ------------------------------------------------------------------ */
+
+.layoutContainer {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.calendarColumn {
+  flex: 0 0 60%;
+  min-width: 0;
+}
+
+.detailColumn {
+  flex: 0 0 40%;
+  min-width: 0;
+}
+
+.detailPaneWrapper {
+  position: relative;
+}
+
+.closeButton {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Mobile responsive                                                   */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+  .layoutContainer {
+    display: block;
+  }
+
+  .calendarColumn,
+  .detailColumn {
+    width: 100%;
+  }
+
+  .hasSelection .calendarColumn {
+    display: none;
+  }
+
+  .hasSelection .detailColumn {
+    display: block;
+  }
+
+  .layoutContainer:not(.hasSelection) .detailColumn {
+    display: none;
+  }
+
+  .closeButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 8px;
+    margin-bottom: 8px;
+    transition: color 0.15s;
+  }
+
+  .closeButton:hover {
+    color: var(--ink);
+  }
+
+  .dayCell {
+    min-height: 70px;
+  }
+}

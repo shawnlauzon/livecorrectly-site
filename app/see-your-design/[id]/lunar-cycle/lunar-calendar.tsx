@@ -349,14 +349,10 @@ export default function LunarCalendar({
   return (
     <div style={{ marginBottom: 32 }}>
       <div
-        style={{
-          display: 'flex',
-          gap: 24,
-          alignItems: 'flex-start',
-        }}
+        className={`${css.layoutContainer}${selectedDate ? ` ${css.hasSelection}` : ''}`}
       >
         {/* Left half — calendar grid + legend */}
-        <div style={{ flex: '0 0 60%', minWidth: 0 }}>
+        <div className={css.calendarColumn}>
           {/* Month header with navigation */}
           <div className={css.monthHeader}>
             <button
@@ -460,7 +456,7 @@ export default function LunarCalendar({
         </div>
 
         {/* Right half — detail pane */}
-        <div style={{ flex: '0 0 40%', minWidth: 0 }}>
+        <div className={css.detailColumn}>
           {selectedDate && selectedDayTransits ? (
             <DayDetailPane
               key={selectedDate}
@@ -469,6 +465,7 @@ export default function LunarCalendar({
               timezone={timezone}
               chart={chart}
               onSelectDate={setSelectedDate}
+              onClose={() => setSelectedDate(null)}
               dayKeys={sortedDayKeys}
             />
           ) : (
@@ -561,10 +558,11 @@ interface DayDetailPaneProps {
   timezone: string;
   chart: Chart;
   onSelectDate: (dateKey: string) => void;
+  onClose?: () => void;
   dayKeys: string[];
 }
 
-function DayDetailPane({ dateKey, dayData, timezone, chart, onSelectDate, dayKeys }: DayDetailPaneProps) {
+function DayDetailPane({ dateKey, dayData, timezone, chart, onSelectDate, onClose, dayKeys }: DayDetailPaneProps) {
   const [y, m, d] = dateKey.split('-').map(Number);
   const dateObj = new Date(y, m - 1, d);
   const dateLabel = dateObj.toLocaleDateString('en-US', {
@@ -651,6 +649,7 @@ function DayDetailPane({ dateKey, dayData, timezone, chart, onSelectDate, dayKey
 
   return (
     <div
+      className={css.detailPaneWrapper}
       style={{
         border: '1.5px solid var(--line)',
         borderRadius: 12,
@@ -658,6 +657,11 @@ function DayDetailPane({ dateKey, dayData, timezone, chart, onSelectDate, dayKey
         background: 'var(--card)',
       }}
     >
+      {onClose && (
+        <button className={css.closeButton} onClick={onClose} aria-label="Back to calendar">
+          &#8249; Calendar
+        </button>
+      )}
       {/* Header */}
       <div className={css.dayDetailHeader}>
         <button
