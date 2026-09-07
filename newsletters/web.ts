@@ -70,7 +70,7 @@ function parseForWeb(raw: string, number: number, publishedAt: string, published
   const cleaned = replaceVariables(stripGreeting(body.trim()));
   const bodyHtml = marked.parse(cleaned) as string;
   const ps = typeof data.ps === 'string'
-    ? (marked.parse(replaceVariables(data.ps.trim())) as string)
+    ? (marked.parseInline(replaceVariables(data.ps.trim())) as string)
     : null;
 
   return { slug, number, title, description, preview, image, showHeroImage, publishedAt, published, bodyHtml, ps };

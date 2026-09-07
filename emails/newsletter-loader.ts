@@ -111,7 +111,7 @@ export function parseNewsletter(content: string, number: number): Newsletter {
 
   const bodyHtml = marked.parse(body.trim()) as string;
   const ps = typeof data.ps === 'string'
-    ? (marked.parse(data.ps.trim()) as string)
+    ? (marked.parseInline(data.ps.trim()) as string)
     : null;
 
   return { number, subject, preview, slug, image, bodyHtml, ps };
