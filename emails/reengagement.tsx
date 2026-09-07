@@ -3,10 +3,10 @@ import { Text, Link } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 
 interface ReengagementProps {
-  preview: string;
   firstName: string;
   monthYear: string;
   monthsSinceSignup: number;
+  month: string;
   chartUrl: string;
   unsubscribeUrl: string;
 }
@@ -21,16 +21,17 @@ interface ReengagementProps {
  * weekly "Decisions You Can Trust" group session.
  */
 export const Reengagement = ({
-  preview,
   firstName,
   monthYear,
   monthsSinceSignup,
+  // month is part of BroadcastEmailProps but unused by this template
+  month: _month,
   chartUrl,
   unsubscribeUrl,
 }: ReengagementProps) => {
   return (
     <EmailLayout
-      preview={preview}
+      preview="Let's begin again"
       unsubscribeUrl={unsubscribeUrl}
       postscripts={[
         <>
@@ -122,10 +123,10 @@ export const Reengagement = ({
 };
 
 Reengagement.PreviewProps = {
-  preview: "Let's start over",
   firstName: 'Shawn',
   monthYear: 'October 2024',
   monthsSinceSignup: 22,
+  month: 'October',
   chartUrl:
     'https://www.livecorrectly.com/see-your-design/test-id?utm_source=livecorrectly&utm_medium=email&utm_campaign=reengagement_2026',
   unsubscribeUrl: 'https://www.livecorrectly.com/api/unsubscribe?token=test',

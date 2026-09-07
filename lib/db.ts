@@ -323,21 +323,36 @@ export async function getNewsletterDueSubscribers(
 export async function getBroadcastRecipients(
   broadcastSlug: string,
   cutoffDate: string,
-  limit: number
+  limit: number,
+  nextStepFilter?: number
 ): Promise<Subscriber[]> {
   const db = getDb();
-  const result = await db`
-    SELECT s.* FROM subscribers s
-    WHERE s.email_status IN ('active', 'failed')
-      AND s.created_at < ${cutoffDate}
-      AND NOT EXISTS (
-        SELECT 1 FROM broadcast_sends bs
-        WHERE bs.subscriber_id = s.id
-          AND bs.broadcast_slug = ${broadcastSlug}
-      )
-    ORDER BY s.created_at DESC
-    LIMIT ${limit}
-  `;
+  const result = nextStepFilter !== undefined
+    ? await db`
+      SELECT s.* FROM subscribers s
+      WHERE s.email_status IN ('active', 'failed')
+        AND s.created_at < ${cutoffDate}
+        AND s.next_step = ${nextStepFilter}
+        AND NOT EXISTS (
+          SELECT 1 FROM broadcast_sends bs
+          WHERE bs.subscriber_id = s.id
+            AND bs.broadcast_slug = ${broadcastSlug}
+        )
+      ORDER BY s.created_at DESC
+      LIMIT ${limit}
+    `
+    : await db`
+      SELECT s.* FROM subscribers s
+      WHERE s.email_status IN ('active', 'failed')
+        AND s.created_at < ${cutoffDate}
+        AND NOT EXISTS (
+          SELECT 1 FROM broadcast_sends bs
+          WHERE bs.subscriber_id = s.id
+            AND bs.broadcast_slug = ${broadcastSlug}
+        )
+      ORDER BY s.created_at DESC
+      LIMIT ${limit}
+    `;
   return (result as Subscriber[]).map(normalizeSubscriber);
 }
 
@@ -405,4 +420,27 @@ export async function recordBroadcastSend(
     VALUES (${subscriberId}, ${broadcastSlug})
     ON CONFLICT (subscriber_id, broadcast_slug) DO NOTHING
   `;
+}
+
+/**
+ * Get subscribers who received the restart notice 2+ days ago but still have next_step = 0.
+ * These are due for welcome0 as a follow-up to the restart notice broadcast.
+ */
+export async function getRestartFollowUpDueSubscribers(
+  broadcastSlug: string
+): Promise<Subscriber[]> {
+  const db = getDb();
+  const result = await db`
+    SELECT s.* FROM subscribers s
+    WHERE s.email_status IN ('active', 'failed')
+      AND s.next_step = 0
+      AND EXISTS (
+        SELECT 1 FROM broadcast_sends bs
+        WHERE bs.subscriber_id = s.id
+          AND bs.broadcast_slug = ${broadcastSlug}
+          AND bs.sent_at <= now() - interval '2 days'
+      )
+    ORDER BY s.created_at ASC
+  `;
+  return (result as Subscriber[]).map(normalizeSubscriber);
 }

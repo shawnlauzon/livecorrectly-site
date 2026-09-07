@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
-import { sendMarketingEmail, formatEmailRecipient } from '@/emails/send';
+import { sendMarketingEmail, _sendEmail, formatEmailRecipient } from '@/emails/send';
 import { buildBroadcastEmail, BroadcastSlug } from '@/emails/broadcast-config';
 
 /**
@@ -61,7 +61,7 @@ export async function POST(
     }
 
     // Build and send the email using shared broadcast config
-    const { element, subject, emailLabel } = buildBroadcastEmail(
+    const { element, subject, emailLabel, from: customFrom } = buildBroadcastEmail(
       slug as BroadcastSlug,
       id,
       subscriber.first_name,
@@ -69,13 +69,28 @@ export async function POST(
       subscriber.unsub_token
     );
 
-    const result = await sendMarketingEmail({
-      to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
-      subject,
-      react: element,
-      unsubToken: subscriber.unsub_token,
-      emailLabel,
-    });
+    let result: { success: boolean; id?: string };
+
+    if (customFrom) {
+      // Custom from address: use _sendEmail directly with replyTo
+      result = await _sendEmail({
+        to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
+        subject,
+        react: element,
+        unsubToken: subscriber.unsub_token,
+        from: customFrom,
+        replyTo: 'shawn@livecorrectly.com',
+        emailLabel,
+      });
+    } else {
+      result = await sendMarketingEmail({
+        to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
+        subject,
+        react: element,
+        unsubToken: subscriber.unsub_token,
+        emailLabel,
+      });
+    }
 
     if (!result.success) {
       return NextResponse.json(

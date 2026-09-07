@@ -5,6 +5,10 @@
       "schedule": "0 14 * * *"
     },
     {
+      "path": "/api/cron/one-off",
+      "schedule": "0 15 * * *"
+    },
+    {
       "path": "/api/cron/newsletter",
       "schedule": "47 12 * * 3"
     }

@@ -1172,6 +1172,7 @@ function EmailPreviews({ subscriber, currentEmailStep }: { subscriber: Subscribe
 
 const BROADCAST_OPTIONS = [
   { slug: 'reengagement-2026-08', label: 'Re-engagement (Aug 2026)' },
+  { slug: 'restart-notice-2026-09', label: 'Restart Notice (Sep 2026)' },
 ] as const;
 
 function BroadcastSection({ subscriber }: { subscriber: Subscriber }) {
