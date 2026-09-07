@@ -1,6 +1,7 @@
 import { Marked } from 'marked';
 import { getNewsletterSendDates } from '@/lib/db';
 import { loadAllNewsletters, type RawNewsletter } from './loader';
+import { hasWebPersonalization as checkWebPersonalization } from './personalizations/web';
 
 export interface WebNewsletter {
   slug: string;
@@ -23,6 +24,8 @@ export interface WebNewsletter {
   bodyHtml: string;
   /** Optional postscript (semantic HTML from markdown), or null if unset */
   ps: string | null;
+  /** Whether this newsletter has a web personalization component */
+  hasWebPersonalization: boolean;
 }
 
 const APP_URL = 'https://www.livecorrectly.com';
@@ -77,6 +80,7 @@ function renderForWeb(
     published,
     bodyHtml,
     ps,
+    hasWebPersonalization: checkWebPersonalization(raw.number),
   };
 }
 

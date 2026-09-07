@@ -160,6 +160,45 @@
   text-underline-offset: 2px;
 }
 
+/* ---- Personalized section ---- */
+
+.personalized {
+  background: var(--pulse-soft);
+  border-radius: 8px;
+  padding: 1.5rem 1.5rem 1rem;
+  margin-top: 2.5rem;
+}
+
+.personalizedHeading {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.25rem;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+  color: var(--ink);
+}
+
+.shareLink {
+  margin-top: 1.25rem;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.shareLinkButton {
+  background: none;
+  border: none;
+  color: var(--pulse);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0;
+}
+.shareLinkButton:hover {
+  opacity: 0.8;
+}
+
 /* ---- Bottom CTA ---- */
 
 .cta {

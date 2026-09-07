@@ -33,7 +33,9 @@ export function getNewsletterEmail(
     unsubscribeUrl,
     number: newsletter.number,
     webUrl,
-    ps: newsletter.ps
+    ps: newsletter.ps,
+    subscriberId: subscriber.id,
+    slug: newsletter.slug,
   });
 }
 

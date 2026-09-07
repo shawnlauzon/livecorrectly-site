@@ -4,13 +4,20 @@ import { notFound } from "next/navigation";
 import SiteNav from "@/components/site-nav";
 import SiteFooter from "@/components/site-footer";
 import { getWebNewsletter, getAllSlugs } from "@/newsletters/web";
+import { getSubscriberById } from "@/lib/db";
+import { parseChartForEmail } from "@/lib/hd-chart/parse-for-email";
+import { getWebPersonalization } from "@/newsletters/personalizations/web";
 import PersonalizationCallout from "./PersonalizationCallout";
+import PersonalizedSection from "./PersonalizedSection";
 import NewsletterCta from "./NewsletterCta";
 import styles from "./page.module.css";
 
 interface Props {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function generateStaticParams() {
   return (await getAllSlugs()).map((slug) => ({ slug }));
@@ -52,10 +59,27 @@ function formatDate(iso: string): string {
   });
 }
 
-export default async function NewsletterIssuePage({ params }: Props) {
+export default async function NewsletterIssuePage({ params, searchParams }: Props) {
   const { slug } = await params;
+  const resolvedSearchParams = await searchParams;
   const issue = await getWebNewsletter(slug);
   if (!issue) notFound();
+
+  // Resolve personalization when ?s= is a valid UUID and the newsletter has a web component
+  const subscriberId = typeof resolvedSearchParams.s === 'string' ? resolvedSearchParams.s : null;
+  const PersonalizationComponent = issue.hasWebPersonalization
+    ? getWebPersonalization(issue.number)
+    : undefined;
+
+  let chart = null;
+  if (subscriberId && UUID_RE.test(subscriberId) && PersonalizationComponent) {
+    const subscriber = await getSubscriberById(subscriberId);
+    if (subscriber?.chart) {
+      chart = parseChartForEmail(subscriber.chart.chart);
+    }
+  }
+
+  const shareUrl = `https://www.livecorrectly.com/newsletter/${issue.slug}`;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -72,7 +96,7 @@ export default async function NewsletterIssuePage({ params }: Props) {
       name: "Live Correctly",
       url: "https://www.livecorrectly.com",
     },
-    mainEntityOfPage: `https://www.livecorrectly.com/newsletter/${issue.slug}`,
+    mainEntityOfPage: shareUrl,
   };
 
   return (
@@ -109,7 +133,15 @@ export default async function NewsletterIssuePage({ params }: Props) {
               <span dangerouslySetInnerHTML={{ __html: issue.ps }} />
             </div>
           )}
-          <PersonalizationCallout />
+          {chart && PersonalizationComponent ? (
+            <PersonalizedSection
+              Component={PersonalizationComponent}
+              chart={chart}
+              shareUrl={shareUrl}
+            />
+          ) : (
+            <PersonalizationCallout hasWebPersonalization={issue.hasWebPersonalization} />
+          )}
         </article>
         <NewsletterCta />
       </main>
