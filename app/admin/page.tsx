@@ -154,6 +154,29 @@ function getEngagementLabel(sub: Subscriber, now: number): { label: string; stal
 
 const WELCOME_SERIES_LENGTH = 3;
 
+type StatFilter = 'active' | 'inWelcome' | 'receivingNewsletters'
+  | 'unsubscribed' | 'bouncedComplained' | 'last7Days' | 'last30Days';
+
+const STAT_FILTERS: Record<StatFilter, (s: Subscriber, now: number) => boolean> = {
+  active:                (s)      => s.email_status === 'active',
+  inWelcome:             (s)      => s.email_status === 'active' && s.next_step <= WELCOME_SERIES_LENGTH,
+  receivingNewsletters:  (s)      => s.email_status === 'active' && s.next_step > WELCOME_SERIES_LENGTH,
+  unsubscribed:          (s)      => s.email_status === 'unsubscribed',
+  bouncedComplained:     (s)      => s.email_status === 'bounced' || s.email_status === 'complained',
+  last7Days:             (s, now) => new Date(s.created_at).getTime() >= now - 7 * 86400000,
+  last30Days:            (s, now) => new Date(s.created_at).getTime() >= now - 30 * 86400000,
+};
+
+const FILTER_LABELS: Record<StatFilter, string> = {
+  active: 'Active',
+  inWelcome: 'In welcome series',
+  receivingNewsletters: 'Receiving newsletters',
+  unsubscribed: 'Unsubscribed',
+  bouncedComplained: 'Bounced / complained',
+  last7Days: 'Last 7 days',
+  last30Days: 'Last 30 days',
+};
+
 function computePipelineStats(subscribers: Subscriber[]) {
   const now = Date.now();
   const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
@@ -194,6 +217,186 @@ type SortDirection = 'asc' | 'desc';
 
 const VALID_SORT_COLUMNS: SortColumn[] = ['name','email','profile','authority','type','split','shadow','status','nextEmail','created','lastActive'];
 
+function formatUnsubFrom(raw: string | null): string {
+  if (!raw) return 'Unknown';
+  // welcome0 → "Welcome 0", welcome_series_1 → "Welcome series 1"
+  if (/^welcome\d+$/i.test(raw)) return `Welcome ${raw.replace(/\D/g, '')}`;
+  // newsletter_5 → "Newsletter #5"
+  if (/^newsletter[_-]?\d+$/i.test(raw)) return `Newsletter #${raw.replace(/\D/g, '')}`;
+  // General: replace underscores/hyphens with spaces, title-case first word
+  const cleaned = raw.replace(/[_-]/g, ' ').trim();
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
+
+function DetailPanel({
+  filter,
+  filtered,
+  total,
+  onClose,
+}: {
+  filter: StatFilter;
+  filtered: Subscriber[];
+  total: number;
+  onClose: () => void;
+}) {
+  const title = FILTER_LABELS[filter];
+  const count = filtered.length;
+
+  let breakdown: { label: string; count: number }[] = [];
+
+  switch (filter) {
+    case 'unsubscribed': {
+      const groups = new Map<string, number>();
+      for (const s of filtered) {
+        const key = formatUnsubFrom(s.unsub_from);
+        groups.set(key, (groups.get(key) ?? 0) + 1);
+      }
+      breakdown = [...groups.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({ label, count }));
+      break;
+    }
+
+    case 'bouncedComplained': {
+      let bounced = 0;
+      let complained = 0;
+      for (const s of filtered) {
+        if (s.email_status === 'bounced') bounced++;
+        else if (s.email_status === 'complained') complained++;
+      }
+      breakdown = [
+        { label: 'Bounced', count: bounced },
+        { label: 'Complained', count: complained },
+      ].filter(b => b.count > 0);
+      break;
+    }
+
+    case 'inWelcome': {
+      const steps = new Map<number, number>();
+      for (const s of filtered) {
+        steps.set(s.next_step, (steps.get(s.next_step) ?? 0) + 1);
+      }
+      breakdown = [...steps.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([step, count]) => ({ label: `Step ${step}`, count }));
+      break;
+    }
+
+    case 'receivingNewsletters': {
+      const issues = new Map<number, number>();
+      for (const s of filtered) {
+        issues.set(s.next_step, (issues.get(s.next_step) ?? 0) + 1);
+      }
+      const sorted = [...issues.entries()].sort((a, b) => a[0] - b[0]);
+      if (sorted.length <= 6) {
+        breakdown = sorted.map(([step, count]) => ({ label: `Issue ${step - WELCOME_SERIES_LENGTH}`, count }));
+      } else {
+        // Group into ranges of ~5
+        const rangeSize = Math.ceil(sorted.length / Math.ceil(sorted.length / 5));
+        for (let i = 0; i < sorted.length; i += rangeSize) {
+          const chunk = sorted.slice(i, i + rangeSize);
+          const lo = chunk[0][0] - WELCOME_SERIES_LENGTH;
+          const hi = chunk[chunk.length - 1][0] - WELCOME_SERIES_LENGTH;
+          const total = chunk.reduce((sum, [, c]) => sum + c, 0);
+          breakdown.push({
+            label: lo === hi ? `Issue ${lo}` : `Issues ${lo}–${hi}`,
+            count: total,
+          });
+        }
+      }
+      break;
+    }
+
+    case 'active': {
+      const types = new Map<string, number>();
+      const typeNames = ['Generator', 'MG', 'Manifestor', 'Projector', 'Reflector'];
+      for (const s of filtered) {
+        const typeName = s.chart?.chart.type !== undefined
+          ? (typeNames[s.chart.chart.type] ?? 'Unknown')
+          : 'No chart';
+        types.set(typeName, (types.get(typeName) ?? 0) + 1);
+      }
+      breakdown = [...types.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({ label, count }));
+      break;
+    }
+
+    case 'last7Days': {
+      const days = new Map<string, number>();
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      for (const s of filtered) {
+        const d = new Date(s.created_at);
+        const key = dayNames[d.getDay()];
+        days.set(key, (days.get(key) ?? 0) + 1);
+      }
+      // Show all 7 days in order starting from 7 days ago
+      const now = new Date();
+      breakdown = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const key = dayNames[d.getDay()];
+        breakdown.push({ label: key, count: days.get(key) ?? 0 });
+        days.delete(key);
+      }
+      break;
+    }
+
+    case 'last30Days': {
+      // Group into weeks
+      const now = Date.now();
+      const weeks: { label: string; count: number }[] = [
+        { label: 'This week', count: 0 },
+        { label: '1 week ago', count: 0 },
+        { label: '2 weeks ago', count: 0 },
+        { label: '3 weeks ago', count: 0 },
+        { label: '4+ weeks ago', count: 0 },
+      ];
+      for (const s of filtered) {
+        const age = now - new Date(s.created_at).getTime();
+        const weekIndex = Math.min(Math.floor(age / (7 * 86400000)), 4);
+        weeks[weekIndex].count++;
+      }
+      breakdown = weeks.filter(w => w.count > 0);
+      break;
+    }
+  }
+
+  return (
+    <div className={styles.detailPanel}>
+      <div className={styles.detailPanelHeader}>
+        <div>
+          <p className={styles.detailPanelTitle}>{title}</p>
+          <p className={styles.detailPanelSubtitle}>
+            {count} of {total} subscriber{total !== 1 ? 's' : ''}
+          </p>
+        </div>
+        <button
+          className={styles.detailPanelClose}
+          onClick={onClose}
+          title="Clear filter"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+      {breakdown.length > 0 && (
+        <div className={styles.breakdownList}>
+          {breakdown.map(b => (
+            <div key={b.label} className={styles.breakdownItem}>
+              <span className={styles.breakdownCount}>{b.count}</span>
+              <span className={styles.breakdownLabel}>{b.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminPage() {
   return (
     <Suspense>
@@ -225,6 +428,7 @@ function AdminPageContent() {
   const [refreshing, setRefreshing] = useState<string | null>(null);
   const [freshCharts, setFreshCharts] = useState<Record<string, ChartRecord>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<StatFilter | null>(null);
 
   // Timestamp captured when subscribers are loaded, used for engagement
   // label computation. Stored alongside subscriber data so it's available
@@ -493,7 +697,15 @@ function AdminPageContent() {
     }
   };
 
-  const sortedSubscribers = [...subscribers].sort((a, b) => {
+  // Capture a stable timestamp for time-boundary filters so the stat card
+  // count and the filtered list can never drift within a single render.
+  const now = subscribersFetchedAt || Date.now();
+
+  const filteredSubscribers = activeFilter
+    ? subscribers.filter(s => STAT_FILTERS[activeFilter](s, now))
+    : subscribers;
+
+  const sortedSubscribers = [...filteredSubscribers].sort((a, b) => {
     const aVal = getSortValue(a, sortColumn);
     const bVal = getSortValue(b, sortColumn);
 
@@ -548,37 +760,60 @@ function AdminPageContent() {
 
       {subscribers.length > 0 && (() => {
         const stats = computePipelineStats(subscribers);
+
+        const statCardProps = (filter: StatFilter) => ({
+          className: `${styles.statCard}${activeFilter === filter ? ` ${styles.statCardActive}` : ''}`,
+          role: 'button' as const,
+          tabIndex: 0,
+          onClick: () => setActiveFilter(prev => prev === filter ? null : filter),
+          onKeyDown: (e: React.KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setActiveFilter(prev => prev === filter ? null : filter);
+            }
+          },
+        });
+
         return (
-          <div className={styles.statsGrid}>
-            <div className={styles.statCard}>
-              <div className={styles.statValue}>{stats.active}</div>
-              <div className={styles.statLabel}>Active</div>
+          <>
+            <div className={styles.statsGrid}>
+              <div {...statCardProps('active')}>
+                <div className={styles.statValue}>{stats.active}</div>
+                <div className={styles.statLabel}>Active</div>
+              </div>
+              <div {...statCardProps('inWelcome')}>
+                <div className={styles.statValue}>{stats.inWelcome}</div>
+                <div className={styles.statLabel}>In welcome series</div>
+              </div>
+              <div {...statCardProps('receivingNewsletters')}>
+                <div className={styles.statValue}>{stats.receivingNewsletters}</div>
+                <div className={styles.statLabel}>Receiving newsletters</div>
+              </div>
+              <div {...statCardProps('unsubscribed')}>
+                <div className={styles.statValue}>{stats.unsubscribed}</div>
+                <div className={styles.statLabel}>Unsubscribed</div>
+              </div>
+              <div {...statCardProps('bouncedComplained')}>
+                <div className={styles.statValue}>{stats.bouncedComplained}</div>
+                <div className={styles.statLabel}>Bounced / complained</div>
+              </div>
+              <div {...statCardProps('last7Days')}>
+                <div className={styles.statValue}>{stats.last7Days}</div>
+                <div className={styles.statLabel}>Last 7 days</div>
+              </div>
+              <div {...statCardProps('last30Days')}>
+                <div className={styles.statValue}>{stats.last30Days}</div>
+                <div className={styles.statLabel}>Last 30 days</div>
+              </div>
             </div>
-            <div className={styles.statCard}>
-              <div className={styles.statValue}>{stats.inWelcome}</div>
-              <div className={styles.statLabel}>In welcome series</div>
-            </div>
-            <div className={styles.statCard}>
-              <div className={styles.statValue}>{stats.receivingNewsletters}</div>
-              <div className={styles.statLabel}>Receiving newsletters</div>
-            </div>
-            <div className={styles.statCard}>
-              <div className={styles.statValue}>{stats.unsubscribed}</div>
-              <div className={styles.statLabel}>Unsubscribed</div>
-            </div>
-            <div className={styles.statCard}>
-              <div className={styles.statValue}>{stats.bouncedComplained}</div>
-              <div className={styles.statLabel}>Bounced / complained</div>
-            </div>
-            <div className={styles.statCard}>
-              <div className={styles.statValue}>{stats.last7Days}</div>
-              <div className={styles.statLabel}>Last 7 days</div>
-            </div>
-            <div className={styles.statCard}>
-              <div className={styles.statValue}>{stats.last30Days}</div>
-              <div className={styles.statLabel}>Last 30 days</div>
-            </div>
-          </div>
+
+            {activeFilter && <DetailPanel
+              filter={activeFilter}
+              filtered={filteredSubscribers}
+              total={subscribers.length}
+              onClose={() => setActiveFilter(null)}
+            />}
+          </>
         );
       })()}
 

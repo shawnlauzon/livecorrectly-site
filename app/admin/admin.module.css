@@ -164,6 +164,19 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 0.75rem 1rem;
   min-width: 120px;
+  cursor: pointer;
+  transition: background-color 0.15s, outline-color 0.15s;
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+}
+
+.statCard:hover {
+  background: var(--paper);
+}
+
+.statCardActive {
+  outline: 2px solid var(--grape);
+  background: var(--paper);
 }
 
 .statValue {
@@ -185,5 +198,78 @@
   text-align: center;
   padding: 3rem;
   font-family: var(--body);
+  color: var(--muted);
+}
+
+/* Detail panel — appears between stats and table when a filter is active */
+.detailPanel {
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-left: 3px solid var(--grape);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.detailPanelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.detailPanelTitle {
+  font-family: var(--body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+
+.detailPanelSubtitle {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin: 0.125rem 0 0 0;
+}
+
+.detailPanelClose {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.detailPanelClose:hover {
+  color: var(--ink);
+}
+
+.breakdownList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
+.breakdownItem {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+}
+
+.breakdownCount {
+  font-family: var(--body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.breakdownLabel {
+  font-family: var(--body);
+  font-size: 0.8125rem;
   color: var(--muted);
 }
