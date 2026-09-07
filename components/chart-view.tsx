@@ -12,7 +12,7 @@ interface ChartViewProps {
 
 export default function ChartView({ subscriberId }: ChartViewProps) {
   const searchParams = useSearchParams();
-  const isFromForm = searchParams.get('utm_source') === 'form';
+  const isFromForm = searchParams.get('from') === 'form';
   const isStationAustin = searchParams.get('utm_campaign') === 'station_austin_followup';
   const [subscriber, setSubscriber] = useState<Subscriber | null>(null);
   const [loading, setLoading] = useState(true);

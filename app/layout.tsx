@@ -65,6 +65,9 @@ export default function RootLayout({
                 function gtag(){dataLayer.push(arguments);}
                 gtag('consent', 'default', {
                   analytics_storage: 'denied',
+                  ad_storage: 'denied',
+                  ad_personalization: 'denied',
+                  ad_user_data: 'denied',
                 });
               `}
             </Script>
@@ -74,8 +77,6 @@ export default function RootLayout({
             />
             <Script id="ga4-init" strategy="afterInteractive">
               {`
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
                 gtag('js', new Date());
                 gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}');
 

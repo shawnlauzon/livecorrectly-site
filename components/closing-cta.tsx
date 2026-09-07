@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import Wrap from "./wrap";
 import styles from "./closing-cta.module.css";
+import { track } from "@/lib/analytics";
 
 export default function ClosingCta() {
   return (
@@ -20,6 +23,7 @@ export default function ClosingCta() {
               href="https://calendar.google.com/appointments/schedules/AcZssZ1kXUVAC-LNzJfVTRh5vOTKdXCDVuH1wAJvpXrgdjWLoq8XBGl5aYR3SJ1nTkN5pwwuuEnWzz8m"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => track('book_consultation_click', { location: 'closing_cta' })}
             >
               Book a conversation
             </a>

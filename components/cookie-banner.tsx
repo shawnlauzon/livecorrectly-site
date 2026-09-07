@@ -44,6 +44,14 @@ export default function CookieBanner() {
   function decline() {
     localStorage.setItem(STORAGE_KEY, "denied");
     setDismissed(true);
+
+    // Explicitly deny analytics so GA4 respects revocation
+    const w = window as Window & { gtag?: (...args: unknown[]) => void };
+    if (typeof w.gtag === "function") {
+      w.gtag("consent", "update", {
+        analytics_storage: "denied",
+      });
+    }
   }
 
   if (!visible) return null;

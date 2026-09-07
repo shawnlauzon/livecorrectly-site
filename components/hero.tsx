@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Wrap from './wrap';
 import styles from './hero.module.css';
+import { track } from '@/lib/analytics';
 
 let hasAnimated = false;
 
@@ -62,6 +63,7 @@ export default function Hero() {
                 href="https://calendar.google.com/appointments/schedules/AcZssZ1kXUVAC-LNzJfVTRh5vOTKdXCDVuH1wAJvpXrgdjWLoq8XBGl5aYR3SJ1nTkN5pwwuuEnWzz8m"
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => track('book_consultation_click', { location: 'hero' })}
               >
                 Book a conversation
               </a>

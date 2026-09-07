@@ -7,20 +7,7 @@ import { countries } from "@/lib/countries";
 import { ChartRecord } from "@/lib/types/chart";
 import hdChart from "@/lib/hd-chart";
 import { generateChart as generateChartAPI, BirthDetails } from "@/lib/generate-chart";
-
-/* ---- Analytics wrapper ---- */
-function track(name: string, params?: Record<string, unknown>) {
-  try {
-    const w = window as Window & {
-      gtag?: (...args: unknown[]) => void;
-      DEBUG_ANALYTICS?: boolean;
-    };
-    if (typeof w.gtag === "function") w.gtag("event", name, params ?? {});
-    if (w.DEBUG_ANALYTICS) console.log("[track]", name, params ?? {});
-  } catch {
-    // Analytics should never break the UI
-  }
-}
+import { track } from "@/lib/analytics";
 
 /** Shape returned by the Maia Mechanics places API: { [timezone]: city[] } */
 interface TimeZoneCities {
@@ -257,12 +244,7 @@ export default function ChartForm() {
     };
     try {
       const result = await generateChart(chartDetails);
-
       const hd = hdChart(result.chart);
-      track("chart_generated", {
-        type: hd.type(),
-        time_unknown: birthInput.timeUnknown,
-      });
 
       const saveRes = await fetch("/api/subscribers", {
         method: "POST",
@@ -281,7 +263,17 @@ export default function ChartForm() {
       }
 
       const { id } = (await saveRes.json()) as { id: string };
-      router.push(`/see-your-design/${id}?utm_source=form`);
+
+      track("chart_generated", {
+        type: hd.type(),
+        time_unknown: birthInput.timeUnknown,
+      });
+      track("generate_lead", {
+        type: hd.type(),
+        time_unknown: birthInput.timeUnknown,
+      });
+
+      router.push(`/see-your-design/${id}?from=form`);
     } catch (err) {
       console.error("Chart generation/save error:", err);
       setSaveError(true);

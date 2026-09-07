@@ -45,7 +45,7 @@ Environment variables — copy `.env.example` to `.env.local` and fill in:
 - **Neon** (serverless Postgres) for data. Raw SQL via `@neondatabase/serverless` — no ORM.
 - **Resend** + **React Email** for sending.
 - **Vercel Analytics** (`@vercel/analytics`).
-- Analytics: **GA4** via a `track()` wrapper in `chart-form.tsx`. Funnel events: `form_start`, `chart_generated`, `email_optin`. The wrapper is the only place to edit if swapping tools (Plausible/Umami).
+- Analytics: **GA4** via a shared `track()` wrapper in `lib/analytics.ts`. Funnel events: `form_start`, `chart_generated`, `generate_lead` (key event — fires after subscriber save), `book_consultation_click`. Import `track` from `@/lib/analytics` wherever needed. **Maintain best-in-class GA4 implementation**: Consent Mode v2 (all 4 types declared), events fire only after the action they describe succeeds, no UTM params on internal navigation, every meaningful user action has a named event. When adding new features, add appropriate GA4 events and keep the consent/privacy model intact.
 
 ## Data model — ONE table
 Rename target: `subscribers` (the old name `charts` is misleading — a row is a person who has a chart, not a chart).
@@ -200,6 +200,7 @@ emails/send.ts                      sole Resend call site (sendEmail + canSendTo
 emails/welcome.ts                   shared getWelcomeEmail() + WELCOME_SERIES_LENGTH
 emails/content.ts                   content maps (strategy/authority writeups)
 emails/subjects.ts                  subject line generator per welcome step
+lib/analytics.ts                    shared GA4 track() wrapper
 lib/hd-chart/                       chart interpreter (constants + hdChart())
 lib/hd-chart/constants.ts           lookup tables: types, authorities, shadows, gateTraits
 lib/hd-chart/bridge-descriptions.ts bridge gate descriptions (shadow #1)
