@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import ChartHero from './chart-hero';
 import styles from './chart-form.module.css';
 import { Subscriber } from '@/lib/types/subscriber';
+import { track } from '@/lib/analytics';
 
 interface ChartViewProps {
   subscriberId: string;
@@ -21,6 +22,7 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
 
   async function handleRestart() {
     setRestartState('loading');
+    track('email_series_restart', { status: 'attempt' });
     try {
       const res = await fetch(`/api/subscribers/${subscriberId}/restart-series`, {
         method: 'POST',
@@ -29,9 +31,11 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
         throw new Error(`Unexpected status: ${res.status}`);
       }
       setRestartState('success');
+      track('email_series_restart', { status: 'success' });
     } catch (err) {
       console.error('Failed to restart email series:', err);
       setRestartState('error');
+      track('email_series_restart', { status: 'error' });
     }
   }
 
@@ -61,6 +65,25 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
     }
     fetchSubscriber();
   }, [subscriberId, isPreview]);
+
+  // Track chart view once subscriber loads
+  useEffect(() => {
+    if (!subscriber) return;
+    const source = isFromForm ? 'form'
+      : (searchParams.get('utm_source') || searchParams.get('utm_campaign')) ? 'email'
+      : 'direct';
+    track('chart_view', { source, type: subscriber.chart?.chart?.type });
+  }, [subscriber]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Track engagement at 30s and 60s
+  useEffect(() => {
+    if (!subscriber) return;
+    const timers = [
+      setTimeout(() => track('chart_engagement', { seconds: 30 }), 30_000),
+      setTimeout(() => track('chart_engagement', { seconds: 60 }), 60_000),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [subscriber]);
 
   if (loading) {
     return (

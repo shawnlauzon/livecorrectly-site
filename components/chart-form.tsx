@@ -196,6 +196,7 @@ export default function ChartForm() {
 
     setFieldErrors(errors);
     if (errors.size > 0) {
+      track('form_error', { error_type: 'validation', fields: Array.from(errors).join(',') });
       // Focus the first invalid field in DOM order
       if (errors.has("fname")) fnameInput.focus();
       else if (errors.has("email")) emailInput.focus();
@@ -217,6 +218,7 @@ export default function ChartForm() {
       if (checkRes.ok) {
         const { exists } = (await checkRes.json()) as { exists: boolean };
         if (exists) {
+          track('form_error', { error_type: 'duplicate_email' });
           setEmailTaken(true);
           setSubmitting(false);
           emailInput.focus();
@@ -276,6 +278,9 @@ export default function ChartForm() {
       router.push(`/see-your-design/${id}?from=form`);
     } catch (err) {
       console.error("Chart generation/save error:", err);
+      const errorType = err instanceof Error && err.message.includes('Save failed')
+        ? 'save_error' : 'api_error';
+      track('form_error', { error_type: errorType });
       setSaveError(true);
       setSubmitting(false);
     }

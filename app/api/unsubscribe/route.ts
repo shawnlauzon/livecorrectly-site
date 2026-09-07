@@ -11,14 +11,28 @@ import { getSubscriberByUnsubToken, updateEmailStatus } from '@/lib/db';
  * to avoid leaking email address existence.
  */
 
-const CONFIRMATION_HTML = `<!DOCTYPE html>
+function confirmationHtml(campaign: string | null): string {
+  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+  const safeCampaign = (campaign ?? 'unknown').replace(/'/g, "\\'");
+  const gaScript = gaId ? `
+  <script async src="https://www.googletagmanager.com/gtag/js?id=${gaId}"></script>
+  <script>
+    window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+    gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_personalization:'denied',ad_user_data:'denied'});
+    gtag('js',new Date());gtag('config','${gaId}');
+    try{if(localStorage.getItem('cookie-consent')==='granted')gtag('consent','update',{analytics_storage:'granted'})}catch(e){}
+    gtag('event','email_unsubscribe',{campaign:'${safeCampaign}'});
+  </script>` : '';
+
+  return `<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><title>Unsubscribed</title></head>
+<head><meta charset="UTF-8"><title>Unsubscribed</title>${gaScript}</head>
 <body style="font-family: sans-serif; max-width: 480px; margin: 80px auto; text-align: center;">
   <h1>You've been unsubscribed</h1>
   <p>You won't receive any more emails from Live Correctly.</p>
 </body>
 </html>`;
+}
 
 async function handleUnsubscribe(token: string | null, from: string | null): Promise<void> {
   if (!token) return;
@@ -35,7 +49,7 @@ export async function GET(request: NextRequest) {
   const from = request.nextUrl.searchParams.get('utm_campaign');
   await handleUnsubscribe(token, from);
 
-  return new NextResponse(CONFIRMATION_HTML, {
+  return new NextResponse(confirmationHtml(from), {
     status: 200,
     headers: { 'Content-Type': 'text/html' }
   });

@@ -13,7 +13,9 @@ export default function ClosingCta() {
 
         <div className={styles.cta}>
           <h2 className={styles.h2}>Start with your own chart.</h2>
-          <Link className="btn" href="/see-your-design">
+          <Link className="btn" href="/see-your-design"
+            onClick={() => track('cta_click', { location: 'closing_cta' })}
+          >
             See how you&rsquo;re designed
           </Link>
           <p className={styles.ctaSub}>
@@ -34,7 +36,9 @@ export default function ClosingCta() {
 
         <p className={styles.team}>
           Working together on a team?{" "}
-          <a className={styles.teamLink} href="https://workcorrectly.com">
+          <a className={styles.teamLink} href="https://workcorrectly.com"
+            onClick={() => track('outbound_click', { destination: 'workcorrectly' })}
+          >
             See more at Work Correctly &rarr;
           </a>
         </p>

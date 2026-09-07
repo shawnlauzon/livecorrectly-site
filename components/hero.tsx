@@ -53,7 +53,9 @@ export default function Hero() {
           </p>
 
           <div className={styles.ctaGroup}>
-            <Link className="btn" href="/see-your-design">
+            <Link className="btn" href="/see-your-design"
+              onClick={() => track('cta_click', { location: 'hero' })}
+            >
               See how you&rsquo;re designed
             </Link>
             <p className={styles.ctaSub}>
