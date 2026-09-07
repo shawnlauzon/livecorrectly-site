@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Subscriber } from '@/lib/types/subscriber';
 import type { Chart, ChartRecord } from '@/lib/types/chart';
 import hdChart from '@/lib/hd-chart';
-import { innerAuthorityTypes } from '@/lib/hd-chart/constants';
+import { innerAuthorityTypes, careerDesigns } from '@/lib/hd-chart/constants';
 import { BodygraphChart } from '@/components/bodygraph/bodygraph-chart';
 import { formatUnsubFrom } from './utils';
 import styles from './admin.module.css';
@@ -301,16 +301,19 @@ function DetailPanel({
 
     case 'active': {
       const types = new Map<string, number>();
-      const typeNames = ['Generator', 'MG', 'Manifestor', 'Projector', 'Reflector'];
       for (const s of filtered) {
         const typeName = s.chart?.chart.type !== undefined
-          ? (typeNames[s.chart.chart.type] ?? 'Unknown')
+          ? (careerDesigns[s.chart.chart.type] ?? 'Unknown')
           : 'No chart';
         types.set(typeName, (types.get(typeName) ?? 0) + 1);
       }
+      const activeTotal = filtered.length;
       breakdown = [...types.entries()]
         .sort((a, b) => b[1] - a[1])
-        .map(([label, count]) => ({ label, count }));
+        .map(([label, count]) => ({
+          label: `${label} (${activeTotal > 0 ? Math.round((count / activeTotal) * 100) : 0}%)`,
+          count,
+        }));
       break;
     }
 
