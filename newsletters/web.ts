@@ -1,8 +1,6 @@
-import fs from 'fs';
-import path from 'path';
-import matter from 'gray-matter';
 import { Marked } from 'marked';
 import { getNewsletterSendDates } from '@/lib/db';
+import { loadAllNewsletters, type RawNewsletter } from './loader';
 
 export interface WebNewsletter {
   slug: string;
@@ -51,33 +49,36 @@ function replaceVariables(markdown: string): string {
 const marked = new Marked();
 
 /**
- * Parse a single newsletter markdown file for web display.
- * Returns null if the file has no `slug` (email-only issue).
+ * Render a RawNewsletter for web display.
+ * Returns null if the newsletter has no slug (email-only issue).
  */
-function parseForWeb(raw: string, number: number, publishedAt: string, published: boolean): WebNewsletter | null {
-  const { data, content: body } = matter(raw);
+function renderForWeb(
+  raw: RawNewsletter,
+  publishedAt: string,
+  published: boolean,
+): WebNewsletter | null {
+  if (!raw.slug) return null;
 
-  const slug = typeof data.slug === 'string' ? data.slug : null;
-  if (!slug) return null;
-
-  const title = typeof data.subject === 'string' ? data.subject : '';
-  const description = typeof data.description === 'string' ? data.description : '';
-  const preview = typeof data.preview === 'string' ? data.preview : '';
-  const image = typeof data.image === 'string' ? data.image : null;
-  // Show hero on the detail page only when the image isn't already inline in the body.
-  const showHeroImage = !!image && !body.includes(image);
-
-  const cleaned = replaceVariables(stripGreeting(body.trim()));
+  const cleaned = replaceVariables(stripGreeting(raw.bodyMarkdown.trim()));
   const bodyHtml = marked.parse(cleaned) as string;
-  const ps = typeof data.ps === 'string'
-    ? (marked.parseInline(replaceVariables(data.ps.trim())) as string)
+  const ps = raw.rawPs
+    ? (marked.parseInline(replaceVariables(raw.rawPs.trim())) as string)
     : null;
 
-  return { slug, number, title, description, preview, image, showHeroImage, publishedAt, published, bodyHtml, ps };
+  return {
+    slug: raw.slug,
+    number: raw.number,
+    title: raw.subject,
+    description: raw.description,
+    preview: raw.preview,
+    image: raw.rawImage,
+    showHeroImage: raw.showHeroImage,
+    publishedAt,
+    published,
+    bodyHtml,
+    ps,
+  };
 }
-
-/** Directory containing newsletter markdown files */
-const DIR = path.join(process.cwd(), 'newsletters');
 
 /**
  * Load all newsletters that have a `slug` and have been sent (recorded in the DB),
@@ -87,36 +88,17 @@ const DIR = path.join(process.cwd(), 'newsletters');
 export async function getWebNewsletters(): Promise<WebNewsletter[]> {
   const sendDates = await getNewsletterSendDates();
   const isDev = process.env.NODE_ENV === 'development';
-
-  let files: string[];
-  try {
-    files = fs.readdirSync(DIR).filter(f => f.endsWith('.md')).sort();
-  } catch {
-    // Directory doesn't exist — no newsletters available
-    return [];
-  }
+  const all = loadAllNewsletters();
 
   const results: WebNewsletter[] = [];
-  for (const file of files) {
-    const num = parseInt(file.replace('.md', ''), 10);
-    if (isNaN(num) || num < 1) continue;
-
+  for (const [num, raw] of all) {
     const sentAt = sendDates.get(num);
 
     if (!sentAt && !isDev) continue;
 
-    const filePath = path.join(DIR, file);
-    const raw = fs.readFileSync(filePath, 'utf-8');
-
-    if (sentAt) {
-      const parsed = parseForWeb(raw, num, sentAt, true);
-      if (parsed) results.push(parsed);
-    } else {
-      // Dev-only: use file mtime as a fallback date
-      const mtime = fs.statSync(filePath).mtime.toISOString();
-      const parsed = parseForWeb(raw, num, mtime, false);
-      if (parsed) results.push(parsed);
-    }
+    const publishedAt = sentAt ?? new Date().toISOString();
+    const parsed = renderForWeb(raw, publishedAt, !!sentAt);
+    if (parsed) results.push(parsed);
   }
 
   // Newest first

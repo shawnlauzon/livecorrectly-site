@@ -1,7 +1,16 @@
-import fs from 'fs';
-import path from 'path';
-import matter from 'gray-matter';
 import { Marked, Renderer, type Tokens } from 'marked';
+import {
+  loadNewsletter,
+  parseRawNewsletter,
+  type RawNewsletter,
+} from '@/newsletters/loader';
+
+export {
+  getNewsletterCount,
+  getMaxNewsletterNumber,
+  getNewsletterNumbers,
+  clearNewsletterCache,
+} from '@/newsletters/loader';
 
 export interface Newsletter {
   /** Newsletter number (from filename, matches next_step) */
@@ -94,60 +103,32 @@ function createEmailRenderer(): Renderer {
 const marked = new Marked({ renderer: createEmailRenderer() });
 
 /**
+ * Render a RawNewsletter into email-ready HTML.
+ */
+function renderForEmail(raw: RawNewsletter): Newsletter {
+  const image = raw.showHeroImage ? raw.rawImage : null;
+  const bodyHtml = marked.parse(raw.bodyMarkdown.trim()) as string;
+  const ps = raw.rawPs
+    ? (marked.parseInline(raw.rawPs.trim()) as string)
+    : null;
+
+  return {
+    number: raw.number,
+    subject: raw.subject,
+    preview: raw.preview,
+    slug: raw.slug,
+    image,
+    bodyHtml,
+    ps,
+  };
+}
+
+/**
  * Parse a newsletter markdown file into structured data.
  * Exported for testing.
  */
 export function parseNewsletter(content: string, number: number): Newsletter {
-  const { data, content: body } = matter(content);
-
-  const subject = typeof data.subject === 'string' ? data.subject : '';
-  const preview = typeof data.preview === 'string' ? data.preview : '';
-  const slug = typeof data.slug === 'string' ? data.slug : null;
-
-  // Extract hero image from frontmatter, but suppress it if the body already
-  // contains the same image inline (let the author's placement win).
-  const rawImage = typeof data.image === 'string' ? data.image : null;
-  const image = rawImage && body.includes(rawImage) ? null : rawImage;
-
-  const bodyHtml = marked.parse(body.trim()) as string;
-  const ps = typeof data.ps === 'string'
-    ? (marked.parseInline(data.ps.trim()) as string)
-    : null;
-
-  return { number, subject, preview, slug, image, bodyHtml, ps };
-}
-
-/** Cached newsletters loaded from disk, keyed by number (matches next_step) */
-let cache: Map<number, Newsletter> | null = null;
-
-/**
- * Load all newsletters from emails/newsletters/*.md.
- * In production, results are cached for the process lifetime.
- * In development, files are re-read on every call so edits are reflected immediately.
- */
-function loadAll(): Map<number, Newsletter> {
-  if (cache && process.env.NODE_ENV === 'production') return cache;
-
-  cache = new Map();
-  const dir = path.join(process.cwd(), 'newsletters');
-
-  let files: string[];
-  try {
-    files = fs.readdirSync(dir).filter(f => f.endsWith('.md')).sort();
-  } catch {
-    // Directory doesn't exist — no newsletters available
-    return cache;
-  }
-
-  for (const file of files) {
-    const num = parseInt(file.replace('.md', ''), 10);
-    if (isNaN(num) || num < 1) continue;
-
-    const raw = fs.readFileSync(path.join(dir, file), 'utf-8');
-    cache.set(num, parseNewsletter(raw, num));
-  }
-
-  return cache;
+  return renderForEmail(parseRawNewsletter(content, number));
 }
 
 /**
@@ -177,45 +158,16 @@ function replaceVariables(newsletter: Newsletter, firstName: string, subscriberI
  * Replaces {{firstName}}, {{appUrl}}, and {{chartUrl}} template variables.
  */
 export function getNewsletter(step: number, firstName: string, subscriberId?: string): Newsletter | null {
-  const all = loadAll();
-  const newsletter = all.get(step);
-  if (!newsletter) return null;
-  return replaceVariables(newsletter, firstName, subscriberId);
+  const raw = loadNewsletter(step);
+  if (!raw) return null;
+  return replaceVariables(renderForEmail(raw), firstName, subscriberId);
 }
 
 /**
  * Get a newsletter without variable replacement (for testing / introspection).
  */
 export function getNewsletterRaw(step: number): Newsletter | null {
-  const all = loadAll();
-  return all.get(step) ?? null;
-}
-
-/**
- * How many newsletters are available on disk.
- */
-export function getNewsletterCount(): number {
-  return loadAll().size;
-}
-
-/**
- * The highest newsletter number on disk, or 0 if none exist.
- */
-export function getMaxNewsletterNumber(): number {
-  const keys = [...loadAll().keys()];
-  return keys.length > 0 ? Math.max(...keys) : 0;
-}
-
-/**
- * Sorted array of all newsletter numbers on disk.
- */
-export function getNewsletterNumbers(): number[] {
-  return [...loadAll().keys()].sort((a, b) => a - b);
-}
-
-/**
- * Clear the cache (useful for tests).
- */
-export function clearNewsletterCache(): void {
-  cache = null;
+  const raw = loadNewsletter(step);
+  if (!raw) return null;
+  return renderForEmail(raw);
 }
