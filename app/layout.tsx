@@ -32,7 +32,15 @@ export const metadata: Metadata = {
   description:
     "Advice built for someone else's wiring won't hold. Human Design shows you how yours actually works.",
   openGraph: {
-    title: "You've tried it their way. Now do it yours 🚀",
+    title: "You've tried it their way. Now do it yours",
+    description:
+      "Advice built for someone else's wiring won't hold. Human Design shows you how yours actually works.",
+  },
+  twitter: {
+    card: "summary",
+    title: "Live Correctly — Human Design",
+    description:
+      "Advice built for someone else's wiring won't hold. Human Design shows you how yours actually works.",
   },
 };
 

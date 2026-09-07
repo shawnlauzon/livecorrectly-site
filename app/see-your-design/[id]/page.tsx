@@ -1,7 +1,35 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import ChartView from "@/components/chart-view";
+import { getSubscriberById } from "@/lib/db";
+import { careerDesigns } from "@/lib/hd-chart/constants";
 import styles from "../page.module.css";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const subscriber = await getSubscriberById(id);
+  if (!subscriber) return {};
+
+  const name = subscriber.last_name
+    ? `${subscriber.first_name} ${subscriber.last_name}`
+    : subscriber.first_name;
+  const typeName =
+    careerDesigns[subscriber.chart.chart.type] ?? "Human Design";
+  const title = `Design for ${name}`;
+  const description = `${subscriber.first_name} is a ${typeName}. See their Human Design chart.`;
+
+  return {
+    title: `${title} — Live Correctly`,
+    description,
+    openGraph: { type: "profile", title, description },
+    twitter: { card: "summary", title, description },
+  };
+}
 
 export default async function SeeYourDesignChart({
   params,

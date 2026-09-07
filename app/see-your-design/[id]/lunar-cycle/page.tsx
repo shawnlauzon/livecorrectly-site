@@ -1,9 +1,33 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSubscriberById } from '@/lib/db';
 import { calculateLunarCycle } from '@/lib/lunar';
 import LunarTimeline, { type SerializedMoonTransit } from './lunar-timeline';
 import styles from '../../page.module.css';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const subscriber = await getSubscriberById(id);
+  if (!subscriber || subscriber.chart.chart.type !== 4) return {};
+
+  const name = subscriber.last_name
+    ? `${subscriber.first_name} ${subscriber.last_name}`
+    : subscriber.first_name;
+  const title = `Lunar cycle for ${name}`;
+  const description = `Track how the Moon's transit through the 64 gates creates ${subscriber.first_name}'s unique monthly rhythm.`;
+
+  return {
+    title: `${title} — Live Correctly`,
+    description,
+    openGraph: { type: 'profile', title, description },
+    twitter: { card: 'summary', title, description },
+  };
+}
 
 export default async function LunarCyclePage({
   params,
