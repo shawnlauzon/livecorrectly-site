@@ -152,6 +152,43 @@ function getEngagementLabel(sub: Subscriber, now: number): { label: string; stal
   return { label, stale: totalDays > 90 };
 }
 
+const WELCOME_SERIES_LENGTH = 3;
+
+function computePipelineStats(subscribers: Subscriber[]) {
+  const now = Date.now();
+  const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+  const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+
+  let active = 0;
+  let inWelcome = 0;
+  let receivingNewsletters = 0;
+  let unsubscribed = 0;
+  let bouncedComplained = 0;
+  let last7Days = 0;
+  let last30Days = 0;
+
+  for (const s of subscribers) {
+    if (s.email_status === 'active') {
+      active++;
+      if (s.next_step <= WELCOME_SERIES_LENGTH) {
+        inWelcome++;
+      } else {
+        receivingNewsletters++;
+      }
+    } else if (s.email_status === 'unsubscribed') {
+      unsubscribed++;
+    } else if (s.email_status === 'bounced' || s.email_status === 'complained') {
+      bouncedComplained++;
+    }
+
+    const createdAt = new Date(s.created_at).getTime();
+    if (createdAt >= sevenDaysAgo) last7Days++;
+    if (createdAt >= thirtyDaysAgo) last30Days++;
+  }
+
+  return { active, inWelcome, receivingNewsletters, unsubscribed, bouncedComplained, last7Days, last30Days };
+}
+
 type SortColumn = 'name' | 'email' | 'profile' | 'authority' | 'type' | 'split' | 'shadow' | 'status' | 'nextEmail' | 'created' | 'lastActive';
 type SortDirection = 'asc' | 'desc';
 
@@ -508,6 +545,42 @@ function AdminPageContent() {
         <h1 className={styles.title}>Registrations</h1>
         <p className={styles.subtitle}>{subscribers.length} registered · {subscribers.filter(s => s.email_status === 'active').length} subscribed</p>
       </div>
+
+      {subscribers.length > 0 && (() => {
+        const stats = computePipelineStats(subscribers);
+        return (
+          <div className={styles.statsGrid}>
+            <div className={styles.statCard}>
+              <div className={styles.statValue}>{stats.active}</div>
+              <div className={styles.statLabel}>Active</div>
+            </div>
+            <div className={styles.statCard}>
+              <div className={styles.statValue}>{stats.inWelcome}</div>
+              <div className={styles.statLabel}>In welcome series</div>
+            </div>
+            <div className={styles.statCard}>
+              <div className={styles.statValue}>{stats.receivingNewsletters}</div>
+              <div className={styles.statLabel}>Receiving newsletters</div>
+            </div>
+            <div className={styles.statCard}>
+              <div className={styles.statValue}>{stats.unsubscribed}</div>
+              <div className={styles.statLabel}>Unsubscribed</div>
+            </div>
+            <div className={styles.statCard}>
+              <div className={styles.statValue}>{stats.bouncedComplained}</div>
+              <div className={styles.statLabel}>Bounced / complained</div>
+            </div>
+            <div className={styles.statCard}>
+              <div className={styles.statValue}>{stats.last7Days}</div>
+              <div className={styles.statLabel}>Last 7 days</div>
+            </div>
+            <div className={styles.statCard}>
+              <div className={styles.statValue}>{stats.last30Days}</div>
+              <div className={styles.statLabel}>Last 30 days</div>
+            </div>
+          </div>
+        );
+      })()}
 
       {subscribers.length === 0 ? (
         <div className={styles.empty}>No registrations yet</div>

@@ -115,6 +115,16 @@ export async function _sendEmail({
   const unsubscribeUrl = buildUnsubscribeUrl(unsubToken, emailLabel);
   const html = await renderEmail(react);
 
+  // Derive Resend tags from emailLabel for dashboard segmentation
+  const tags: { name: string; value: string }[] = [];
+  if (emailLabel) {
+    tags.push({ name: 'email_type', value: emailLabel });
+    const category = emailLabel.startsWith('welcome') ? 'welcome'
+      : emailLabel.startsWith('newsletter') ? 'newsletter'
+      : 'broadcast';
+    tags.push({ name: 'category', value: category });
+  }
+
   const client = getResend();
   const { data, error } = await client.emails.send({
     from,
@@ -122,6 +132,7 @@ export async function _sendEmail({
     subject,
     html,
     ...(replyTo && { replyTo }),
+    ...(tags.length > 0 && { tags }),
     headers: {
       'List-Unsubscribe': `<${unsubscribeUrl}>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
