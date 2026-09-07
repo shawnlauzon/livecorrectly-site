@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSubscriberById } from '@/lib/db';
 import { calculateLunarCycle } from '@/lib/lunar';
-import type { SerializedMoonTransit } from '@/app/see-your-design/[id]/lunar-cycle/lunar-timeline';
+import type { SerializedMoonTransit } from '@/app/(public)/see-your-design/[id]/lunar-cycle/lunar-timeline';
 
 /**
  * GET /api/lunar-transits?subscriberId=<uuid>&month=YYYY-MM
