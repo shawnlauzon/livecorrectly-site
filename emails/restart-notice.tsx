@@ -43,8 +43,8 @@ export const RestartNotice = ({
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
-        I&apos;ve also renamed to Live Correctly, which is why the email is a
-        bit different.
+        You might also notice a change to Live Correctly. Same thing, different
+        name.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px]">
@@ -55,9 +55,7 @@ export const RestartNotice = ({
         below. No hard feelings.
       </Text>
 
-      <Text className="mb-[16px] text-[16px] leading-[24px]">
-        &mdash; Shawn
-      </Text>
+      <Text className="mb-[16px] text-[16px] leading-[24px]">&mdash;Shawn</Text>
     </EmailLayout>
   );
 };
