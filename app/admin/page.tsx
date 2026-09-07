@@ -7,6 +7,7 @@ import type { Chart, ChartRecord } from '@/lib/types/chart';
 import hdChart from '@/lib/hd-chart';
 import { innerAuthorityTypes } from '@/lib/hd-chart/constants';
 import { BodygraphChart } from '@/components/bodygraph/bodygraph-chart';
+import { formatUnsubFrom } from './utils';
 import styles from './admin.module.css';
 
 async function fetchSubscribers(pwd: string): Promise<{ ok: true; data: Subscriber[] } | { ok: false; error: string }> {
@@ -217,16 +218,6 @@ type SortDirection = 'asc' | 'desc';
 
 const VALID_SORT_COLUMNS: SortColumn[] = ['name','email','profile','authority','type','split','shadow','status','nextEmail','created','lastActive'];
 
-function formatUnsubFrom(raw: string | null): string {
-  if (!raw) return 'Unknown';
-  // welcome0 → "Welcome 0", welcome_series_1 → "Welcome series 1"
-  if (/^welcome\d+$/i.test(raw)) return `Welcome ${raw.replace(/\D/g, '')}`;
-  // newsletter_5 → "Newsletter #5"
-  if (/^newsletter[_-]?\d+$/i.test(raw)) return `Newsletter #${raw.replace(/\D/g, '')}`;
-  // General: replace underscores/hyphens with spaces, title-case first word
-  const cleaned = raw.replace(/[_-]/g, ' ').trim();
-  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-}
 
 function DetailPanel({
   filter,
@@ -239,6 +230,7 @@ function DetailPanel({
   total: number;
   onClose: () => void;
 }) {
+  const [dateNow] = useState(() => Date.now());
   const title = FILTER_LABELS[filter];
   const count = filtered.length;
 
@@ -345,7 +337,7 @@ function DetailPanel({
 
     case 'last30Days': {
       // Group into weeks
-      const now = Date.now();
+      const now = dateNow;
       const weeks: { label: string; count: number }[] = [
         { label: 'This week', count: 0 },
         { label: '1 week ago', count: 0 },
@@ -433,7 +425,7 @@ function AdminPageContent() {
   // Timestamp captured when subscribers are loaded, used for engagement
   // label computation. Stored alongside subscriber data so it's available
   // during render without calling Date.now() (which is impure).
-  const [subscribersFetchedAt, setSubscribersFetchedAt] = useState(0);
+  const [subscribersFetchedAt, setSubscribersFetchedAt] = useState(() => Date.now());
 
   const loadSubscribers = useCallback(async (pwd: string) => {
     setLoading(true);
@@ -639,10 +631,7 @@ function AdminPageContent() {
       return label;
     }
 
-    const parts: string[] = [sub.email_status];
-    if (sub.unsub_from) parts.push(`from ${sub.unsub_from}`);
-    if (sub.email_status_at) parts.push(formatDate(sub.email_status_at));
-    return parts.join(' · ');
+    return formatUnsubFrom(sub.unsub_from);
   };
 
   const handleSort = (column: SortColumn) => {
@@ -699,7 +688,7 @@ function AdminPageContent() {
 
   // Capture a stable timestamp for time-boundary filters so the stat card
   // count and the filtered list can never drift within a single render.
-  const now = subscribersFetchedAt || Date.now();
+  const now = subscribersFetchedAt;
 
   const filteredSubscribers = activeFilter
     ? subscribers.filter(s => STAT_FILTERS[activeFilter](s, now))

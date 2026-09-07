@@ -9,6 +9,7 @@ import hdChart from '@/lib/hd-chart';
 import { shadowNames, shadowDescriptions, shadowThemes, shadowLessons, shadowPressures, channelStrengths, gateTraits, functionToCenterIndex, centerNames, determinationNames, determinationConditions, environmentNames, environmentConditions, cognitionNames } from '@/lib/hd-chart/constants';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { hangingGateDescriptions } from '@/emails/content';
+import { formatUnsubFrom } from '../utils';
 import styles from './detail.module.css';
 
 const WELCOME_SERIES_LENGTH = 3;
@@ -830,8 +831,8 @@ function WelcomeSeries({ subscriber, onSubscriberUpdate }: { subscriber: Subscri
             <span className={styles.welcomeMetaLabel}>Email status</span>
             <span>
               {subscriber.email_status}
-              {subscriber.email_status === 'unsubscribed' && subscriber.unsub_from && (
-                <> (from {subscriber.unsub_from})</>
+              {subscriber.email_status !== 'active' && (
+                <> — {formatUnsubFrom(subscriber.unsub_from)}</>
               )}
             </span>
           </div>
