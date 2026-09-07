@@ -50,7 +50,7 @@ export async function GET(
 
     const chart = parseChartForEmail(subscriber.chart.chart);
     const subject = getWelcomeSubject(step, subscriber.first_name, chart);
-    const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
+    const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
     const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, `welcome${step}`);
     const chartUrl = `${appUrl}/see-your-design/${id}`;
 

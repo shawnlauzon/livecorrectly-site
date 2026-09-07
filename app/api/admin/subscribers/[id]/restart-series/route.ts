@@ -55,7 +55,7 @@ export async function POST(
     // Build and send welcome0
     const chart = parseChartForEmail(subscriber.chart.chart);
     const subject = getWelcomeSubject(0, subscriber.first_name, chart);
-    const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
+    const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
     const emailLabel = 'welcome0';
     const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
     const chartUrl = `${appUrl}/see-your-design/${id}`;

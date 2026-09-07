@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { getWebNewsletters } from "@/newsletters/web";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = "https://livecorrectly.com";
+  const base = "https://www.livecorrectly.com";
 
   const staticPages: MetadataRoute.Sitemap = [
     { url: base, lastModified: new Date() },

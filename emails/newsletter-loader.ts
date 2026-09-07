@@ -135,7 +135,7 @@ export function parseNewsletter(content: string, number: number): Newsletter {
  * Replace template variables: {{firstName}}, {{appUrl}}, {{chartUrl}}.
  */
 function replaceVariables(newsletter: Newsletter, firstName: string, subscriberId?: string): Newsletter {
-  const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
+  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
   const chartUrl = subscriberId
     ? `${appUrl}/see-your-design/${subscriberId}?utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletter.number}`
     : '';

@@ -54,7 +54,7 @@ export function extractEmail(recipient: string): string {
  * Used both in List-Unsubscribe headers and in email body footer links.
  */
 export function buildUnsubscribeUrl(unsubToken: string, emailLabel?: string): string {
-  const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
+  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
   const base = `${appUrl}/api/unsubscribe?token=${unsubToken}`;
   return emailLabel ? `${base}&utm_campaign=${encodeURIComponent(emailLabel)}` : base;
 }
@@ -201,7 +201,7 @@ export async function sendAdminNotification(
 ): Promise<void> {
   const from = process.env.EMAIL_FROM_NOTIFICATIONS ?? 'Live Correctly <notifications@livecorrectly.com>';
   const replyTo = process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
-  const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
+  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
   const adminUrl = `${appUrl}/admin/${subscriber.id}`;
 
   const subject = isRestart

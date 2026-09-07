@@ -37,7 +37,7 @@ Environment variables — copy `.env.example` to `.env.local` and fill in:
 - `RESEND_WEBHOOK_SECRET` — Resend webhook signing secret (for bounce/complaint handling)
 - `CRON_EMAIL_ENABLED` — set to `true` to enable the automated cron; anything else = cron returns early. Admin manual sends are always live (they bypass this flag). Omit `RESEND_API_KEY` in `.env.local` to prevent any sends during local development.
 - `EMAIL_FROM` — sender address (default: `Live Correctly <hello@livecorrectly.com>`)
-- `APP_URL` — public URL for unsubscribe links (default: `https://livecorrectly.com`)
+- `APP_URL` — public URL for unsubscribe links (default: `https://www.livecorrectly.com`)
 - `CRON_SECRET` — Vercel cron authorization secret
 
 ## Stack

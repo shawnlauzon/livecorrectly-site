@@ -127,8 +127,8 @@ Reengagement.PreviewProps = {
   monthYear: 'October 2024',
   monthsSinceSignup: 22,
   chartUrl:
-    'https://livecorrectly.com/see-your-design/test-id?utm_source=livecorrectly&utm_medium=email&utm_campaign=reengagement_2026',
-  unsubscribeUrl: 'https://livecorrectly.com/api/unsubscribe?token=test',
+    'https://www.livecorrectly.com/see-your-design/test-id?utm_source=livecorrectly&utm_medium=email&utm_campaign=reengagement_2026',
+  unsubscribeUrl: 'https://www.livecorrectly.com/api/unsubscribe?token=test',
 } satisfies ReengagementProps;
 
 export default Reengagement;

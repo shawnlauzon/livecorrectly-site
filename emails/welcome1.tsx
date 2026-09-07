@@ -184,7 +184,7 @@ Welcome1.PreviewProps = {
     isEmotionalAuthority: true,
     typeVideo: 'https://youtu.be/9PVgkBzpPqs',
     typeButtonGif:
-      'https://livecorrectly.com/generator-button.gif',
+      'https://www.livecorrectly.com/generator-button.gif',
     strategyVideo: 'https://youtu.be/_g3cx77EeLs',
     innerAuthorityVideo: 'https://youtu.be/e9g6q1pKJeo',
     signatureVideo: 'https://youtu.be/fHGRdJSyE34',
@@ -192,7 +192,7 @@ Welcome1.PreviewProps = {
     hasChannelBridge: false,
     bridgeDescriptions: [],
   },
-  unsubscribeUrl: 'https://livecorrectly.com/api/unsubscribe?token=test',
+  unsubscribeUrl: 'https://www.livecorrectly.com/api/unsubscribe?token=test',
 } satisfies Welcome1Props;
 
 export default Welcome1;

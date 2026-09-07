@@ -52,7 +52,7 @@ export function NewsletterTemplate({
   webUrl,
   ps
 }: NewsletterTemplateProps) {
-  const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
+  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
   const postscripts = ps
     ? [<span key="ps" dangerouslySetInnerHTML={{ __html: ps }} />]
     : [];

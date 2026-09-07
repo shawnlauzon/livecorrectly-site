@@ -6,7 +6,7 @@ import { Img, Text, Section, Row, Column } from 'react-email';
  * Ported from fractalhumandesign email signature component.
  */
 export function Signature() {
-  const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
+  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
   return (
     <Section className="mt-[24px]">
       <Row>

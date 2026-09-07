@@ -25,7 +25,7 @@ export interface WebNewsletter {
   ps: string | null;
 }
 
-const APP_URL = 'https://livecorrectly.com';
+const APP_URL = 'https://www.livecorrectly.com';
 
 /**
  * Strip the greeting line that starts with "Hey {{firstName}}," or

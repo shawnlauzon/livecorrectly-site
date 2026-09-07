@@ -60,7 +60,7 @@ export function buildBroadcastEmail(
     throw new Error(`Unknown broadcast slug: ${slug}`);
   }
 
-  const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
+  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
   const monthYear = formatMonthYear(createdAt);
   const monthsSinceSignup = monthsSince(createdAt);
   const emailLabel = slug.replace(/-/g, '_');

@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       const chartData = parseChartForEmail(subscriber.chart.chart);
 
       try {
-        const appUrl = process.env.APP_URL ?? 'https://livecorrectly.com';
+        const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
         const chartUrl = `${appUrl}/see-your-design/${subscriber.id}`;
         const emailLabel = 'welcome0';
         const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);

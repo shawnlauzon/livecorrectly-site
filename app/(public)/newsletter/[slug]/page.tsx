@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const issue = await getWebNewsletter(slug);
   if (!issue) return {};
 
-  const url = `https://livecorrectly.com/newsletter/${issue.slug}`;
+  const url = `https://www.livecorrectly.com/newsletter/${issue.slug}`;
 
   return {
     title: `${issue.title} — Live Correctly`,
@@ -70,9 +70,9 @@ export default async function NewsletterIssuePage({ params }: Props) {
     publisher: {
       "@type": "Organization",
       name: "Live Correctly",
-      url: "https://livecorrectly.com",
+      url: "https://www.livecorrectly.com",
     },
-    mainEntityOfPage: `https://livecorrectly.com/newsletter/${issue.slug}`,
+    mainEntityOfPage: `https://www.livecorrectly.com/newsletter/${issue.slug}`,
   };
 
   return (

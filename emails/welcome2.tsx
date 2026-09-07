@@ -113,7 +113,7 @@ Welcome2.PreviewProps = {
       'wait to respond before engaging, and then wait for emotional clarity',
     isEmotionalAuthority: true,
     typeVideo: 'https://youtu.be/9PVgkBzpPqs',
-    typeButtonGif: 'https://livecorrectly.com/generator-button.gif',
+    typeButtonGif: 'https://www.livecorrectly.com/generator-button.gif',
     strategyVideo: 'https://youtu.be/_g3cx77EeLs',
     innerAuthorityVideo: 'https://youtu.be/e9g6q1pKJeo',
     signatureVideo: 'https://youtu.be/fHGRdJSyE34',
@@ -121,7 +121,7 @@ Welcome2.PreviewProps = {
     hasChannelBridge: false,
     bridgeDescriptions: [],
   },
-  unsubscribeUrl: 'https://livecorrectly.com/api/unsubscribe?token=test',
+  unsubscribeUrl: 'https://www.livecorrectly.com/api/unsubscribe?token=test',
 } satisfies Welcome2Props;
 
 export default Welcome2;

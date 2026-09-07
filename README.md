@@ -22,7 +22,7 @@ pnpm dev                      # http://localhost:3000
 | `RESEND_WEBHOOK_SECRET` | No | Resend webhook signing secret |
 | `CRON_EMAIL_ENABLED` | No | Set to `true` to enable the automated cron; admin manual sends bypass this flag |
 | `EMAIL_FROM` | No | Sender address (default: `Live Correctly <hello@livecorrectly.com>`) |
-| `APP_URL` | No | Public URL for unsubscribe links (default: `https://livecorrectly.com`) |
+| `APP_URL` | No | Public URL for unsubscribe links (default: `https://www.livecorrectly.com`) |
 | `CRON_SECRET` | No | Vercel cron authorization secret |
 
 ## Scripts
