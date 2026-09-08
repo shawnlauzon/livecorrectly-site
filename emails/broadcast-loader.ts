@@ -86,7 +86,7 @@ function resolveFilter(filterName: string, slug: string): BroadcastFilter {
  * In production, results are cached for the process lifetime.
  */
 function loadBroadcast(slug: string): RawBroadcast | null {
-  if (cache && process.env.NODE_ENV === 'production') {
+  if (cache && process.env.NODE_ENV === 'production' && cache.has(slug)) {
     return cache.get(slug) ?? null;
   }
 
