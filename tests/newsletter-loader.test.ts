@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { parseNewsletter, clearNewsletterCache, getNewsletter, getNewsletterCount, getNewsletterRaw } from '../emails/newsletter-loader';
+import { parseRawNewsletter } from '../newsletters/loader';
 
 beforeEach(() => {
   clearNewsletterCache();
@@ -113,6 +114,59 @@ Below
     expect(result.subject).toBe('');
     expect(result.preview).toBe('');
     expect(result.bodyHtml).toContain('Just a body');
+  });
+
+  it('parses single-string ps as a one-element array', () => {
+    const md = `---
+subject: "Test"
+preview: "Test"
+ps: "Check this out"
+---
+
+Body.
+`;
+    const raw = parseRawNewsletter(md, 1);
+    expect(raw.rawPs).toEqual(['Check this out']);
+
+    const result = parseNewsletter(md, 1);
+    expect(result.ps).toHaveLength(1);
+    expect(result.ps[0]).toContain('Check this out');
+  });
+
+  it('parses array ps into multiple rendered postscripts', () => {
+    const md = `---
+subject: "Test"
+preview: "Test"
+ps:
+  - "First postscript with **bold**"
+  - "Second postscript"
+---
+
+Body.
+`;
+    const raw = parseRawNewsletter(md, 1);
+    expect(raw.rawPs).toEqual(['First postscript with **bold**', 'Second postscript']);
+
+    const result = parseNewsletter(md, 1);
+    expect(result.ps).toHaveLength(2);
+    expect(result.ps[0]).toContain('<strong');
+    expect(result.ps[0]).toContain('bold');
+    expect(result.ps[1]).toContain('Second postscript');
+  });
+
+  it('returns empty array when ps is not set', () => {
+    const md = `---
+subject: "Test"
+preview: "Test"
+---
+
+Body.
+`;
+    const raw = parseRawNewsletter(md, 1);
+    expect(raw.rawPs).toEqual([]);
+
+    const result = parseNewsletter(md, 1);
+    expect(result.ps).toEqual([]);
   });
 });
 

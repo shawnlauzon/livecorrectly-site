@@ -59,6 +59,11 @@ function formatDate(iso: string): string {
   });
 }
 
+function getPostscriptPrefix(index: number): string {
+  if (index === 0) return 'P.S.';
+  return 'P.' + 'P.'.repeat(index) + 'S.';
+}
+
 export default async function NewsletterIssuePage({ params, searchParams }: Props) {
   const { slug } = await params;
   const resolvedSearchParams = await searchParams;
@@ -127,12 +132,12 @@ export default async function NewsletterIssuePage({ params, searchParams }: Prop
             className={styles.body}
             dangerouslySetInnerHTML={{ __html: issue.bodyHtml }}
           />
-          {issue.ps && (
-            <div className={styles.ps}>
-              <strong>P.S.</strong>{' '}
-              <span dangerouslySetInnerHTML={{ __html: issue.ps }} />
+          {issue.ps.map((p, i) => (
+            <div key={i} className={styles.ps}>
+              <strong>{getPostscriptPrefix(i)}</strong>{' '}
+              <span dangerouslySetInnerHTML={{ __html: p }} />
             </div>
-          )}
+          ))}
           {chart && PersonalizationComponent ? (
             <PersonalizedSection
               Component={PersonalizationComponent}

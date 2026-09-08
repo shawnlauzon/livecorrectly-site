@@ -14,7 +14,7 @@ interface NewsletterTemplateProps {
   unsubscribeUrl: string;
   number: number;
   webUrl: string | null;
-  ps: string | null;
+  ps: string[];
 }
 
 /**
@@ -62,9 +62,9 @@ export function NewsletterTemplate({
   ps,
 }: NewsletterTemplateProps) {
   const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
-  const postscripts = ps
-    ? [<span key="ps" dangerouslySetInnerHTML={{ __html: ps }} />]
-    : [];
+  const postscripts = ps.map((p, i) => (
+    <span key={i} dangerouslySetInnerHTML={{ __html: p }} />
+  ));
 
   const bottomNote = webUrl ? (
     <Section>

@@ -21,8 +21,8 @@ export interface RawNewsletter {
   showHeroImage: boolean;
   /** Raw markdown body — template variables intact, untrimmed greeting included */
   bodyMarkdown: string;
-  /** Raw postscript text (not rendered), or null if unset */
-  rawPs: string | null;
+  /** Raw postscript strings (markdown, variables intact) */
+  rawPs: string[];
 }
 
 /**
@@ -40,7 +40,12 @@ export function parseRawNewsletter(content: string, number: number): RawNewslett
   const rawImage = typeof data.image === 'string' ? data.image : null;
   const showHeroImage = !!rawImage && !body.includes(rawImage);
 
-  const rawPs = typeof data.ps === 'string' ? data.ps : null;
+  let rawPs: string[] = [];
+  if (Array.isArray(data.ps)) {
+    rawPs = data.ps.filter((p: unknown) => typeof p === 'string');
+  } else if (typeof data.ps === 'string') {
+    rawPs = [data.ps];
+  }
 
   return {
     number,

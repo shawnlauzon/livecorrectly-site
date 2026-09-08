@@ -22,8 +22,8 @@ export interface WebNewsletter {
   published: boolean;
   /** Semantic HTML rendered from markdown body */
   bodyHtml: string;
-  /** Optional postscript (semantic HTML from markdown), or null if unset */
-  ps: string | null;
+  /** Postscripts (semantic HTML from markdown) */
+  ps: string[];
   /** Whether this newsletter has a web personalization component */
   hasWebPersonalization: boolean;
 }
@@ -66,9 +66,9 @@ function renderForWeb(
 
   const cleaned = replaceVariables(stripGreeting(raw.bodyMarkdown.trim()));
   const bodyHtml = marked.parse(cleaned) as string;
-  const ps = raw.rawPs
-    ? (marked.parseInline(replaceVariables(raw.rawPs.trim())) as string)
-    : null;
+  const ps = raw.rawPs.map(p =>
+    marked.parseInline(replaceVariables(p.trim())) as string,
+  );
 
   return {
     slug: raw.slug,

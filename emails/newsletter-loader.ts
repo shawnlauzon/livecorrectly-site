@@ -23,8 +23,8 @@ export interface Newsletter {
   image: string | null;
   /** Email-styled HTML rendered from markdown body */
   bodyHtml: string;
-  /** Optional postscript rendered after the signature (markdown → inline-styled HTML) */
-  ps: string | null;
+  /** Postscripts rendered after the signature (markdown → inline-styled HTML) */
+  ps: string[];
 }
 
 /**
@@ -33,9 +33,9 @@ export interface Newsletter {
 function renderForEmail(raw: RawNewsletter): Newsletter {
   const image = raw.showHeroImage ? raw.rawImage : null;
   const bodyHtml = emailMarked.parse(raw.bodyMarkdown.trim()) as string;
-  const ps = raw.rawPs
-    ? (emailMarked.parseInline(raw.rawPs.trim()) as string)
-    : null;
+  const ps = raw.rawPs.map(p =>
+    emailMarked.parseInline(p.trim()) as string,
+  );
 
   return {
     number: raw.number,
@@ -81,7 +81,7 @@ function replaceNewsletterVariables(newsletter: Newsletter, firstName: string, s
     subject: replaceVars(newsletter.subject, vars),
     preview: replaceVars(newsletter.preview, vars),
     bodyHtml,
-    ps: newsletter.ps ? replaceVars(newsletter.ps, vars) : null,
+    ps: newsletter.ps.map(p => replaceVars(p, vars)),
   };
 }
 
