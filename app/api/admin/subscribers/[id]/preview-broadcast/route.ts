@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
 import { renderEmail } from '@/emails/send';
-import { buildBroadcastEmail, BroadcastSlug, BROADCASTS } from '@/emails/broadcast-config';
+import { buildBroadcastEmail } from '@/emails/broadcast-config';
+import { getBroadcastFileConfig } from '@/emails/broadcast-loader';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 
 /**
@@ -34,8 +35,8 @@ export async function GET(
       return NextResponse.json({ error: 'slug query param is required' }, { status: 400 });
     }
 
-    // Validate slug exists in BROADCASTS config
-    if (!(slugParam in BROADCASTS)) {
+    // Validate slug exists on disk
+    if (!getBroadcastFileConfig(slugParam)) {
       return NextResponse.json(
         { error: `Unknown broadcast slug: ${slugParam}` },
         { status: 400 }
@@ -50,7 +51,7 @@ export async function GET(
     // Use shared broadcast builder to ensure identical output to send endpoint
     const chart = parseChartForEmail(subscriber.chart.chart);
     const { element, subject, preview } = buildBroadcastEmail(
-      slugParam as BroadcastSlug,
+      slugParam,
       id,
       subscriber.first_name,
       subscriber.created_at,

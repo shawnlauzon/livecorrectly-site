@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 import { emailMarked, replaceVariables } from './markdown-renderer';
+import type { BroadcastFilter } from '@/broadcasts/config';
+import * as broadcastFilters from '@/broadcasts/config';
 
 export interface Broadcast {
   slug: string;
@@ -15,6 +17,16 @@ export interface Broadcast {
   postscripts: string[];
 }
 
+/**
+ * Dispatch/control configuration for a broadcast, loaded from frontmatter.
+ */
+export interface BroadcastFileConfig {
+  slug: string;
+  enabled: boolean;
+  from?: string;
+  filter?: BroadcastFilter;
+}
+
 interface RawBroadcast {
   slug: string;
   subject: string;
@@ -22,6 +34,10 @@ interface RawBroadcast {
   bodyMarkdown: string;
   /** Raw postscript strings (markdown, variables intact) */
   rawPs: string[];
+  /** Frontmatter config fields */
+  enabled: boolean;
+  from?: string;
+  filterName?: string;
 }
 
 /** Cached raw broadcasts loaded from disk, keyed by slug */
@@ -43,7 +59,26 @@ function parseRawBroadcast(content: string, slug: string): RawBroadcast {
     rawPs = [data.ps];
   }
 
-  return { slug, subject, preview, bodyMarkdown: body, rawPs };
+  // Config fields from frontmatter
+  const enabled = data.enabled !== false; // default true
+  const from = typeof data.from === 'string' ? data.from : undefined;
+  const filterName = typeof data.filter === 'string' ? data.filter : undefined;
+
+  return { slug, subject, preview, bodyMarkdown: body, rawPs, enabled, from, filterName };
+}
+
+/**
+ * Resolve a filter name from frontmatter to an actual function from broadcasts/config.ts.
+ * Throws if the name doesn't match a named export.
+ */
+function resolveFilter(filterName: string, slug: string): BroadcastFilter {
+  const fn = (broadcastFilters as Record<string, unknown>)[filterName];
+  if (typeof fn !== 'function') {
+    throw new Error(
+      `Broadcast "${slug}" references filter "${filterName}" but no such export exists in broadcasts/config.ts`
+    );
+  }
+  return fn as BroadcastFilter;
 }
 
 /**
@@ -98,6 +133,40 @@ export function getBroadcast(slug: string, variables: Record<string, string>): B
     bodyHtml,
     postscripts,
   };
+}
+
+/**
+ * Get the file-driven config for a single broadcast slug.
+ * Returns null if the broadcast doesn't exist on disk.
+ */
+export function getBroadcastFileConfig(slug: string): BroadcastFileConfig | null {
+  const raw = loadBroadcast(slug);
+  if (!raw) return null;
+
+  return {
+    slug: raw.slug,
+    enabled: raw.enabled,
+    from: raw.from,
+    filter: raw.filterName ? resolveFilter(raw.filterName, slug) : undefined,
+  };
+}
+
+/**
+ * Get configs for all broadcasts on disk.
+ */
+export function getBroadcastConfigs(): BroadcastFileConfig[] {
+  return getBroadcastSlugs().map(slug => {
+    const config = getBroadcastFileConfig(slug);
+    // slug came from disk, so config should always exist
+    return config!;
+  });
+}
+
+/**
+ * Get configs for all enabled broadcasts on disk.
+ */
+export function getEnabledBroadcastConfigs(): BroadcastFileConfig[] {
+  return getBroadcastConfigs().filter(c => c.enabled);
 }
 
 /**

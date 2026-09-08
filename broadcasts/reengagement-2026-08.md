@@ -1,4 +1,6 @@
 ---
+enabled: false
+filter: createdBefore2026Aug
 subject: 'I sent you five emails last year and then disappeared'
 preview: "Let's begin again"
 ps:

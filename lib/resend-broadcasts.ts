@@ -7,11 +7,11 @@ import { renderEmail } from '@/emails/send';
 import { getBroadcast } from '@/emails/broadcast-loader';
 import { BroadcastTemplate } from '@/emails/broadcast-template';
 import {
-  BROADCASTS,
   formatMonth,
   formatMonthYear,
   monthsSince,
 } from '@/emails/broadcast-config';
+import { getBroadcastFileConfig } from '@/emails/broadcast-loader';
 import type { Subscriber } from '@/lib/types/subscriber';
 
 /**
@@ -264,7 +264,7 @@ export async function renderBroadcastForBroadcastApi(slug: string): Promise<{
   subject: string;
   preview: string;
 }> {
-  const broadcastConfig = BROADCASTS[slug];
+  const broadcastConfig = getBroadcastFileConfig(slug);
   if (!broadcastConfig) {
     throw new Error(`Unknown broadcast slug: ${slug}`);
   }
@@ -355,10 +355,10 @@ export async function sendBroadcastViaBroadcastApi(
   const { html, subject } = await renderBroadcastForBroadcastApi(slug);
 
   // 5. Create + send broadcast
-  const broadcastConfig = BROADCASTS[slug];
+  const sendConfig = getBroadcastFileConfig(slug);
   const from =
     options?.from ??
-    broadcastConfig?.from ??
+    sendConfig?.from ??
     process.env.EMAIL_FROM_MARKETING ??
     'Shawn Lauzon <updates@livecorrectly.com>';
   const replyTo =

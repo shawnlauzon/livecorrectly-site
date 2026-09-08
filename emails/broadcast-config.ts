@@ -1,48 +1,12 @@
 import * as React from 'react';
 import { buildUnsubscribeUrl } from './send';
-import { getBroadcast } from './broadcast-loader';
+import { getBroadcast, getBroadcastFileConfig } from './broadcast-loader';
 import { BroadcastTemplate } from './broadcast-template';
-import { buildChartVariables, replaceResendContactVars } from './markdown-renderer';
+import {
+  buildChartVariables,
+  replaceResendContactVars,
+} from './markdown-renderer';
 import type { EmailChartData } from '../lib/hd-chart/parse-for-email';
-import type { Subscriber } from '../lib/types/subscriber';
-
-/**
- * Dispatch/control configuration for a broadcast email.
- * Content (subject, preview, body) lives in broadcasts/*.md files.
- */
-export interface BroadcastConfig {
-  /** Whether the broadcast cron should send this broadcast. */
-  enabled: boolean;
-  /**
-   * Predicate that decides whether a subscriber should receive this broadcast.
-   * Called for every active subscriber who hasn't already received it.
-   * Return true to include, false to skip.
-   */
-  filter: (subscriber: Subscriber) => boolean;
-  /** Custom From header. When set, the broadcast cron uses _sendEmail() directly. */
-  from?: string;
-}
-
-export const BROADCASTS: Record<string, BroadcastConfig> = {
-  'reengagement-2026-08': {
-    enabled: false,
-    filter: (s) => new Date(s.created_at) < new Date('2026-08-01'),
-  },
-  'restart-notice-2026-09': {
-    enabled: true,
-    filter: (s) =>
-      s.next_step === 0 &&
-      new Date(s.created_at) < new Date('2026-09-01'),
-    from: 'Shawn Lauzon (Fractal Human Design) <shawn@livecorrectly.com>',
-  },
-};
-
-export type BroadcastSlug = keyof typeof BROADCASTS;
-
-/** Return only broadcasts with enabled: true. */
-export function getEnabledBroadcasts(): [string, BroadcastConfig][] {
-  return Object.entries(BROADCASTS).filter(([, config]) => config.enabled);
-}
 
 export function formatMonthYear(createdAt: string): string {
   const date = new Date(createdAt);
@@ -82,17 +46,23 @@ export function buildBroadcastEmail(
   createdAt: string,
   unsubToken: string,
   chart: EmailChartData,
-): { element: React.ReactElement; subject: string; preview: string; emailLabel: string; from?: string } {
-  const broadcastConfig = BROADCASTS[slug];
+): {
+  element: React.ReactElement;
+  subject: string;
+  preview: string;
+  emailLabel: string;
+  from?: string;
+} {
+  const broadcastConfig = getBroadcastFileConfig(slug);
   if (!broadcastConfig) {
     throw new Error(`Unknown broadcast slug: ${slug}`);
   }
 
-  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
   const emailLabel = slug.replace(/-/g, '_');
   const unsubscribeUrl = buildUnsubscribeUrl(unsubToken, emailLabel);
 
   // First pass: replace {{appUrl}} and chart variables (double-brace syntax)
+  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
   const variables: Record<string, string> = {
     appUrl,
     ...buildChartVariables(chart),
@@ -118,7 +88,9 @@ export function buildBroadcastEmail(
     preview: replaceResendContactVars(broadcast.preview, contactVars),
     bodyHtml: replaceResendContactVars(broadcast.bodyHtml, contactVars),
     unsubscribeUrl,
-    postscripts: broadcast.postscripts.map(ps => replaceResendContactVars(ps, contactVars)),
+    postscripts: broadcast.postscripts.map((ps) =>
+      replaceResendContactVars(ps, contactVars),
+    ),
   });
 
   return {

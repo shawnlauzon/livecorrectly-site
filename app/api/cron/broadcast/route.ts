@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBroadcastCandidates, recordBroadcastSend } from '@/lib/db';
-import { getEnabledBroadcasts } from '@/emails/broadcast-config';
+import { getEnabledBroadcastConfigs } from '@/emails/broadcast-loader';
 import { sendBroadcastViaBroadcastApi } from '@/lib/resend-broadcasts';
 
 /**
  * Cron endpoint: sends broadcast campaign emails via the Resend Broadcast API.
- * Iterates all enabled broadcasts in BROADCASTS config, querying candidates
- * for each, applying the broadcast's filter predicate, then sending to all
- * eligible subscribers as a single Resend broadcast (not individual emails).
+ * Iterates all enabled broadcasts (loaded from broadcasts/*.md frontmatter),
+ * querying candidates for each, applying the broadcast's filter predicate,
+ * then sending to all eligible subscribers as a single Resend broadcast.
  *
  * Secured by CRON_SECRET (Vercel sends Authorization: Bearer <CRON_SECRET>).
  * Runs daily at 15:00 UTC (configured in vercel.json).
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
   console.log(`[cron:broadcast] Tick at ${new Date().toISOString()}`);
 
-  const enabledBroadcasts = getEnabledBroadcasts();
+  const enabledBroadcasts = getEnabledBroadcastConfigs();
   if (enabledBroadcasts.length === 0) {
     console.log('[cron:broadcast] No enabled broadcasts');
     return NextResponse.json({ ok: true, sent: 0 });
@@ -41,19 +41,20 @@ export async function GET(request: NextRequest) {
 
   let totalSent = 0;
 
-  for (const [slug, config] of enabledBroadcasts) {
-    const candidates = await getBroadcastCandidates(slug);
-    const recipients = candidates.filter(config.filter);
-    console.log(`[cron:broadcast] ${slug}: ${recipients.length} eligible recipient(s) (${candidates.length} candidates)`);
+  for (const config of enabledBroadcasts) {
+    const candidates = await getBroadcastCandidates(config.slug);
+    const filterFn = config.filter ?? (() => true);
+    const recipients = candidates.filter(filterFn);
+    console.log(`[cron:broadcast] ${config.slug}: ${recipients.length} eligible recipient(s) (${candidates.length} candidates)`);
 
     if (recipients.length === 0) continue;
 
-    const { broadcastId, contactCount } = await sendBroadcastViaBroadcastApi(slug, recipients);
-    console.log(`[cron:broadcast] ${slug}: broadcast ${broadcastId} sent to ${contactCount} contacts`);
+    const { broadcastId, contactCount } = await sendBroadcastViaBroadcastApi(config.slug, recipients);
+    console.log(`[cron:broadcast] ${config.slug}: broadcast ${broadcastId} sent to ${contactCount} contacts`);
 
     // Record sends so these subscribers aren't re-queried next time
     for (const subscriber of recipients) {
-      await recordBroadcastSend(subscriber.id, slug);
+      await recordBroadcastSend(subscriber.id, config.slug);
     }
 
     totalSent += contactCount;
