@@ -4,27 +4,49 @@ import { getBroadcast } from './broadcast-loader';
 import { BroadcastTemplate } from './broadcast-template';
 import { buildChartVariables } from './markdown-renderer';
 import type { EmailChartData } from '../lib/hd-chart/parse-for-email';
+import type { Subscriber } from '../lib/types/subscriber';
 
 /**
  * Dispatch/control configuration for a broadcast email.
  * Content (subject, preview, body) lives in broadcasts/*.md files.
  */
-interface BroadcastConfig {
+export interface BroadcastConfig {
+  /** Whether the broadcast cron should send this broadcast. */
+  enabled: boolean;
+  /** Max recipients per cron tick. */
+  batchSize: number;
+  /**
+   * Predicate that decides whether a subscriber should receive this broadcast.
+   * Called for every active subscriber who hasn't already received it.
+   * Return true to include, false to skip.
+   */
+  filter: (subscriber: Subscriber) => boolean;
   /** Custom From header. When set, the broadcast cron uses _sendEmail() directly. */
   from?: string;
-  /** Only send to subscribers at this next_step value. */
-  nextStepFilter?: number;
 }
 
 export const BROADCASTS: Record<string, BroadcastConfig> = {
-  'reengagement-2026-08': {},
+  'reengagement-2026-08': {
+    enabled: false,
+    batchSize: 25,
+    filter: (s) => new Date(s.created_at) < new Date('2026-08-01'),
+  },
   'restart-notice-2026-09': {
+    enabled: true,
+    batchSize: 25,
+    filter: (s) =>
+      s.next_step === 0 &&
+      new Date(s.created_at) < new Date('2026-09-01'),
     from: 'Shawn Lauzon (Fractal Human Design) <shawn@livecorrectly.com>',
-    nextStepFilter: 0,
   },
 };
 
 export type BroadcastSlug = keyof typeof BROADCASTS;
+
+/** Return only broadcasts with enabled: true. */
+export function getEnabledBroadcasts(): [string, BroadcastConfig][] {
+  return Object.entries(BROADCASTS).filter(([, config]) => config.enabled);
+}
 
 export function formatMonthYear(createdAt: string): string {
   const date = new Date(createdAt);
