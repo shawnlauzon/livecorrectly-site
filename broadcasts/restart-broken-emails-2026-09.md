@@ -1,5 +1,5 @@
 ---
-enabled: true
+enabled: false
 filter: stuckAtStepZeroBefore2026Sep
 from: 'Shawn Lauzon (Fractal Human Design) <shawn@livecorrectly.com>'
 subject: 'Your chart from {{{contact.signup_month}}}'
