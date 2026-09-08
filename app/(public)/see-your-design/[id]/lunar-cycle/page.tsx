@@ -43,7 +43,89 @@ export default async function LunarCyclePage({
 
   // Only Reflectors (type === 4) have a lunar cycle page
   if (subscriber.chart.chart.type !== 4) {
-    redirect(`/see-your-design/${id}`);
+    return (
+      <>
+        <header className={styles.wrap}>
+          <nav
+            style={{
+              paddingTop: 28,
+              paddingBottom: 28,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <Link
+              href="/"
+              style={{
+                fontFamily: 'var(--display)',
+                fontWeight: 700,
+                fontSize: '1.24rem',
+                letterSpacing: '-0.02em',
+                textDecoration: 'none',
+              }}
+            >
+              Live <span style={{ color: 'var(--grape)' }}>Correctly</span>
+            </Link>
+            <Link
+              href={`/see-your-design/${id}`}
+              style={{
+                fontWeight: 500,
+                fontSize: '0.92rem',
+                textDecoration: 'none',
+                color: 'var(--muted)',
+              }}
+            >
+              &larr; Your chart
+            </Link>
+          </nav>
+        </header>
+
+        <main className={`${styles.wrap} ${styles.main}`}>
+          <p className={styles.eyebrow}>Lunar Cycle</p>
+          <h1
+            style={{
+              fontFamily: 'var(--display)',
+              fontWeight: 800,
+              fontSize: 'clamp(1.8rem, 4vw, 2.6rem)',
+              lineHeight: 1.08,
+              letterSpacing: '-0.02em',
+              marginBottom: 8,
+            }}
+          >
+            Evaluators only
+          </h1>
+          <p
+            style={{
+              fontSize: 'clamp(0.95rem, 1.4vw, 1.08rem)',
+              color: 'var(--muted)',
+              maxWidth: '36em',
+              marginBottom: 32,
+            }}
+          >
+            The lunar cycle view is unique to Evaluators (Reflectors) &mdash; the
+            rarest type in Human Design. Because their chart has no fixed
+            definition, the Moon&rsquo;s transit creates a distinct monthly rhythm
+            that shapes how they experience energy.
+          </p>
+          <Link
+            href={`/see-your-design/${id}`}
+            style={{
+              fontWeight: 600,
+              fontSize: '0.95rem',
+              color: 'var(--grape)',
+              textDecoration: 'none',
+            }}
+          >
+            &larr; Back to your design
+          </Link>
+        </main>
+
+        <footer className={`${styles.wrap} ${styles.footer}`}>
+          shawn@livecorrectly.com &nbsp;&middot;&nbsp; Austin, TX
+        </footer>
+      </>
+    );
   }
 
   // Extract natal gates from the chart
