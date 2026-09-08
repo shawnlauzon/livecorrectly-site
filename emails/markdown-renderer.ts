@@ -128,6 +128,67 @@ export function replaceResendContactVars(
 }
 
 /**
+ * Replace {{chart:/subpath}} tokens with full subscriber chart URLs.
+ *
+ * Builds: {appUrl}/see-your-design/{subscriberId}{subpath}?utm_source=...
+ *
+ * Used inside standard markdown links:
+ *   [See your lunar cycle]({{chart:/lunar-cycle}})
+ *
+ * If subscriberId is absent, the token is replaced with an empty string.
+ */
+export function replaceChartSubpaths(
+  html: string,
+  subscriberId: string | undefined,
+  newsletterNumber: number,
+): string {
+  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
+  return html.replace(
+    /\{\{chart:(\/[^}]*)\}\}/g,
+    (_match, subpath: string) => {
+      if (!subscriberId) return '';
+      return `${appUrl}/see-your-design/${subscriberId}${subpath}?utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletterNumber}`;
+    },
+  );
+}
+
+/**
+ * Replace {{designed:Button text}} tokens in rendered HTML with styled CTA buttons
+ * linking to the subscriber's personalized web version of the newsletter.
+ *
+ * The token appears inside a <p> tag after markdown rendering:
+ *   <p style="...">{{designed:See what this means for you}}</p>
+ *
+ * Each match is replaced with a centered, inline-styled button.
+ * If slug is null (email-only newsletter), the token is stripped with a warning.
+ */
+export function replaceDesignedCta(
+  html: string,
+  slug: string | null,
+  subscriberId: string,
+  newsletterNumber: number,
+): string {
+  const pattern = /<p[^>]*>\s*\{\{designed:(.+?)\}\}\s*<\/p>/g;
+
+  if (!slug) {
+    const stripped = html.replace(pattern, (_match, buttonText: string) => {
+      console.warn(
+        `[newsletter] Stripping {{designed:${buttonText}}} — newsletter ${newsletterNumber} has no slug`,
+      );
+      return '';
+    });
+    return stripped;
+  }
+
+  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
+  const url = `${appUrl}/newsletter/${slug}?s=${subscriberId}&utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletterNumber}`;
+
+  return html.replace(pattern, (_match, buttonText: string) => {
+    return `<div style="text-align:center;margin:24px 0"><a href="${url}" style="background-color:#6A4BD6;color:#FFFFFF;font-size:16px;font-weight:600;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">${buttonText.trim()}</a></div>`;
+  });
+}
+
+/**
  * Build a variable map from EmailChartData for use in markdown templates.
  * Iterates all string/number/boolean fields, prefixed with "chart.".
  * Skips arrays and objects (e.g. bridgeDescriptions) — those need React components.

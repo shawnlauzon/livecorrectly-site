@@ -118,9 +118,9 @@ export async function renderNewsletterForBroadcast(
   subject: string;
 }> {
   // Use Resend template vars as subscriber values so they survive into the HTML.
-  // Resend broadcast interpolation uses uppercase keys: {{{FIRST_NAME}}}, {{{NEON_ID}}}.
+  // Resend contact properties use lowercase dot syntax: {{{contact.key}}}.
   const resendFirstName = '{{{FIRST_NAME|there}}}';
-  const resendSubscriberId = '{{{NEON_ID}}}';
+  const resendSubscriberId = '{{{contact.neon_id}}}';
 
   const newsletter = getNewsletter(
     newsletterNumber,
@@ -145,8 +145,6 @@ export async function renderNewsletterForBroadcast(
     number: newsletter.number,
     webUrl,
     ps: newsletter.ps,
-    subscriberId: resendSubscriberId,
-    slug: newsletter.slug,
   });
 
   const html = await renderEmail(component);

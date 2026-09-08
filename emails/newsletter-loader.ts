@@ -3,7 +3,7 @@ import {
   parseRawNewsletter,
   type RawNewsletter,
 } from '@/newsletters/loader';
-import { emailMarked, replaceVariables as replaceVars } from './markdown-renderer';
+import { emailMarked, replaceVariables as replaceVars, replaceChartSubpaths, replaceDesignedCta } from './markdown-renderer';
 
 export {
   getNewsletterCount,
@@ -70,11 +70,17 @@ function replaceNewsletterVariables(newsletter: Newsletter, firstName: string, s
     appUrl,
     chartUrl,
   };
+  let bodyHtml = replaceVars(newsletter.bodyHtml, vars);
+  bodyHtml = replaceChartSubpaths(bodyHtml, subscriberId, newsletter.number);
+  if (subscriberId) {
+    bodyHtml = replaceDesignedCta(bodyHtml, newsletter.slug, subscriberId, newsletter.number);
+  }
+
   return {
     ...newsletter,
     subject: replaceVars(newsletter.subject, vars),
     preview: replaceVars(newsletter.preview, vars),
-    bodyHtml: replaceVars(newsletter.bodyHtml, vars),
+    bodyHtml,
     ps: newsletter.ps ? replaceVars(newsletter.ps, vars) : null,
   };
 }

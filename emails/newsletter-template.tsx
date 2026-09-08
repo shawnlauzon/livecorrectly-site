@@ -1,10 +1,9 @@
 import * as React from 'react';
-import { Button, Section, Text, Link, Img } from 'react-email';
+import { Section, Text, Link, Img } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import type { EmailChartData } from '../lib/hd-chart/parse-for-email';
 import { Newsletter04Personalization } from '@/newsletters/personalizations/04';
 import { Newsletter05Personalization } from '@/newsletters/personalizations/05';
-import { hasWebPersonalization } from '@/newsletters/personalizations/web';
 
 interface NewsletterTemplateProps {
   preview: string;
@@ -16,10 +15,6 @@ interface NewsletterTemplateProps {
   number: number;
   webUrl: string | null;
   ps: string | null;
-  /** Subscriber UUID — used to build personalized web links */
-  subscriberId: string | null;
-  /** Newsletter slug — used to build personalized web links */
-  slug: string | null;
 }
 
 /**
@@ -65,18 +60,11 @@ export function NewsletterTemplate({
   number,
   webUrl,
   ps,
-  subscriberId,
-  slug,
 }: NewsletterTemplateProps) {
   const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
   const postscripts = ps
     ? [<span key="ps" dangerouslySetInnerHTML={{ __html: ps }} />]
     : [];
-
-  const showWebCta = hasWebPersonalization(number) && subscriberId && slug;
-  const personalizedWebUrl = showWebCta
-    ? `${appUrl}/newsletter/${slug}?s=${subscriberId}&utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${number}`
-    : null;
 
   const bottomNote = webUrl ? (
     <Section>
@@ -109,27 +97,6 @@ export function NewsletterTemplate({
 
       {/* Inline personalization for newsletters that have it (04, 05) */}
       {chart && <NewsletterPersonalization number={number} chart={chart} />}
-
-      {/* CTA button for newsletters with web personalization (07+) */}
-      {personalizedWebUrl && (
-        <Section style={{ textAlign: 'center', marginTop: '24px' }}>
-          <Button
-            href={personalizedWebUrl}
-            style={{
-              backgroundColor: '#6A4BD6',
-              color: '#FFFFFF',
-              fontSize: '16px',
-              fontWeight: 600,
-              padding: '12px 24px',
-              borderRadius: '6px',
-              textDecoration: 'none',
-              display: 'inline-block',
-            }}
-          >
-            See what this means for you
-          </Button>
-        </Section>
-      )}
     </EmailLayout>
   );
 }

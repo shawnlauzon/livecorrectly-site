@@ -45,7 +45,9 @@ function replaceVariables(markdown: string): string {
   return markdown
     .replace(/\{\{appUrl\}\}/g, APP_URL)
     .replace(/\{\{chartUrl\}\}/g, '/see-your-design')
-    .replace(/\{\{firstName\}\}/g, '');
+    .replace(/\{\{chart:\/[^}]*\}\}/g, '/see-your-design')
+    .replace(/\{\{firstName\}\}/g, '')
+    .replace(/^\{\{designed:.+?\}\}\s*$/gm, '');
 }
 
 /** Marked instance with default renderer (clean semantic HTML) */
