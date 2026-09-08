@@ -319,7 +319,7 @@ export async function getNewsletterDueSubscribers(
 /**
  * Get active subscribers who haven't received this broadcast yet.
  * Returns newest registrations first. Filtering (by created_at, next_step, etc.)
- * is done in the caller via a predicate on BroadcastConfig.
+ * is done in the caller via a predicate from the broadcast's frontmatter config.
  */
 export async function getBroadcastCandidates(
   broadcastSlug: string,
@@ -404,25 +404,3 @@ export async function recordBroadcastSend(
   `;
 }
 
-/**
- * Get subscribers who received the restart notice 2+ days ago but still have next_step = 0.
- * These are due for welcome0 as a follow-up to the restart notice broadcast.
- */
-export async function getRestartFollowUpDueSubscribers(
-  broadcastSlug: string
-): Promise<Subscriber[]> {
-  const db = getDb();
-  const result = await db`
-    SELECT s.* FROM subscribers s
-    WHERE s.email_status IN ('active', 'failed')
-      AND s.next_step = 0
-      AND EXISTS (
-        SELECT 1 FROM broadcast_sends bs
-        WHERE bs.subscriber_id = s.id
-          AND bs.broadcast_slug = ${broadcastSlug}
-          AND bs.sent_at <= now() - interval '2 days'
-      )
-    ORDER BY s.created_at ASC
-  `;
-  return (result as Subscriber[]).map(normalizeSubscriber);
-}

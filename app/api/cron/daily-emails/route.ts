@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getWelcomeDueSubscribers, getWelcomeResendDueSubscribers, getRestartFollowUpDueSubscribers, advanceEmailSeries, setWelcomeResendStep, acquireCronLock } from '@/lib/db';
+import { getWelcomeDueSubscribers, getWelcomeResendDueSubscribers, advanceEmailSeries, setWelcomeResendStep, acquireCronLock } from '@/lib/db';
 import { sendWelcomeEmail, formatEmailRecipient, buildUnsubscribeUrl } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/emails/subjects';
@@ -110,40 +110,6 @@ export async function GET(request: NextRequest) {
       } else {
         await setWelcomeResendStep(subscriber.id, nextResendStep);
       }
-      sent++;
-    } else {
-      skipped++;
-    }
-  }
-
-  // --- Restart notice follow-ups (welcome0 for subscribers who got restart notice 2+ days ago) ---
-  const restartDue = await getRestartFollowUpDueSubscribers('restart-notice-2026-09');
-  console.log(`[cron] Found ${restartDue.length} restart-follow-up-due subscriber(s)`);
-
-  for (const subscriber of restartDue) {
-    const chart = parseChartForEmail(subscriber.chart.chart);
-    const subject = getWelcomeSubject(0);
-    const emailLabel = 'welcome0';
-    const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
-    const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
-    const chartUrl = `${appUrl}/see-your-design/${subscriber.id}`;
-    const emailComponent = getWelcomeEmail(0, subscriber, chart, unsubscribeUrl, chartUrl);
-
-    if (!emailComponent) {
-      skipped++;
-      continue;
-    }
-
-    const result = await sendWelcomeEmail({
-      to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
-      subject,
-      react: emailComponent,
-      unsubToken: subscriber.unsub_token,
-      emailLabel
-    });
-
-    if (result.success) {
-      await advanceEmailSeries(subscriber.id, 1);
       sent++;
     } else {
       skipped++;
