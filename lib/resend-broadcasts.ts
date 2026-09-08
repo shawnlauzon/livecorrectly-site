@@ -189,74 +189,67 @@ export async function sendNewsletterBroadcast(
   }
   const segmentId = segmentData.id;
 
-  try {
-    // 2. Add contacts to segment
-    let contactCount = 0;
-    for (const email of subscriberEmails) {
-      const { error } = await client.contacts.segments.add({
-        email,
-        segmentId,
-      });
-      if (error) {
-        // Contact may not exist in Resend yet — log and skip
-        console.warn(
-          `[broadcast] Failed to add ${email} to segment ${segmentId}:`,
-          error,
-        );
-        continue;
-      }
-      contactCount++;
-    }
-
-    if (contactCount === 0) {
-      throw new Error(
-        `No contacts could be added to segment for newsletter ${newsletterNumber}`,
-      );
-    }
-
-    // 3. Render HTML
-    const { html, subject } =
-      await renderNewsletterForBroadcast(newsletterNumber);
-
-    // 4. Create + send broadcast
-    const from =
-      process.env.EMAIL_FROM_MARKETING ??
-      'Shawn Lauzon <updates@livecorrectly.com>';
-    const replyTo =
-      process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
-
-    const { data: broadcastData, error: broadcastError } =
-      await client.broadcasts.create({
-        name: `Newsletter #${newsletterNumber}`,
-        segmentId,
-        from,
-        replyTo,
-        subject,
-        html,
-        send: true,
-      });
-
-    if (broadcastError || !broadcastData) {
-      throw new Error(
-        `Failed to create broadcast for newsletter ${newsletterNumber}: ${JSON.stringify(broadcastError)}`,
-      );
-    }
-
-    console.log(
-      `[broadcast] Sent newsletter #${newsletterNumber} as broadcast ${broadcastData.id} to ${contactCount} contacts via segment ${segmentId}`,
-    );
-
-    return {
+  // 2. Add contacts to segment
+  let contactCount = 0;
+  for (const email of subscriberEmails) {
+    const { error } = await client.contacts.segments.add({
+      email,
       segmentId,
-      broadcastId: broadcastData.id,
-      contactCount,
-    };
-  } catch (err) {
-    // Clean up the segment on failure — on success, the segment must stay
-    // alive because Resend processes the broadcast send asynchronously.
-    await cleanupSegment(segmentId);
-    throw err;
+    });
+    if (error) {
+      // Contact may not exist in Resend yet — log and skip
+      console.warn(
+        `[broadcast] Failed to add ${email} to segment ${segmentId}:`,
+        error,
+      );
+      continue;
+    }
+    contactCount++;
   }
+
+  if (contactCount === 0) {
+    throw new Error(
+      `No contacts could be added to segment for newsletter ${newsletterNumber}`,
+    );
+  }
+
+  // 3. Render HTML
+  const { html, subject } =
+    await renderNewsletterForBroadcast(newsletterNumber);
+
+  // 4. Create + send broadcast
+  const from =
+    process.env.EMAIL_FROM_MARKETING ??
+    'Shawn Lauzon <updates@livecorrectly.com>';
+  const replyTo =
+    process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+
+  const { data: broadcastData, error: broadcastError } =
+    await client.broadcasts.create({
+      name: `Newsletter #${newsletterNumber}`,
+      segmentId,
+      from,
+      replyTo,
+      subject,
+      html,
+      send: true,
+    });
+
+  if (broadcastError || !broadcastData) {
+    throw new Error(
+      `Failed to create broadcast for newsletter ${newsletterNumber}: ${JSON.stringify(broadcastError)}`,
+    );
+  }
+
+  console.log(
+    `[broadcast] Sent newsletter #${newsletterNumber} as broadcast ${broadcastData.id} to ${contactCount} contacts via segment ${segmentId}`,
+  );
+
+  return {
+    segmentId,
+    broadcastId: broadcastData.id,
+    contactCount,
+  };
 }
 
 /**
@@ -334,97 +327,69 @@ export async function sendBroadcastViaBroadcastApi(
   }
   const segmentId = segmentData.id;
 
-  try {
-    // 3. Add contacts to segment
-    let contactCount = 0;
-    for (const subscriber of subscribers) {
-      const { error } = await client.contacts.segments.add({
-        email: subscriber.email,
-        segmentId,
-      });
-      if (error) {
-        // Contact may not exist in Resend yet — log and skip
-        console.warn(
-          `[broadcast] Failed to add ${subscriber.email} to segment ${segmentId}:`,
-          error,
-        );
-        continue;
-      }
-      contactCount++;
-    }
-
-    if (contactCount === 0) {
-      throw new Error(
-        `No contacts could be added to segment for broadcast ${slug}`,
-      );
-    }
-
-    // 4. Render HTML
-    const { html, subject } = await renderBroadcastForBroadcastApi(slug);
-
-    // 5. Create + send broadcast
-    const broadcastConfig = BROADCASTS[slug];
-    const from =
-      options?.from ??
-      broadcastConfig?.from ??
-      process.env.EMAIL_FROM_MARKETING ??
-      'Shawn Lauzon <updates@livecorrectly.com>';
-    const replyTo =
-      options?.replyTo ??
-      process.env.EMAIL_FROM ??
-      'Shawn Lauzon <shawn@livecorrectly.com>';
-
-    const { data: broadcastData, error: broadcastError } =
-      await client.broadcasts.create({
-        name: `Broadcast: ${slug}`,
-        segmentId,
-        from,
-        replyTo,
-        subject,
-        html,
-        send: true,
-      });
-
-    if (broadcastError || !broadcastData) {
-      throw new Error(
-        `Failed to create broadcast for ${slug}: ${JSON.stringify(broadcastError)}`,
-      );
-    }
-
-    console.log(
-      `[broadcast] Sent broadcast "${slug}" as ${broadcastData.id} to ${contactCount} contacts via segment ${segmentId}`,
-    );
-
-    return {
+  // 3. Add contacts to segment
+  let contactCount = 0;
+  for (const subscriber of subscribers) {
+    const { error } = await client.contacts.segments.add({
+      email: subscriber.email,
       segmentId,
-      broadcastId: broadcastData.id,
-      contactCount,
-    };
-  } catch (err) {
-    // Clean up the segment on failure — on success, the segment must stay
-    // alive because Resend processes the broadcast send asynchronously.
-    await cleanupSegment(segmentId);
-    throw err;
-  }
-}
-
-/**
- * Delete an ephemeral segment. Logs errors but does not throw —
- * orphaned segments are harmless, just clutter the Resend dashboard.
- */
-export async function cleanupSegment(segmentId: string): Promise<void> {
-  try {
-    const client = getResendClient();
-    const { error } = await client.segments.remove(segmentId);
+    });
     if (error) {
-      console.error(
-        `[broadcast] Failed to clean up segment ${segmentId}:`,
+      // Contact may not exist in Resend yet — log and skip
+      console.warn(
+        `[broadcast] Failed to add ${subscriber.email} to segment ${segmentId}:`,
         error,
       );
-    } else {
-      console.log(`[broadcast] Cleaned up segment ${segmentId}`);
+      continue;
     }
-  } catch (err) {
-    console.error(`[broadcast] Error cleaning up segment ${segmentId}:`, err);
+    contactCount++;
   }
+
+  if (contactCount === 0) {
+    throw new Error(
+      `No contacts could be added to segment for broadcast ${slug}`,
+    );
+  }
+
+  // 4. Render HTML
+  const { html, subject } = await renderBroadcastForBroadcastApi(slug);
+
+  // 5. Create + send broadcast
+  const broadcastConfig = BROADCASTS[slug];
+  const from =
+    options?.from ??
+    broadcastConfig?.from ??
+    process.env.EMAIL_FROM_MARKETING ??
+    'Shawn Lauzon <updates@livecorrectly.com>';
+  const replyTo =
+    options?.replyTo ??
+    process.env.EMAIL_FROM ??
+    'Shawn Lauzon <shawn@livecorrectly.com>';
+
+  const { data: broadcastData, error: broadcastError } =
+    await client.broadcasts.create({
+      name: `Broadcast: ${slug}`,
+      segmentId,
+      from,
+      replyTo,
+      subject,
+      html,
+      send: true,
+    });
+
+  if (broadcastError || !broadcastData) {
+    throw new Error(
+      `Failed to create broadcast for ${slug}: ${JSON.stringify(broadcastError)}`,
+    );
+  }
+
+  console.log(
+    `[broadcast] Sent broadcast "${slug}" as ${broadcastData.id} to ${contactCount} contacts via segment ${segmentId}`,
+  );
+
+  return {
+    segmentId,
+    broadcastId: broadcastData.id,
+    contactCount,
+  };
 }
