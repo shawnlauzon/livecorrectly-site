@@ -1,39 +1,15 @@
-import { EmailChartData } from '../lib/hd-chart/parse-for-email';
+import { subject as subject0, preview as preview0 } from './welcome0';
+import { subject as subject1, preview as preview1 } from './welcome1';
+import { subject as subject2, preview as preview2 } from './welcome2';
+import { subject as subject3, preview as preview3 } from './welcome3';
 
-export function getWelcomePreview(
-  step: number,
-  _firstName: string,
-  _chart: EmailChartData,
-): string {
-  switch (step) {
-    case 0:
-      return "It's nothing personal. It's just mechanics.";
-    case 1:
-      return "It's good advice. It's just not yours.";
-    case 2:
-      return 'A test you can run in ten seconds.';
-    case 3:
-      return 'Being honest about the limit.';
-    default:
-      return '';
-  }
+const subjects = [subject0, subject1, subject2, subject3];
+const previews = [preview0, preview1, preview2, preview3];
+
+export function getWelcomeSubject(step: number): string {
+  return subjects[step] ?? '';
 }
 
-export function getWelcomeSubject(
-  step: number,
-  _firstName: string,
-  _chart: EmailChartData,
-): string {
-  switch (step) {
-    case 0:
-      return 'The chart you asked for, and what it shows';
-    case 1:
-      return 'The advice that was never for you';
-    case 2:
-      return 'Are you in the flow?';
-    case 3:
-      return "What these emails can't do";
-    default:
-      return '';
-  }
+export function getWelcomePreview(step: number): string {
+  return previews[step] ?? '';
 }

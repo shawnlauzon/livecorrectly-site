@@ -4,6 +4,9 @@ import { EmailLayout } from './components/email-layout';
 import { PullQuote } from './components/pull-quote';
 import { EmailChartData } from '../lib/hd-chart/parse-for-email';
 
+export const subject = "What these emails can't do";
+export const preview = 'Being honest about the limit.';
+
 interface Welcome3Props {
   firstName: string;
   chart: EmailChartData;

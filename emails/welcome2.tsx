@@ -4,6 +4,9 @@ import { EmailLayout } from './components/email-layout';
 import { EmailChartData } from '../lib/hd-chart/parse-for-email';
 import { formatOftenPrompt } from './content';
 
+export const subject = 'Are you in the flow?';
+export const preview = 'A test you can run in ten seconds.';
+
 interface Welcome2Props {
   firstName: string;
   chart: EmailChartData;

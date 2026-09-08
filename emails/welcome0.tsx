@@ -5,6 +5,9 @@ import { Prose } from './components/prose';
 import { EmailChartData } from '../lib/hd-chart/parse-for-email';
 import { shadowOpenings, formatPrompt, formatLandForYou } from './content';
 
+export const subject = 'The chart you asked for, and what it shows';
+export const preview = "It's nothing personal. It's just mechanics.";
+
 interface Welcome0Props {
   firstName: string;
   chart: EmailChartData;

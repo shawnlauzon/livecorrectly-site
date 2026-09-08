@@ -9,6 +9,9 @@ import {
   formatPrompt,
 } from './content';
 
+export const subject = 'The advice that was never for you';
+export const preview = "It's good advice. It's just not yours.";
+
 interface Welcome1Props {
   firstName: string;
   chart: EmailChartData;
