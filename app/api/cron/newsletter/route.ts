@@ -5,7 +5,7 @@ import { sendWelcomeEmail, formatEmailRecipient, buildUnsubscribeUrl } from '@/e
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getNewsletterEmail, getNewsletterSubject, getMaxNewsletterNumber } from '@/emails/newsletter';
 import { hasInlinePersonalization } from '@/emails/newsletter-template';
-import { sendNewsletterBroadcast, cleanupSegment } from '@/lib/resend-broadcasts';
+import { sendNewsletterBroadcast } from '@/lib/resend-broadcasts';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import type { Subscriber } from '@/lib/types/subscriber';
 
@@ -69,7 +69,8 @@ export async function GET(request: NextRequest) {
 
   let sent = 0;
   let skipped = dueSubscribers.filter(s => s.next_step > maxNewsletterNumber).length;
-  const segmentsToCleanup: string[] = [];
+  // Segments are left in Resend after successful sends — Resend processes
+  // broadcasts asynchronously and needs the segment to still exist.
 
   for (const [newsletterNumber, subscribers] of groups) {
     if (hasInlinePersonalization(newsletterNumber)) {
@@ -107,8 +108,6 @@ export async function GET(request: NextRequest) {
       try {
         const emails = subscribers.map(s => s.email);
         const result = await sendNewsletterBroadcast(newsletterNumber, emails);
-        segmentsToCleanup.push(result.segmentId);
-
         // Advance next_step for all subscribers in the group
         for (const subscriber of subscribers) {
           await advanceEmailSeries(subscriber.id, subscriber.next_step + 1);
@@ -122,11 +121,6 @@ export async function GET(request: NextRequest) {
         skipped += subscribers.length;
       }
     }
-  }
-
-  // Clean up ephemeral segments (best-effort)
-  for (const segmentId of segmentsToCleanup) {
-    await cleanupSegment(segmentId);
   }
 
   if (sent > 0) {
