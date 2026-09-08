@@ -99,7 +99,7 @@ export function NewsletterTemplate({
         <Img
           src={`${appUrl}/newsletter/${image}`}
           alt=""
-          width={536}
+          width={612}
           style={{ display: 'block', borderRadius: '8px', marginBottom: '24px', width: '100%', height: 'auto' }}
         />
       )}

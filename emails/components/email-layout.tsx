@@ -51,7 +51,7 @@ export function EmailLayout({
         <Head />
         <Preview>{preview}</Preview>
         <Body className="bg-[#F6F3FC] font-sans">
-          <Container className="mx-auto max-w-[600px] bg-white p-[32px]">
+          <Container className="mx-auto max-w-[660px] bg-white px-[24px] py-[32px]">
             {children}
 
             <Signature />
