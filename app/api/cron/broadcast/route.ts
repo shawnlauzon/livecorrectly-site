@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBroadcastCandidates, recordBroadcastSend } from '@/lib/db';
-import { sendMarketingEmail, _sendEmail, formatEmailRecipient } from '@/emails/send';
-import { buildBroadcastEmail, getEnabledBroadcasts } from '@/emails/broadcast-config';
-import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
+import { getEnabledBroadcasts } from '@/emails/broadcast-config';
+import { sendBroadcastViaBroadcastApi } from '@/lib/resend-broadcasts';
 
 /**
- * Cron endpoint: sends broadcast campaign emails.
+ * Cron endpoint: sends broadcast campaign emails via the Resend Broadcast API.
  * Iterates all enabled broadcasts in BROADCASTS config, querying candidates
- * for each, applying the broadcast's filter predicate, and sending to all
- * eligible subscribers.
+ * for each, applying the broadcast's filter predicate, then sending to all
+ * eligible subscribers as a single Resend broadcast (not individual emails).
  *
  * Secured by CRON_SECRET (Vercel sends Authorization: Bearer <CRON_SECRET>).
  * Runs daily at 15:00 UTC (configured in vercel.json).
@@ -37,11 +36,10 @@ export async function GET(request: NextRequest) {
   const enabledBroadcasts = getEnabledBroadcasts();
   if (enabledBroadcasts.length === 0) {
     console.log('[cron:broadcast] No enabled broadcasts');
-    return NextResponse.json({ ok: true, sent: 0, skipped: 0 });
+    return NextResponse.json({ ok: true, sent: 0 });
   }
 
   let totalSent = 0;
-  let totalSkipped = 0;
 
   for (const [slug, config] of enabledBroadcasts) {
     const candidates = await getBroadcastCandidates(slug);
@@ -50,56 +48,17 @@ export async function GET(request: NextRequest) {
 
     if (recipients.length === 0) continue;
 
-    let sent = 0;
-    let skipped = 0;
+    const { broadcastId, contactCount } = await sendBroadcastViaBroadcastApi(slug, recipients);
+    console.log(`[cron:broadcast] ${slug}: broadcast ${broadcastId} sent to ${contactCount} contacts`);
 
+    // Record sends so these subscribers aren't re-queried next time
     for (const subscriber of recipients) {
-      const chart = parseChartForEmail(subscriber.chart.chart);
-      const { element, subject, emailLabel, from: customFrom } = buildBroadcastEmail(
-        slug,
-        subscriber.id,
-        subscriber.first_name,
-        subscriber.created_at,
-        subscriber.unsub_token,
-        chart
-      );
-
-      let result: { success: boolean; id?: string };
-
-      if (customFrom) {
-        // Custom from address: use _sendEmail directly with replyTo
-        result = await _sendEmail({
-          to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
-          subject,
-          react: element,
-          unsubToken: subscriber.unsub_token,
-          from: customFrom,
-          replyTo: 'shawn@livecorrectly.com',
-          emailLabel,
-        });
-      } else {
-        result = await sendMarketingEmail({
-          to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
-          subject,
-          react: element,
-          unsubToken: subscriber.unsub_token,
-          emailLabel,
-        });
-      }
-
-      if (result.success) {
-        await recordBroadcastSend(subscriber.id, slug);
-        sent++;
-      } else {
-        skipped++;
-      }
+      await recordBroadcastSend(subscriber.id, slug);
     }
 
-    console.log(`[cron:broadcast] ${slug}: sent=${sent} skipped=${skipped}`);
-    totalSent += sent;
-    totalSkipped += skipped;
+    totalSent += contactCount;
   }
 
-  console.log(`[cron:broadcast] Done: sent=${totalSent} skipped=${totalSkipped}`);
-  return NextResponse.json({ ok: true, sent: totalSent, skipped: totalSkipped });
+  console.log(`[cron:broadcast] Done: sent=${totalSent}`);
+  return NextResponse.json({ ok: true, sent: totalSent });
 }

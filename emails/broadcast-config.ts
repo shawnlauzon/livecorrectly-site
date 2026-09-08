@@ -103,7 +103,7 @@ export function buildBroadcastEmail(
     chartUrl,
     unsubscribeUrl,
     monthYear,
-    month,
+    signupMonth: month,
     monthsSinceSignup: String(monthsSinceSignup),
     ...buildChartVariables(chart),
   };

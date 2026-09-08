@@ -34,7 +34,7 @@ async function ensureNeonIdProperty() {
   console.log('Ensuring neon_id contact property exists in Resend...');
   const { error } = await resend.contactProperties.create({
     key: 'neon_id',
-    type: 'string',
+    type: 'string' as const,
   });
   if (error) {
     // 409 = already exists, which is fine
@@ -68,13 +68,16 @@ async function main() {
 
   for (const sub of subscribers) {
     const { id, email, first_name, last_name } = sub;
+    const properties = {
+      neon_id: id,
+    };
 
     try {
       const { error } = await resend.contacts.create({
         email,
         firstName: first_name,
         ...(last_name && { lastName: last_name }),
-        properties: { neon_id: id },
+        properties,
       });
 
       if (error) {
@@ -84,7 +87,7 @@ async function main() {
             email,
             firstName: first_name,
             ...(last_name && { lastName: last_name }),
-            properties: { neon_id: id },
+            properties,
           });
 
           if (updateError) {

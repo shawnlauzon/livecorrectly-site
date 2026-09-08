@@ -1,11 +1,11 @@
 ---
-subject: 'Your chart from {{month}}'
+subject: 'Your chart from {{signupMonth}}'
 preview: 'There was supposed to be more after it.'
 ---
 
 Hi {{firstName}},
 
-In {{month}} you got your Human Design chart at Fractal Human Design. A series of emails was supposed to follow it. Unfortunately my automation was broken and it never sent.
+In {{signupMonth}} you got your Human Design chart at Fractal Human Design. A series of emails was supposed to follow it. Unfortunately my automation was broken and it never sent.
 
 But it's being fixed this week! I'll be sending four emails over four days about what your chart means for how you work and how you decide, then something once a week after that.
 

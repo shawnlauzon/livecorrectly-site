@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
-import { sendMarketingEmail, _sendEmail, formatEmailRecipient } from '@/emails/send';
-import { buildBroadcastEmail, BroadcastSlug } from '@/emails/broadcast-config';
-import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
+import { sendBroadcastViaBroadcastApi } from '@/lib/resend-broadcasts';
 
 /**
  * POST /api/admin/subscribers/[id]/send-broadcast
  *
  * Manually send a broadcast email to a subscriber for testing/verification.
+ * Sends a real Resend broadcast to a segment of one — confirms the full
+ * Broadcast API pipeline end-to-end.
+ *
  * Does NOT record in broadcast_sends — manual sends are independent of the
  * automated broadcast, so the subscriber still gets the real send from the cron.
  *
- * Body: { slug: "reengagement-2026-08" }
+ * Body: { slug: "restart-notice-2026-09" }
  * Auth: Bearer <ADMIN_PASSWORD>
  */
 export async function POST(
@@ -61,49 +62,13 @@ export async function POST(
       );
     }
 
-    // Build and send the email using shared broadcast config
-    const chart = parseChartForEmail(subscriber.chart.chart);
-    const { element, subject, emailLabel, from: customFrom } = buildBroadcastEmail(
-      slug as BroadcastSlug,
-      id,
-      subscriber.first_name,
-      subscriber.created_at,
-      subscriber.unsub_token,
-      chart
+    const { broadcastId, contactCount } = await sendBroadcastViaBroadcastApi(
+      slug,
+      [subscriber],
     );
 
-    let result: { success: boolean; id?: string };
-
-    if (customFrom) {
-      // Custom from address: use _sendEmail directly with replyTo
-      result = await _sendEmail({
-        to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
-        subject,
-        react: element,
-        unsubToken: subscriber.unsub_token,
-        from: customFrom,
-        replyTo: 'shawn@livecorrectly.com',
-        emailLabel,
-      });
-    } else {
-      result = await sendMarketingEmail({
-        to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
-        subject,
-        react: element,
-        unsubToken: subscriber.unsub_token,
-        emailLabel,
-      });
-    }
-
-    if (!result.success) {
-      return NextResponse.json(
-        { error: 'Failed to send email' },
-        { status: 500 }
-      );
-    }
-
-    console.log(`[admin] Manually sent broadcast "${slug}" to ${subscriber.email} (id=${result.id})`);
-    return NextResponse.json({ ok: true, slug, emailId: result.id });
+    console.log(`[admin] Manually sent broadcast "${slug}" to ${subscriber.email} (broadcastId=${broadcastId}, contacts=${contactCount})`);
+    return NextResponse.json({ ok: true, slug, broadcastId, contactCount });
   } catch (error) {
     console.error('[admin] Error sending broadcast email:', error);
     return NextResponse.json(
