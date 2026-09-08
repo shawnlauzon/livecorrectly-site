@@ -13,4 +13,4 @@ You might also notice a change to Live Correctly. Same thing, different name.
 
 If you'd rather not receive anything, hit [unsubscribe]({{{RESEND_UNSUBSCRIBE_URL}}}) below. No hard feelings.
 
-—Shawn
+&mdash;Shawn
