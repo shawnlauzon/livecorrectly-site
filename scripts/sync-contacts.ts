@@ -30,7 +30,27 @@ async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+async function ensureNeonIdProperty() {
+  console.log('Ensuring neon_id contact property exists in Resend...');
+  const { error } = await resend.contactProperties.create({
+    key: 'neon_id',
+    type: 'string',
+  });
+  if (error) {
+    // 409 = already exists, which is fine
+    if ('statusCode' in error && (error as { statusCode: number }).statusCode === 409) {
+      console.log('  neon_id property already exists');
+    } else {
+      throw new Error(`Failed to create neon_id property: ${JSON.stringify(error)}`);
+    }
+  } else {
+    console.log('  Created neon_id property');
+  }
+}
+
 async function main() {
+  await ensureNeonIdProperty();
+
   console.log('Querying active subscribers from Neon...');
 
   const subscribers = await sql`

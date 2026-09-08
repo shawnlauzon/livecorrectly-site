@@ -18,6 +18,33 @@ export function getResendClient(): Resend {
   return resend;
 }
 
+let neonIdPropertyEnsured = false;
+
+/**
+ * Ensure the neon_id contact property exists in Resend.
+ * Called once per process before the first contact sync.
+ * 409 (already exists) is expected and harmless.
+ */
+async function ensureNeonIdProperty(): Promise<void> {
+  if (neonIdPropertyEnsured) return;
+
+  const client = getResendClient();
+  const { error } = await client.contactProperties.create({
+    key: 'neon_id',
+    type: 'string',
+  });
+
+  if (error) {
+    if ('statusCode' in error && (error as { statusCode: number }).statusCode === 409) {
+      // Property already exists — expected
+    } else {
+      throw new Error(`Failed to create neon_id contact property: ${JSON.stringify(error)}`);
+    }
+  }
+
+  neonIdPropertyEnsured = true;
+}
+
 /**
  * Create or update a contact in Resend with their Neon subscriber ID as a property.
  * On 409 conflict (contact already exists), falls back to update.
@@ -33,6 +60,7 @@ export async function syncContactToResend({
   lastName: string | null;
   subscriberId: string;
 }): Promise<void> {
+  await ensureNeonIdProperty();
   const client = getResendClient();
 
   const { error } = await client.contacts.create({
