@@ -17,6 +17,7 @@ Other hard rules:
 - **Shawn's written copy is authoritative.** Never silently change wording. Typo fixes are fine; any substantive wording change must be *proposed*, not applied.
 - **Reuse the existing chart engine.** Do not rewrite the Human Design calculation. Call the engine already in the repo.
 - **Match the existing design** (tokens below + the reference HTML). Do not fall back to generic shadcn/template defaults.
+- **Never hard-code a value that has a single source of truth elsewhere.** Read it from the source (config file, constant, database) instead of duplicating it. If a value appears in `vercel.json`, a shared constant, or a config file, reference that source — don't copy the value.
 
 ## Development
 ```bash

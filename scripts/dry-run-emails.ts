@@ -21,7 +21,8 @@ import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '../emails/welcome';
 import { getWelcomeSubject } from '../emails/subjects';
 import { getNewsletterEmail, getNewsletterSubject, getMaxNewsletterNumber } from '../emails/newsletter';
 import { renderEmail, formatEmailRecipient, canSendTo, buildUnsubscribeUrl } from '../emails/send';
-import { buildBroadcastEmail, getEnabledBroadcasts } from '../emails/broadcast-config';
+import { buildBroadcastEmail } from '../emails/broadcast-config';
+import { getEnabledBroadcastConfigs } from '../emails/broadcast-loader';
 import type { Subscriber } from '../lib/types/subscriber';
 import fs from 'fs';
 import path from 'path';
@@ -54,9 +55,52 @@ const runBroadcast = !welcomeOnly && !newsletterOnly;
 
 // --- Cron schedule helpers ---
 
+interface VercelCronEntry {
+  path: string;
+  schedule: string;
+}
+
+interface VercelConfig {
+  crons?: VercelCronEntry[];
+}
+
+/**
+ * Parse a 5-field cron expression into minute, hour, and optional day-of-week.
+ * Only supports the simple patterns used in vercel.json (no ranges, lists, etc.).
+ */
+function parseCronSchedule(expr: string): { minute: number; hour: number; dayOfWeek?: number } {
+  const parts = expr.trim().split(/\s+/);
+  if (parts.length !== 5) {
+    throw new Error(`Expected 5-field cron expression, got: "${expr}"`);
+  }
+  const [minuteStr, hourStr, , , dowStr] = parts;
+  const minute = parseInt(minuteStr, 10);
+  const hour = parseInt(hourStr, 10);
+  if (isNaN(minute) || isNaN(hour)) {
+    throw new Error(`Could not parse minute/hour from cron expression: "${expr}"`);
+  }
+  const dayOfWeek = dowStr === '*' ? undefined : parseInt(dowStr, 10);
+  if (dayOfWeek !== undefined && isNaN(dayOfWeek)) {
+    throw new Error(`Could not parse day-of-week from cron expression: "${expr}"`);
+  }
+  return { minute, hour, dayOfWeek };
+}
+
+/**
+ * Read vercel.json and return the cron schedule for the given API path.
+ */
+function getCronScheduleForPath(cronPath: string): { minute: number; hour: number; dayOfWeek?: number } {
+  const configPath = path.join(process.cwd(), 'vercel.json');
+  const config: VercelConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  const entry = config.crons?.find(c => c.path === cronPath);
+  if (!entry) {
+    throw new Error(`No cron entry found in vercel.json for path: ${cronPath}`);
+  }
+  return parseCronSchedule(entry.schedule);
+}
+
 /**
  * Compute the next occurrence of a UTC cron time (hour:minute, optional day-of-week).
- * Handles the three schedules in vercel.json without a library.
  */
 function getNextCronDate(hourUtc: number, minuteUtc: number, dayOfWeek?: number): Date {
   const now = new Date();
@@ -95,10 +139,14 @@ function formatCronDate(date: Date): string {
   return `${dayPart} at ${timePart}`;
 }
 
-// Cron schedules from vercel.json
-const nextWelcomeDate  = getNextCronDate(14, 0);         // 0 14 * * *
-const nextBroadcastDate = getNextCronDate(15, 0);        // 0 15 * * *
-const nextNewsletterDate = getNextCronDate(12, 47, 3);   // 47 12 * * 3
+// Cron schedules read from vercel.json (single source of truth)
+const welcomeSchedule    = getCronScheduleForPath('/api/cron/daily-emails');
+const broadcastSchedule  = getCronScheduleForPath('/api/cron/broadcast');
+const newsletterSchedule = getCronScheduleForPath('/api/cron/newsletter');
+
+const nextWelcomeDate    = getNextCronDate(welcomeSchedule.hour, welcomeSchedule.minute, welcomeSchedule.dayOfWeek);
+const nextBroadcastDate  = getNextCronDate(broadcastSchedule.hour, broadcastSchedule.minute, broadcastSchedule.dayOfWeek);
+const nextNewsletterDate = getNextCronDate(newsletterSchedule.hour, newsletterSchedule.minute, newsletterSchedule.dayOfWeek);
 
 // --- Safety checks ---
 
@@ -220,6 +268,9 @@ async function run(): Promise<void> {
 
   const outputDir = renderHtml ? ensureOutputDir() : null;
 
+  // In --json mode, buffer everything and print at the end.
+  // In text mode, print each cohort as it completes.
+
   // --- Welcome series ---
 
   if (runWelcome) {
@@ -271,6 +322,23 @@ async function run(): Promise<void> {
         report.summary.welcomeWouldSend++;
       } else {
         report.summary.welcomeBlocked++;
+      }
+    }
+
+    if (!jsonOutput) {
+      console.log('--- Welcome Series ---');
+      console.log(`${report.welcome.length} subscriber(s) due`);
+      console.log(`Next send: ${formatCronDate(nextWelcomeDate)}\n`);
+
+      for (let i = 0; i < report.welcome.length; i++) {
+        const r = report.welcome[i];
+        const canSendLabel = r.canSend ? 'yes' : 'NO';
+        const renderLabel = r.renderOk
+          ? `ok (${r.htmlBytes.toLocaleString()} bytes)`
+          : `FAILED: ${r.renderError}`;
+        console.log(`  ${i + 1}. ${r.email} (${r.name})`);
+        console.log(`     Welcome ${r.step} — "${r.subject}"`);
+        console.log(`     Can send: ${canSendLabel} · Render: ${renderLabel}\n`);
       }
     }
   }
@@ -351,20 +419,49 @@ async function run(): Promise<void> {
         report.summary.newsletterSkipped++;
       }
     }
+
+    if (!jsonOutput) {
+      console.log('--- Newsletters ---');
+      console.log(`${report.newsletter.length} subscriber(s) due (max available: #${report.maxNewsletterNumber})`);
+      console.log(`Next send: ${formatCronDate(nextNewsletterDate)}\n`);
+
+      for (let i = 0; i < report.newsletter.length; i++) {
+        const r = report.newsletter[i];
+        if (r.skipped) {
+          console.log(`  ${i + 1}. ${r.email} (${r.name})`);
+          console.log(`     Step ${r.step} — SKIPPED (${r.skipReason})\n`);
+          continue;
+        }
+        const canSendLabel = r.canSend ? 'yes' : 'NO';
+        const renderLabel = r.renderOk
+          ? `ok (${r.htmlBytes.toLocaleString()} bytes)`
+          : `FAILED: ${r.renderError}`;
+        console.log(`  ${i + 1}. ${r.email} (${r.name})`);
+        console.log(`     Newsletter #${r.step} — "${r.subject}"`);
+        console.log(`     Can send: ${canSendLabel} · Render: ${renderLabel}\n`);
+      }
+    }
   }
 
   // --- Broadcasts ---
 
   if (runBroadcast) {
-    const enabledBroadcasts = getEnabledBroadcasts();
+    const enabledBroadcasts = getEnabledBroadcastConfigs();
 
-    for (const [slug, config] of enabledBroadcasts) {
-      const candidates = await getBroadcastCandidates(slug);
-      const eligible = candidates.filter(config.filter);
+    if (!jsonOutput) {
+      console.log('--- Broadcasts ---');
+      console.log(`${enabledBroadcasts.length} enabled broadcast(s)`);
+      console.log(`Next send: ${formatCronDate(nextBroadcastDate)}\n`);
+    }
+
+    for (const config of enabledBroadcasts) {
+      const candidates = await getBroadcastCandidates(config.slug);
+      const filterFn = config.filter ?? (() => true);
+      const eligible = candidates.filter(filterFn);
       const recipients = filterSubscribers(eligible);
 
       const group: BroadcastGroupResult = {
-        slug,
+        slug: config.slug,
         candidates: candidates.length,
         eligible: eligible.length,
         recipients: [],
@@ -376,7 +473,7 @@ async function run(): Promise<void> {
         const sendable = await canSendTo(recipient);
 
         const result: BroadcastResult = {
-          slug,
+          slug: config.slug,
           email: subscriber.email,
           name: subscriber.last_name
             ? `${subscriber.first_name} ${subscriber.last_name}`
@@ -389,7 +486,7 @@ async function run(): Promise<void> {
 
         try {
           const { element, subject } = buildBroadcastEmail(
-            slug,
+            config.slug,
             subscriber.id,
             subscriber.first_name,
             subscriber.created_at,
@@ -404,7 +501,7 @@ async function run(): Promise<void> {
 
           if (outputDir) {
             const safeEmail = subscriber.email.replace(/[^a-zA-Z0-9@._-]/g, '_');
-            writeHtmlFile(outputDir, `broadcast-${slug}-${safeEmail}.html`, html);
+            writeHtmlFile(outputDir, `broadcast-${config.slug}-${safeEmail}.html`, html);
           }
         } catch (err) {
           result.renderError = err instanceof Error ? err.message : String(err);
@@ -420,6 +517,21 @@ async function run(): Promise<void> {
       }
 
       report.broadcast.push(group);
+
+      if (!jsonOutput) {
+        console.log(`  "${group.slug}" (${group.eligible} eligible of ${group.candidates} candidates)\n`);
+
+        for (let i = 0; i < group.recipients.length; i++) {
+          const r = group.recipients[i];
+          const canSendLabel = r.canSend ? 'yes' : 'NO';
+          const renderLabel = r.renderOk
+            ? `ok (${r.htmlBytes.toLocaleString()} bytes)`
+            : `FAILED: ${r.renderError}`;
+          console.log(`    ${i + 1}. ${r.email} (${r.name})`);
+          console.log(`       "${r.subject}"`);
+          console.log(`       Can send: ${canSendLabel} · Render: ${renderLabel}\n`);
+        }
+      }
     }
   }
 
@@ -428,68 +540,6 @@ async function run(): Promise<void> {
   if (jsonOutput) {
     console.log(JSON.stringify(report, null, 2));
     return;
-  }
-
-  // Text output
-  if (runWelcome) {
-    console.log('--- Welcome Series ---');
-    console.log(`${report.welcome.length} subscriber(s) due`);
-    console.log(`Next send: ${formatCronDate(nextWelcomeDate)}\n`);
-
-    for (let i = 0; i < report.welcome.length; i++) {
-      const r = report.welcome[i];
-      const canSendLabel = r.canSend ? 'yes' : 'NO';
-      const renderLabel = r.renderOk
-        ? `ok (${r.htmlBytes.toLocaleString()} bytes)`
-        : `FAILED: ${r.renderError}`;
-      console.log(`  ${i + 1}. ${r.email} (${r.name})`);
-      console.log(`     Welcome ${r.step} — "${r.subject}"`);
-      console.log(`     Can send: ${canSendLabel} · Render: ${renderLabel}\n`);
-    }
-  }
-
-  if (runNewsletter) {
-    console.log('--- Newsletters ---');
-    console.log(`${report.newsletter.length} subscriber(s) due (max available: #${report.maxNewsletterNumber})`);
-    console.log(`Next send: ${formatCronDate(nextNewsletterDate)}\n`);
-
-    for (let i = 0; i < report.newsletter.length; i++) {
-      const r = report.newsletter[i];
-      if (r.skipped) {
-        console.log(`  ${i + 1}. ${r.email} (${r.name})`);
-        console.log(`     Step ${r.step} — SKIPPED (${r.skipReason})\n`);
-        continue;
-      }
-      const canSendLabel = r.canSend ? 'yes' : 'NO';
-      const renderLabel = r.renderOk
-        ? `ok (${r.htmlBytes.toLocaleString()} bytes)`
-        : `FAILED: ${r.renderError}`;
-      console.log(`  ${i + 1}. ${r.email} (${r.name})`);
-      console.log(`     Newsletter #${r.step} — "${r.subject}"`);
-      console.log(`     Can send: ${canSendLabel} · Render: ${renderLabel}\n`);
-    }
-  }
-
-  if (runBroadcast) {
-    console.log('--- Broadcasts ---');
-    const enabledCount = report.broadcast.length;
-    console.log(`${enabledCount} enabled broadcast(s)`);
-    console.log(`Next send: ${formatCronDate(nextBroadcastDate)}\n`);
-
-    for (const group of report.broadcast) {
-      console.log(`  "${group.slug}" (${group.eligible} eligible of ${group.candidates} candidates)\n`);
-
-      for (let i = 0; i < group.recipients.length; i++) {
-        const r = group.recipients[i];
-        const canSendLabel = r.canSend ? 'yes' : 'NO';
-        const renderLabel = r.renderOk
-          ? `ok (${r.htmlBytes.toLocaleString()} bytes)`
-          : `FAILED: ${r.renderError}`;
-        console.log(`    ${i + 1}. ${r.email} (${r.name})`);
-        console.log(`       "${r.subject}"`);
-        console.log(`       Can send: ${canSendLabel} · Render: ${renderLabel}\n`);
-      }
-    }
   }
 
   console.log('--- Summary ---');
