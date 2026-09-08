@@ -50,7 +50,7 @@ export function EmailLayout({
       <Html lang="en">
         <Head />
         <Preview>{preview}</Preview>
-        <Body className="bg-[#F6F3FC] font-sans">
+        <Body className="bg-[#FAF8F4] font-sans">
           <Container className="mx-auto max-w-[660px] bg-white px-[24px] py-[32px]">
             {children}
 
@@ -59,7 +59,7 @@ export function EmailLayout({
             {postscripts.map((content, index) => (
               <Text
                 key={index}
-                className="mt-[24px] mb-[16px] text-[16px] italic leading-[24px] text-[#4A4A4A]"
+                className="mt-[24px] mb-[16px] text-[16px] italic leading-[24px] text-[#45585B]"
               >
                 {getPostscriptPrefix(index)} {content}
               </Text>
@@ -67,18 +67,18 @@ export function EmailLayout({
 
             {bottomNote}
 
-            <Hr className="my-[24px] border-[#E6E1F4]" />
+            <Hr className="my-[24px] border-[#C9C2B4]" />
 
             <Section>
-              <Text className="m-0 text-[12px] leading-[18px] text-[#6E688A]">
+              <Text className="m-0 text-[12px] leading-[18px] text-[#45585B]">
                 Live Correctly
                 <br />
                 5305 Indio Drive, Austin, TX 78745
               </Text>
-              <Text className="mt-[8px] text-[12px] leading-[18px] text-[#6E688A]">
+              <Text className="mt-[8px] text-[12px] leading-[18px] text-[#45585B]">
                 <Link
                   href={unsubscribeUrl}
-                  className="text-[#6E688A] underline"
+                  className="text-[#45585B] underline"
                 >
                   Unsubscribe
                 </Link>

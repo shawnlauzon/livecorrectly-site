@@ -30,16 +30,16 @@ export function CareerTypeHighlight({
               <tr>
                 <td
                   align="center"
-                  className="h-[40px] w-[40px] rounded-full bg-[#E6E1F4] p-0"
+                  className="h-[40px] w-[40px] rounded-full bg-[#F0E6EB] p-0"
                 >
-                  <Text className="m-0 font-serif text-[#6A4BD6]">{number}</Text>
+                  <Text className="m-0 font-serif text-[#8C4A6B]">{number}</Text>
                 </td>
               </tr>
             </tbody>
           </table>
         </Column>
         <Column className="w-[85%]">
-          <Text className="m-0 text-[20px] font-serif leading-[28px] text-[#221B3D]">
+          <Text className="m-0 text-[20px] font-serif leading-[28px] text-[#12262A]">
             {title}
           </Text>
           <Text className="m-0 mt-[8px] text-[16px] leading-[24px]">

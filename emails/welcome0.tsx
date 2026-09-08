@@ -61,16 +61,16 @@ export const Welcome0 = ({
       postscripts={[...(shadow?.ps ? [shadow.ps] : [])]}
     >
       {/* Greeting + common opener */}
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
         {firstName},
       </Text>
 
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
         Thanks for signing up to see how you&apos;re designed! I&apos;m excited
         to be here to support you.
       </Text>
 
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
         Before anything else, one thing from your chart. {reflectionPrompt}
       </Text>
 
@@ -78,7 +78,7 @@ export const Welcome0 = ({
       {shadow ? (
         <>
           <Prose content={shadow.scenes} />
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
             These are all signs that{' '}
             <strong>you tend to {shadow.shadow}</strong>. When you see this,
             your mind might immediately start to self-blame and believe
@@ -92,13 +92,13 @@ export const Welcome0 = ({
             bridgesToShow.map((bridge, i) => (
               <Text
                 key={i}
-                className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]"
+                className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]"
               >
                 {bridge.description}
               </Text>
             ))}
 
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
             {chart.hasChannelBridge
               ? "You might believe that this is one of the world's biggest flaws, and that if only that was changed, then you would be "
               : 'You might believe that this is one of your biggest flaws, and that if only you could fix it, then you would be '}
@@ -114,23 +114,23 @@ export const Welcome0 = ({
 
       {chart.hasChannelBridge ? (
         <>
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
             Not true. <strong>The world is perfect as it is.</strong>
           </Text>
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
             However, your rare gift is the ability to be objective and to help
             work on world problems. This is something very few people have.
           </Text>
         </>
       ) : (
         <>
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
             Not true. <strong>You are perfect as you are.</strong>
           </Text>
 
           {/* --- Bridge shadow: relief --- */}
           {hasBridgeShadow && bridgesToShow.length > 0 && (
-            <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+            <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
               This gap is exactly where you are designed to collaborate with
               someone else. The ideal person who brings exactly the thing you
               need.
@@ -141,7 +141,7 @@ export const Welcome0 = ({
 
       {/* --- Shadow-specific: relief --- */}
       {shadow && (
-        <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+        <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
           Even if you struggle with this right now, it can become your
           superpower. Within the shadow always lies the gift. With the practices
           I&apos;ll be sharing with you, {shadow.relief}. It won&apos;t happen
@@ -151,7 +151,7 @@ export const Welcome0 = ({
 
       {/* --- Common transition --- */}
       {hasShadowContent && (
-        <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+        <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
           I didn&apos;t guess any of that. It&apos;s part of your nature.
         </Text>
       )}
@@ -160,14 +160,14 @@ export const Welcome0 = ({
       <Section className="mt-[24px] mb-[24px] text-center">
         <Button
           href={chartUrlWithUtm}
-          className="rounded-[8px] bg-[#6A4BD6] px-[24px] py-[12px] text-[16px] font-semibold text-white"
+          className="rounded-[8px] bg-[#158377] px-[24px] py-[12px] text-[16px] font-semibold text-white"
         >
           Your full chart →
         </Button>
       </Section>
 
       {/* --- Bio --- */}
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
         I&apos;m Shawn, certified BG5 Career &amp; Business Consultant,
         certified Living Your Design Guide, and certified Authentic Relating
         facilitator.
@@ -176,7 +176,7 @@ export const Welcome0 = ({
       {/* --- Shadow-specific: story --- */}
       {shadow && (
         <>
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
             {shadow.story} {shadow.story && ' '}Through Human Design, I was able
             to clearly see my own patterns, and realize they&apos;re not
             something wrong with me personally. It&apos;s how my system works.
@@ -186,31 +186,31 @@ export const Welcome0 = ({
       )}
 
       {/* --- Series intro --- */}
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
         Over the next few days you&apos;ll begin to recognize your own patterns
         and learn how to listen to your unique way of doing and being. That will
         help you make decisions you can trust, and stop depending on advice from
         others. Advice which is based on their way of being, not yours.
       </Text>
 
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
         Tomorrow we start. I hope this knowledge brings you{' '}
         {chart.signatureTheme}, like it has for me.
       </Text>
 
       {/* --- Closing question --- */}
-      <Text className="mb-[16px] text-[16px] font-bold leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] font-bold leading-[24px] text-[#45585B]">
         Last thing, and I read every reply:
       </Text>
 
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
         {formatLandForYou(chart)}&nbsp;Let me know because I&apos;m always
         improving.
       </Text>
 
       {/* --- Shadow-specific: closingLine --- */}
       {shadow && (
-        <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+        <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
           {shadow.closingLine}
         </Text>
       )}

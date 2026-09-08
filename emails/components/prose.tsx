@@ -18,7 +18,7 @@ interface ProseProps {
  */
 export function Prose({
   content,
-  className = 'mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]'
+  className = 'mb-[16px] text-[16px] leading-[24px] text-[#45585B]'
 }: ProseProps) {
   const blocks = content.split(/\n\n+/);
 
@@ -35,7 +35,7 @@ export function Prose({
               style={{
                 margin: '0 0 16px 0',
                 padding: '0 0 0 24px',
-                color: '#4A4A4A',
+                color: '#45585B',
                 fontSize: '16px',
                 lineHeight: '24px'
               }}

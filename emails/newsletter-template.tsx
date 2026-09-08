@@ -68,8 +68,8 @@ export function NewsletterTemplate({
 
   const bottomNote = webUrl ? (
     <Section>
-      <Text className="mt-[24px] text-[13px] leading-[20px] text-[#6E688A] text-center">
-        <Link href={webUrl} className="text-[#6A4BD6] underline">
+      <Text className="mt-[24px] text-[13px] leading-[20px] text-[#45585B] text-center">
+        <Link href={webUrl} className="text-[#8C4A6B] underline">
           Read on the web
         </Link>
       </Text>

@@ -63,25 +63,25 @@ export const Welcome1 = ({
         </>,
       ]}
     >
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
         {firstName},
       </Text>
 
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
         If you&apos;re anything like me, at some point somebody has given you
         some advice that didn&apos;t work out. Maybe they told you to put
         yourself out there and just share what you know. Or be more consistent.
         Or speak up more in meetings.
       </Text>
 
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
         The advice was working for them, so you tried it yourself. And perhaps
         it worked for awhile, but then something happened to bring you
         off-track. And you added it to the list of things that you couldn&apos;t
         do.
       </Text>
 
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
         Here&apos;s the thing about that advice: it&apos;s good&mdash;for the
         right person. In fact, the advice was perfect for the person who gave
         it. But it wasn&apos;t designed for you.
@@ -89,7 +89,7 @@ export const Welcome1 = ({
 
       {engagement}
 
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
         That&apos;s because your design is {getArticle(chart.careerDesign)}{' '}
         {chart.careerDesign}&mdash;in Human Design terms,{' '}
         {getArticle(chart.type)} {chart.type}. And your decision making strategy
@@ -100,18 +100,18 @@ export const Welcome1 = ({
         <>
           <Heading
             as="h2"
-            className="mt-[24px] mb-[8px] text-[20px] font-bold text-[#221B3D]"
+            className="mt-[24px] mb-[8px] text-[20px] font-bold text-[#12262A]"
           >
             Waiting isn&apos;t what it sounds like
           </Heading>
 
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
             I have an idea how this lands. You&apos;ve spent years being told to
             go out and make things happen, and now here&apos;s a stranger
             telling you to stop and wait for the world to come to you.
           </Text>
 
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
             So let me be clear about what this isn&apos;t. It isn&apos;t sitting
             still. It isn&apos;t doing nothing. It is, rather, actively
             positioning yourself to receive.
@@ -119,7 +119,7 @@ export const Welcome1 = ({
 
           {detail}
 
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
             This is not to say you should <em>avoid</em> doing anything that you
             have energy for. If you have an authentic desire to do
             something&mdash;and it&apos;s not your mind pushing you out of a
@@ -135,12 +135,12 @@ export const Welcome1 = ({
 
       <Heading
         as="h2"
-        className="mt-[24px] mb-[8px] text-[20px] font-bold text-[#221B3D]"
+        className="mt-[24px] mb-[8px] text-[20px] font-bold text-[#12262A]"
       >
         It&apos;s all about your decision making strategy
       </Heading>
 
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
         Knowing how to use and trust your decision making strategy is the single
         most important thing you can learn. The shadow mentioned in the first
         email can be managed by following this strategy and making decisions
@@ -148,13 +148,13 @@ export const Welcome1 = ({
         <strong>Living Correctly</strong>.
       </Text>
 
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
         Living correctly is simple, but it takes practice. That&apos;s why I
         hold a free <em>Decisions You Can Trust</em> online session every week.
         Reply to this email and ask about it, and I&apos;ll send you the link.
       </Text>
 
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]">
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
         {chart.innerAuthorityDescription.charAt(0).toUpperCase() +
           chart.innerAuthorityDescription.slice(1)}
         .

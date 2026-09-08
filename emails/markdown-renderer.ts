@@ -15,23 +15,23 @@ export function createEmailRenderer(): Renderer {
 
   renderer.paragraph = function ({ tokens }: Tokens.Paragraph): string {
     const text = this.parser.parseInline(tokens);
-    return `<p style="margin:0 0 16px 0;font-size:16px;line-height:24px;color:#4A4A4A">${text}</p>\n`;
+    return `<p style="margin:0 0 16px 0;font-size:16px;line-height:24px;color:#45585B">${text}</p>\n`;
   };
 
   renderer.heading = function ({ tokens, depth }: Tokens.Heading): string {
     const text = this.parser.parseInline(tokens);
     if (depth === 2) {
-      return `<h2 style="margin:24px 0 8px 0;font-size:20px;font-weight:bold;color:#221B3D">${text}</h2>\n`;
+      return `<h2 style="margin:24px 0 8px 0;font-size:20px;font-weight:bold;color:#12262A">${text}</h2>\n`;
     }
     if (depth === 3) {
-      return `<h3 style="margin:20px 0 8px 0;font-size:18px;font-weight:bold;color:#221B3D">${text}</h3>\n`;
+      return `<h3 style="margin:20px 0 8px 0;font-size:18px;font-weight:bold;color:#12262A">${text}</h3>\n`;
     }
-    return `<h${depth} style="margin:16px 0 8px 0;font-weight:bold;color:#221B3D">${text}</h${depth}>\n`;
+    return `<h${depth} style="margin:16px 0 8px 0;font-weight:bold;color:#12262A">${text}</h${depth}>\n`;
   };
 
   renderer.link = function ({ href, tokens }: Tokens.Link): string {
     const text = this.parser.parseInline(tokens);
-    return `<a href="${href}" style="color:#6A4BD6;text-decoration:underline">${text}</a>`;
+    return `<a href="${href}" style="color:#8C4A6B;text-decoration:underline">${text}</a>`;
   };
 
   renderer.list = function (token: Tokens.List): string {
@@ -40,7 +40,7 @@ export function createEmailRenderer(): Renderer {
       body += this.listitem(item);
     }
     const tag = token.ordered ? 'ol' : 'ul';
-    return `<${tag} style="margin:0 0 16px 0;padding-left:24px;font-size:16px;line-height:24px;color:#4A4A4A">${body}</${tag}>\n`;
+    return `<${tag} style="margin:0 0 16px 0;padding-left:24px;font-size:16px;line-height:24px;color:#45585B">${body}</${tag}>\n`;
   };
 
   renderer.listitem = function (item: Tokens.ListItem): string {
@@ -49,7 +49,7 @@ export function createEmailRenderer(): Renderer {
   };
 
   renderer.hr = function (): string {
-    return `<hr style="border:none;border-top:1px solid #E6E1F4;margin:24px 0" />\n`;
+    return `<hr style="border:none;border-top:1px solid #C9C2B4;margin:24px 0" />\n`;
   };
 
   renderer.image = function ({ href, text }: Tokens.Image): string {
@@ -58,7 +58,7 @@ export function createEmailRenderer(): Renderer {
 
   renderer.strong = function ({ tokens }: Tokens.Strong): string {
     const text = this.parser.parseInline(tokens);
-    return `<strong style="font-weight:bold;color:#221B3D">${text}</strong>`;
+    return `<strong style="font-weight:bold;color:#12262A">${text}</strong>`;
   };
 
   renderer.em = function ({ tokens }: Tokens.Em): string {
@@ -68,7 +68,7 @@ export function createEmailRenderer(): Renderer {
 
   renderer.blockquote = function ({ tokens }: Tokens.Blockquote): string {
     const text = this.parser.parse(tokens);
-    return `<blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #6A4BD6;color:#4A4A4A;font-style:italic">${text}</blockquote>\n`;
+    return `<blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #8C4A6B;color:#45585B;font-style:italic">${text}</blockquote>\n`;
   };
 
   return renderer;
@@ -184,7 +184,7 @@ export function replaceDesignedCta(
   const url = `${appUrl}/newsletter/${slug}?s=${subscriberId}&utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletterNumber}`;
 
   return html.replace(pattern, (_match, buttonText: string) => {
-    return `<div style="text-align:center;margin:24px 0"><a href="${url}" style="background-color:#6A4BD6;color:#FFFFFF;font-size:16px;font-weight:600;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">${buttonText.trim()}</a></div>`;
+    return `<div style="text-align:center;margin:24px 0"><a href="${url}" style="background-color:#158377;color:#FFFFFF;font-size:16px;font-weight:600;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">${buttonText.trim()}</a></div>`;
   });
 }
 

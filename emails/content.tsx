@@ -13,7 +13,7 @@ import { Text } from 'react-email';
 import { innerAuthorityTypes } from '../lib/hd-chart/constants';
 
 /** Standard paragraph styling used across all email content. */
-const P_CLASS = 'mb-[16px] text-[16px] leading-[24px] text-[#4A4A4A]';
+const P_CLASS = 'mb-[16px] text-[16px] leading-[24px] text-[#45585B]';
 
 /** Paragraph wrapper — each <P> renders as its own <p> in the email. */
 export function P({ children }: { children: React.ReactNode }) {
