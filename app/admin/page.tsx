@@ -224,17 +224,21 @@ function DetailPanel({
   filtered,
   total,
   onClose,
+  activeTypeFilter,
+  onTypeClick,
 }: {
   filter: StatFilter;
   filtered: Subscriber[];
   total: number;
   onClose: () => void;
+  activeTypeFilter?: string | null;
+  onTypeClick?: (typeName: string) => void;
 }) {
   const [dateNow] = useState(() => Date.now());
   const title = FILTER_LABELS[filter];
   const count = filtered.length;
 
-  let breakdown: { label: string; count: number }[] = [];
+  let breakdown: { label: string; count: number; key?: string }[] = [];
 
   switch (filter) {
     case 'unsubscribed': {
@@ -310,8 +314,9 @@ function DetailPanel({
       const activeTotal = filtered.length;
       breakdown = [...types.entries()]
         .sort((a, b) => b[1] - a[1])
-        .map(([label, count]) => ({
-          label: `${label} (${activeTotal > 0 ? Math.round((count / activeTotal) * 100) : 0}%)`,
+        .map(([typeName, count]) => ({
+          key: typeName,
+          label: `${typeName} (${activeTotal > 0 ? Math.round((count / activeTotal) * 100) : 0}%)`,
           count,
         }));
       break;
@@ -380,12 +385,28 @@ function DetailPanel({
       </div>
       {breakdown.length > 0 && (
         <div className={styles.breakdownList}>
-          {breakdown.map(b => (
-            <div key={b.label} className={styles.breakdownItem}>
-              <span className={styles.breakdownCount}>{b.count}</span>
-              <span className={styles.breakdownLabel}>{b.label}</span>
-            </div>
-          ))}
+          {breakdown.map(b => {
+            const isClickable = !!b.key && !!onTypeClick;
+            const isSelected = !!b.key && activeTypeFilter === b.key;
+            return (
+              <div
+                key={b.label}
+                className={`${styles.breakdownItem}${isClickable ? ` ${styles.breakdownClickable}` : ''}${isSelected ? ` ${styles.breakdownSelected}` : ''}`}
+                role={isClickable ? 'button' : undefined}
+                tabIndex={isClickable ? 0 : undefined}
+                onClick={isClickable ? () => onTypeClick(b.key!) : undefined}
+                onKeyDown={isClickable ? (e: React.KeyboardEvent) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onTypeClick(b.key!);
+                  }
+                } : undefined}
+              >
+                <span className={styles.breakdownCount}>{b.count}</span>
+                <span className={styles.breakdownLabel}>{b.label}</span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -424,6 +445,7 @@ function AdminPageContent() {
   const [freshCharts, setFreshCharts] = useState<Record<string, ChartRecord>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<StatFilter | null>(null);
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
 
   // Timestamp captured when subscribers are loaded, used for engagement
   // label computation. Stored alongside subscriber data so it's available
@@ -661,7 +683,7 @@ function AdminPageContent() {
         return innerAuthorityTypes[subscriber.chart.chart.authority];
       case 'type':
         if (!subscriber.chart) return '';
-        return ['Generator', 'MG', 'Manifestor', 'Projector', 'Reflector'][subscriber.chart.chart.type];
+        return careerDesigns[subscriber.chart.chart.type];
       case 'split':
         return getSplitLabel(subscriber);
       case 'shadow':
@@ -693,9 +715,20 @@ function AdminPageContent() {
   // count and the filtered list can never drift within a single render.
   const now = subscribersFetchedAt;
 
-  const filteredSubscribers = activeFilter
-    ? subscribers.filter(s => STAT_FILTERS[activeFilter](s, now))
-    : subscribers;
+  const filteredSubscribers = (() => {
+    let result = activeFilter
+      ? subscribers.filter(s => STAT_FILTERS[activeFilter](s, now))
+      : subscribers;
+    if (activeFilter === 'active' && typeFilter) {
+      result = result.filter(s => {
+        const typeName = s.chart?.chart.type !== undefined
+          ? (careerDesigns[s.chart.chart.type] ?? 'Unknown')
+          : 'No chart';
+        return typeName === typeFilter;
+      });
+    }
+    return result;
+  })();
 
   const sortedSubscribers = [...filteredSubscribers].sort((a, b) => {
     const aVal = getSortValue(a, sortColumn);
@@ -757,11 +790,15 @@ function AdminPageContent() {
           className: `${styles.statCard}${activeFilter === filter ? ` ${styles.statCardActive}` : ''}`,
           role: 'button' as const,
           tabIndex: 0,
-          onClick: () => setActiveFilter(prev => prev === filter ? null : filter),
+          onClick: () => {
+            setActiveFilter(prev => prev === filter ? null : filter);
+            setTypeFilter(null);
+          },
           onKeyDown: (e: React.KeyboardEvent) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               setActiveFilter(prev => prev === filter ? null : filter);
+              setTypeFilter(null);
             }
           },
         });
@@ -801,9 +838,13 @@ function AdminPageContent() {
 
             {activeFilter && <DetailPanel
               filter={activeFilter}
-              filtered={filteredSubscribers}
+              filtered={activeFilter === 'active' && typeFilter
+                ? subscribers.filter(s => STAT_FILTERS.active(s, now))
+                : filteredSubscribers}
               total={subscribers.length}
-              onClose={() => setActiveFilter(null)}
+              onClose={() => { setActiveFilter(null); setTypeFilter(null); }}
+              activeTypeFilter={typeFilter}
+              onTypeClick={(typeName) => setTypeFilter(prev => prev === typeName ? null : typeName)}
             />}
           </>
         );
@@ -995,9 +1036,7 @@ function AdminPageContent() {
                 </td>
                 <td style={{ whiteSpace: 'nowrap' }}>
                   {subscriber.chart
-                    ? ['Generator', 'MG', 'Manifestor', 'Projector', 'Reflector'][
-                        subscriber.chart.chart.type
-                      ]
+                    ? careerDesigns[subscriber.chart.chart.type]
                     : '-'}
                   {subscriber.chart?.chart.type === 4 && (
                     <>{' '}<a href={`/see-your-design/${subscriber.id}/lunar-cycle`} title="Lunar cycle" style={{ verticalAlign: 'middle', textDecoration: 'none' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg></a></>
