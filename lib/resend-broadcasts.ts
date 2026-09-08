@@ -206,10 +206,10 @@ export async function sendNewsletterBroadcast(
       broadcastId: broadcastData.id,
       contactCount,
     };
-  } catch (err) {
-    // Clean up the segment on failure before re-throwing
+  } finally {
+    // Always clean up the ephemeral segment — orphaned segments are harmless
+    // but clutter the Resend dashboard.
     await cleanupSegment(segmentId);
-    throw err;
   }
 }
 
@@ -349,10 +349,10 @@ export async function sendBroadcastViaBroadcastApi(
       broadcastId: broadcastData.id,
       contactCount,
     };
-  } catch (err) {
-    // Clean up the segment on failure before re-throwing
+  } finally {
+    // Always clean up the ephemeral segment — orphaned segments are harmless
+    // but clutter the Resend dashboard.
     await cleanupSegment(segmentId);
-    throw err;
   }
 }
 
