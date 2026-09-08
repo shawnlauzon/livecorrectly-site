@@ -164,7 +164,7 @@ export async function getWelcomeDueSubscribers(
   const result = await db`
     SELECT * FROM subscribers
     WHERE email_status IN ('active', 'failed')
-      AND next_step >= 1
+      AND next_step >= 0
       AND next_step <= ${welcomeSeriesLength}
     ORDER BY created_at ASC
   `;
