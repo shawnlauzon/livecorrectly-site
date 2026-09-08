@@ -4,12 +4,19 @@ import { getNewsletterDueSubscribers, advanceEmailSeries, recordNewsletterSend, 
 import { sendWelcomeEmail, formatEmailRecipient, buildUnsubscribeUrl } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getNewsletterEmail, getNewsletterSubject, getMaxNewsletterNumber } from '@/emails/newsletter';
+import { hasInlinePersonalization } from '@/emails/newsletter-template';
+import { sendNewsletterBroadcast, cleanupSegment } from '@/lib/resend-broadcasts';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
+import type { Subscriber } from '@/lib/types/subscriber';
 
 /**
  * Cron endpoint: sends due newsletter emails.
  * Secured by CRON_SECRET (Vercel sends Authorization: Bearer <CRON_SECRET>).
  * Runs weekly on Wednesdays at 14:47 UTC (configured in vercel.json).
+ *
+ * Dual-path sending:
+ * - Newsletters with inline personalization (#4, #5) → transactional (one email per subscriber)
+ * - All others → Resend broadcast (single API call, no daily limit)
  *
  * The CRON_EMAIL_ENABLED kill switch is checked here — when not 'true',
  * the route returns early without querying or sending anything.
@@ -48,42 +55,78 @@ export async function GET(request: NextRequest) {
   const dueSubscribers = await getNewsletterDueSubscribers(WELCOME_SERIES_LENGTH);
   console.log(`[cron] Found ${dueSubscribers.length} subscriber(s) due for newsletter`);
 
-  let sent = 0;
-  let skipped = 0;
-
+  // Group subscribers by their next_step (newsletter number)
+  const groups = new Map<number, Subscriber[]>();
   for (const subscriber of dueSubscribers) {
-    if (subscriber.next_step > maxNewsletterNumber) {
-      // All available newsletters sent — no action needed
-      skipped++;
-      continue;
-    }
-
-    const chart = parseChartForEmail(subscriber.chart.chart);
-    const subject = getNewsletterSubject(subscriber.next_step, subscriber.first_name, subscriber.id);
-    const emailLabel = `newsletter_${subscriber.next_step}`;
-    const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
-    const emailComponent = getNewsletterEmail(subscriber.next_step, subscriber, chart, unsubscribeUrl);
-
-    if (!emailComponent) {
-      skipped++;
-      continue;
-    }
-
-    const result = await sendWelcomeEmail({
-      to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
-      subject,
-      react: emailComponent,
-      unsubToken: subscriber.unsub_token,
-      emailLabel
-    });
-
-    if (result.success) {
-      await advanceEmailSeries(subscriber.id, subscriber.next_step + 1);
-      await recordNewsletterSend(subscriber.next_step);
-      sent++;
+    if (subscriber.next_step > maxNewsletterNumber) continue;
+    const existing = groups.get(subscriber.next_step);
+    if (existing) {
+      existing.push(subscriber);
     } else {
-      skipped++;
+      groups.set(subscriber.next_step, [subscriber]);
     }
+  }
+
+  let sent = 0;
+  let skipped = dueSubscribers.filter(s => s.next_step > maxNewsletterNumber).length;
+  const segmentsToCleanup: string[] = [];
+
+  for (const [newsletterNumber, subscribers] of groups) {
+    if (hasInlinePersonalization(newsletterNumber)) {
+      // Transactional path: send individually (body differs per subscriber)
+      for (const subscriber of subscribers) {
+        const chart = parseChartForEmail(subscriber.chart.chart);
+        const subject = getNewsletterSubject(newsletterNumber, subscriber.first_name, subscriber.id);
+        const emailLabel = `newsletter_${newsletterNumber}`;
+        const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
+        const emailComponent = getNewsletterEmail(newsletterNumber, subscriber, chart, unsubscribeUrl);
+
+        if (!emailComponent) {
+          skipped++;
+          continue;
+        }
+
+        const result = await sendWelcomeEmail({
+          to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
+          subject,
+          react: emailComponent,
+          unsubToken: subscriber.unsub_token,
+          emailLabel,
+        });
+
+        if (result.success) {
+          await advanceEmailSeries(subscriber.id, subscriber.next_step + 1);
+          await recordNewsletterSend(newsletterNumber);
+          sent++;
+        } else {
+          skipped++;
+        }
+      }
+    } else {
+      // Broadcast path: single API call for the whole group
+      try {
+        const emails = subscribers.map(s => s.email);
+        const result = await sendNewsletterBroadcast(newsletterNumber, emails);
+        segmentsToCleanup.push(result.segmentId);
+
+        // Advance next_step for all subscribers in the group
+        for (const subscriber of subscribers) {
+          await advanceEmailSeries(subscriber.id, subscriber.next_step + 1);
+        }
+        await recordNewsletterSend(newsletterNumber);
+        sent += result.contactCount;
+
+        console.log(`[cron] Broadcast newsletter #${newsletterNumber}: ${result.contactCount} contacts, broadcast=${result.broadcastId}`);
+      } catch (err) {
+        console.error(`[cron] Failed to broadcast newsletter #${newsletterNumber}:`, err);
+        skipped += subscribers.length;
+      }
+    }
+  }
+
+  // Clean up ephemeral segments (best-effort)
+  for (const segmentId of segmentsToCleanup) {
+    await cleanupSegment(segmentId);
   }
 
   if (sent > 0) {

@@ -11,7 +11,7 @@ interface NewsletterTemplateProps {
   bodyHtml: string;
   /** Hero image filename, or null to skip */
   image: string | null;
-  chart: EmailChartData;
+  chart: EmailChartData | null;
   unsubscribeUrl: string;
   number: number;
   webUrl: string | null;
@@ -30,6 +30,15 @@ const personalizations: Record<number, React.ComponentType<{ chart: EmailChartDa
   4: Newsletter04Personalization,
   5: Newsletter05Personalization,
 };
+
+/**
+ * Whether a newsletter number has inline per-subscriber personalization.
+ * Newsletters with personalization MUST be sent transactionally (one email per
+ * subscriber) because the body differs per chart type. Others can use broadcasts.
+ */
+export function hasInlinePersonalization(number: number): boolean {
+  return number in personalizations;
+}
 
 /**
  * Renders per-type personalized content after the shared newsletter body.
@@ -99,7 +108,7 @@ export function NewsletterTemplate({
       </Section>
 
       {/* Inline personalization for newsletters that have it (04, 05) */}
-      <NewsletterPersonalization number={number} chart={chart} />
+      {chart && <NewsletterPersonalization number={number} chart={chart} />}
 
       {/* CTA button for newsletters with web personalization (07+) */}
       {personalizedWebUrl && (

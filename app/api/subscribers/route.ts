@@ -4,6 +4,7 @@ import { sendWelcomeEmail, sendAdminNotification, formatEmailRecipient, buildUns
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/emails/subjects';
 import { getWelcomeEmail } from '@/emails/welcome';
+import { syncContactToResend } from '@/lib/resend-contacts';
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,6 +39,18 @@ export async function POST(request: NextRequest) {
       },
       chart,
     });
+
+    // Sync contact to Resend for broadcast targeting — fire-and-forget, must not block signup
+    if (process.env.RESEND_API_KEY) {
+      syncContactToResend({
+        email: subscriber.email,
+        firstName: subscriber.first_name,
+        lastName: subscriber.last_name,
+        subscriberId: subscriber.id,
+      }).catch((err) => {
+        console.error(`[subscribe] Failed to sync contact to Resend for ${subscriber.email}:`, err);
+      });
+    }
 
     // Welcome0 (immediate signup email) is active.
     // The daily drip (welcome1-3) is separately controlled by CRON_EMAIL_ENABLED.

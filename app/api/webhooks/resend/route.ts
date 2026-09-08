@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSubscriberByEmailForWebhook, updateEmailStatus, rollBackEmailSeries, touchEngagement } from '@/lib/db';
 import { extractEmail } from '@/emails/send';
+import { unsubscribeContactInResend } from '@/lib/resend-contacts';
 
 /**
  * Resend webhook endpoint.
@@ -108,6 +109,11 @@ export async function POST(request: NextRequest) {
           console.log(
             `[webhook] Bounced: ${recipientEmail} (subscriber ${subscriber.id})`
           );
+          try {
+            await unsubscribeContactInResend(recipientEmail);
+          } catch (err) {
+            console.error(`[webhook] Failed to sync bounce to Resend for ${recipientEmail}:`, err);
+          }
         }
       }
       break;
@@ -121,6 +127,11 @@ export async function POST(request: NextRequest) {
           console.log(
             `[webhook] Complained: ${recipientEmail} (subscriber ${subscriber.id})`
           );
+          try {
+            await unsubscribeContactInResend(recipientEmail);
+          } catch (err) {
+            console.error(`[webhook] Failed to sync complaint to Resend for ${recipientEmail}:`, err);
+          }
         }
       }
       break;

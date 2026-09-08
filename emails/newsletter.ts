@@ -14,7 +14,7 @@ export { getNewsletterCount, getMaxNewsletterNumber, getNewsletterNumbers } from
 export function getNewsletterEmail(
   step: number,
   subscriber: Subscriber,
-  chart: ReturnType<typeof parseChartForEmail>,
+  chart: ReturnType<typeof parseChartForEmail> | null,
   unsubscribeUrl: string
 ): React.ReactElement | null {
   const newsletter = getNewsletter(step, subscriber.first_name, subscriber.id);
