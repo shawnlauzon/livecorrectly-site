@@ -5,7 +5,7 @@
       "schedule": "0 14 * * *"
     },
     {
-      "path": "/api/cron/one-off",
+      "path": "/api/cron/broadcast",
       "schedule": "0 15 * * *"
     },
     {

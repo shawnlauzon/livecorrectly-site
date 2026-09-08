@@ -52,6 +52,54 @@ const runWelcome = !newsletterOnly && !broadcastOnly;
 const runNewsletter = !welcomeOnly && !broadcastOnly;
 const runBroadcast = !welcomeOnly && !newsletterOnly;
 
+// --- Cron schedule helpers ---
+
+/**
+ * Compute the next occurrence of a UTC cron time (hour:minute, optional day-of-week).
+ * Handles the three schedules in vercel.json without a library.
+ */
+function getNextCronDate(hourUtc: number, minuteUtc: number, dayOfWeek?: number): Date {
+  const now = new Date();
+  const candidate = new Date(Date.UTC(
+    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
+    hourUtc, minuteUtc, 0, 0
+  ));
+
+  if (dayOfWeek === undefined) {
+    // Daily: use today if not yet passed, else tomorrow
+    if (candidate.getTime() <= now.getTime()) {
+      candidate.setUTCDate(candidate.getUTCDate() + 1);
+    }
+  } else {
+    // Weekly: advance to the next matching weekday
+    const currentDay = candidate.getUTCDay();
+    let daysUntil = (dayOfWeek - currentDay + 7) % 7;
+    // If it's the right weekday but already past the time, jump to next week
+    if (daysUntil === 0 && candidate.getTime() <= now.getTime()) {
+      daysUntil = 7;
+    }
+    candidate.setUTCDate(candidate.getUTCDate() + daysUntil);
+  }
+
+  return candidate;
+}
+
+/** Format a Date in the server's local time zone, e.g. "Mon Sep 8 at 9:00 AM CDT" */
+function formatCronDate(date: Date): string {
+  const dayPart = date.toLocaleDateString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric',
+  });
+  const timePart = date.toLocaleTimeString('en-US', {
+    hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+  });
+  return `${dayPart} at ${timePart}`;
+}
+
+// Cron schedules from vercel.json
+const nextWelcomeDate  = getNextCronDate(14, 0);         // 0 14 * * *
+const nextBroadcastDate = getNextCronDate(15, 0);        // 0 15 * * *
+const nextNewsletterDate = getNextCronDate(12, 47, 3);   // 47 12 * * 3
+
 // --- Safety checks ---
 
 if (!process.env.DATABASE_URL) {
@@ -104,11 +152,15 @@ interface BroadcastGroupResult {
   slug: string;
   candidates: number;
   eligible: number;
-  batchSize: number;
   recipients: BroadcastResult[];
 }
 
 interface DryRunReport {
+  nextSendDates: {
+    welcome?: string;
+    newsletter?: string;
+    broadcast?: string;
+  };
   welcome: WelcomeResult[];
   newsletter: NewsletterResult[];
   broadcast: BroadcastGroupResult[];
@@ -147,6 +199,11 @@ function writeHtmlFile(dir: string, filename: string, html: string): void {
 
 async function run(): Promise<void> {
   const report: DryRunReport = {
+    nextSendDates: {
+      ...(runWelcome  && { welcome:    nextWelcomeDate.toISOString() }),
+      ...(runNewsletter && { newsletter: nextNewsletterDate.toISOString() }),
+      ...(runBroadcast && { broadcast:  nextBroadcastDate.toISOString() }),
+    },
     welcome: [],
     newsletter: [],
     broadcast: [],
@@ -304,14 +361,12 @@ async function run(): Promise<void> {
     for (const [slug, config] of enabledBroadcasts) {
       const candidates = await getBroadcastCandidates(slug);
       const eligible = candidates.filter(config.filter);
-      // Apply --subscriber filter, then batch limit
-      const recipients = filterSubscribers(eligible).slice(0, config.batchSize);
+      const recipients = filterSubscribers(eligible);
 
       const group: BroadcastGroupResult = {
         slug,
         candidates: candidates.length,
         eligible: eligible.length,
-        batchSize: config.batchSize,
         recipients: [],
       };
 
@@ -378,7 +433,8 @@ async function run(): Promise<void> {
   // Text output
   if (runWelcome) {
     console.log('--- Welcome Series ---');
-    console.log(`${report.welcome.length} subscriber(s) due\n`);
+    console.log(`${report.welcome.length} subscriber(s) due`);
+    console.log(`Next send: ${formatCronDate(nextWelcomeDate)}\n`);
 
     for (let i = 0; i < report.welcome.length; i++) {
       const r = report.welcome[i];
@@ -394,7 +450,8 @@ async function run(): Promise<void> {
 
   if (runNewsletter) {
     console.log('--- Newsletters ---');
-    console.log(`${report.newsletter.length} subscriber(s) due (max available: #${report.maxNewsletterNumber})\n`);
+    console.log(`${report.newsletter.length} subscriber(s) due (max available: #${report.maxNewsletterNumber})`);
+    console.log(`Next send: ${formatCronDate(nextNewsletterDate)}\n`);
 
     for (let i = 0; i < report.newsletter.length; i++) {
       const r = report.newsletter[i];
@@ -416,11 +473,11 @@ async function run(): Promise<void> {
   if (runBroadcast) {
     console.log('--- Broadcasts ---');
     const enabledCount = report.broadcast.length;
-    console.log(`${enabledCount} enabled broadcast(s)\n`);
+    console.log(`${enabledCount} enabled broadcast(s)`);
+    console.log(`Next send: ${formatCronDate(nextBroadcastDate)}\n`);
 
     for (const group of report.broadcast) {
-      console.log(`  "${group.slug}" (${group.eligible} eligible of ${group.candidates} candidates, batch: ${group.batchSize})`);
-      console.log(`  ${group.recipients.length} in this batch\n`);
+      console.log(`  "${group.slug}" (${group.eligible} eligible of ${group.candidates} candidates)\n`);
 
       for (let i = 0; i < group.recipients.length; i++) {
         const r = group.recipients[i];

@@ -5,10 +5,10 @@ import { buildBroadcastEmail, getEnabledBroadcasts } from '@/emails/broadcast-co
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 
 /**
- * Cron endpoint: sends broadcast campaign emails in daily batches.
+ * Cron endpoint: sends broadcast campaign emails.
  * Iterates all enabled broadcasts in BROADCASTS config, querying candidates
- * for each, applying the broadcast's filter predicate, and sending up to
- * batchSize per broadcast per tick.
+ * for each, applying the broadcast's filter predicate, and sending to all
+ * eligible subscribers.
  *
  * Secured by CRON_SECRET (Vercel sends Authorization: Bearer <CRON_SECRET>).
  * Runs daily at 15:00 UTC (configured in vercel.json).
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
   for (const [slug, config] of enabledBroadcasts) {
     const candidates = await getBroadcastCandidates(slug);
-    const recipients = candidates.filter(config.filter).slice(0, config.batchSize);
+    const recipients = candidates.filter(config.filter);
     console.log(`[cron:broadcast] ${slug}: ${recipients.length} eligible recipient(s) (${candidates.length} candidates)`);
 
     if (recipients.length === 0) continue;

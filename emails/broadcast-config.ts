@@ -13,8 +13,6 @@ import type { Subscriber } from '../lib/types/subscriber';
 export interface BroadcastConfig {
   /** Whether the broadcast cron should send this broadcast. */
   enabled: boolean;
-  /** Max recipients per cron tick. */
-  batchSize: number;
   /**
    * Predicate that decides whether a subscriber should receive this broadcast.
    * Called for every active subscriber who hasn't already received it.
@@ -28,12 +26,10 @@ export interface BroadcastConfig {
 export const BROADCASTS: Record<string, BroadcastConfig> = {
   'reengagement-2026-08': {
     enabled: false,
-    batchSize: 25,
     filter: (s) => new Date(s.created_at) < new Date('2026-08-01'),
   },
   'restart-notice-2026-09': {
     enabled: true,
-    batchSize: 25,
     filter: (s) =>
       s.next_step === 0 &&
       new Date(s.created_at) < new Date('2026-09-01'),
