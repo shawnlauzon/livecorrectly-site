@@ -49,7 +49,7 @@ export async function GET(
     }
 
     const chart = parseChartForEmail(subscriber.chart.chart);
-    const subject = getWelcomeSubject(step, subscriber.first_name, chart);
+    const subject = getWelcomeSubject(step);
     const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
     const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, `welcome${step}`);
     const chartUrl = `${appUrl}/see-your-design/${id}`;
@@ -59,7 +59,7 @@ export async function GET(
       return NextResponse.json({ error: `No email template for step ${step}` }, { status: 400 });
     }
 
-    const preview = getWelcomePreview(step, subscriber.first_name, chart);
+    const preview = getWelcomePreview(step);
     const html = await renderEmail(emailComponent);
 
     return NextResponse.json({ subject, preview, html });

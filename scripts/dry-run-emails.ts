@@ -139,7 +139,7 @@ async function run(): Promise<void> {
     for (const subscriber of welcomeDue) {
       const step = subscriber.next_step;
       const chart = parseChartForEmail(subscriber.chart.chart);
-      const subject = getWelcomeSubject(step, subscriber.first_name, chart);
+      const subject = getWelcomeSubject(step);
       const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, `welcome${step}`);
       const emailComponent = getWelcomeEmail(step, subscriber, chart, unsubscribeUrl);
 

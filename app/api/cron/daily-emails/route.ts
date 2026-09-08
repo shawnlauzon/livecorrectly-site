@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const step = subscriber.next_step;
 
     const chart = parseChartForEmail(subscriber.chart.chart);
-    const subject = getWelcomeSubject(step, subscriber.first_name, chart);
+    const subject = getWelcomeSubject(step);
     const emailLabel = `welcome${step}`;
     const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
     const emailComponent = getWelcomeEmail(step, subscriber, chart, unsubscribeUrl);
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     const step = subscriber.welcome_resend_step!;
 
     const chart = parseChartForEmail(subscriber.chart.chart);
-    const subject = getWelcomeSubject(step, subscriber.first_name, chart);
+    const subject = getWelcomeSubject(step);
     const emailLabel = `welcome${step}`;
     const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
     const emailComponent = getWelcomeEmail(step, subscriber, chart, unsubscribeUrl);
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
 
   for (const subscriber of restartDue) {
     const chart = parseChartForEmail(subscriber.chart.chart);
-    const subject = getWelcomeSubject(0, subscriber.first_name, chart);
+    const subject = getWelcomeSubject(0);
     const emailLabel = 'welcome0';
     const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
     const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';

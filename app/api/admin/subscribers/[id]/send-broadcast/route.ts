@@ -3,6 +3,7 @@ import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
 import { sendMarketingEmail, _sendEmail, formatEmailRecipient } from '@/emails/send';
 import { buildBroadcastEmail, BroadcastSlug } from '@/emails/broadcast-config';
+import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 
 /**
  * POST /api/admin/subscribers/[id]/send-broadcast
@@ -61,12 +62,14 @@ export async function POST(
     }
 
     // Build and send the email using shared broadcast config
+    const chart = parseChartForEmail(subscriber.chart.chart);
     const { element, subject, emailLabel, from: customFrom } = buildBroadcastEmail(
       slug as BroadcastSlug,
       id,
       subscriber.first_name,
       subscriber.created_at,
-      subscriber.unsub_token
+      subscriber.unsub_token,
+      chart
     );
 
     let result: { success: boolean; id?: string };

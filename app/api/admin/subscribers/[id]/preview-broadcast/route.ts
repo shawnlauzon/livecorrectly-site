@@ -3,6 +3,7 @@ import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
 import { renderEmail } from '@/emails/send';
 import { buildBroadcastEmail, BroadcastSlug, BROADCASTS } from '@/emails/broadcast-config';
+import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 
 /**
  * GET /api/admin/subscribers/[id]/preview-broadcast?slug=reengagement-2026-08
@@ -47,12 +48,14 @@ export async function GET(
     }
 
     // Use shared broadcast builder to ensure identical output to send endpoint
+    const chart = parseChartForEmail(subscriber.chart.chart);
     const { element, subject, preview } = buildBroadcastEmail(
       slugParam as BroadcastSlug,
       id,
       subscriber.first_name,
       subscriber.created_at,
-      subscriber.unsub_token
+      subscriber.unsub_token,
+      chart
     );
 
     const html = await renderEmail(element);

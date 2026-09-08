@@ -1,12 +1,30 @@
 import * as React from 'react';
-import { Reengagement } from './reengagement';
-import { RestartNotice } from './restart-notice';
 import { buildUnsubscribeUrl } from './send';
+import { getBroadcast } from './broadcast-loader';
+import { BroadcastTemplate } from './broadcast-template';
+import { buildChartVariables } from './markdown-renderer';
+import type { EmailChartData } from '../lib/hd-chart/parse-for-email';
 
 /**
- * Shared broadcast email configuration
- * Used by both send and preview endpoints to ensure identical output
+ * Dispatch/control configuration for a broadcast email.
+ * Content (subject, preview, body) lives in broadcasts/*.md files.
  */
+interface BroadcastConfig {
+  /** Custom From header. When set, the broadcast cron uses _sendEmail() directly. */
+  from?: string;
+  /** Only send to subscribers at this next_step value. */
+  nextStepFilter?: number;
+}
+
+export const BROADCASTS: Record<string, BroadcastConfig> = {
+  'reengagement-2026-08': {},
+  'restart-notice-2026-09': {
+    from: 'Shawn Lauzon (Fractal Human Design) <shawn@livecorrectly.com>',
+    nextStepFilter: 0,
+  },
+};
+
+export type BroadcastSlug = keyof typeof BROADCASTS;
 
 export function formatMonthYear(createdAt: string): string {
   const date = new Date(createdAt);
@@ -35,84 +53,60 @@ export function monthsSince(createdAt: string): number {
   );
 }
 
-interface BroadcastConfig {
-  subject: string | ((props: { month: string }) => string);
-  preview: string;
-  component: React.ComponentType<BroadcastEmailProps>;
-  /** Custom From header. When set, the broadcast cron uses _sendEmail() directly. */
-  from?: string;
-  /** Only send to subscribers at this next_step value. */
-  nextStepFilter?: number;
-}
-
-export const BROADCASTS: Record<string, BroadcastConfig> = {
-  'reengagement-2026-08': {
-    subject: 'I sent you five emails last year and then disappeared',
-    preview: "Let's begin again",
-    component: Reengagement,
-  },
-  'restart-notice-2026-09': {
-    subject: ({ month }) => `Your chart from ${month}`,
-    preview: 'There was supposed to be more after it.',
-    component: RestartNotice,
-    from: 'Shawn Lauzon (Fractal Human Design) <shawn@livecorrectly.com>',
-    nextStepFilter: 0,
-  },
-};
-
-export type BroadcastSlug = keyof typeof BROADCASTS;
-
-export interface BroadcastEmailProps {
-  firstName: string;
-  monthYear: string;
-  monthsSinceSignup: number;
-  month: string;
-  chartUrl: string;
-  unsubscribeUrl: string;
-}
-
 /**
- * Build the React element for a broadcast email
- * Ensures both preview and send use identical props
+ * Build the React element, subject, and preview for a broadcast email.
+ * Loads content from broadcasts/{slug}.md, renders markdown, replaces variables.
  */
 export function buildBroadcastEmail(
-  slug: BroadcastSlug,
+  slug: string,
   subscriberId: string,
   firstName: string,
   createdAt: string,
   unsubToken: string,
+  chart: EmailChartData,
 ): { element: React.ReactElement; subject: string; preview: string; emailLabel: string; from?: string } {
-  const broadcast = BROADCASTS[slug];
-  if (!broadcast) {
+  const broadcastConfig = BROADCASTS[slug];
+  if (!broadcastConfig) {
     throw new Error(`Unknown broadcast slug: ${slug}`);
   }
 
   const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
-  const monthYear = formatMonthYear(createdAt);
-  const month = formatMonth(createdAt);
-  const monthsSinceSignup = monthsSince(createdAt);
   const emailLabel = slug.replace(/-/g, '_');
   const unsubscribeUrl = buildUnsubscribeUrl(unsubToken, emailLabel);
   const chartUrl = `${appUrl}/see-your-design/${subscriberId}?utm_source=livecorrectly&utm_medium=email&utm_campaign=${emailLabel}`;
+  const monthYear = formatMonthYear(createdAt);
+  const month = formatMonth(createdAt);
+  const monthsSinceSignup = monthsSince(createdAt);
 
-  const element = React.createElement(broadcast.component, {
+  // Build template variable map
+  const variables: Record<string, string> = {
     firstName,
-    monthYear,
-    month,
-    monthsSinceSignup,
+    appUrl,
     chartUrl,
     unsubscribeUrl,
-  });
+    monthYear,
+    month,
+    monthsSinceSignup: String(monthsSinceSignup),
+    ...buildChartVariables(chart),
+  };
 
-  const subject = typeof broadcast.subject === 'function'
-    ? broadcast.subject({ month })
-    : broadcast.subject;
+  const broadcast = getBroadcast(slug, variables);
+  if (!broadcast) {
+    throw new Error(`Broadcast markdown file not found: broadcasts/${slug}.md`);
+  }
+
+  const element = React.createElement(BroadcastTemplate, {
+    preview: broadcast.preview,
+    bodyHtml: broadcast.bodyHtml,
+    unsubscribeUrl,
+    postscripts: broadcast.postscripts,
+  });
 
   return {
     element,
-    subject,
+    subject: broadcast.subject,
     preview: broadcast.preview,
     emailLabel,
-    from: broadcast.from,
+    from: broadcastConfig.from,
   };
 }

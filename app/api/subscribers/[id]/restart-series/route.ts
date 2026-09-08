@@ -53,7 +53,7 @@ export async function POST(
     const chartUrl = `${appUrl}/see-your-design/${subscriber.id}`;
     const emailLabel = 'welcome0';
     const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
-    const subject = getWelcomeSubject(0, subscriber.first_name, chartData);
+    const subject = getWelcomeSubject(0);
     const emailComponent = getWelcomeEmail(
       0, subscriber, chartData, unsubscribeUrl, chartUrl
     );

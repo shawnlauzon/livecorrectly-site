@@ -1,9 +1,9 @@
-import { Marked, Renderer, type Tokens } from 'marked';
 import {
   loadNewsletter,
   parseRawNewsletter,
   type RawNewsletter,
 } from '@/newsletters/loader';
+import { emailMarked, replaceVariables as replaceVars } from './markdown-renderer';
 
 export {
   getNewsletterCount,
@@ -28,88 +28,13 @@ export interface Newsletter {
 }
 
 /**
- * Custom marked renderer that adds inline styles for email client compatibility.
- * Email clients strip <style> blocks and ignore CSS classes, so every element
- * needs inline styles.
- *
- * Marked v18 passes full token objects to renderer methods. Inline content
- * (paragraphs, headings, strong, em, etc.) must call this.parser.parseInline()
- * to render child tokens into HTML strings.
- */
-function createEmailRenderer(): Renderer {
-  const renderer = new Renderer();
-
-  renderer.paragraph = function ({ tokens }: Tokens.Paragraph): string {
-    const text = this.parser.parseInline(tokens);
-    return `<p style="margin:0 0 16px 0;font-size:16px;line-height:24px;color:#4A4A4A">${text}</p>\n`;
-  };
-
-  renderer.heading = function ({ tokens, depth }: Tokens.Heading): string {
-    const text = this.parser.parseInline(tokens);
-    if (depth === 2) {
-      return `<h2 style="margin:24px 0 8px 0;font-size:20px;font-weight:bold;color:#221B3D">${text}</h2>\n`;
-    }
-    if (depth === 3) {
-      return `<h3 style="margin:20px 0 8px 0;font-size:18px;font-weight:bold;color:#221B3D">${text}</h3>\n`;
-    }
-    return `<h${depth} style="margin:16px 0 8px 0;font-weight:bold;color:#221B3D">${text}</h${depth}>\n`;
-  };
-
-  renderer.link = function ({ href, tokens }: Tokens.Link): string {
-    const text = this.parser.parseInline(tokens);
-    return `<a href="${href}" style="color:#6A4BD6;text-decoration:underline">${text}</a>`;
-  };
-
-  renderer.list = function (token: Tokens.List): string {
-    let body = '';
-    for (const item of token.items) {
-      body += this.listitem(item);
-    }
-    const tag = token.ordered ? 'ol' : 'ul';
-    return `<${tag} style="margin:0 0 16px 0;padding-left:24px;font-size:16px;line-height:24px;color:#4A4A4A">${body}</${tag}>\n`;
-  };
-
-  renderer.listitem = function (item: Tokens.ListItem): string {
-    const text = this.parser.parse(item.tokens);
-    return `<li style="margin-bottom:8px">${text}</li>\n`;
-  };
-
-  renderer.hr = function (): string {
-    return `<hr style="border:none;border-top:1px solid #E6E1F4;margin:24px 0" />\n`;
-  };
-
-  renderer.image = function ({ href, text }: Tokens.Image): string {
-    return `<img src="${href}" alt="${text}" style="max-width:100%;height:auto;display:block;margin:16px 0;border-radius:8px" />\n`;
-  };
-
-  renderer.strong = function ({ tokens }: Tokens.Strong): string {
-    const text = this.parser.parseInline(tokens);
-    return `<strong style="font-weight:bold;color:#221B3D">${text}</strong>`;
-  };
-
-  renderer.em = function ({ tokens }: Tokens.Em): string {
-    const text = this.parser.parseInline(tokens);
-    return `<em>${text}</em>`;
-  };
-
-  renderer.blockquote = function ({ tokens }: Tokens.Blockquote): string {
-    const text = this.parser.parse(tokens);
-    return `<blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #6A4BD6;color:#4A4A4A;font-style:italic">${text}</blockquote>\n`;
-  };
-
-  return renderer;
-}
-
-const marked = new Marked({ renderer: createEmailRenderer() });
-
-/**
  * Render a RawNewsletter into email-ready HTML.
  */
 function renderForEmail(raw: RawNewsletter): Newsletter {
   const image = raw.showHeroImage ? raw.rawImage : null;
-  const bodyHtml = marked.parse(raw.bodyMarkdown.trim()) as string;
+  const bodyHtml = emailMarked.parse(raw.bodyMarkdown.trim()) as string;
   const ps = raw.rawPs
-    ? (marked.parseInline(raw.rawPs.trim()) as string)
+    ? (emailMarked.parseInline(raw.rawPs.trim()) as string)
     : null;
 
   return {
@@ -132,23 +57,25 @@ export function parseNewsletter(content: string, number: number): Newsletter {
 }
 
 /**
- * Replace template variables: {{firstName}}, {{appUrl}}, {{chartUrl}}.
+ * Replace template variables in a rendered newsletter.
+ * Builds a variable map from firstName/subscriberId and delegates to the shared replaceVariables().
  */
-function replaceVariables(newsletter: Newsletter, firstName: string, subscriberId?: string): Newsletter {
+function replaceNewsletterVariables(newsletter: Newsletter, firstName: string, subscriberId?: string): Newsletter {
   const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
   const chartUrl = subscriberId
     ? `${appUrl}/see-your-design/${subscriberId}?utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletter.number}`
     : '';
-  const rewrite = (s: string) =>
-    s.replace(/\{\{firstName\}\}/g, firstName)
-     .replace(/\{\{appUrl\}\}/g, appUrl)
-     .replace(/\{\{chartUrl\}\}/g, chartUrl);
+  const vars: Record<string, string> = {
+    firstName,
+    appUrl,
+    chartUrl,
+  };
   return {
     ...newsletter,
-    subject: rewrite(newsletter.subject),
-    preview: rewrite(newsletter.preview),
-    bodyHtml: rewrite(newsletter.bodyHtml),
-    ps: newsletter.ps ? rewrite(newsletter.ps) : null,
+    subject: replaceVars(newsletter.subject, vars),
+    preview: replaceVars(newsletter.preview, vars),
+    bodyHtml: replaceVars(newsletter.bodyHtml, vars),
+    ps: newsletter.ps ? replaceVars(newsletter.ps, vars) : null,
   };
 }
 
@@ -160,7 +87,7 @@ function replaceVariables(newsletter: Newsletter, firstName: string, subscriberI
 export function getNewsletter(step: number, firstName: string, subscriberId?: string): Newsletter | null {
   const raw = loadNewsletter(step);
   if (!raw) return null;
-  return replaceVariables(renderForEmail(raw), firstName, subscriberId);
+  return replaceNewsletterVariables(renderForEmail(raw), firstName, subscriberId);
 }
 
 /**

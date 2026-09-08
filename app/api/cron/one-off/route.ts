@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getBroadcastRecipients, recordBroadcastSend } from '@/lib/db';
 import { sendMarketingEmail, _sendEmail, formatEmailRecipient } from '@/emails/send';
 import { buildBroadcastEmail, BROADCASTS, BroadcastSlug } from '@/emails/broadcast-config';
+import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 
 // --- One-off campaign configuration ---
 const BROADCAST_SLUG: BroadcastSlug = 'restart-notice-2026-09';
@@ -49,12 +50,14 @@ export async function GET(request: NextRequest) {
 
   for (const subscriber of recipients) {
     // Use shared broadcast builder to ensure identical output across all code paths
+    const chart = parseChartForEmail(subscriber.chart.chart);
     const { element, subject, emailLabel, from: customFrom } = buildBroadcastEmail(
       BROADCAST_SLUG,
       subscriber.id,
       subscriber.first_name,
       subscriber.created_at,
-      subscriber.unsub_token
+      subscriber.unsub_token,
+      chart
     );
 
     let result: { success: boolean; id?: string };
