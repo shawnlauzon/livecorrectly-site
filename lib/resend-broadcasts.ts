@@ -97,9 +97,11 @@ export async function renderNewsletterForBroadcast(newsletterNumber: number): Pr
   html: string;
   subject: string;
 }> {
-  // Use Resend template vars as subscriber values so they survive into the HTML
-  const resendFirstName = '{{{contact.first_name|there}}}';
-  const resendSubscriberId = '{{{contact.properties.neon_id}}}';
+  // Use Resend template vars as subscriber values so they survive into the HTML.
+  // Resend broadcast syntax: {{{PROPERTY_KEY}}} for built-in fields (uppercase),
+  // {{{property_key}}} for custom contact properties (matching the key exactly).
+  const resendFirstName = '{{{FIRST_NAME|there}}}';
+  const resendSubscriberId = '{{{neon_id}}}';
 
   const newsletter = getNewsletter(newsletterNumber, resendFirstName, resendSubscriberId);
   if (!newsletter) {
@@ -232,18 +234,19 @@ export async function renderBroadcastForBroadcastApi(slug: string): Promise<{
   const emailLabel = slug.replace(/-/g, '_');
 
   // Map template variables to Resend triple-brace syntax.
-  // Built-in Resend fields:
+  // Resend broadcast interpolation: {{{KEY}}} for built-in fields (uppercase),
+  // {{{key}}} for custom contact properties (matching the property key exactly).
   const variables: Record<string, string> = {
-    firstName: '{{{contact.first_name|there}}}',
+    firstName: '{{{FIRST_NAME|there}}}',
     appUrl,
-    chartUrl: `${appUrl}/see-your-design/{{{contact.properties.neon_id}}}?utm_source=livecorrectly&utm_medium=email&utm_campaign=${emailLabel}`,
+    chartUrl: `${appUrl}/see-your-design/{{{neon_id}}}?utm_source=livecorrectly&utm_medium=email&utm_campaign=${emailLabel}`,
     unsubscribeUrl: '{{{RESEND_UNSUBSCRIBE_URL}}}',
   };
 
   // Derived from BROADCAST_CONTACT_PROPERTIES — each template variable maps
   // to its Resend contact property key via triple-brace syntax.
   for (const [varName, entry] of Object.entries(BROADCAST_CONTACT_PROPERTIES)) {
-    variables[varName] = `{{{contact.properties.${entry.key}}}}`;
+    variables[varName] = `{{{${entry.key}}}}`;
   }
 
   const broadcast = getBroadcast(slug, variables);
