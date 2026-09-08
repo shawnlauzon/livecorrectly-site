@@ -93,6 +93,41 @@ export function replaceVariables(text: string, variables: Record<string, string>
 }
 
 /**
+ * Replace Resend contact property syntax with actual values for preview/dry-run rendering.
+ *
+ * Handles patterns like:
+ *   {{{contact.first_name|there}}}  → value from contactVars['first_name'], or fallback 'there'
+ *   {{{contact.signup_month}}}      → value from contactVars['signup_month']
+ *   {{{RESEND_UNSUBSCRIBE_URL}}}    → value from contactVars['RESEND_UNSUBSCRIBE_URL']
+ *
+ * Unknown contact vars are left as-is (they'd be replaced by Resend at send time).
+ */
+export function replaceResendContactVars(
+  text: string,
+  contactVars: Record<string, string>,
+): string {
+  // Replace {{{contact.KEY|fallback}}} and {{{contact.KEY}}}
+  let result = text.replace(
+    /\{\{\{contact\.([a-z_]+)(?:\|([^}]*))?\}\}\}/g,
+    (_match, key: string, fallback: string | undefined) => {
+      if (key in contactVars) return contactVars[key];
+      if (fallback !== undefined) return fallback;
+      return _match; // leave as-is if no value and no fallback
+    },
+  );
+
+  // Replace {{{RESEND_UNSUBSCRIBE_URL}}}
+  if ('RESEND_UNSUBSCRIBE_URL' in contactVars) {
+    result = result.replaceAll(
+      '{{{RESEND_UNSUBSCRIBE_URL}}}',
+      contactVars['RESEND_UNSUBSCRIBE_URL'],
+    );
+  }
+
+  return result;
+}
+
+/**
  * Build a variable map from EmailChartData for use in markdown templates.
  * Iterates all string/number/boolean fields, prefixed with "chart.".
  * Skips arrays and objects (e.g. bridgeDescriptions) — those need React components.

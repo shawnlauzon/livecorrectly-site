@@ -2,7 +2,7 @@ import * as React from 'react';
 import { buildUnsubscribeUrl } from './send';
 import { getBroadcast } from './broadcast-loader';
 import { BroadcastTemplate } from './broadcast-template';
-import { buildChartVariables } from './markdown-renderer';
+import { buildChartVariables, replaceResendContactVars } from './markdown-renderer';
 import type { EmailChartData } from '../lib/hd-chart/parse-for-email';
 import type { Subscriber } from '../lib/types/subscriber';
 
@@ -91,20 +91,10 @@ export function buildBroadcastEmail(
   const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
   const emailLabel = slug.replace(/-/g, '_');
   const unsubscribeUrl = buildUnsubscribeUrl(unsubToken, emailLabel);
-  const chartUrl = `${appUrl}/see-your-design/${subscriberId}?utm_source=livecorrectly&utm_medium=email&utm_campaign=${emailLabel}`;
-  const monthYear = formatMonthYear(createdAt);
-  const month = formatMonth(createdAt);
-  const monthsSinceSignup = monthsSince(createdAt);
 
-  // Build template variable map
+  // First pass: replace {{appUrl}} and chart variables (double-brace syntax)
   const variables: Record<string, string> = {
-    firstName,
     appUrl,
-    chartUrl,
-    unsubscribeUrl,
-    monthYear,
-    signupMonth: month,
-    monthsSinceSignup: String(monthsSinceSignup),
     ...buildChartVariables(chart),
   };
 
@@ -113,17 +103,28 @@ export function buildBroadcastEmail(
     throw new Error(`Broadcast markdown file not found: broadcasts/${slug}.md`);
   }
 
+  // Second pass: replace Resend contact property syntax with actual values
+  // for admin preview rendering (in production sends, Resend does this).
+  const contactVars: Record<string, string> = {
+    first_name: firstName,
+    neon_id: subscriberId,
+    signup_month: formatMonth(createdAt),
+    signup_month_year: formatMonthYear(createdAt),
+    months_since_signup: String(monthsSince(createdAt)),
+    RESEND_UNSUBSCRIBE_URL: unsubscribeUrl,
+  };
+
   const element = React.createElement(BroadcastTemplate, {
-    preview: broadcast.preview,
-    bodyHtml: broadcast.bodyHtml,
+    preview: replaceResendContactVars(broadcast.preview, contactVars),
+    bodyHtml: replaceResendContactVars(broadcast.bodyHtml, contactVars),
     unsubscribeUrl,
-    postscripts: broadcast.postscripts,
+    postscripts: broadcast.postscripts.map(ps => replaceResendContactVars(ps, contactVars)),
   });
 
   return {
     element,
-    subject: broadcast.subject,
-    preview: broadcast.preview,
+    subject: replaceResendContactVars(broadcast.subject, contactVars),
+    preview: replaceResendContactVars(broadcast.preview, contactVars),
     emailLabel,
     from: broadcastConfig.from,
   };

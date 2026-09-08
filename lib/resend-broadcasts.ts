@@ -6,7 +6,12 @@ import { getNewsletterSubject } from '@/emails/newsletter';
 import { renderEmail } from '@/emails/send';
 import { getBroadcast } from '@/emails/broadcast-loader';
 import { BroadcastTemplate } from '@/emails/broadcast-template';
-import { BROADCASTS, formatMonth, formatMonthYear, monthsSince } from '@/emails/broadcast-config';
+import {
+  BROADCASTS,
+  formatMonth,
+  formatMonthYear,
+  monthsSince,
+} from '@/emails/broadcast-config';
 import type { Subscriber } from '@/lib/types/subscriber';
 
 /**
@@ -17,10 +22,13 @@ import type { Subscriber } from '@/lib/types/subscriber';
  * will ensure the property exists and sync computed values to each recipient
  * just before sending — no signup-flow changes or backfill scripts needed.
  */
-const BROADCAST_CONTACT_PROPERTIES: Record<string, {
-  key: string;
-  compute: (subscriber: Subscriber) => string;
-}> = {
+const BROADCAST_CONTACT_PROPERTIES: Record<
+  string,
+  {
+    key: string;
+    compute: (subscriber: Subscriber) => string;
+  }
+> = {
   signupMonth: {
     key: 'signup_month',
     compute: (s) => formatMonth(s.created_at),
@@ -42,7 +50,9 @@ let broadcastPropertiesEnsured = false;
  * Called just before sending a broadcast — ensures properties exist, then
  * computes and updates each subscriber's values.
  */
-async function syncBroadcastContactProperties(subscribers: Subscriber[]): Promise<void> {
+async function syncBroadcastContactProperties(
+  subscribers: Subscriber[],
+): Promise<void> {
   const client = getResendClient();
 
   // Ensure all property keys exist in Resend (once per process)
@@ -56,10 +66,15 @@ async function syncBroadcastContactProperties(subscribers: Subscriber[]): Promis
         type: 'string' as const,
       });
       if (error) {
-        if ('statusCode' in error && (error as { statusCode: number }).statusCode === 409) {
+        if (
+          'statusCode' in error &&
+          (error as { statusCode: number }).statusCode === 409
+        ) {
           // Property already exists — expected
         } else {
-          throw new Error(`Failed to create ${entry.key} contact property: ${JSON.stringify(error)}`);
+          throw new Error(
+            `Failed to create ${entry.key} contact property: ${JSON.stringify(error)}`,
+          );
         }
       }
     }
@@ -78,7 +93,10 @@ async function syncBroadcastContactProperties(subscribers: Subscriber[]): Promis
       properties,
     });
     if (error) {
-      console.warn(`[broadcast] Failed to sync properties for ${subscriber.email}:`, error);
+      console.warn(
+        `[broadcast] Failed to sync properties for ${subscriber.email}:`,
+        error,
+      );
     }
   }
 }
@@ -93,7 +111,9 @@ async function syncBroadcastContactProperties(subscribers: Subscriber[]): Promis
  *
  * chart is null because broadcast newsletters have no inline personalization.
  */
-export async function renderNewsletterForBroadcast(newsletterNumber: number): Promise<{
+export async function renderNewsletterForBroadcast(
+  newsletterNumber: number,
+): Promise<{
   html: string;
   subject: string;
 }> {
@@ -102,7 +122,11 @@ export async function renderNewsletterForBroadcast(newsletterNumber: number): Pr
   const resendFirstName = '{{{FIRST_NAME|there}}}';
   const resendSubscriberId = '{{{NEON_ID}}}';
 
-  const newsletter = getNewsletter(newsletterNumber, resendFirstName, resendSubscriberId);
+  const newsletter = getNewsletter(
+    newsletterNumber,
+    resendFirstName,
+    resendSubscriberId,
+  );
   if (!newsletter) {
     throw new Error(`Newsletter ${newsletterNumber} not found`);
   }
@@ -128,7 +152,11 @@ export async function renderNewsletterForBroadcast(newsletterNumber: number): Pr
   const html = await renderEmail(component);
 
   // Subject also needs Resend template vars for firstName
-  const subject = getNewsletterSubject(newsletterNumber, resendFirstName, resendSubscriberId);
+  const subject = getNewsletterSubject(
+    newsletterNumber,
+    resendFirstName,
+    resendSubscriberId,
+  );
 
   return { html, subject };
 }
@@ -150,11 +178,14 @@ export async function sendNewsletterBroadcast(
   const segmentName = `newsletter_${newsletterNumber}_${Date.now()}`;
 
   // 1. Create ephemeral segment
-  const { data: segmentData, error: segmentError } = await client.segments.create({
-    name: segmentName,
-  });
+  const { data: segmentData, error: segmentError } =
+    await client.segments.create({
+      name: segmentName,
+    });
   if (segmentError || !segmentData) {
-    throw new Error(`Failed to create segment "${segmentName}": ${JSON.stringify(segmentError)}`);
+    throw new Error(
+      `Failed to create segment "${segmentName}": ${JSON.stringify(segmentError)}`,
+    );
   }
   const segmentId = segmentData.id;
 
@@ -168,38 +199,52 @@ export async function sendNewsletterBroadcast(
       });
       if (error) {
         // Contact may not exist in Resend yet — log and skip
-        console.warn(`[broadcast] Failed to add ${email} to segment ${segmentId}:`, error);
+        console.warn(
+          `[broadcast] Failed to add ${email} to segment ${segmentId}:`,
+          error,
+        );
         continue;
       }
       contactCount++;
     }
 
     if (contactCount === 0) {
-      throw new Error(`No contacts could be added to segment for newsletter ${newsletterNumber}`);
+      throw new Error(
+        `No contacts could be added to segment for newsletter ${newsletterNumber}`,
+      );
     }
 
     // 3. Render HTML
-    const { html, subject } = await renderNewsletterForBroadcast(newsletterNumber);
+    const { html, subject } =
+      await renderNewsletterForBroadcast(newsletterNumber);
 
     // 4. Create + send broadcast
-    const from = process.env.EMAIL_FROM_MARKETING ?? 'Shawn Lauzon <updates@livecorrectly.com>';
-    const replyTo = process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+    const from =
+      process.env.EMAIL_FROM_MARKETING ??
+      'Shawn Lauzon <updates@livecorrectly.com>';
+    const replyTo =
+      process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
 
-    const { data: broadcastData, error: broadcastError } = await client.broadcasts.create({
-      name: `Newsletter #${newsletterNumber}`,
-      segmentId,
-      from,
-      replyTo,
-      subject,
-      html,
-      send: true,
-    });
+    const { data: broadcastData, error: broadcastError } =
+      await client.broadcasts.create({
+        name: `Newsletter #${newsletterNumber}`,
+        segmentId,
+        from,
+        replyTo,
+        subject,
+        html,
+        send: true,
+      });
 
     if (broadcastError || !broadcastData) {
-      throw new Error(`Failed to create broadcast for newsletter ${newsletterNumber}: ${JSON.stringify(broadcastError)}`);
+      throw new Error(
+        `Failed to create broadcast for newsletter ${newsletterNumber}: ${JSON.stringify(broadcastError)}`,
+      );
     }
 
-    console.log(`[broadcast] Sent newsletter #${newsletterNumber} as broadcast ${broadcastData.id} to ${contactCount} contacts via segment ${segmentId}`);
+    console.log(
+      `[broadcast] Sent newsletter #${newsletterNumber} as broadcast ${broadcastData.id} to ${contactCount} contacts via segment ${segmentId}`,
+    );
 
     return {
       segmentId,
@@ -216,8 +261,9 @@ export async function sendNewsletterBroadcast(
 /**
  * Render a broadcast markdown template for Resend Broadcast API delivery.
  *
- * Replaces template variables with Resend triple-brace syntax so Resend
- * substitutes per-contact values at send time. Returns HTML + subject.
+ * The markdown files contain Resend contact property syntax directly
+ * (e.g. {{{contact.first_name|there}}}), so this function only replaces
+ * the {{appUrl}} variable. Resend substitutes contact properties at send time.
  */
 export async function renderBroadcastForBroadcastApi(slug: string): Promise<{
   html: string;
@@ -230,23 +276,12 @@ export async function renderBroadcastForBroadcastApi(slug: string): Promise<{
   }
 
   const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
-  const emailLabel = slug.replace(/-/g, '_');
 
-  // Map template variables to Resend triple-brace syntax.
-  // Resend broadcast interpolation uses uppercase keys in triple braces:
-  // {{{FIRST_NAME}}} for built-in fields, {{{SIGNUP_MONTH}}} for custom properties.
+  // Only appUrl needs replacing — contact properties use Resend syntax
+  // directly in the markdown and are interpolated by Resend at send time.
   const variables: Record<string, string> = {
-    firstName: '{{{FIRST_NAME|there}}}',
     appUrl,
-    chartUrl: `${appUrl}/see-your-design/{{{NEON_ID}}}?utm_source=livecorrectly&utm_medium=email&utm_campaign=${emailLabel}`,
-    unsubscribeUrl: '{{{RESEND_UNSUBSCRIBE_URL}}}',
   };
-
-  // Derived from BROADCAST_CONTACT_PROPERTIES — each template variable maps
-  // to its Resend contact property key (uppercased) via triple-brace syntax.
-  for (const [varName, entry] of Object.entries(BROADCAST_CONTACT_PROPERTIES)) {
-    variables[varName] = `{{{${entry.key.toUpperCase()}}}}`;
-  }
 
   const broadcast = getBroadcast(slug, variables);
   if (!broadcast) {
@@ -287,11 +322,14 @@ export async function sendBroadcastViaBroadcastApi(
   const segmentName = `broadcast_${slug}_${Date.now()}`;
 
   // 2. Create ephemeral segment
-  const { data: segmentData, error: segmentError } = await client.segments.create({
-    name: segmentName,
-  });
+  const { data: segmentData, error: segmentError } =
+    await client.segments.create({
+      name: segmentName,
+    });
   if (segmentError || !segmentData) {
-    throw new Error(`Failed to create segment "${segmentName}": ${JSON.stringify(segmentError)}`);
+    throw new Error(
+      `Failed to create segment "${segmentName}": ${JSON.stringify(segmentError)}`,
+    );
   }
   const segmentId = segmentData.id;
 
@@ -305,14 +343,19 @@ export async function sendBroadcastViaBroadcastApi(
       });
       if (error) {
         // Contact may not exist in Resend yet — log and skip
-        console.warn(`[broadcast] Failed to add ${subscriber.email} to segment ${segmentId}:`, error);
+        console.warn(
+          `[broadcast] Failed to add ${subscriber.email} to segment ${segmentId}:`,
+          error,
+        );
         continue;
       }
       contactCount++;
     }
 
     if (contactCount === 0) {
-      throw new Error(`No contacts could be added to segment for broadcast ${slug}`);
+      throw new Error(
+        `No contacts could be added to segment for broadcast ${slug}`,
+      );
     }
 
     // 4. Render HTML
@@ -320,29 +363,36 @@ export async function sendBroadcastViaBroadcastApi(
 
     // 5. Create + send broadcast
     const broadcastConfig = BROADCASTS[slug];
-    const from = options?.from
-      ?? broadcastConfig?.from
-      ?? process.env.EMAIL_FROM_MARKETING
-      ?? 'Shawn Lauzon <updates@livecorrectly.com>';
-    const replyTo = options?.replyTo
-      ?? process.env.EMAIL_FROM
-      ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+    const from =
+      options?.from ??
+      broadcastConfig?.from ??
+      process.env.EMAIL_FROM_MARKETING ??
+      'Shawn Lauzon <updates@livecorrectly.com>';
+    const replyTo =
+      options?.replyTo ??
+      process.env.EMAIL_FROM ??
+      'Shawn Lauzon <shawn@livecorrectly.com>';
 
-    const { data: broadcastData, error: broadcastError } = await client.broadcasts.create({
-      name: `Broadcast: ${slug}`,
-      segmentId,
-      from,
-      replyTo,
-      subject,
-      html,
-      send: true,
-    });
+    const { data: broadcastData, error: broadcastError } =
+      await client.broadcasts.create({
+        name: `Broadcast: ${slug}`,
+        segmentId,
+        from,
+        replyTo,
+        subject,
+        html,
+        send: true,
+      });
 
     if (broadcastError || !broadcastData) {
-      throw new Error(`Failed to create broadcast for ${slug}: ${JSON.stringify(broadcastError)}`);
+      throw new Error(
+        `Failed to create broadcast for ${slug}: ${JSON.stringify(broadcastError)}`,
+      );
     }
 
-    console.log(`[broadcast] Sent broadcast "${slug}" as ${broadcastData.id} to ${contactCount} contacts via segment ${segmentId}`);
+    console.log(
+      `[broadcast] Sent broadcast "${slug}" as ${broadcastData.id} to ${contactCount} contacts via segment ${segmentId}`,
+    );
 
     return {
       segmentId,
@@ -365,7 +415,10 @@ export async function cleanupSegment(segmentId: string): Promise<void> {
     const client = getResendClient();
     const { error } = await client.segments.remove(segmentId);
     if (error) {
-      console.error(`[broadcast] Failed to clean up segment ${segmentId}:`, error);
+      console.error(
+        `[broadcast] Failed to clean up segment ${segmentId}:`,
+        error,
+      );
     } else {
       console.log(`[broadcast] Cleaned up segment ${segmentId}`);
     }
