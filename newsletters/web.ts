@@ -66,7 +66,7 @@ function renderForWeb(
   if (!raw.slug) return null;
 
   const cleaned = replaceVariables(stripGreeting(raw.bodyMarkdown.trim()));
-  const processed = processConditionals(cleaned, chart ?? null);
+  const processed = processConditionals(cleaned, chart ?? null, 'web');
   const resolved = resolveContactVars(processed, chart ?? null);
   const bodyHtml = marked.parse(resolved) as string;
   const ps = raw.rawPs.map(

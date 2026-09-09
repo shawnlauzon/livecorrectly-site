@@ -141,11 +141,6 @@ export async function renderNewsletterForBroadcast(
     throw new Error(`Newsletter ${newsletterNumber} not found`);
   }
 
-  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
-  const webUrl = newsletter.slug
-    ? `${appUrl}/newsletter/${newsletter.slug}`
-    : null;
-
   const component = React.createElement(NewsletterTemplate, {
     preview: newsletter.preview,
     bodyHtml: newsletter.bodyHtml,
@@ -153,7 +148,6 @@ export async function renderNewsletterForBroadcast(
     chart: null,
     unsubscribeUrl: '{{{RESEND_UNSUBSCRIBE_URL}}}',
     number: newsletter.number,
-    webUrl,
     ps: newsletter.ps,
   });
 

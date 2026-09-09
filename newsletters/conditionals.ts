@@ -15,22 +15,23 @@ export function hasMarkdownConditionals(markdown: string): boolean {
 /**
  * Process {if:name}...{/if} conditional blocks in newsletter markdown.
  *
- * - `chart = null` (email path, or web without subscriber):
- *   Strips all predicate blocks. Keeps {if:untyped} content.
+ * `channel` controls the rendering target:
+ * - `{if:email}` → kept when channel is 'email', stripped when 'web'
+ * - `{if:web}` → kept when channel is 'web', stripped when 'email'
  *
- * - `chart` provided (web with subscriber):
- *   Evaluates each predicate — keeps matching blocks, strips non-matching.
- *   Strips {if:untyped} blocks (subscriber has data, so untyped doesn't apply).
+ * Chart predicates (e.g. `{if:builder}`):
+ * - `chart = null`: strips all predicate blocks
+ * - `chart` provided: evaluates each predicate against the chart
  */
 export function processConditionals(
   markdown: string,
   chart: EmailChartData | null,
+  channel: 'email' | 'web',
 ): string {
   return markdown.replace(CONDITIONAL_RE, (_match, name: string, content: string) => {
-    if (name === 'untyped') {
-      // Keep untyped content only when there's no chart
-      return chart === null ? content : '';
-    }
+    // Channel conditionals — resolved before chart check
+    if (name === 'email') return channel === 'email' ? content : '';
+    if (name === 'web') return channel === 'web' ? content : '';
 
     if (chart === null) {
       // No chart → strip all predicate blocks

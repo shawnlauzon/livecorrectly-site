@@ -20,11 +20,6 @@ export function getNewsletterEmail(
   const newsletter = getNewsletter(step, subscriber.first_name, subscriber.id);
   if (!newsletter) return null;
 
-  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
-  const webUrl = newsletter.slug
-    ? `${appUrl}/newsletter/${newsletter.slug}`
-    : null;
-
   return React.createElement(NewsletterTemplate, {
     preview: newsletter.preview,
     bodyHtml: newsletter.bodyHtml,
@@ -32,7 +27,6 @@ export function getNewsletterEmail(
     chart,
     unsubscribeUrl,
     number: newsletter.number,
-    webUrl,
     ps: newsletter.ps,
   });
 }

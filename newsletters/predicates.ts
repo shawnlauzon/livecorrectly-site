@@ -17,8 +17,6 @@ const predicates: Record<string, (chart: EmailChartData) => boolean> = {
   advisor: (chart) => chart.isProjector,
   evaluator: (chart) => chart.isReflector,
   emotional: (chart) => chart.isEmotionalAuthority,
-  web: (chart) => !!!chart,
-  email: (chart) => !chart,
 };
 
 export default predicates;

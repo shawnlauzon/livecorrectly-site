@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Section, Text, Link, Img } from 'react-email';
+import { Section, Img } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import type { EmailChartData } from '../lib/hd-chart/parse-for-email';
 import { Newsletter04Personalization } from '@/newsletters/personalizations/04';
@@ -13,7 +13,6 @@ interface NewsletterTemplateProps {
   chart: EmailChartData | null;
   unsubscribeUrl: string;
   number: number;
-  webUrl: string | null;
   ps: string[];
 }
 
@@ -58,7 +57,6 @@ export function NewsletterTemplate({
   chart,
   unsubscribeUrl,
   number,
-  webUrl,
   ps,
 }: NewsletterTemplateProps) {
   const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
@@ -66,22 +64,11 @@ export function NewsletterTemplate({
     <span key={i} dangerouslySetInnerHTML={{ __html: p }} />
   ));
 
-  const bottomNote = webUrl ? (
-    <Section>
-      <Text className="mt-[24px] text-[13px] leading-[20px] text-[#45585B] text-center">
-        <Link href={webUrl} className="text-[#8C4A6B] underline">
-          Read on the web
-        </Link>
-      </Text>
-    </Section>
-  ) : undefined;
-
   return (
     <EmailLayout
       preview={preview}
       unsubscribeUrl={unsubscribeUrl}
       postscripts={postscripts}
-      bottomNote={bottomNote}
     >
       {image && (
         <Img

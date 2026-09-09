@@ -33,7 +33,7 @@ export interface Newsletter {
  */
 function renderForEmail(raw: RawNewsletter): Newsletter {
   const image = raw.showHeroImage ? raw.rawImage : null;
-  const stripped = processConditionals(raw.bodyMarkdown.trim(), null);
+  const stripped = processConditionals(raw.bodyMarkdown.trim(), null, 'email');
   const bodyHtml = emailMarked.parse(stripped) as string;
   const ps = raw.rawPs.map(p =>
     emailMarked.parseInline(p.trim()) as string,
