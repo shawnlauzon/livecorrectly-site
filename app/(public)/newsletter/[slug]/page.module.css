@@ -58,6 +58,10 @@
 
 /* ---- Prose ---- */
 
+.body {
+  font-family: var(--narrative);
+}
+
 .body p {
   margin-bottom: 1rem;
   color: var(--ink);
@@ -65,8 +69,8 @@
 
 .body h2 {
   font-family: var(--display);
-  font-weight: 400;
-  font-size: 1.25rem;
+  font-weight: 600;
+  font-size: 1.5rem;
   line-height: 1.2;
   margin-top: 2.25rem;
   margin-bottom: 0.75rem;
@@ -74,8 +78,8 @@
 
 .body h3 {
   font-family: var(--display);
-  font-weight: 400;
-  font-size: 1.1rem;
+  font-weight: 600;
+  font-size: 1.25rem;
   line-height: 1.25;
   margin-top: 1.75rem;
   margin-bottom: 0.5rem;
@@ -131,7 +135,6 @@
 
 .ps {
   margin-top: 2rem;
-  font-style: italic;
   color: var(--ink-soft);
 }
 

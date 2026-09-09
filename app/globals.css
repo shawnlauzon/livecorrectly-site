@@ -13,6 +13,7 @@
 
   --display: var(--font-display), Georgia, serif;
   --body: var(--font-body), system-ui, -apple-system, sans-serif;
+  --narrative: var(--font-narrative), system-ui, -apple-system, sans-serif;
 
   --measure: 34rem;
   --gutter: clamp(1.25rem, 5vw, 4rem);
