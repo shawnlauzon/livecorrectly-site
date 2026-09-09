@@ -7,6 +7,7 @@ import { BodygraphChart } from "./bodygraph/bodygraph-chart";
 import ChartReadout from "./chart-readout";
 import hdChart from "@/lib/hd-chart";
 import { careerDesignSubtitles } from "@/lib/hd-chart/constants";
+import { track } from "@/lib/analytics";
 import { Subscriber } from "@/lib/types/subscriber";
 import styles from "./chart-form.module.css";
 
@@ -84,7 +85,7 @@ export default function ChartHero({ subscriber, subscriberId }: ChartHeroProps) 
           {showBodygraph && (
             <div
               className={`${styles.heroBodygraphSide} ${chartOpen ? styles.heroBodygraphExpanded : ''}`}
-              onClick={chartOpen ? undefined : () => setChartOpen(true)}
+              onClick={chartOpen ? undefined : () => { track('chart_image_expand'); setChartOpen(true); }}
             >
               <BodygraphChart
                 chart={chartRecord.chart}

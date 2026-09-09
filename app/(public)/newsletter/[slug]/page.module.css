@@ -56,6 +56,45 @@
   margin-bottom: 2.5rem;
 }
 
+/* ---- Date + share ---- */
+
+.dateLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+.dateLine .date {
+  margin-bottom: 0;
+}
+
+.shareBtn {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+.shareBtn:hover {
+  color: var(--pulse);
+  background: var(--pulse-soft);
+}
+
+.shareIcon {
+  display: block;
+}
+
+.shareCopied {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--pulse);
+}
+
 /* ---- Prose ---- */
 
 .body {

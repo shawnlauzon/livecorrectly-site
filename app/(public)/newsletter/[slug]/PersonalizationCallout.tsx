@@ -1,4 +1,7 @@
+'use client';
+
 import Link from "next/link";
+import { track } from "@/lib/analytics";
 import styles from "./page.module.css";
 
 interface PersonalizationCalloutProps {
@@ -15,7 +18,13 @@ export default function PersonalizationCallout({ hasWebPersonalization }: Person
           : 'Subscribers receive this newsletter weekly, customized to their unique Human Design.'}
       </p>
       <p>
-        <Link href="/see-your-design">Get your free chart</Link> to get yours.
+        <Link
+          href="/see-your-design"
+          onClick={() => track('cta_click', { location: 'newsletter_personalization_callout' })}
+        >
+          Get your free chart
+        </Link>{' '}
+        to get yours.
       </p>
     </aside>
   );

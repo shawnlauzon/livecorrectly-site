@@ -9,6 +9,8 @@ import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import PersonalizationCallout from './PersonalizationCallout';
 import PersonalizedSection from './PersonalizedSection';
 import NewsletterCta from './NewsletterCta';
+import NewsletterShare from './NewsletterShare';
+import NewsletterTracker from './NewsletterTracker';
 import styles from './page.module.css';
 
 interface Props {
@@ -134,11 +136,15 @@ export default async function NewsletterIssuePage({
               priority
             />
           )}
-          <p className={styles.date}>
-            <time dateTime={issue.publishedAt}>
-              {formatDate(issue.publishedAt)}
-            </time>
-          </p>
+          <NewsletterTracker slug={issue.slug} issue={issue.number} personalized={!!subscriberParam} />
+          <div className={styles.dateLine}>
+            <p className={styles.date}>
+              <time dateTime={issue.publishedAt}>
+                {formatDate(issue.publishedAt)}
+              </time>
+            </p>
+            <NewsletterShare url={shareUrl} title={issue.title} slug={issue.slug} />
+          </div>
           <h1 className={styles.h1}>{issue.title}</h1>
           {subscriberName && (
             <p className={styles.builtFor}>Built for {subscriberName}</p>

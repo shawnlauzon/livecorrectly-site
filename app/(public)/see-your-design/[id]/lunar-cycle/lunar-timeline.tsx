@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Chart } from '@/lib/types/chart';
 import type { CompletedChannel } from '@/lib/lunar';
+import { track } from '@/lib/analytics';
 import LunarCalendar from './lunar-calendar';
 
 /** Wire format — dates are ISO strings after server->client serialization. */
@@ -52,6 +53,10 @@ export default function LunarTimeline({ transits, chart, startMonth, subscriberI
   );
   const [timezone, setTimezone] = useState(browserTimezone);
   const groupedZones = useMemo(() => getGroupedTimezones(), []);
+
+  useEffect(() => {
+    track('lunar_calendar_view');
+  }, []);
 
   return (
     <div>
