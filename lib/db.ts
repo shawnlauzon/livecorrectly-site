@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { neon, NeonQueryFunction } from '@neondatabase/serverless';
 import { BirthInput, EmailStatus, Subscriber } from './types/subscriber';
 import type { ChartGroup, ChartRecord } from './types/chart';
@@ -12,6 +13,48 @@ function getDb(): NeonQueryFunction<false, false> {
     sql = neon(process.env.DATABASE_URL);
   }
   return sql;
+}
+
+/**
+ * Retry delays in milliseconds for transient DB errors.
+ * Two retries: 200ms, then 500ms.
+ */
+const RETRY_DELAYS = [200, 500];
+
+/**
+ * Check whether an error is a transient network/connection issue
+ * that's worth retrying (timeouts, connection resets, fetch failures).
+ */
+function isTransientError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message + (err.cause instanceof Error ? ' ' + err.cause.message : '');
+  return /ETIMEDOUT|ECONNRESET|fetch failed|ECONNREFUSED|socket hang up/i.test(msg);
+}
+
+/**
+ * Execute an async function with automatic retry on transient DB errors.
+ * Non-transient errors are thrown immediately without retry.
+ */
+async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      if (!isTransientError(err) || attempt === RETRY_DELAYS.length) {
+        throw err;
+      }
+      const delay = RETRY_DELAYS[attempt];
+      console.warn(
+        `[db] Transient error (attempt ${attempt + 1}/${RETRY_DELAYS.length + 1}), retrying in ${delay}ms:`,
+        err instanceof Error ? err.message : err,
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  // Unreachable, but satisfies TypeScript
+  throw lastError;
 }
 
 /**
@@ -359,12 +402,15 @@ export async function recordNewsletterSend(
 /**
  * Get send dates for all newsletters that have been sent.
  * Returns a Map from newsletter number to ISO timestamp string.
+ *
+ * Wrapped with React cache() so that within a single request
+ * (e.g. generateMetadata + page component), the DB is hit only once.
  */
-export async function getNewsletterSendDates(): Promise<Map<number, string>> {
+export const getNewsletterSendDates = cache(async (): Promise<Map<number, string>> => {
   const db = getDb();
-  const rows = await db`
+  const rows = await withRetry(() => db`
     SELECT newsletter_number, sent_at FROM newsletter_sends
-  `;
+  `);
   const map = new Map<number, string>();
   for (const row of rows) {
     map.set(
@@ -373,7 +419,7 @@ export async function getNewsletterSendDates(): Promise<Map<number, string>> {
     );
   }
   return map;
-}
+});
 
 /**
  * Attempt to acquire a per-day lock for a cron job.
