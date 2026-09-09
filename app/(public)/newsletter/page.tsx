@@ -21,7 +21,14 @@ function formatDate(iso: string): string {
   });
 }
 
-export default async function NewsletterIndexPage() {
+export default async function NewsletterIndexPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const subscriberParam =
+    typeof resolvedSearchParams.s === 'string' ? resolvedSearchParams.s : null;
   const issues = await getWebNewsletters();
 
   return (
@@ -29,18 +36,20 @@ export default async function NewsletterIndexPage() {
       <SiteNav />
       <main className={styles.page}>
         <h1 className={styles.h1}>Newsletter</h1>
-        <section className={styles.cta}>
-          <p>
-            Sent every Wednesday, personalized to your specific Human Design.
-          </p>
-          <Link className="btn" href="/see-your-design">
-            Subscribe for free
-          </Link>
-        </section>
+        {!subscriberParam && (
+          <section className={styles.cta}>
+            <p>
+              Sent every Wednesday, personalized to your specific Human Design.
+            </p>
+            <Link className="btn" href="/see-your-design">
+              Subscribe for free
+            </Link>
+          </section>
+        )}
         <ul className={styles.list}>
           {issues.map((issue) => (
             <li key={issue.slug} className={styles.item}>
-              <Link href={`/newsletter/${issue.slug}`} className={styles.itemLink}>
+              <Link href={subscriberParam ? `/newsletter/${issue.slug}?s=${subscriberParam}` : `/newsletter/${issue.slug}`} className={styles.itemLink}>
                 {issue.image && (
                   <Image
                     src={`/newsletter/${issue.image}`}

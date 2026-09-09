@@ -71,14 +71,20 @@ export default async function NewsletterIssuePage({
   const { slug } = await params;
   const resolvedSearchParams = await searchParams;
 
-  // Resolve chart early — needed for both markdown conditionals and TSX personalizations
-  const subscriberId =
+  // Resolve subscriber early — needed for markdown conditionals, personalizations, and "Built for" line
+  const subscriberParam =
     typeof resolvedSearchParams.s === 'string' ? resolvedSearchParams.s : null;
   let chart = null;
-  if (subscriberId && UUID_RE.test(subscriberId)) {
-    const subscriber = await getSubscriberById(subscriberId);
-    if (subscriber?.chart) {
-      chart = parseChartForEmail(subscriber.chart.chart);
+  let subscriberName: string | null = null;
+  if (subscriberParam && UUID_RE.test(subscriberParam)) {
+    const subscriber = await getSubscriberById(subscriberParam);
+    if (subscriber) {
+      subscriberName = subscriber.last_name
+        ? `${subscriber.first_name} ${subscriber.last_name}`
+        : subscriber.first_name;
+      if (subscriber.chart) {
+        chart = parseChartForEmail(subscriber.chart.chart);
+      }
     }
   }
 
@@ -108,7 +114,7 @@ export default async function NewsletterIssuePage({
 
   return (
     <>
-      <SiteNav variant="back" backHref="/newsletter" hideNewsletterLink />
+      <SiteNav variant="back" backHref={subscriberParam ? `/newsletter?s=${subscriberParam}` : '/newsletter'} hideNewsletterLink />
       <main className={styles.page}>
         <article>
           {!issue.published && (
@@ -130,6 +136,9 @@ export default async function NewsletterIssuePage({
             </time>
           </p>
           <h1 className={styles.h1}>{issue.title}</h1>
+          {subscriberName && (
+            <p className={styles.builtFor}>Built for {subscriberName}</p>
+          )}
           <div
             className={styles.body}
             dangerouslySetInnerHTML={{ __html: issue.bodyHtml }}
@@ -141,7 +150,7 @@ export default async function NewsletterIssuePage({
             </div>
           ))}
         </article>
-        <NewsletterCta />
+        {!subscriberParam && <NewsletterCta />}
       </main>
       <SiteFooter />
       {issue.published && (
