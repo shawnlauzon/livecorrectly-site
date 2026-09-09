@@ -1,23 +1,23 @@
-import type { Metadata } from "next";
-import Image from "next/image";
-import { notFound } from "next/navigation";
-import SiteNav from "@/components/site-nav";
-import SiteFooter from "@/components/site-footer";
-import { getWebNewsletter, getAllSlugs } from "@/newsletters/web";
-import { getSubscriberById } from "@/lib/db";
-import { parseChartForEmail } from "@/lib/hd-chart/parse-for-email";
-import { getWebPersonalization } from "@/newsletters/personalizations/web";
-import PersonalizationCallout from "./PersonalizationCallout";
-import PersonalizedSection from "./PersonalizedSection";
-import NewsletterCta from "./NewsletterCta";
-import styles from "./page.module.css";
+import type { Metadata } from 'next';
+import Image from 'next/image';
+import { notFound } from 'next/navigation';
+import SiteNav from '@/components/site-nav';
+import SiteFooter from '@/components/site-footer';
+import { getWebNewsletter, getAllSlugs } from '@/newsletters/web';
+import { getSubscriberById } from '@/lib/db';
+import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
+import PersonalizationCallout from './PersonalizationCallout';
+import PersonalizedSection from './PersonalizedSection';
+import NewsletterCta from './NewsletterCta';
+import styles from './page.module.css';
 
 interface Props {
   params: Promise<{ slug: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function generateStaticParams() {
   return (await getAllSlugs()).map((slug) => ({ slug }));
@@ -35,15 +35,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: issue.description,
     alternates: { canonical: url },
     openGraph: {
-      type: "article",
+      type: 'article',
       title: issue.title,
       description: issue.description,
       url,
       publishedTime: issue.publishedAt,
-      authors: ["Shawn Lauzon"],
+      authors: ['Shawn Lauzon'],
     },
     twitter: {
-      card: "summary",
+      card: 'summary',
       title: issue.title,
       description: issue.description,
     },
@@ -52,10 +52,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+  return d.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   });
 }
 
@@ -64,42 +64,44 @@ function getPostscriptPrefix(index: number): string {
   return 'P.' + 'P.'.repeat(index) + 'S.';
 }
 
-export default async function NewsletterIssuePage({ params, searchParams }: Props) {
+export default async function NewsletterIssuePage({
+  params,
+  searchParams,
+}: Props) {
   const { slug } = await params;
   const resolvedSearchParams = await searchParams;
-  const issue = await getWebNewsletter(slug);
-  if (!issue) notFound();
 
-  // Resolve personalization when ?s= is a valid UUID and the newsletter has a web component
-  const subscriberId = typeof resolvedSearchParams.s === 'string' ? resolvedSearchParams.s : null;
-  const PersonalizationComponent = issue.hasWebPersonalization
-    ? getWebPersonalization(issue.number)
-    : undefined;
-
+  // Resolve chart early — needed for both markdown conditionals and TSX personalizations
+  const subscriberId =
+    typeof resolvedSearchParams.s === 'string' ? resolvedSearchParams.s : null;
   let chart = null;
-  if (subscriberId && UUID_RE.test(subscriberId) && PersonalizationComponent) {
+  if (subscriberId && UUID_RE.test(subscriberId)) {
     const subscriber = await getSubscriberById(subscriberId);
     if (subscriber?.chart) {
       chart = parseChartForEmail(subscriber.chart.chart);
     }
   }
 
+  // Load newsletter with chart so markdown conditionals are evaluated
+  const issue = await getWebNewsletter(slug, chart);
+  if (!issue) notFound();
+
   const shareUrl = `https://www.livecorrectly.com/newsletter/${issue.slug}`;
 
   const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Article",
+    '@context': 'https://schema.org',
+    '@type': 'Article',
     headline: issue.title,
     description: issue.description,
     datePublished: issue.publishedAt,
     author: {
-      "@type": "Person",
-      name: "Shawn Lauzon",
+      '@type': 'Person',
+      name: 'Shawn Lauzon',
     },
     publisher: {
-      "@type": "Organization",
-      name: "Live Correctly",
-      url: "https://www.livecorrectly.com",
+      '@type': 'Organization',
+      name: 'Live Correctly',
+      url: 'https://www.livecorrectly.com',
     },
     mainEntityOfPage: shareUrl,
   };
@@ -138,15 +140,6 @@ export default async function NewsletterIssuePage({ params, searchParams }: Prop
               <span dangerouslySetInnerHTML={{ __html: p }} />
             </div>
           ))}
-          {chart && PersonalizationComponent ? (
-            <PersonalizedSection
-              Component={PersonalizationComponent}
-              chart={chart}
-              shareUrl={shareUrl}
-            />
-          ) : (
-            <PersonalizationCallout hasWebPersonalization={issue.hasWebPersonalization} />
-          )}
         </article>
         <NewsletterCta />
       </main>

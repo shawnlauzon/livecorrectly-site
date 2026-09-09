@@ -1,4 +1,7 @@
 import { Resend } from 'resend';
+import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
+import contactProperties from '@/newsletters/contact-properties';
+import { buildContactPropertyValues } from '@/newsletters/resolve-contact-vars';
 
 /**
  * Resend contact management — separate from emails/send.ts (the sole
@@ -44,6 +47,35 @@ export async function ensureNeonIdProperty(): Promise<void> {
   neonIdPropertyEnsured = true;
 }
 
+let chartPropertiesEnsured = false;
+
+/**
+ * Ensure chart-derived contact properties exist in Resend.
+ * Iterates the contact-properties registry and creates each key as a
+ * string-typed contact property. Called once per process.
+ * 409 (already exists) is expected and harmless.
+ */
+export async function ensureChartContactProperties(): Promise<void> {
+  if (chartPropertiesEnsured) return;
+
+  const client = getResendClient();
+  for (const key of Object.keys(contactProperties)) {
+    const { error } = await client.contactProperties.create({
+      key,
+      type: 'string' as const,
+    });
+    if (error) {
+      if ('statusCode' in error && (error as { statusCode: number }).statusCode === 409) {
+        // Property already exists — expected
+      } else {
+        throw new Error(`Failed to create ${key} contact property: ${JSON.stringify(error)}`);
+      }
+    }
+  }
+
+  chartPropertiesEnsured = true;
+}
+
 /**
  * Create or update a contact in Resend with their Neon subscriber ID as a property.
  * Broadcast-specific properties (signup_month, etc.) are synced just-in-time by
@@ -55,17 +87,23 @@ export async function syncContactToResend({
   firstName,
   lastName,
   subscriberId,
+  chart,
 }: {
   email: string;
   firstName: string;
   lastName: string | null;
   subscriberId: string;
+  chart?: EmailChartData;
 }): Promise<void> {
   await ensureNeonIdProperty();
+  if (chart) {
+    await ensureChartContactProperties();
+  }
   const client = getResendClient();
 
-  const properties = {
+  const properties: Record<string, string> = {
     neon_id: subscriberId,
+    ...(chart ? buildContactPropertyValues(chart) : {}),
   };
 
   const { error } = await client.contacts.create({

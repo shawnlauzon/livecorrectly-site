@@ -5,7 +5,7 @@ import { sendWelcomeEmail, formatEmailRecipient, buildUnsubscribeUrl } from '@/e
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getNewsletterEmail, getNewsletterSubject, getMaxNewsletterNumber } from '@/emails/newsletter';
 import { hasInlinePersonalization } from '@/emails/newsletter-template';
-import { sendNewsletterBroadcast } from '@/lib/resend-broadcasts';
+import { sendNewsletterBroadcast, syncBroadcastContactProperties } from '@/lib/resend-broadcasts';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import type { Subscriber } from '@/lib/types/subscriber';
 
@@ -104,8 +104,9 @@ export async function GET(request: NextRequest) {
         }
       }
     } else {
-      // Broadcast path: single API call for the whole group
+      // Broadcast path: sync contact properties, then single API call for the whole group
       try {
+        await syncBroadcastContactProperties(subscribers);
         const emails = subscribers.map(s => s.email);
         const result = await sendNewsletterBroadcast(newsletterNumber, emails);
         // Advance next_step for all subscribers in the group

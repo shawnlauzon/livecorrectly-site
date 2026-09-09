@@ -4,6 +4,7 @@ import {
   type RawNewsletter,
 } from '@/newsletters/loader';
 import { emailMarked, replaceVariables as replaceVars, replaceChartSubpaths, replaceDesignedCta } from './markdown-renderer';
+import { processConditionals } from '@/newsletters/conditionals';
 
 export {
   getNewsletterCount,
@@ -32,7 +33,8 @@ export interface Newsletter {
  */
 function renderForEmail(raw: RawNewsletter): Newsletter {
   const image = raw.showHeroImage ? raw.rawImage : null;
-  const bodyHtml = emailMarked.parse(raw.bodyMarkdown.trim()) as string;
+  const stripped = processConditionals(raw.bodyMarkdown.trim(), null);
+  const bodyHtml = emailMarked.parse(stripped) as string;
   const ps = raw.rawPs.map(p =>
     emailMarked.parseInline(p.trim()) as string,
   );

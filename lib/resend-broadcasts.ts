@@ -1,5 +1,5 @@
 import React from 'react';
-import { getResendClient, ensureNeonIdProperty } from './resend-contacts';
+import { getResendClient, ensureNeonIdProperty, ensureChartContactProperties } from './resend-contacts';
 import { getNewsletter } from '@/emails/newsletter-loader';
 import { NewsletterTemplate } from '@/emails/newsletter-template';
 import { getNewsletterSubject } from '@/emails/newsletter';
@@ -12,6 +12,9 @@ import {
   monthsSince,
 } from '@/emails/broadcast-config';
 import { getBroadcastFileConfig } from '@/emails/broadcast-loader';
+import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
+import contactProperties from '@/newsletters/contact-properties';
+import { buildContactPropertyValues } from '@/newsletters/resolve-contact-vars';
 import type { Subscriber } from '@/lib/types/subscriber';
 
 /**
@@ -50,7 +53,7 @@ let broadcastPropertiesEnsured = false;
  * Called just before sending a broadcast — ensures properties exist, then
  * computes and updates each subscriber's values.
  */
-async function syncBroadcastContactProperties(
+export async function syncBroadcastContactProperties(
   subscribers: Subscriber[],
 ): Promise<void> {
   const client = getResendClient();
@@ -59,6 +62,8 @@ async function syncBroadcastContactProperties(
   if (!broadcastPropertiesEnsured) {
     // Also ensure neon_id exists (may have been created at signup, but be safe)
     await ensureNeonIdProperty();
+    // Ensure chart-derived contact properties exist
+    await ensureChartContactProperties();
 
     for (const entry of Object.values(BROADCAST_CONTACT_PROPERTIES)) {
       const { error } = await client.contactProperties.create({
@@ -86,6 +91,11 @@ async function syncBroadcastContactProperties(
     const properties: Record<string, string> = {};
     for (const entry of Object.values(BROADCAST_CONTACT_PROPERTIES)) {
       properties[entry.key] = entry.compute(subscriber);
+    }
+    // Add chart-derived properties from the contact-properties registry
+    if (subscriber.chart?.chart) {
+      const chart = parseChartForEmail(subscriber.chart.chart);
+      Object.assign(properties, buildContactPropertyValues(chart));
     }
 
     const { error } = await client.contacts.update({

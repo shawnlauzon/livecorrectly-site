@@ -40,6 +40,9 @@ export async function POST(request: NextRequest) {
       chart,
     });
 
+    // Parse chart once — used for both Resend contact sync and welcome email
+    const chartData = parseChartForEmail(subscriber.chart.chart);
+
     // Sync contact to Resend for broadcast targeting — fire-and-forget, must not block signup
     if (process.env.RESEND_API_KEY) {
       syncContactToResend({
@@ -47,6 +50,7 @@ export async function POST(request: NextRequest) {
         firstName: subscriber.first_name,
         lastName: subscriber.last_name,
         subscriberId: subscriber.id,
+        chart: chartData,
       }).catch((err) => {
         console.error(`[subscribe] Failed to sync contact to Resend for ${subscriber.email}:`, err);
       });
@@ -62,8 +66,6 @@ export async function POST(request: NextRequest) {
       // Advance to step 1 (welcome0 sent) so the daily cron picks up Day 1 —
       // do this regardless of whether the welcome email send succeeds.
       await advanceEmailSeries(subscriber.id, 1);
-
-      const chartData = parseChartForEmail(subscriber.chart.chart);
 
       try {
         const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
@@ -98,7 +100,6 @@ export async function POST(request: NextRequest) {
 
     // Admin notification — fire-and-forget, failure must never block registration
     if (isFresh && process.env.RESEND_API_KEY) {
-      const chartData = parseChartForEmail(subscriber.chart.chart);
       sendAdminNotification(subscriber, chartData.type).catch((err) => {
         console.error(`[subscribe] Failed to send admin notification for ${subscriber.email}:`, err);
       });

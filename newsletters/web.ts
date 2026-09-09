@@ -1,7 +1,9 @@
 import { Marked } from 'marked';
 import { getNewsletterSendDates } from '@/lib/db';
 import { loadAllNewsletters, type RawNewsletter } from './loader';
-import { hasWebPersonalization as checkWebPersonalization } from './personalizations/web';
+import { processConditionals, hasMarkdownConditionals } from './conditionals';
+import { resolveContactVars } from './resolve-contact-vars';
+import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 
 export interface WebNewsletter {
   slug: string;
@@ -24,8 +26,6 @@ export interface WebNewsletter {
   bodyHtml: string;
   /** Postscripts (semantic HTML from markdown) */
   ps: string[];
-  /** Whether this newsletter has a web personalization component */
-  hasWebPersonalization: boolean;
 }
 
 const APP_URL = 'https://www.livecorrectly.com';
@@ -61,13 +61,16 @@ function renderForWeb(
   raw: RawNewsletter,
   publishedAt: string,
   published: boolean,
+  chart?: EmailChartData | null,
 ): WebNewsletter | null {
   if (!raw.slug) return null;
 
   const cleaned = replaceVariables(stripGreeting(raw.bodyMarkdown.trim()));
-  const bodyHtml = marked.parse(cleaned) as string;
-  const ps = raw.rawPs.map(p =>
-    marked.parseInline(replaceVariables(p.trim())) as string,
+  const processed = processConditionals(cleaned, chart ?? null);
+  const resolved = resolveContactVars(processed, chart ?? null);
+  const bodyHtml = marked.parse(resolved) as string;
+  const ps = raw.rawPs.map(
+    (p) => marked.parseInline(replaceVariables(p.trim())) as string,
   );
 
   return {
@@ -82,7 +85,6 @@ function renderForWeb(
     published,
     bodyHtml,
     ps,
-    hasWebPersonalization: checkWebPersonalization(raw.number),
   };
 }
 
@@ -114,15 +116,30 @@ export async function getWebNewsletters(): Promise<WebNewsletter[]> {
 
 /**
  * Get a single newsletter by its slug.
+ * When chart is provided, conditional blocks are evaluated against it.
  */
-export async function getWebNewsletter(slug: string): Promise<WebNewsletter | null> {
-  const all = await getWebNewsletters();
-  return all.find(n => n.slug === slug) ?? null;
+export async function getWebNewsletter(
+  slug: string,
+  chart?: EmailChartData | null,
+): Promise<WebNewsletter | null> {
+  const sendDates = await getNewsletterSendDates();
+  const isDev = process.env.NODE_ENV === 'development';
+  const all = loadAllNewsletters();
+
+  for (const [num, raw] of all) {
+    if (raw.slug !== slug) continue;
+    const sentAt = sendDates.get(num);
+    if (!sentAt && !isDev) return null;
+    const publishedAt = sentAt ?? new Date().toISOString();
+    return renderForWeb(raw, publishedAt, !!sentAt, chart);
+  }
+
+  return null;
 }
 
 /**
  * All published slugs — for generateStaticParams.
  */
 export async function getAllSlugs(): Promise<string[]> {
-  return (await getWebNewsletters()).map(n => n.slug);
+  return (await getWebNewsletters()).map((n) => n.slug);
 }
