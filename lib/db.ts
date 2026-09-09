@@ -257,6 +257,9 @@ export async function updateEmailSeries(
  * Records the most recent proof of life (email click, chart page visit, etc.).
  */
 export async function touchEngagement(id: string): Promise<void> {
+  // No-op on localhost — don't pollute engagement timestamps during dev
+  if (process.env.NODE_ENV === 'development') return;
+
   const db = getDb();
   await db`
     UPDATE subscribers
