@@ -4,6 +4,7 @@ import Link from "next/link";
 import SiteNav from "@/components/site-nav";
 import SiteFooter from "@/components/site-footer";
 import { getWebNewsletters } from "@/newsletters/web";
+import NewsletterIndexCta from "./NewsletterIndexCta";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
@@ -36,16 +37,7 @@ export default async function NewsletterIndexPage({
       <SiteNav />
       <main className={styles.page}>
         <h1 className={styles.h1}>Newsletter</h1>
-        {!subscriberParam && (
-          <section className={styles.cta}>
-            <p>
-              Sent every Wednesday, personalized to your specific Human Design.
-            </p>
-            <Link className="btn" href="/see-your-design">
-              Subscribe for free
-            </Link>
-          </section>
-        )}
+        {!subscriberParam && <NewsletterIndexCta />}
         <ul className={styles.list}>
           {issues.map((issue) => (
             <li key={issue.slug} className={styles.item}>

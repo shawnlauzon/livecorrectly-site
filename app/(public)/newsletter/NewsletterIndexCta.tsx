@@ -4,20 +4,18 @@ import Link from "next/link";
 import { track } from "@/lib/analytics";
 import styles from "./page.module.css";
 
-export default function NewsletterCta() {
+export default function NewsletterIndexCta() {
   return (
     <section className={styles.cta}>
-      <h2>See how you&rsquo;re designed</h2>
       <p>
-        Get your free Human Design chart and find out how your energy actually
-        works.
+        Sent every Wednesday, personalized to your specific Human Design.
       </p>
       <Link
         className="btn"
         href="/see-your-design"
-        onClick={() => track("cta_click", { location: "newsletter_issue" })}
+        onClick={() => track("cta_click", { location: "newsletter_index" })}
       >
-        Get your free chart
+        Subscribe for free
       </Link>
     </section>
   );
