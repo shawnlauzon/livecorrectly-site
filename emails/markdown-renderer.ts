@@ -181,10 +181,14 @@ export function replaceDesignedCta(
   }
 
   const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
-  const url = `${appUrl}/newsletter/${slug}?s=${subscriberId}&utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletterNumber}`;
+  const baseUrl = `${appUrl}/newsletter/${slug}?s=${subscriberId}&utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletterNumber}`;
 
-  return html.replace(pattern, (_match, buttonText: string) => {
-    return `<div style="text-align:center;margin:24px 0"><a href="${url}" style="background-color:#158377;color:#FFFFFF;font-size:16px;font-weight:600;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">${buttonText.trim()}</a></div>`;
+  return html.replace(pattern, (_match, raw: string) => {
+    const hashIndex = raw.indexOf('#');
+    const buttonText = (hashIndex >= 0 ? raw.slice(0, hashIndex) : raw).trim();
+    const anchor = hashIndex >= 0 ? raw.slice(hashIndex) : '';
+    const url = `${baseUrl}${anchor}`;
+    return `<div style="text-align:center;margin:24px 0"><a href="${url}" style="background-color:#158377;color:#FFFFFF;font-size:16px;font-weight:600;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">${buttonText}</a></div>`;
   });
 }
 

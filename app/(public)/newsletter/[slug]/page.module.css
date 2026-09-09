@@ -113,6 +113,7 @@
   line-height: 1.2;
   margin-top: 2.25rem;
   margin-bottom: 0.75rem;
+  scroll-margin-top: 1.5rem;
 }
 
 .body h3 {
@@ -122,6 +123,7 @@
   line-height: 1.25;
   margin-top: 1.75rem;
   margin-bottom: 0.5rem;
+  scroll-margin-top: 1.5rem;
 }
 
 .body a {

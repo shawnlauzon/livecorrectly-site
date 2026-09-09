@@ -1,4 +1,4 @@
-import { Marked } from 'marked';
+import { Marked, Renderer, type Tokens } from 'marked';
 import { getNewsletterSendDates } from '@/lib/db';
 import { loadAllNewsletters, type RawNewsletter } from './loader';
 import { processConditionals, hasMarkdownConditionals } from './conditionals';
@@ -50,8 +50,30 @@ function replaceVariables(markdown: string): string {
     .replace(/^\{\{designed:.+?\}\}\s*$/gm, '');
 }
 
-/** Marked instance with default renderer (clean semantic HTML) */
-const marked = new Marked();
+/** Slugify heading text into a URL-safe anchor id. */
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[_*`~]/g, '')           // strip markdown emphasis chars
+    .replace(/[^a-z0-9 -]/g, '')      // strip non-alphanumeric except spaces/hyphens
+    .replace(/\s+/g, '-')             // spaces → hyphens
+    .replace(/-+/g, '-')              // collapse consecutive hyphens
+    .replace(/^-|-$/g, '');           // trim leading/trailing hyphens
+}
+
+/** Custom renderer that adds id attributes to headings for anchor linking. */
+function createWebRenderer(): Renderer {
+  const renderer = new Renderer();
+  renderer.heading = function ({ tokens, depth }: Tokens.Heading): string {
+    const text = this.parser.parseInline(tokens);
+    const id = slugify(text.replace(/<[^>]*>/g, '')); // strip HTML tags before slugifying
+    return `<h${depth} id="${id}">${text}</h${depth}>\n`;
+  };
+  return renderer;
+}
+
+/** Marked instance with heading-id renderer (clean semantic HTML) */
+const marked = new Marked({ renderer: createWebRenderer() });
 
 /**
  * Render a RawNewsletter for web display.
