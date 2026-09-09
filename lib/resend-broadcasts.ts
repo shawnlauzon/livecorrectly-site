@@ -220,11 +220,15 @@ export async function sendNewsletterBroadcast(
     await renderNewsletterForBroadcast(newsletterNumber);
 
   // 4. Create + send broadcast
-  const from =
-    process.env.EMAIL_FROM_MARKETING ??
-    'Shawn Lauzon <updates@livecorrectly.com>';
-  const replyTo =
-    process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+  const broadcastDomain = process.env.EMAIL_DOMAIN_BROADCAST;
+  const from = broadcastDomain
+    ? `Shawn Lauzon <shawn@${broadcastDomain}>`
+    : process.env.EMAIL_FROM_MARKETING ??
+      'Shawn Lauzon <updates@livecorrectly.com>';
+  // When using domain override, from is already shawn@ so no replyTo needed
+  const replyTo = broadcastDomain
+    ? undefined
+    : process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
 
   const { data: broadcastData, error: broadcastError } =
     await client.broadcasts.create({
@@ -357,16 +361,24 @@ export async function sendBroadcastViaBroadcastApi(
   const { html, subject } = await renderBroadcastForBroadcastApi(slug);
 
   // 5. Create + send broadcast
+  // Caller overrides (options.from/replyTo) and per-broadcast config take priority.
+  // When the domain override is used (and no caller/config from override),
+  // from is already shawn@ so no separate replyTo is needed.
   const sendConfig = getBroadcastFileConfig(slug);
+  const broadcastDomainForApi = process.env.EMAIL_DOMAIN_BROADCAST;
+  const hasCallerFrom = !!(options?.from ?? sendConfig?.from);
   const from =
     options?.from ??
     sendConfig?.from ??
-    process.env.EMAIL_FROM_MARKETING ??
-    'Shawn Lauzon <updates@livecorrectly.com>';
+    (broadcastDomainForApi
+      ? `Shawn Lauzon <shawn@${broadcastDomainForApi}>`
+      : process.env.EMAIL_FROM_MARKETING ??
+        'Shawn Lauzon <updates@livecorrectly.com>');
   const replyTo =
     options?.replyTo ??
-    process.env.EMAIL_FROM ??
-    'Shawn Lauzon <shawn@livecorrectly.com>';
+    (hasCallerFrom || !broadcastDomainForApi
+      ? process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>'
+      : undefined);
 
   const { data: broadcastData, error: broadcastError } =
     await client.broadcasts.create({

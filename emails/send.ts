@@ -16,6 +16,12 @@ export async function renderEmail(component: React.ReactElement): Promise<string
   return html.replace(/<\/(em|strong|a)>\s*(\w)/g, '</$1>&nbsp;$2');
 }
 
+// Domain-level overrides: when set, these construct the from address using
+// the specified domain. When unset, the existing EMAIL_FROM_* → hardcoded
+// default chain is unchanged.
+const TRANSACTIONAL_DOMAIN = process.env.EMAIL_DOMAIN_TRANSACTIONAL;
+const BROADCAST_DOMAIN = process.env.EMAIL_DOMAIN_BROADCAST;
+
 let resend: Resend | null = null;
 
 function getResend(): Resend {
@@ -162,7 +168,9 @@ interface SendEmailOptions {
  * From: Shawn Lauzon <shawn@livecorrectly.com>
  */
 export async function sendWelcomeEmail(options: SendEmailOptions) {
-  const from = process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+  const from = TRANSACTIONAL_DOMAIN
+    ? `Shawn Lauzon <shawn@${TRANSACTIONAL_DOMAIN}>`
+    : process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
   return _sendEmail({ ...options, from });
 }
 
@@ -172,19 +180,29 @@ export async function sendWelcomeEmail(options: SendEmailOptions) {
  * Reply-To: Shawn Lauzon <shawn@livecorrectly.com>
  */
 export async function sendMarketingEmail(options: SendEmailOptions) {
-  const from = process.env.EMAIL_FROM_MARKETING ?? 'Shawn Lauzon <updates@livecorrectly.com>';
-  const replyTo = process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+  const from = BROADCAST_DOMAIN
+    ? `Shawn Lauzon <shawn@${BROADCAST_DOMAIN}>`
+    : process.env.EMAIL_FROM_MARKETING ?? 'Shawn Lauzon <updates@livecorrectly.com>';
+  // When using domain override, from is already shawn@ so no replyTo needed
+  const replyTo = BROADCAST_DOMAIN
+    ? undefined
+    : process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
   return _sendEmail({ ...options, from, replyTo });
 }
 
 /**
- * Send a transactional/system email. System notifications with reply-to Shawn.
- * From: Live Correctly <notifications@livecorrectly.com>
- * Reply-To: Shawn Lauzon <shawn@livecorrectly.com>
+ * Send a transactional/system email.
+ * When domain override is set: From shawn@TRANSACTIONAL (no replyTo needed).
+ * Otherwise: From notifications@ with reply-to shawn@.
  */
 export async function sendTransactionalEmail(options: SendEmailOptions) {
-  const from = process.env.EMAIL_FROM_NOTIFICATIONS ?? 'Live Correctly <notifications@livecorrectly.com>';
-  const replyTo = process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+  const from = TRANSACTIONAL_DOMAIN
+    ? `Shawn Lauzon <shawn@${TRANSACTIONAL_DOMAIN}>`
+    : process.env.EMAIL_FROM_NOTIFICATIONS ?? 'Live Correctly <notifications@livecorrectly.com>';
+  // When using domain override, from is already shawn@ so no replyTo needed
+  const replyTo = TRANSACTIONAL_DOMAIN
+    ? undefined
+    : process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
   return _sendEmail({ ...options, from, replyTo });
 }
 
@@ -192,15 +210,21 @@ export async function sendTransactionalEmail(options: SendEmailOptions) {
  * Send a plain-text admin notification when a new subscriber signs up or restarts the series.
  * This bypasses canSendTo() and unsubscribe headers — it's an internal notification,
  * not a marketing email. Failures are logged but should never block registration.
- * Uses transactional configuration: From notifications@, Reply-To shawn@.
+ * When domain override is set: From shawn@TRANSACTIONAL (no replyTo needed).
+ * Otherwise: From notifications@ with reply-to shawn@.
  */
 export async function sendAdminNotification(
   subscriber: Subscriber,
   chartType: string,
   isRestart = false
 ): Promise<void> {
-  const from = process.env.EMAIL_FROM_NOTIFICATIONS ?? 'Live Correctly <notifications@livecorrectly.com>';
-  const replyTo = process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+  const from = TRANSACTIONAL_DOMAIN
+    ? `Shawn Lauzon <shawn@${TRANSACTIONAL_DOMAIN}>`
+    : process.env.EMAIL_FROM_NOTIFICATIONS ?? 'Live Correctly <notifications@livecorrectly.com>';
+  // When using domain override, from is already shawn@ so no replyTo needed
+  const replyTo = TRANSACTIONAL_DOMAIN
+    ? undefined
+    : process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
   const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
   const adminUrl = `${appUrl}/admin/${subscriber.id}`;
 
