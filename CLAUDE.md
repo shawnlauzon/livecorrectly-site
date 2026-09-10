@@ -19,6 +19,12 @@ Other hard rules:
 - **Match the existing design** (tokens below + the reference HTML). Do not fall back to generic shadcn/template defaults.
 - **Never hard-code a value that has a single source of truth elsewhere.** Read it from the source (config file, constant, database) instead of duplicating it. If a value appears in `vercel.json`, a shared constant, or a config file, reference that source — don't copy the value.
 
+## Neon MCP
+When querying the Neon MCP, use these IDs directly — do not call `list_projects`:
+- **Project ID**: `polished-math-44499803`
+- **Org ID**: `org-bitter-haze-78473064`
+- **Database**: `neondb`
+
 ## Development
 ```bash
 pnpm dev          # Start dev server (Turbopack)
