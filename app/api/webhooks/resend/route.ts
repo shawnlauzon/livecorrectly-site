@@ -76,6 +76,8 @@ interface ResendWebhookEvent {
     // Suppression events use `email` (string) for the address
     email?: string;
     origin?: 'bounce' | 'complaint' | 'manual';
+    // contact.updated events include unsubscribed status
+    unsubscribed?: boolean;
   };
 }
 
@@ -192,6 +194,30 @@ export async function POST(request: NextRequest) {
           console.log(
             `[webhook] ${event.type}: ${recipientEmail} (subscriber ${subscriber.id})`
           );
+        }
+      }
+      break;
+    }
+
+    case 'contact.updated': {
+      // When a subscriber unsubscribes via their email client's built-in button
+      // (e.g. Yahoo Mail), Resend marks the contact as unsubscribed and fires
+      // this webhook. Our /api/unsubscribe endpoint is never hit in that flow.
+      if (event.data.unsubscribed === true && event.data.email) {
+        const contactEmail = extractEmail(event.data.email);
+        const subscriber = await getSubscriberByEmailForWebhook(contactEmail);
+        if (subscriber) {
+          if (subscriber.email_status === 'active') {
+            await updateEmailStatus(subscriber.id, 'unsubscribed');
+            console.log(
+              `[webhook] contact.updated: unsubscribed ${contactEmail} (subscriber ${subscriber.id})`
+            );
+          } else {
+            // Don't downgrade bounced/complained/suppressed to unsubscribed
+            console.log(
+              `[webhook] contact.updated: ${contactEmail} already ${subscriber.email_status}, skipping`
+            );
+          }
         }
       }
       break;
