@@ -58,15 +58,23 @@ async function buildSendLookup(): Promise<Map<string, string>> {
 
 /**
  * Parse broadcast name into email_type.
- * Resend broadcast names follow our convention:
+ * Resend broadcast names follow our conventions:
  *   "Newsletter #6" → "newsletter_6"
+ *   "Broadcast: restart-notice-2026-09" → "broadcast_restart-notice-2026-09"
  *   "restart-notice-2026-09" → "broadcast_restart-notice-2026-09"
  */
 function parseEmailType(broadcastName: string): string | null {
   const newsletterMatch = broadcastName.match(/Newsletter\s*#?(\d+)/i);
   if (newsletterMatch) return `newsletter_${newsletterMatch[1]}`;
 
-  // Broadcast slugs — try to extract from the name
+  // "Broadcast: slug-name" prefix from our sendBroadcastViaBroadcastApi
+  const broadcastPrefixMatch = broadcastName.match(/^Broadcast:\s*(.+)$/i);
+  if (broadcastPrefixMatch) {
+    const slug = broadcastPrefixMatch[1].trim().toLowerCase();
+    return `broadcast_${slug}`;
+  }
+
+  // Plain slug (no spaces, alphanumeric + hyphens)
   const slugMatch = broadcastName.match(/^([a-z0-9-]+)$/i);
   if (slugMatch) return `broadcast_${slugMatch[1].toLowerCase()}`;
 
@@ -144,6 +152,19 @@ async function main() {
           const sendKey = `${subscriberId}:${emailType}`;
           const emailSendId = sendLookup.get(sendKey) ?? null;
 
+          const dbEventType = eventType === 'opened' ? 'open' : 'click';
+          const occurredAt = broadcast.sent_at ?? new Date().toISOString();
+
+          // Skip if this exact event already exists (idempotent)
+          const existing = await sql`
+            SELECT 1 FROM email_events
+            WHERE subscriber_id = ${subscriberId}
+              AND event_type = ${dbEventType}
+              AND email_type = ${emailType}
+            LIMIT 1
+          `;
+          if (existing.length > 0) continue;
+
           await sql`
             INSERT INTO email_events (
               subscriber_id, event_type, email_type, email_send_id,
@@ -151,12 +172,12 @@ async function main() {
             )
             VALUES (
               ${subscriberId},
-              ${eventType === 'opened' ? 'open' : 'click'},
+              ${dbEventType},
               ${emailType},
               ${emailSendId},
               ${null},
               ${null},
-              ${broadcast.sent_at ?? new Date().toISOString()}
+              ${occurredAt}
             )
           `;
           totalEvents++;
