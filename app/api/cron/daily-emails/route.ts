@@ -7,7 +7,7 @@ import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 
 /**
  * Cron endpoint: sends per-subscriber daily emails.
- * Currently handles the welcome series (days 1-3).
+ * Currently handles the welcome series (steps 2-3).
  * Secured by CRON_SECRET (Vercel sends Authorization: Bearer <CRON_SECRET>).
  * Runs daily at 14:00 UTC (configured in vercel.json).
  *

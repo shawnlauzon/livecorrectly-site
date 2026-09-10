@@ -31,7 +31,6 @@ const WELCOME_SERIES_LENGTH = 3;
 const DAY_LABELS = [
   'Day 1: Career Type',
   'Day 2: Signposts',
-  'Day 3: Invitation',
 ];
 
 export default function AdminDetailPage({
@@ -729,13 +728,13 @@ function formatRelativeEngagement(dateString: string | null): string {
   return `${days} days ago`;
 }
 
-type NextEmailValue = 'not_started' | 'day1' | 'day2' | 'day3' | 'done';
+type NextEmailValue = 'not_started' | 'day1' | 'day2' | 'done';
 
 function deriveNextEmailValue(sub: Subscriber): NextEmailValue {
   if (sub.next_step > WELCOME_SERIES_LENGTH) return 'done';
-  if (sub.next_step === 0) return 'not_started';
-  if (sub.next_step >= 1 && sub.next_step <= 3)
-    return `day${sub.next_step}` as NextEmailValue;
+  if (sub.next_step <= 1) return 'not_started';
+  if (sub.next_step === 2) return 'day1';
+  if (sub.next_step === 3) return 'day2';
   return 'not_started';
 }
 
@@ -770,8 +769,8 @@ function WelcomeSeries({
   }
 
   const isActive = subscriber.email_status === 'active';
-  const totalEmails = WELCOME_SERIES_LENGTH + 1; // welcome0 + days 1-N
-  const emailsSent = Math.min(subscriber.next_step, totalEmails);
+  const totalEmails = WELCOME_SERIES_LENGTH;
+  const emailsSent = Math.min(subscriber.next_step - 1, totalEmails);
 
   const handleSaveNextEmail = useCallback(async () => {
     const password = sessionStorage.getItem('adminPassword');
@@ -781,15 +780,12 @@ function WelcomeSeries({
 
     switch (nextEmailValue) {
       case 'not_started':
-        next_step = 0;
-        break;
-      case 'day1':
         next_step = 1;
         break;
-      case 'day2':
+      case 'day1':
         next_step = 2;
         break;
-      case 'day3':
+      case 'day2':
         next_step = 3;
         break;
       case 'done':
@@ -864,9 +860,9 @@ function WelcomeSeries({
         setFeedback({
           type: 'success',
           message:
-            step === 0
+            step === 1
               ? 'Welcome email sent successfully'
-              : `Day ${step} email sent successfully`,
+              : `Day ${step - 1} email sent successfully`,
         });
       } catch (err) {
         console.error('Error sending welcome email:', err);
@@ -1035,7 +1031,6 @@ function WelcomeSeries({
                 <option value="not_started">Not started</option>
                 <option value="day1">Day 1</option>
                 <option value="day2">Day 2</option>
-                <option value="day3">Day 3</option>
                 <option value="done">Done</option>
               </select>
               <button
@@ -1059,12 +1054,12 @@ function WelcomeSeries({
               <button
                 className={styles.dayButton}
                 disabled={sendingStep !== null || restarting}
-                onClick={() => handleSend(0)}
+                onClick={() => handleSend(1)}
               >
-                {sendingStep === 0 ? 'Sending...' : 'Welcome'}
+                {sendingStep === 1 ? 'Sending...' : 'Welcome'}
               </button>
               {DAY_LABELS.map((label, i) => {
-                const step = i + 1;
+                const step = i + 2;
                 const isSending = sendingStep === step;
                 const alreadySent = step <= emailsSent;
                 const buttonClass = [
@@ -1126,7 +1121,6 @@ const EMAIL_LABELS = [
   'Welcome: Shadow hook',
   'Day 1: Career Type',
   'Day 2: Signposts',
-  'Day 3: Invitation',
 ];
 
 function EmailPreviewSelector({
@@ -1164,11 +1158,14 @@ function EmailPreviewSelector({
         }}
       >
         <option value="">Select an email...</option>
-        {EMAIL_LABELS.map((label, step) => (
-          <option key={step} value={step}>
-            {label}
-          </option>
-        ))}
+        {EMAIL_LABELS.map((label, i) => {
+          const step = i + 1;
+          return (
+            <option key={step} value={step}>
+              {label}
+            </option>
+          );
+        })}
       </select>
     </div>
   );
@@ -1195,7 +1192,7 @@ function EmailPreviewItem({
   const detailsRef = useRef<HTMLDetailsElement>(null);
 
   const chart = parseChartForEmail(subscriber.chart.chart);
-  const shadowTag = step === 0 ? chart.topShadow : null;
+  const shadowTag = step === 1 ? chart.topShadow : null;
 
   // Auto-open and scroll into view if autoOpen is true
   useEffect(() => {
@@ -1376,15 +1373,18 @@ function EmailPreviews({
       <div className={styles.welcomeCard}>
         <h2 className={styles.welcomeHeading}>Email Previews</h2>
         <div className={styles.emailPreviewList}>
-          {EMAIL_LABELS.map((label, step) => (
-            <EmailPreviewItem
-              key={step}
-              subscriber={subscriber}
-              step={step}
-              label={label}
-              autoOpen={targetStep === step}
-            />
-          ))}
+          {EMAIL_LABELS.map((label, i) => {
+            const step = i + 1;
+            return (
+              <EmailPreviewItem
+                key={step}
+                subscriber={subscriber}
+                step={step}
+                label={label}
+                autoOpen={targetStep === step}
+              />
+            );
+          })}
         </div>
       </div>
     </div>

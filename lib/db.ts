@@ -129,10 +129,10 @@ export async function createSubscriber(data: {
   const db = getDb();
   const result = await db`
     INSERT INTO subscribers (
-      email, first_name, last_name, birth_input, chart, last_engaged_at
+      email, first_name, last_name, birth_input, chart, last_engaged_at, next_step
     ) VALUES (
       ${data.email}, ${data.first_name}, ${data.last_name},
-      ${JSON.stringify(data.birth_input)}, ${JSON.stringify(data.chart)}, now()
+      ${JSON.stringify(data.birth_input)}, ${JSON.stringify(data.chart)}, now(), 1
     )
     ON CONFLICT (email) DO UPDATE SET
       first_name = EXCLUDED.first_name,
@@ -198,7 +198,8 @@ export async function getActiveSubscriberByEmail(
 /**
  * Get active subscribers due for their next welcome series email.
  * Returns subscribers with next_step between 1 and welcomeSeriesLength (inclusive).
- * Step 0 (welcome0) is sent at signup, not by cron.
+ * Step 1 (welcome1) is normally sent at signup, but the cron acts as a safety net
+ * for subscribers who got stuck (e.g. registration send failed, pre-migration data).
  */
 export async function getWelcomeDueSubscribers(
   welcomeSeriesLength: number
@@ -207,7 +208,7 @@ export async function getWelcomeDueSubscribers(
   const result = await db`
     SELECT * FROM subscribers
     WHERE email_status IN ('active', 'failed')
-      AND next_step >= 0
+      AND next_step >= 1
       AND next_step <= ${welcomeSeriesLength}
     ORDER BY created_at ASC
   `;
@@ -230,14 +231,14 @@ export async function advanceEmailSeries(
 }
 
 /**
- * Roll back a subscriber's email series by one step (floored at 0).
+ * Roll back a subscriber's email series by one step (floored at 1).
  * Called on email.failed so the missed email is retried on the next cron run.
  */
 export async function rollBackEmailSeries(id: string): Promise<void> {
   const db = getDb();
   await db`
     UPDATE subscribers
-    SET next_step = GREATEST(next_step - 1, 0)
+    SET next_step = GREATEST(next_step - 1, 1)
     WHERE id = ${id}
   `;
 }

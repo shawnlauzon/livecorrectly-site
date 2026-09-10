@@ -56,25 +56,25 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Welcome0 (immediate signup email) is active.
-    // The daily drip (welcome1-3) is separately controlled by CRON_EMAIL_ENABLED.
+    // Welcome1 (immediate signup email) is active.
+    // The daily drip (welcome2-3) is separately controlled by CRON_EMAIL_ENABLED.
     const WELCOME_SERIES_ENABLED = true;
 
     // Send immediate welcome email for fresh subscribers
-    const isFresh = subscriber.next_step === 0;
+    const isFresh = subscriber.next_step === 1;
     if (WELCOME_SERIES_ENABLED && isFresh && process.env.RESEND_API_KEY) {
-      // Advance to step 1 (welcome0 sent) so the daily cron picks up Day 1 —
+      // Advance to step 2 (welcome1 sent) so the daily cron picks up Day 1 —
       // do this regardless of whether the welcome email send succeeds.
-      await advanceEmailSeries(subscriber.id, 1);
+      await advanceEmailSeries(subscriber.id, 2);
 
       try {
         const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
         const chartUrl = `${appUrl}/see-your-design/${subscriber.id}`;
-        const emailLabel = 'welcome0';
+        const emailLabel = 'welcome1';
         const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
-        const subject = getWelcomeSubject(0);
+        const subject = getWelcomeSubject(1);
         const emailComponent = getWelcomeEmail(
-          0, subscriber, chartData, unsubscribeUrl, chartUrl
+          1, subscriber, chartData, unsubscribeUrl, chartUrl
         );
 
         if (emailComponent) {

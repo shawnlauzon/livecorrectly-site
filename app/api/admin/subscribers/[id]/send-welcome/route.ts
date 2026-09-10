@@ -13,7 +13,7 @@ import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
  * Does NOT advance next_step — manual sends
  * are independent of the automated series.
  *
- * Body: { step: 0-3 }
+ * Body: { step: 1-3 }
  * Auth: Bearer <ADMIN_PASSWORD>
  */
 export async function POST(
@@ -38,9 +38,9 @@ export async function POST(
     const body = await request.json();
     const step = body.step;
 
-    if (typeof step !== 'number' || step < 0 || step > WELCOME_SERIES_LENGTH) {
+    if (typeof step !== 'number' || step < 1 || step > WELCOME_SERIES_LENGTH) {
       return NextResponse.json(
-        { error: `step must be a number between 0 and ${WELCOME_SERIES_LENGTH}` },
+        { error: `step must be a number between 1 and ${WELCOME_SERIES_LENGTH}` },
         { status: 400 }
       );
     }

@@ -37,25 +37,25 @@ export async function POST(
       );
     }
 
-    // Queue Welcome1 for the daily cron.
+    // Queue Welcome2 for the daily cron.
     // If subscriber is past the welcome series (in newsletter phase), use the
     // resend column to preserve their newsletter position. Otherwise, reset
     // next_step directly (no newsletter position to lose).
     if (subscriber.next_step > WELCOME_SERIES_LENGTH) {
-      await setWelcomeResendStep(id, 1);
+      await setWelcomeResendStep(id, 2);
     } else {
-      await advanceEmailSeries(id, 1);
+      await advanceEmailSeries(id, 2);
     }
 
-    // Immediately send Welcome0 (matching the initial signup flow)
+    // Immediately send Welcome1 (matching the initial signup flow)
     const chartData = parseChartForEmail(subscriber.chart.chart);
     const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
     const chartUrl = `${appUrl}/see-your-design/${subscriber.id}`;
-    const emailLabel = 'welcome0';
+    const emailLabel = 'welcome1';
     const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
-    const subject = getWelcomeSubject(0);
+    const subject = getWelcomeSubject(1);
     const emailComponent = getWelcomeEmail(
-      0, subscriber, chartData, unsubscribeUrl, chartUrl
+      1, subscriber, chartData, unsubscribeUrl, chartUrl
     );
 
     if (!emailComponent) {
@@ -74,7 +74,7 @@ export async function POST(
     });
 
     if (result.success) {
-      console.log(`[restart-series] Sent Welcome0 to ${subscriber.email} (id=${result.id})`);
+      console.log(`[restart-series] Sent Welcome1 to ${subscriber.email} (id=${result.id})`);
 
       // Admin notification — fire-and-forget, failure must never block the restart
       if (process.env.RESEND_API_KEY) {
@@ -85,7 +85,7 @@ export async function POST(
 
       return NextResponse.json({ ok: true });
     } else {
-      console.warn(`[restart-series] Welcome0 not sent to ${subscriber.email}`);
+      console.warn(`[restart-series] Welcome1 not sent to ${subscriber.email}`);
       return NextResponse.json(
         { error: 'Failed to send email' },
         { status: 500 }

@@ -1,169 +1,222 @@
 import * as React from 'react';
-import { Heading, Text } from 'react-email';
+import { Text, Section, Button } from 'react-email';
 import { EmailLayout } from './components/email-layout';
+import { Prose } from './components/prose';
 import { EmailChartData } from '../lib/hd-chart/parse-for-email';
-import {
-  typeEngagement,
-  waitingDetail,
-  lookupByDMS,
-  formatPrompt,
-} from './content';
+import { shadowOpenings, formatPrompt, formatLandForYou } from './content';
 
-export const subject = 'The advice that was never for you';
-export const preview = "It's good advice. It's just not yours.";
+export const subject = 'The chart you asked for, and what it shows';
+export const preview = "It's nothing personal. It's just mechanics.";
 
 interface Welcome1Props {
   firstName: string;
   chart: EmailChartData;
   unsubscribeUrl: string;
+  chartUrl: string;
 }
 
 /**
- * Welcome Email 1: "The advice that was never for you"
+ * Welcome Email 1: Shadow hook (sent immediately on registration)
  *
- * Introduces the person's career type and strategy through a narrative
- * "the advice wasn't for you" frame. Blends what was previously split
- * across welcome1 (career type) and welcome2 (strategy).
+ * Opens with the subscriber's #1 shadow (a conditioning pattern they'll
+ * immediately recognize), then transitions to bio, series intro, and CTA.
  *
- * All conditionals use BG5 career types (chart.careerDesign), not HD types.
+ * Two paths:
+ * - Named shadow (e.g. Willpower): uses ShadowOpening fields (scenes, story,
+ *   relief, closingLine, ps) placed throughout the template.
+ * - Bridge shadow ("Bringing Traits/Strengths"): uses dynamic bridge
+ *   descriptions from chart data. Gets common framing but no shadow-specific
+ *   fields.
  */
-
-const getArticle = (word: string): string => {
-  const vowels = ['A', 'E', 'I', 'O', 'U'];
-  return vowels.includes(word[0].toUpperCase()) ? 'an' : 'a';
-};
-
 export const Welcome1 = ({
   firstName,
   chart,
   unsubscribeUrl,
+  chartUrl,
 }: Welcome1Props) => {
-  const engagement = lookupByDMS(
-    typeEngagement,
-    chart.careerDesign,
-    chart.innerAuthority,
-  );
-  const detail = lookupByDMS(
-    waitingDetail,
-    chart.careerDesign,
-    chart.innerAuthority,
-  );
+  const chartUrlWithUtm = `${chartUrl}?utm_source=email&utm_medium=email&utm_campaign=welcome1`;
+
+  // Determine which shadow content to render.
+  const hasBridgeShadow = chart.topShadow === 'Bringing Traits/Strengths';
+  const bridgesToShow = hasBridgeShadow
+    ? chart.bridgeDescriptions.slice(0, 1)
+    : [];
+  const shadow =
+    chart.topShadow && !hasBridgeShadow
+      ? (shadowOpenings.get(chart.topShadow) ?? null)
+      : null;
+  const hasShadowContent = hasBridgeShadow
+    ? bridgesToShow.length > 0
+    : shadow !== null;
+
+  const reflectionPrompt = hasBridgeShadow
+    ? formatPrompt('felt like this described you', chart)
+    : formatPrompt('noticed any of these showing up in your life', chart);
 
   return (
     <EmailLayout
-      preview="It's good advice. It's just not yours."
+      preview="It's nothing personal. It's just mechanics."
       unsubscribeUrl={unsubscribeUrl}
-      postscripts={[
-        <>
-          {formatPrompt(
-            "followed someone's advice which works for them, but didn't work for you",
-            chart,
-          )}{' '}
-          Hit reply and let me know.
-        </>,
-      ]}
+      postscripts={[...(shadow?.ps ? [shadow.ps] : [])]}
     >
+      {/* Greeting + common opener */}
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
         {firstName},
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
-        If you&apos;re anything like me, at some point somebody has given you
-        some advice that didn&apos;t work out. Maybe they told you to put
-        yourself out there and just share what you know. Or be more consistent.
-        Or speak up more in meetings.
+        Thanks for signing up to see how you&apos;re designed! I&apos;m excited
+        to be here to support you.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
-        The advice was working for them, so you tried it yourself. And perhaps
-        it worked for awhile, but then something happened to bring you
-        off-track. And you added it to the list of things that you couldn&apos;t
-        do.
+        Before anything else, one thing from your chart. {reflectionPrompt}
       </Text>
 
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
-        Here&apos;s the thing about that advice: it&apos;s good&mdash;for the
-        right person. In fact, the advice was perfect for the person who gave
-        it. But it wasn&apos;t designed for you.
-      </Text>
-
-      {engagement}
-
-      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
-        That&apos;s because your design is {getArticle(chart.careerDesign)}{' '}
-        {chart.careerDesign}&mdash;in Human Design terms,{' '}
-        {getArticle(chart.type)} {chart.type}. And your decision making strategy
-        is to <strong>{chart.decisionMakingStrategy}</strong>.
-      </Text>
-
-      {chart.careerDesign !== 'Initiator' ? (
+      {/* --- Shadow-specific: scenes --- */}
+      {shadow ? (
         <>
-          <Heading
-            as="h2"
-            className="mt-[24px] mb-[8px] text-[20px] font-bold text-[#12262A]"
-          >
-            Waiting isn&apos;t what it sounds like
-          </Heading>
-
+          <Prose content={shadow.scenes} />
           <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
-            I have an idea how this lands. You&apos;ve spent years being told to
-            go out and make things happen, and now here&apos;s a stranger
-            telling you to stop and wait for the world to come to you.
-          </Text>
-
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
-            So let me be clear about what this isn&apos;t. It isn&apos;t sitting
-            still. It isn&apos;t doing nothing. It is, rather, actively
-            positioning yourself to receive.
-          </Text>
-
-          {detail}
-
-          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
-            This is not to say you should <em>avoid</em> doing anything that you
-            have energy for. If you have an authentic desire to do
-            something&mdash;and it&apos;s not your mind pushing you out of a
-            sense of anxiety&mdash;go ahead and do it!
+            These are all signs that{' '}
+            <strong>you tend to {shadow.shadow}</strong>. When you see this,
+            your mind might immediately start to self-blame and believe
+            there&apos;s something wrong with you.
           </Text>
         </>
       ) : (
         <>
-          {/* Initiator: entirely custom section */}
-          {detail}
+          {/* --- Bridge shadow: dynamic descriptions --- */}
+          {hasBridgeShadow &&
+            bridgesToShow.map((bridge, i) => (
+              <Text
+                key={i}
+                className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]"
+              >
+                {bridge.description}
+              </Text>
+            ))}
+
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
+            {chart.hasChannelBridge
+              ? "You might believe that this is one of the world's biggest flaws, and that if only that was changed, then you would be "
+              : 'You might believe that this is one of your biggest flaws, and that if only you could fix it, then you would be '}
+            {chart.isManifestor
+              ? 'at peace'
+              : chart.isReflector
+                ? 'pleasantly surprised'
+                : chart.signatureThemeAdjective}
+            .
+          </Text>
         </>
       )}
 
-      <Heading
-        as="h2"
-        className="mt-[24px] mb-[8px] text-[20px] font-bold text-[#12262A]"
-      >
-        It&apos;s all about your decision making strategy
-      </Heading>
+      {chart.hasChannelBridge ? (
+        <>
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
+            Not true. <strong>The world is perfect as it is.</strong>
+          </Text>
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
+            However, your rare gift is the ability to be objective and to help
+            work on world problems. This is something very few people have.
+          </Text>
+        </>
+      ) : (
+        <>
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
+            Not true. <strong>You are perfect as you are.</strong>
+          </Text>
 
+          {/* --- Bridge shadow: relief --- */}
+          {hasBridgeShadow && bridgesToShow.length > 0 && (
+            <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
+              This gap is exactly where you are designed to collaborate with
+              someone else. The ideal person who brings exactly the thing you
+              need.
+            </Text>
+          )}
+        </>
+      )}
+
+      {/* --- Shadow-specific: relief --- */}
+      {shadow && (
+        <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
+          Even if you struggle with this right now, it can become your
+          superpower. Within the shadow always lies the gift. With the practices
+          I&apos;ll be sharing with you, {shadow.relief}. It won&apos;t happen
+          overnight. But there is a path.
+        </Text>
+      )}
+
+      {/* --- Common transition --- */}
+      {hasShadowContent && (
+        <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
+          I didn&apos;t guess any of that. It&apos;s part of your nature.
+        </Text>
+      )}
+
+      {/* --- CTA --- */}
+      <Section className="mt-[24px] mb-[24px] text-center">
+        <Button
+          href={chartUrlWithUtm}
+          className="rounded-[8px] bg-[#158377] px-[24px] py-[12px] text-[16px] font-semibold text-white"
+        >
+          Your full chart →
+        </Button>
+      </Section>
+
+      {/* --- Bio --- */}
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
-        Knowing how to use and trust your decision making strategy is the single
-        most important thing you can learn. The shadow mentioned in the first
-        email can be managed by following this strategy and making decisions
-        that are correct for you. This is called{' '}
-        <strong>Living Correctly</strong>.
+        I&apos;m Shawn, certified BG5 Career &amp; Business Consultant,
+        certified Living Your Design Guide, and certified Authentic Relating
+        facilitator.
+      </Text>
+
+      {/* --- Shadow-specific: story --- */}
+      {shadow && (
+        <>
+          <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
+            {shadow.story} {shadow.story && ' '}Through Human Design, I was able
+            to clearly see my own patterns, and realize they&apos;re not
+            something wrong with me personally. It&apos;s how my system works.
+            It&apos;s just mechanics.
+          </Text>
+        </>
+      )}
+
+      {/* --- Series intro --- */}
+      <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
+        Over the next few days you&apos;ll begin to recognize your own patterns
+        and learn how to listen to your unique way of doing and being. That will
+        help you make decisions you can trust, and stop depending on advice from
+        others. Advice which is based on their way of being, not yours.
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
-        Living correctly is simple, but it takes practice. That&apos;s why I
-        hold a free <em>Decisions You Can Trust</em> online session every week.
-        Reply to this email and ask about it, and I&apos;ll send you the link.
+        Tomorrow we start. I hope this knowledge brings you{' '}
+        {chart.signatureTheme}, like it has for me.
+      </Text>
+
+      {/* --- Closing question --- */}
+      <Text className="mb-[16px] text-[16px] font-bold leading-[24px] text-[#45585B]">
+        Last thing, and I read every reply:
       </Text>
 
       <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
-        {chart.innerAuthorityDescription.charAt(0).toUpperCase() +
-          chart.innerAuthorityDescription.slice(1)}
-        .
+        {formatLandForYou(chart)}&nbsp;Let me know because I&apos;m always
+        improving.
       </Text>
+
+      {/* --- Shadow-specific: closingLine --- */}
+      {shadow && (
+        <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
+          {shadow.closingLine}
+        </Text>
+      )}
     </EmailLayout>
   );
 };
 
-// Preview props for React Email dev server
 Welcome1.PreviewProps = {
   firstName: 'Shawn',
   chart: {
@@ -174,7 +227,7 @@ Welcome1.PreviewProps = {
     isManifestor: false,
     isProjector: false,
     isReflector: false,
-    careerDesign: 'Classic Builder',
+    careerDesign: '🔥 Classic Builder',
     strategy: 'wait to respond before engaging',
     innerAuthority: 'Emotional',
     innerAuthorityDescription: 'wait for emotional clarity',
@@ -186,8 +239,7 @@ Welcome1.PreviewProps = {
       'wait to respond before engaging, and then wait for emotional clarity',
     isEmotionalAuthority: true,
     typeVideo: 'https://youtu.be/9PVgkBzpPqs',
-    typeButtonGif:
-      'https://www.livecorrectly.com/generator-button.gif',
+    typeButtonGif: 'https://www.livecorrectly.com/generator-button.gif',
     strategyVideo: 'https://youtu.be/_g3cx77EeLs',
     innerAuthorityVideo: 'https://youtu.be/e9g6q1pKJeo',
     signatureVideo: 'https://youtu.be/fHGRdJSyE34',
@@ -196,6 +248,7 @@ Welcome1.PreviewProps = {
     bridgeDescriptions: [],
   },
   unsubscribeUrl: 'https://www.livecorrectly.com/api/unsubscribe?token=test',
+  chartUrl: 'https://www.livecorrectly.com/see-your-design/test-id',
 } satisfies Welcome1Props;
 
 export default Welcome1;

@@ -97,7 +97,7 @@ export const authorityTips = new Map<string, string>([
 ]);
 
 /**
- * Structured shadow content for the welcome0 email.
+ * Structured shadow content for the welcome1 email.
  *
  * Each field is placed in a different part of the template:
  * - scenes: recognition bullet list at the top (rendered via Prose)
@@ -121,7 +121,7 @@ export interface ShadowOpening {
 }
 
 /**
- * Shadow content for welcome0 email, keyed by shadow name.
+ * Shadow content for welcome1 email, keyed by shadow name.
  *
  * Each shadow maps to a ShadowOpening with 5 content slots that the
  * template places independently throughout the email.
@@ -252,7 +252,7 @@ export const shadowOpenings = new Map<string, ShadowOpening>([
 ]);
 
 /**
- * Hanging gate descriptions for the welcome0 email.
+ * Hanging gate descriptions for the welcome1 email.
  *
  * Indexed by the gate the person HAS (not the missing gate).
  * Gates with multiple harmonics (10, 20, 34, 57) use Record<number, string>

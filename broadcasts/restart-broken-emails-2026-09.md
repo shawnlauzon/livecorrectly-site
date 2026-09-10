@@ -1,6 +1,6 @@
 ---
 enabled: false
-filter: stuckAtStepZeroBefore2026Sep
+filter: stuckAtStepOneBefore2026Sep
 from: 'Shawn Lauzon (Fractal Human Design) <shawn@livecorrectly.com>'
 subject: 'Your chart from {{{contact.signup_month}}}'
 preview: 'There was supposed to be more after it.'

@@ -11,8 +11,8 @@ import hdChart from '@/lib/hd-chart';
  * POST /api/admin/subscribers/[id]/restart-series
  *
  * Restarts the welcome series for a subscriber:
- * 1. Sends welcome0 immediately
- * 2. Sets next_step = 1 (so the daily cron will send day 1 next)
+ * 1. Sends welcome1 immediately
+ * 2. Sets next_step = 2 (so the daily cron will send day 1 next)
  * 3. Sends admin notification about the restart
  *
  * Auth: Bearer <ADMIN_PASSWORD>
@@ -52,18 +52,18 @@ export async function POST(
       );
     }
 
-    // Build and send welcome0
+    // Build and send welcome1
     const chart = parseChartForEmail(subscriber.chart.chart);
-    const subject = getWelcomeSubject(0);
+    const subject = getWelcomeSubject(1);
     const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
-    const emailLabel = 'welcome0';
+    const emailLabel = 'welcome1';
     const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
     const chartUrl = `${appUrl}/see-your-design/${id}`;
-    const emailComponent = getWelcomeEmail(0, subscriber, chart, unsubscribeUrl, chartUrl);
+    const emailComponent = getWelcomeEmail(1, subscriber, chart, unsubscribeUrl, chartUrl);
 
     if (!emailComponent) {
       return NextResponse.json(
-        { error: 'Failed to build welcome0 email' },
+        { error: 'Failed to build welcome1 email' },
         { status: 500 }
       );
     }
@@ -78,26 +78,26 @@ export async function POST(
 
     if (!result.success) {
       return NextResponse.json(
-        { error: 'Failed to send welcome0 email' },
+        { error: 'Failed to send welcome1 email' },
         { status: 500 }
       );
     }
 
-    console.log(`[admin] Sent welcome0 to ${subscriber.email} as part of series restart (id=${result.id})`);
+    console.log(`[admin] Sent welcome1 to ${subscriber.email} as part of series restart (id=${result.id})`);
 
-    // Queue Welcome1 for the daily cron.
+    // Queue Welcome2 for the daily cron.
     // If subscriber is past the welcome series (in newsletter phase), use the
     // resend column to preserve their newsletter position. Otherwise, reset
     // next_step directly (no newsletter position to lose).
     let updated;
     if (subscriber.next_step > WELCOME_SERIES_LENGTH) {
-      await setWelcomeResendStep(id, 1);
+      await setWelcomeResendStep(id, 2);
       // Re-fetch to get the updated row (updateEmailSeries returns it, but
       // setWelcomeResendStep doesn't, so we need a separate fetch)
       const refetched = await getSubscriberById(id);
       updated = refetched ?? subscriber;
     } else {
-      updated = await updateEmailSeries(id, 1);
+      updated = await updateEmailSeries(id, 2);
     }
 
     // Send admin notification

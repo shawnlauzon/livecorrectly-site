@@ -62,9 +62,9 @@ export async function PATCH(
     const body = await request.json();
     const { next_step } = body;
 
-    if (typeof next_step !== 'number' || next_step < 0 || next_step > 6) {
+    if (typeof next_step !== 'number' || next_step < 1 || next_step > 6) {
       return NextResponse.json(
-        { error: 'next_step must be a number between 0 and 6' },
+        { error: 'next_step must be a number between 1 and 6' },
         { status: 422 }
       );
     }

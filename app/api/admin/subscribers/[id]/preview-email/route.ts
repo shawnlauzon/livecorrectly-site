@@ -7,7 +7,7 @@ import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import { renderEmail, buildUnsubscribeUrl } from '@/emails/send';
 
 /**
- * GET /api/admin/subscribers/[id]/preview-email?step=0
+ * GET /api/admin/subscribers/[id]/preview-email?step=1
  *
  * Renders a welcome email as HTML for admin preview.
  * Returns the full rendered HTML along with the subject line.
@@ -36,9 +36,9 @@ export async function GET(
     }
 
     const step = parseInt(stepParam, 10);
-    if (isNaN(step) || step < 0 || step > WELCOME_SERIES_LENGTH) {
+    if (isNaN(step) || step < 1 || step > WELCOME_SERIES_LENGTH) {
       return NextResponse.json(
-        { error: `step must be between 0 and ${WELCOME_SERIES_LENGTH}` },
+        { error: `step must be between 1 and ${WELCOME_SERIES_LENGTH}` },
         { status: 400 }
       );
     }
