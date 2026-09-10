@@ -69,8 +69,6 @@ export async function GET(request: NextRequest) {
 
   let sent = 0;
   let skipped = dueSubscribers.filter(s => s.next_step > maxNewsletterNumber).length;
-  // Segments are left in Resend after successful sends — Resend processes
-  // broadcasts asynchronously and needs the segment to still exist.
 
   for (const [newsletterNumber, subscribers] of groups) {
     if (hasInlinePersonalization(newsletterNumber)) {

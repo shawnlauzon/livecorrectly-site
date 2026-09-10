@@ -49,6 +49,43 @@ const BROADCAST_CONTACT_PROPERTIES: Record<
 let broadcastPropertiesEnsured = false;
 
 /**
+ * Delete all ephemeral segments (newsletter_* and broadcast_*) from Resend.
+ *
+ * Called before creating a new segment to stay within Resend's segment limit.
+ * Resend captures the recipient list at broadcast creation time, so the segment
+ * is not needed for delivery after the broadcast is created.
+ */
+async function cleanupEphemeralSegments(): Promise<void> {
+  const client = getResendClient();
+  const { data, error } = await client.segments.list();
+
+  if (error || !data) {
+    console.warn('[broadcast] Failed to list segments for cleanup:', error);
+    return;
+  }
+
+  for (const segment of data.data) {
+    if (
+      segment.name.startsWith('newsletter_') ||
+      segment.name.startsWith('broadcast_')
+    ) {
+      const { error: removeError } = await client.segments.remove(segment.id);
+      if (removeError) {
+        // Don't let a failed cleanup block the send
+        console.warn(
+          `[broadcast] Failed to remove ephemeral segment "${segment.name}" (${segment.id}):`,
+          removeError,
+        );
+      } else {
+        console.log(
+          `[broadcast] Cleaned up ephemeral segment "${segment.name}" (${segment.id})`,
+        );
+      }
+    }
+  }
+}
+
+/**
  * Sync broadcast-specific contact properties to Resend for each subscriber.
  * Called just before sending a broadcast — ensures properties exist, then
  * computes and updates each subscriber's values.
@@ -177,6 +214,10 @@ export async function sendNewsletterBroadcast(
   subscriberEmails: string[],
 ): Promise<{ segmentId: string; broadcastId: string; contactCount: number }> {
   const client = getResendClient();
+
+  // Clean up stale ephemeral segments to stay within Resend's segment limit
+  await cleanupEphemeralSegments();
+
   const segmentName = `newsletter_${newsletterNumber}_${Date.now()}`;
 
   // 1. Create ephemeral segment
@@ -319,6 +360,10 @@ export async function sendBroadcastViaBroadcastApi(
   await syncBroadcastContactProperties(subscribers);
 
   const client = getResendClient();
+
+  // Clean up stale ephemeral segments to stay within Resend's segment limit
+  await cleanupEphemeralSegments();
+
   const segmentName = `broadcast_${slug}_${Date.now()}`;
 
   // 2. Create ephemeral segment
