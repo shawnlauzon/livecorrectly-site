@@ -53,8 +53,9 @@ export default function SeeYourDesign() {
         <h1 className={styles.h1}>See how you&rsquo;re designed.</h1>
         <p className={styles.lead}>
           Enter your birth details and see your chart right away. I&rsquo;ll
-          also send you a short series on how you&rsquo;re specifically
-          designed, and use it both in and outside of work.
+          also send you a short series on how you&rsquo;re specifically designed
+          and how to use it&mdash;because a bunch of terms without explanation
+          is annoying.
         </p>
         <p className={styles.lead}>
           After that, you&rsquo;ll receive a weekly newsletter every
