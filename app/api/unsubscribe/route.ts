@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSubscriberByUnsubToken, updateEmailStatus } from '@/lib/db';
+import { getSubscriberByUnsubToken, updateEmailStatus, recordEmailEvent } from '@/lib/db';
 import { unsubscribeContactInResend } from '@/lib/resend-contacts';
 
 /**
@@ -40,7 +40,15 @@ async function handleUnsubscribe(token: string | null, from: string | null): Pro
 
   const subscriber = await getSubscriberByUnsubToken(token);
   if (subscriber && subscriber.email_status === 'active') {
-    await updateEmailStatus(subscriber.id, 'unsubscribed', from ?? undefined);
+    await updateEmailStatus(subscriber.id, 'unsubscribed');
+
+    // Record unsubscribe event with attribution from utm_campaign
+    await recordEmailEvent({
+      subscriberId: subscriber.id,
+      eventType: 'unsubscribe',
+      emailType: from ?? 'unknown',
+    });
+
     console.log(`[unsubscribe] Unsubscribed subscriber ${subscriber.id} (from=${from ?? 'unknown'})`);
 
     // Sync to Resend so they're excluded from future broadcasts

@@ -10,7 +10,13 @@ import { BodygraphChart } from '@/components/bodygraph/bodygraph-chart';
 import { formatUnsubFrom } from './utils';
 import styles from './admin.module.css';
 
-async function fetchSubscribers(pwd: string): Promise<{ ok: true; data: Subscriber[] } | { ok: false; error: string }> {
+interface AdminSubscribersResponse {
+  subscribers: Subscriber[];
+  engagement: Record<string, string>;
+  unsubFrom: Record<string, string>;
+}
+
+async function fetchSubscribers(pwd: string): Promise<{ ok: true; data: AdminSubscribersResponse } | { ok: false; error: string }> {
   try {
     const response = await fetch('/api/admin/subscribers', {
       headers: {
@@ -129,9 +135,9 @@ function findDifferences(obj1: any, obj2: any, path = ''): Record<string, { old:
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-function getEngagementLabel(sub: Subscriber, now: number): { label: string; stale: boolean } {
-  if (!sub.last_engaged_at) return { label: '\u2014', stale: false };
-  const then = new Date(sub.last_engaged_at).getTime();
+function getEngagementLabel(engagedAt: string | undefined, now: number): { label: string; stale: boolean } {
+  if (!engagedAt) return { label: '\u2014', stale: false };
+  const then = new Date(engagedAt).getTime();
   const totalDays = Math.floor((now - then) / (1000 * 60 * 60 * 24));
 
   if (totalDays <= 0) return { label: 'Today', stale: false };
@@ -226,6 +232,7 @@ function DetailPanel({
   onClose,
   activeTypeFilter,
   onTypeClick,
+  unsubFromMap,
 }: {
   filter: StatFilter;
   filtered: Subscriber[];
@@ -233,6 +240,7 @@ function DetailPanel({
   onClose: () => void;
   activeTypeFilter?: string | null;
   onTypeClick?: (typeName: string) => void;
+  unsubFromMap?: Record<string, string>;
 }) {
   const [dateNow] = useState(() => Date.now());
   const title = FILTER_LABELS[filter];
@@ -244,7 +252,7 @@ function DetailPanel({
     case 'unsubscribed': {
       const groups = new Map<string, number>();
       for (const s of filtered) {
-        const key = formatUnsubFrom(s.unsub_from);
+        const key = formatUnsubFrom(unsubFromMap?.[s.id] ?? null);
         groups.set(key, (groups.get(key) ?? 0) + 1);
       }
       breakdown = [...groups.entries()]
@@ -438,6 +446,8 @@ function AdminPageContent() {
   const [password, setPassword] = useState('');
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+  const [engagementMap, setEngagementMap] = useState<Record<string, string>>({});
+  const [unsubFromMap, setUnsubFromMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [lightboxChart, setLightboxChart] = useState<Chart | null>(null);
@@ -457,7 +467,9 @@ function AdminPageContent() {
     setError('');
     const result = await fetchSubscribers(pwd);
     if (result.ok) {
-      setSubscribers(result.data);
+      setSubscribers(result.data.subscribers);
+      setEngagementMap(result.data.engagement);
+      setUnsubFromMap(result.data.unsubFrom);
       setSubscribersFetchedAt(Date.now());
       setIsAuthorized(true);
     } else {
@@ -484,7 +496,9 @@ function AdminPageContent() {
       const result = await fetchSubscribers(savedPassword);
       if (cancelled) return;
       if (result.ok) {
-        setSubscribers(result.data);
+        setSubscribers(result.data.subscribers);
+        setEngagementMap(result.data.engagement);
+        setUnsubFromMap(result.data.unsubFrom);
         setSubscribersFetchedAt(Date.now());
         setIsAuthorized(true);
       } else {
@@ -656,7 +670,7 @@ function AdminPageContent() {
       return label;
     }
 
-    return formatUnsubFrom(sub.unsub_from);
+    return formatUnsubFrom(unsubFromMap[sub.id] ?? null);
   };
 
   const handleSort = (column: SortColumn) => {
@@ -703,9 +717,11 @@ function AdminPageContent() {
         return -subscriber.next_step;
       case 'created':
         return new Date(subscriber.created_at).getTime();
-      case 'lastActive':
-        if (!subscriber.last_engaged_at) return 0;
-        return new Date(subscriber.last_engaged_at).getTime();
+      case 'lastActive': {
+        const engagedAt = engagementMap[subscriber.id];
+        if (!engagedAt) return 0;
+        return new Date(engagedAt).getTime();
+      }
       default:
         return '';
     }
@@ -845,6 +861,7 @@ function AdminPageContent() {
               onClose={() => { setActiveFilter(null); setTypeFilter(null); }}
               activeTypeFilter={typeFilter}
               onTypeClick={(typeName) => setTypeFilter(prev => prev === typeName ? null : typeName)}
+              unsubFromMap={unsubFromMap}
             />}
           </>
         );
@@ -916,7 +933,7 @@ function AdminPageContent() {
           </thead>
           <tbody>
             {sortedSubscribers.map((subscriber) => {
-              const engagement = getEngagementLabel(subscriber, subscribersFetchedAt);
+              const engagement = getEngagementLabel(engagementMap[subscriber.id], subscribersFetchedAt);
               return (
               <tr
                 key={subscriber.id}

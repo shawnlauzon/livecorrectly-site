@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getWelcomeDueSubscribers, getWelcomeResendDueSubscribers, advanceEmailSeries, setWelcomeResendStep, acquireCronLock } from '@/lib/db';
+import { getWelcomeDueSubscribers, getWelcomeResendDueSubscribers, advanceEmailSeries, setWelcomeResendStep, acquireCronLock, recordEmailSend } from '@/lib/db';
 import { sendWelcomeEmail, formatEmailRecipient, buildUnsubscribeUrl } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/emails/subjects';
@@ -72,6 +72,12 @@ export async function GET(request: NextRequest) {
 
     if (result.success) {
       await advanceEmailSeries(subscriber.id, step + 1);
+      await recordEmailSend({
+        subscriberId: subscriber.id,
+        emailType: `welcome_${step}`,
+        category: 'welcome',
+        resendEmailId: result.id,
+      });
       sent++;
     } else {
       skipped++;
@@ -111,6 +117,12 @@ export async function GET(request: NextRequest) {
       } else {
         await setWelcomeResendStep(subscriber.id, nextResendStep);
       }
+      await recordEmailSend({
+        subscriberId: subscriber.id,
+        emailType: `welcome_resend_${step}`,
+        category: 'welcome',
+        resendEmailId: result.id,
+      });
       sent++;
     } else {
       skipped++;

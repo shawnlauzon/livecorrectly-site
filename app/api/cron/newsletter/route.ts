@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { getNewsletterDueSubscribers, advanceEmailSeries, recordNewsletterSend, acquireCronLock } from '@/lib/db';
+import { getNewsletterDueSubscribers, advanceEmailSeries, acquireCronLock, recordEmailSend } from '@/lib/db';
 import { sendWelcomeEmail, formatEmailRecipient, buildUnsubscribeUrl } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getNewsletterEmail, getNewsletterSubject, getMaxNewsletterNumber } from '@/emails/newsletter';
@@ -95,7 +95,12 @@ export async function GET(request: NextRequest) {
 
         if (result.success) {
           await advanceEmailSeries(subscriber.id, subscriber.next_step + 1);
-          await recordNewsletterSend(newsletterNumber);
+          await recordEmailSend({
+            subscriberId: subscriber.id,
+            emailType: `newsletter_${newsletterNumber}`,
+            category: 'newsletter',
+            resendEmailId: result.id,
+          });
           sent++;
         } else {
           skipped++;
@@ -107,11 +112,16 @@ export async function GET(request: NextRequest) {
         await syncBroadcastContactProperties(subscribers);
         const emails = subscribers.map(s => s.email);
         const result = await sendNewsletterBroadcast(newsletterNumber, emails);
-        // Advance next_step for all subscribers in the group
+        // Advance next_step and record send for all subscribers in the group
         for (const subscriber of subscribers) {
           await advanceEmailSeries(subscriber.id, subscriber.next_step + 1);
+          await recordEmailSend({
+            subscriberId: subscriber.id,
+            emailType: `newsletter_${newsletterNumber}`,
+            category: 'newsletter',
+            resendBroadcastId: result.broadcastId,
+          });
         }
-        await recordNewsletterSend(newsletterNumber);
         sent += result.contactCount;
 
         console.log(`[cron] Broadcast newsletter #${newsletterNumber}: ${result.contactCount} contacts, broadcast=${result.broadcastId}`);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSubscriberByEmailForWebhook, updateEmailStatus, rollBackEmailSeries, touchEngagement } from '@/lib/db';
+import { getSubscriberByEmailForWebhook, updateEmailStatus, rollBackEmailSeries, recordEmailEvent, lookupEmailSendByResendId, lookupEmailTypeByBroadcastId, getMostRecentEmailSend } from '@/lib/db';
 import { extractEmail } from '@/emails/send';
 import { unsubscribeContactInResend } from '@/lib/resend-contacts';
 
@@ -78,6 +78,12 @@ interface ResendWebhookEvent {
     origin?: 'bounce' | 'complaint' | 'manual';
     // contact.updated events include unsubscribed status
     unsubscribed?: boolean;
+    // Tags echoed back from send-time (set via _sendEmail)
+    tags?: Record<string, string>;
+    // Present for broadcast emails
+    broadcast_id?: string;
+    // Click event details
+    click?: { link: string; timestamp: string };
   };
 }
 
@@ -190,9 +196,44 @@ export async function POST(request: NextRequest) {
       if (recipientEmail) {
         const subscriber = await getSubscriberByEmailForWebhook(recipientEmail);
         if (subscriber) {
-          await touchEngagement(subscriber.id);
+          // Determine email_type from tags (transactional) or broadcast_id (broadcast)
+          let emailType: string | null = null;
+          let emailSendId: string | undefined;
+
+          // Check tags first (set by _sendEmail for transactional emails)
+          if (event.data.tags?.email_type) {
+            emailType = event.data.tags.email_type;
+          }
+
+          // Try resend_email_id lookup
+          if (!emailType && event.data.email_id) {
+            const send = await lookupEmailSendByResendId(event.data.email_id);
+            if (send) {
+              emailType = send.email_type;
+              emailSendId = send.id;
+            }
+          }
+
+          // Try broadcast_id lookup
+          if (!emailType && event.data.broadcast_id) {
+            emailType = await lookupEmailTypeByBroadcastId(event.data.broadcast_id);
+          }
+
+          if (emailType) {
+            const eventType = event.type === 'email.clicked' ? 'click' : 'open';
+            const linkUrl = event.type === 'email.clicked' ? event.data.click?.link : undefined;
+            await recordEmailEvent({
+              subscriberId: subscriber.id,
+              eventType,
+              emailType,
+              emailSendId,
+              linkUrl,
+              resendEmailId: event.data.email_id,
+            });
+          }
+
           console.log(
-            `[webhook] ${event.type}: ${recipientEmail} (subscriber ${subscriber.id})`
+            `[webhook] ${event.type}: ${recipientEmail} (subscriber ${subscriber.id}, email_type=${emailType ?? 'unknown'})`
           );
         }
       }
@@ -209,6 +250,15 @@ export async function POST(request: NextRequest) {
         if (subscriber) {
           if (subscriber.email_status === 'active') {
             await updateEmailStatus(subscriber.id, 'unsubscribed');
+
+            // Record unsubscribe event — infer email_type from most recent send
+            const recentSend = await getMostRecentEmailSend(subscriber.id);
+            await recordEmailEvent({
+              subscriberId: subscriber.id,
+              eventType: 'unsubscribe',
+              emailType: recentSend?.email_type ?? 'unknown',
+            });
+
             console.log(
               `[webhook] contact.updated: unsubscribed ${contactEmail} (subscriber ${subscriber.id})`
             );

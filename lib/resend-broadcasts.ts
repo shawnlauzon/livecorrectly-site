@@ -349,7 +349,7 @@ export async function renderBroadcastForBroadcastApi(slug: string): Promise<{
  * 3. Add subscriber emails to it
  * 4. Render HTML with Resend template vars
  * 5. Create + send the broadcast
- * 6. Return identifiers; caller handles recordBroadcastSend()
+ * 6. Return identifiers; caller handles recordEmailSend()
  */
 export async function sendBroadcastViaBroadcastApi(
   slug: string,

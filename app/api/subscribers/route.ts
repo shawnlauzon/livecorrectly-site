@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSubscriber, advanceEmailSeries } from '@/lib/db';
+import { createSubscriber, advanceEmailSeries, recordEmailSend } from '@/lib/db';
 import { sendWelcomeEmail, sendAdminNotification, formatEmailRecipient, buildUnsubscribeUrl } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/emails/subjects';
@@ -87,6 +87,14 @@ export async function POST(request: NextRequest) {
           });
           if (result.success) {
             console.log(`[subscribe] Sent welcome email to ${subscriber.email} (id=${result.id})`);
+            recordEmailSend({
+              subscriberId: subscriber.id,
+              emailType: 'welcome_1',
+              category: 'welcome',
+              resendEmailId: result.id,
+            }).catch((err) => {
+              console.error(`[subscribe] Failed to record email send for ${subscriber.email}:`, err);
+            });
           } else {
             console.warn(`[subscribe] Welcome email not sent to ${subscriber.email} (subscriber may not be active)`);
           }

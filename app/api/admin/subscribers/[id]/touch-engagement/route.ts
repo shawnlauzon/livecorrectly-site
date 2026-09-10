@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
-import { getSubscriberById, touchEngagement } from '@/lib/db';
+import { getSubscriberById, recordEmailEvent } from '@/lib/db';
 
 /**
  * POST /api/admin/subscribers/[id]/touch-engagement
  *
  * Manually records engagement (e.g. subscriber replied to an email).
- * Updates last_engaged_at to now().
+ * Creates a manual_engagement event in email_events.
  *
  * Auth: Bearer <ADMIN_PASSWORD>
  */
@@ -35,13 +35,17 @@ export async function POST(
       );
     }
 
-    await touchEngagement(id);
+    await recordEmailEvent({
+      subscriberId: id,
+      eventType: 'manual_engagement',
+      emailType: 'admin_touch',
+    });
 
     console.log(
       `[admin] Manual engagement touch for ${subscriber.email} (subscriber ${id})`
     );
 
-    return NextResponse.json({ ok: true, last_engaged_at: new Date().toISOString() });
+    return NextResponse.json({ ok: true, occurred_at: new Date().toISOString() });
   } catch (error) {
     console.error('[admin] Error touching engagement:', error);
     return NextResponse.json(

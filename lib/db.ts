@@ -1,6 +1,6 @@
 import { cache } from 'react';
 import { neon, NeonQueryFunction } from '@neondatabase/serverless';
-import { BirthInput, EmailStatus, Subscriber } from './types/subscriber';
+import { BirthInput, EmailStatus, Subscriber, EmailSend, EmailEvent, EmailEventType } from './types/subscriber';
 import type { ChartGroup, ChartRecord } from './types/chart';
 
 let sql: NeonQueryFunction<false, false>;
@@ -129,17 +129,16 @@ export async function createSubscriber(data: {
   const db = getDb();
   const result = await db`
     INSERT INTO subscribers (
-      email, first_name, last_name, birth_input, chart, last_engaged_at, next_step
+      email, first_name, last_name, birth_input, chart, next_step
     ) VALUES (
       ${data.email}, ${data.first_name}, ${data.last_name},
-      ${JSON.stringify(data.birth_input)}, ${JSON.stringify(data.chart)}, now(), 1
+      ${JSON.stringify(data.birth_input)}, ${JSON.stringify(data.chart)}, 1
     )
     ON CONFLICT (email) DO UPDATE SET
       first_name = EXCLUDED.first_name,
       last_name = EXCLUDED.last_name,
       birth_input = EXCLUDED.birth_input,
-      chart = EXCLUDED.chart,
-      last_engaged_at = now()
+      chart = EXCLUDED.chart
     RETURNING *
   `;
   return normalizeSubscriber(result[0] as Subscriber);
@@ -162,20 +161,16 @@ export async function getSubscriberByUnsubToken(
 
 /**
  * Update a subscriber's email status (e.g. unsubscribed, bounced, complained).
- * Optional `unsubFrom` records which email triggered the unsubscribe (utm_campaign value).
- * When omitted, the existing unsub_from value is preserved (e.g. webhook-triggered status changes).
  */
 export async function updateEmailStatus(
   id: string,
   status: EmailStatus,
-  unsubFrom?: string
 ): Promise<void> {
   const db = getDb();
   await db`
     UPDATE subscribers
     SET email_status = ${status},
-        email_status_at = now(),
-        unsub_from = COALESCE(${unsubFrom ?? null}, unsub_from)
+        email_status_at = now()
     WHERE id = ${id}
   `;
 }
@@ -296,21 +291,6 @@ export async function updateEmailSeries(
   return normalizeSubscriber(result[0] as Subscriber);
 }
 
-/**
- * Update last_engaged_at to now() for a subscriber.
- * Records the most recent proof of life (email click, chart page visit, etc.).
- */
-export async function touchEngagement(id: string): Promise<void> {
-  // No-op on localhost — don't pollute engagement timestamps during dev
-  if (process.env.NODE_ENV === 'development') return;
-
-  const db = getDb();
-  await db`
-    UPDATE subscribers
-    SET last_engaged_at = now()
-    WHERE id = ${id}
-  `;
-}
 
 /**
  * Get active subscribers due for their next welcome series resend.
@@ -372,13 +352,14 @@ export async function getBroadcastCandidates(
   broadcastSlug: string,
 ): Promise<Subscriber[]> {
   const db = getDb();
+  const emailType = `broadcast_${broadcastSlug}`;
   const result = await db`
     SELECT s.* FROM subscribers s
     WHERE s.email_status IN ('active', 'failed')
       AND NOT EXISTS (
-        SELECT 1 FROM broadcast_sends bs
-        WHERE bs.subscriber_id = s.id
-          AND bs.broadcast_slug = ${broadcastSlug}
+        SELECT 1 FROM email_sends es
+        WHERE es.subscriber_id = s.id
+          AND es.email_type = ${emailType}
       )
     ORDER BY s.created_at DESC
   `;
@@ -386,23 +367,9 @@ export async function getBroadcastCandidates(
 }
 
 /**
- * Record that a newsletter number was sent for the first time.
- * Uses ON CONFLICT DO NOTHING so only the first send per newsletter inserts.
- */
-export async function recordNewsletterSend(
-  newsletterNumber: number
-): Promise<void> {
-  const db = getDb();
-  await db`
-    INSERT INTO newsletter_sends (newsletter_number)
-    VALUES (${newsletterNumber})
-    ON CONFLICT DO NOTHING
-  `;
-}
-
-/**
  * Get send dates for all newsletters that have been sent.
  * Returns a Map from newsletter number to ISO timestamp string.
+ * Queries email_sends grouped by email_type to find the earliest send per newsletter.
  *
  * Wrapped with React cache() so that within a single request
  * (e.g. generateMetadata + page component), the DB is hit only once.
@@ -410,14 +377,21 @@ export async function recordNewsletterSend(
 export const getNewsletterSendDates = cache(async (): Promise<Map<number, string>> => {
   const db = getDb();
   const rows = await withRetry(() => db`
-    SELECT newsletter_number, sent_at FROM newsletter_sends
+    SELECT email_type, MIN(sent_at) AS sent_at
+    FROM email_sends
+    WHERE category = 'newsletter'
+    GROUP BY email_type
   `);
   const map = new Map<number, string>();
   for (const row of rows) {
-    map.set(
-      row.newsletter_number as number,
-      (row.sent_at as Date).toISOString()
-    );
+    // email_type is 'newsletter_6' → extract 6
+    const match = (row.email_type as string).match(/^newsletter_(\d+)$/);
+    if (match) {
+      map.set(
+        parseInt(match[1], 10),
+        (row.sent_at as Date).toISOString()
+      );
+    }
   }
   return map;
 });
@@ -438,19 +412,189 @@ export async function acquireCronLock(cronName: string): Promise<boolean> {
   return result.length > 0;
 }
 
+// --- Unified email tracking ---
+
 /**
- * Record that a broadcast was sent to a subscriber.
+ * Record that an email was sent to a subscriber.
  * Uses ON CONFLICT DO NOTHING for idempotency (safe if cron retries after interruption).
  */
-export async function recordBroadcastSend(
-  subscriberId: string,
-  broadcastSlug: string
-): Promise<void> {
+export async function recordEmailSend(params: {
+  subscriberId: string;
+  emailType: string;
+  category: string;
+  resendEmailId?: string;
+  resendBroadcastId?: string;
+}): Promise<void> {
   const db = getDb();
   await db`
-    INSERT INTO broadcast_sends (subscriber_id, broadcast_slug)
-    VALUES (${subscriberId}, ${broadcastSlug})
-    ON CONFLICT (subscriber_id, broadcast_slug) DO NOTHING
+    INSERT INTO email_sends (subscriber_id, email_type, category, resend_email_id, resend_broadcast_id)
+    VALUES (
+      ${params.subscriberId},
+      ${params.emailType},
+      ${params.category},
+      ${params.resendEmailId ?? null},
+      ${params.resendBroadcastId ?? null}
+    )
+    ON CONFLICT (subscriber_id, email_type) DO NOTHING
   `;
+}
+
+/**
+ * Record an email event (open, click, unsubscribe, manual engagement).
+ */
+export async function recordEmailEvent(params: {
+  subscriberId: string;
+  eventType: EmailEventType;
+  emailType: string;
+  emailSendId?: string;
+  linkUrl?: string;
+  resendEmailId?: string;
+  occurredAt?: Date;
+}): Promise<void> {
+  // No-op on localhost — don't pollute event data during dev
+  if (process.env.NODE_ENV === 'development') return;
+
+  const db = getDb();
+  const occurredAt = params.occurredAt ?? new Date();
+  await db`
+    INSERT INTO email_events (
+      subscriber_id, event_type, email_type, email_send_id,
+      link_url, resend_email_id, occurred_at
+    )
+    VALUES (
+      ${params.subscriberId},
+      ${params.eventType},
+      ${params.emailType},
+      ${params.emailSendId ?? null},
+      ${params.linkUrl ?? null},
+      ${params.resendEmailId ?? null},
+      ${occurredAt.toISOString()}
+    )
+  `;
+}
+
+/**
+ * Get all email sends for a subscriber, newest first.
+ */
+export async function getEmailSendsForSubscriber(subscriberId: string): Promise<EmailSend[]> {
+  const db = getDb();
+  const rows = await db`
+    SELECT * FROM email_sends
+    WHERE subscriber_id = ${subscriberId}
+    ORDER BY sent_at DESC
+  `;
+  return rows as EmailSend[];
+}
+
+/**
+ * Get all email events for a subscriber, newest first.
+ */
+export async function getEmailEventsForSubscriber(subscriberId: string): Promise<EmailEvent[]> {
+  const db = getDb();
+  const rows = await db`
+    SELECT * FROM email_events
+    WHERE subscriber_id = ${subscriberId}
+    ORDER BY occurred_at DESC
+  `;
+  return rows as EmailEvent[];
+}
+
+/**
+ * Get the most recent engagement timestamp for a subscriber.
+ * Returns null if no events exist. Replaces the old last_engaged_at column.
+ */
+export async function getLastEngagementForSubscriber(subscriberId: string): Promise<string | null> {
+  const db = getDb();
+  const rows = await db`
+    SELECT MAX(occurred_at) AS last_engaged_at
+    FROM email_events
+    WHERE subscriber_id = ${subscriberId}
+  `;
+  if (rows.length === 0 || !rows[0].last_engaged_at) return null;
+  return (rows[0].last_engaged_at as Date).toISOString();
+}
+
+/**
+ * Look up the email_type for a Resend email ID (from webhook tags or send records).
+ * Checks email_sends by resend_email_id.
+ */
+export async function lookupEmailSendByResendId(resendEmailId: string): Promise<EmailSend | null> {
+  const db = getDb();
+  const rows = await db`
+    SELECT * FROM email_sends
+    WHERE resend_email_id = ${resendEmailId}
+    LIMIT 1
+  `;
+  return rows.length > 0 ? (rows[0] as EmailSend) : null;
+}
+
+/**
+ * Look up email sends by Resend broadcast ID.
+ * A broadcast sends to many subscribers, so returns the email_type from any matching row.
+ */
+export async function lookupEmailTypeByBroadcastId(broadcastId: string): Promise<string | null> {
+  const db = getDb();
+  const rows = await db`
+    SELECT email_type FROM email_sends
+    WHERE resend_broadcast_id = ${broadcastId}
+    LIMIT 1
+  `;
+  return rows.length > 0 ? (rows[0].email_type as string) : null;
+}
+
+/**
+ * Get the most recent email send for a subscriber.
+ * Used for unsubscribe attribution when the exact email isn't known.
+ */
+export async function getMostRecentEmailSend(subscriberId: string): Promise<EmailSend | null> {
+  const db = getDb();
+  const rows = await db`
+    SELECT * FROM email_sends
+    WHERE subscriber_id = ${subscriberId}
+    ORDER BY sent_at DESC
+    LIMIT 1
+  `;
+  return rows.length > 0 ? (rows[0] as EmailSend) : null;
+}
+
+/**
+ * Get the last engagement timestamp for each subscriber (batch query for admin list).
+ * Returns a Map from subscriber ID to ISO timestamp string.
+ */
+export async function getLastEngagementBatch(): Promise<Map<string, string>> {
+  const db = getDb();
+  const rows = await db`
+    SELECT subscriber_id, MAX(occurred_at) AS last_engaged_at
+    FROM email_events
+    GROUP BY subscriber_id
+  `;
+  const map = new Map<string, string>();
+  for (const row of rows) {
+    map.set(
+      row.subscriber_id as string,
+      (row.last_engaged_at as Date).toISOString()
+    );
+  }
+  return map;
+}
+
+/**
+ * Get the unsubscribe email_type for each unsubscribed subscriber (batch query for admin list).
+ * Returns a Map from subscriber ID to the email_type that triggered the unsubscribe.
+ */
+export async function getUnsubFromBatch(): Promise<Map<string, string>> {
+  const db = getDb();
+  // Get the most recent unsubscribe event per subscriber
+  const rows = await db`
+    SELECT DISTINCT ON (subscriber_id) subscriber_id, email_type
+    FROM email_events
+    WHERE event_type = 'unsubscribe'
+    ORDER BY subscriber_id, occurred_at DESC
+  `;
+  const map = new Map<string, string>();
+  for (const row of rows) {
+    map.set(row.subscriber_id as string, row.email_type as string);
+  }
+  return map;
 }
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getBroadcastCandidates, recordBroadcastSend } from '@/lib/db';
+import { getBroadcastCandidates, recordEmailSend } from '@/lib/db';
 import { getEnabledBroadcastConfigs } from '@/emails/broadcast-loader';
 import { sendBroadcastViaBroadcastApi } from '@/lib/resend-broadcasts';
 
@@ -54,7 +54,12 @@ export async function GET(request: NextRequest) {
 
     // Record sends so these subscribers aren't re-queried next time
     for (const subscriber of recipients) {
-      await recordBroadcastSend(subscriber.id, config.slug);
+      await recordEmailSend({
+        subscriberId: subscriber.id,
+        emailType: `broadcast_${config.slug}`,
+        category: 'broadcast',
+        resendBroadcastId: broadcastId,
+      });
     }
 
     totalSent += contactCount;

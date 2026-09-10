@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Subscriber } from '@/lib/types/subscriber';
+import { Subscriber, EmailSend, EmailEvent } from '@/lib/types/subscriber';
 import ChartHero from '@/components/chart-hero';
 import hdChart from '@/lib/hd-chart';
 import {
@@ -41,6 +41,8 @@ export default function AdminDetailPage({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [subscriber, setSubscriber] = useState<Subscriber | null>(null);
+  const [emailSends, setEmailSends] = useState<EmailSend[]>([]);
+  const [emailEvents, setEmailEvents] = useState<EmailEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [subscriberId, setSubscriberId] = useState<string | null>(null);
@@ -62,26 +64,35 @@ export default function AdminDetailPage({
 
     (async () => {
       try {
-        const response = await fetch(`/api/admin/subscribers/${subscriberId}`, {
-          headers: {
-            Authorization: `Bearer ${password}`,
-          },
-        });
+        const [subRes, histRes] = await Promise.all([
+          fetch(`/api/admin/subscribers/${subscriberId}`, {
+            headers: { Authorization: `Bearer ${password}` },
+          }),
+          fetch(`/api/admin/subscribers/${subscriberId}/email-history`, {
+            headers: { Authorization: `Bearer ${password}` },
+          }),
+        ]);
 
         if (cancelled) return;
 
-        if (response.status === 401) {
+        if (subRes.status === 401) {
           router.push('/admin');
           return;
         }
 
-        if (!response.ok) {
+        if (!subRes.ok) {
           setError('Failed to load subscriber');
           return;
         }
 
-        const data = await response.json();
+        const data = await subRes.json();
         setSubscriber(data);
+
+        if (histRes.ok) {
+          const history = await histRes.json();
+          setEmailSends(history.sends);
+          setEmailEvents(history.events);
+        }
       } catch (err) {
         if (cancelled) return;
         setError('Failed to load subscriber');
@@ -160,6 +171,8 @@ export default function AdminDetailPage({
       <WelcomeSeries
         subscriber={subscriber}
         onSubscriberUpdate={setSubscriber}
+        emailEvents={emailEvents}
+        onEmailEventsUpdate={setEmailEvents}
       />
 
       <EmailPreviews subscriber={subscriber} currentEmailStep={emailStep} />
@@ -167,6 +180,8 @@ export default function AdminDetailPage({
       <BroadcastSection subscriber={subscriber} />
 
       <NewsletterSection subscriber={subscriber} />
+
+      <EmailHistorySection sends={emailSends} events={emailEvents} />
 
       <ChartJson chart={subscriber.chart} />
     </div>
@@ -741,9 +756,13 @@ function deriveNextEmailValue(sub: Subscriber): NextEmailValue {
 function WelcomeSeries({
   subscriber,
   onSubscriberUpdate,
+  emailEvents,
+  onEmailEventsUpdate,
 }: {
   subscriber: Subscriber;
   onSubscriberUpdate: (s: Subscriber) => void;
+  emailEvents: EmailEvent[];
+  onEmailEventsUpdate: (events: EmailEvent[]) => void;
 }) {
   const [sendingStep, setSendingStep] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<{
@@ -965,10 +984,19 @@ function WelcomeSeries({
         return;
       }
 
-      onSubscriberUpdate({
-        ...subscriber,
-        last_engaged_at: data.last_engaged_at,
-      });
+      // Add a synthetic event to the local list so the UI updates immediately
+      const newEvent: EmailEvent = {
+        id: crypto.randomUUID(),
+        subscriber_id: subscriber.id,
+        email_send_id: null,
+        event_type: 'manual_engagement',
+        email_type: 'admin_touch',
+        link_url: null,
+        resend_email_id: null,
+        occurred_at: data.occurred_at,
+        created_at: data.occurred_at,
+      };
+      onEmailEventsUpdate([newEvent, ...emailEvents]);
       setFeedback({ type: 'success', message: 'Engagement recorded' });
     } catch (err) {
       console.error('Error touching engagement:', err);
@@ -979,7 +1007,7 @@ function WelcomeSeries({
     } finally {
       setTouchingEngagement(false);
     }
-  }, [subscriber, onSubscriberUpdate]);
+  }, [subscriber.id, emailEvents, onEmailEventsUpdate]);
 
   return (
     <div className={styles.welcomeSection}>
@@ -997,16 +1025,17 @@ function WelcomeSeries({
             <span className={styles.welcomeMetaLabel}>Email status</span>
             <span>
               {subscriber.email_status}
-              {subscriber.email_status !== 'active' && (
-                <> — {formatUnsubFrom(subscriber.unsub_from)}</>
-              )}
+              {subscriber.email_status !== 'active' && (() => {
+                const unsubEvent = emailEvents.find(e => e.event_type === 'unsubscribe');
+                return unsubEvent ? <> — {formatUnsubFrom(unsubEvent.email_type)}</> : null;
+              })()}
             </span>
           </div>
           <div className={styles.welcomeMetaItem}>
             <span className={styles.welcomeMetaLabel}>Last active</span>
             <div className={styles.engagementRow}>
               <span>
-                {formatRelativeEngagement(subscriber.last_engaged_at)}
+                {formatRelativeEngagement(emailEvents[0]?.occurred_at ?? null)}
               </span>
               <button
                 className={styles.touchEngagementButton}
@@ -1993,6 +2022,97 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
           >
             {feedback.message}
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EmailHistorySection({
+  sends,
+  events,
+}: {
+  sends: EmailSend[];
+  events: EmailEvent[];
+}) {
+  if (sends.length === 0 && events.length === 0) return null;
+
+  const formatTimestamp = (ts: string) =>
+    new Date(ts).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+
+  return (
+    <div className={styles.welcomeSection}>
+      <div className={styles.welcomeCard}>
+        <h2 className={styles.welcomeHeading}>Email History</h2>
+
+        {sends.length > 0 && (
+          <details className={styles.emailPreview}>
+            <summary className={styles.emailPreviewSummary}>
+              <span className={styles.emailPreviewLabel}>
+                Sends ({sends.length})
+              </span>
+            </summary>
+            <div className={styles.emailPreviewContent}>
+              <table style={{ width: '100%', fontSize: '0.85rem', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--line)' }}>Email</th>
+                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--line)' }}>Category</th>
+                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--line)' }}>Sent</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sends.map((send) => (
+                    <tr key={send.id}>
+                      <td style={{ padding: '4px 8px' }}>{formatUnsubFrom(send.email_type)}</td>
+                      <td style={{ padding: '4px 8px' }}>{send.category}</td>
+                      <td style={{ padding: '4px 8px' }}>{formatTimestamp(send.sent_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        )}
+
+        {events.length > 0 && (
+          <details className={styles.emailPreview}>
+            <summary className={styles.emailPreviewSummary}>
+              <span className={styles.emailPreviewLabel}>
+                Events ({events.length})
+              </span>
+            </summary>
+            <div className={styles.emailPreviewContent}>
+              <table style={{ width: '100%', fontSize: '0.85rem', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--line)' }}>Event</th>
+                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--line)' }}>Email</th>
+                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--line)' }}>Detail</th>
+                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--line)' }}>When</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {events.map((event) => (
+                    <tr key={event.id}>
+                      <td style={{ padding: '4px 8px' }}>{event.event_type}</td>
+                      <td style={{ padding: '4px 8px' }}>{formatUnsubFrom(event.email_type)}</td>
+                      <td style={{ padding: '4px 8px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {event.link_url ?? '\u2014'}
+                      </td>
+                      <td style={{ padding: '4px 8px' }}>{formatTimestamp(event.occurred_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
         )}
       </div>
     </div>

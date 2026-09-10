@@ -23,8 +23,32 @@ export interface Subscriber {
   welcome_resend_step: number | null;
   email_status: EmailStatus;
   email_status_at: string | null; // ISO timestamp
-  unsub_from: string | null; // utm_campaign value from the email that triggered unsubscribe
   unsub_token: string;
   created_at: string; // ISO timestamp
-  last_engaged_at: string | null; // ISO timestamp — most recent proof of life
+}
+
+/** A record of an email sent to a subscriber. */
+export interface EmailSend {
+  id: string;
+  subscriber_id: string;
+  email_type: string;        // 'welcome_1', 'newsletter_6', 'broadcast_restart-notice-2026-09'
+  category: string;          // 'welcome' | 'newsletter' | 'broadcast'
+  resend_email_id: string | null;
+  resend_broadcast_id: string | null;
+  sent_at: string;           // ISO timestamp
+}
+
+export type EmailEventType = 'open' | 'click' | 'unsubscribe' | 'manual_engagement';
+
+/** A tracked event for a subscriber (open, click, unsubscribe, manual engagement). */
+export interface EmailEvent {
+  id: string;
+  subscriber_id: string;
+  email_send_id: string | null;
+  event_type: EmailEventType;
+  email_type: string;        // denormalized for easy queries
+  link_url: string | null;   // for clicks
+  resend_email_id: string | null;
+  occurred_at: string;       // ISO timestamp
+  created_at: string;        // ISO timestamp
 }

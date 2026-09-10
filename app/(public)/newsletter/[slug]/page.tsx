@@ -4,7 +4,7 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import SiteNav from '@/components/site-nav';
 import SiteFooter from '@/components/site-footer';
 import { getWebNewsletter, getAllSlugs, getSlugRedirects } from '@/newsletters/web';
-import { getSubscriberById, touchEngagement } from '@/lib/db';
+import { getSubscriberById } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import PersonalizationCallout from './PersonalizationCallout';
 import PersonalizedSection from './PersonalizedSection';
@@ -87,10 +87,6 @@ export default async function NewsletterIssuePage({
   if (subscriberParam && UUID_RE.test(subscriberParam)) {
     const subscriber = await getSubscriberById(subscriberParam);
     if (subscriber) {
-      // Fire-and-forget: record newsletter page visit as engagement
-      touchEngagement(subscriber.id).catch((err) => {
-        console.error(`[engagement] Failed to touch engagement for ${subscriber.id}:`, err);
-      });
       subscriberName = subscriber.last_name
         ? `${subscriber.first_name} ${subscriber.last_name}`
         : subscriber.first_name;

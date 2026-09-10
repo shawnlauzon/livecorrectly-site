@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
-import { getAllSubscribers } from '@/lib/db';
+import { getAllSubscribers, getLastEngagementBatch, getUnsubFromBatch } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,10 +16,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch all subscribers
-    const subscribers = await getAllSubscribers();
+    // Fetch subscribers + engagement/unsub data in parallel
+    const [subscribers, engagementMap, unsubFromMap] = await Promise.all([
+      getAllSubscribers(),
+      getLastEngagementBatch(),
+      getUnsubFromBatch(),
+    ]);
 
-    return NextResponse.json(subscribers);
+    // Convert Maps to plain objects for JSON serialization
+    const engagement: Record<string, string> = Object.fromEntries(engagementMap);
+    const unsubFrom: Record<string, string> = Object.fromEntries(unsubFromMap);
+
+    return NextResponse.json({ subscribers, engagement, unsubFrom });
   } catch (error) {
     console.error('Error fetching subscribers:', error);
     return NextResponse.json(
