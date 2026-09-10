@@ -165,3 +165,19 @@ export async function getWebNewsletter(
 export async function getAllSlugs(): Promise<string[]> {
   return (await getWebNewsletters()).map((n) => n.slug);
 }
+
+/**
+ * Build a map of old slug → current slug for all newsletters that declare old-slugs.
+ * Used to issue permanent redirects when visitors hit a renamed URL.
+ */
+export function getSlugRedirects(): Map<string, string> {
+  const all = loadAllNewsletters();
+  const redirects = new Map<string, string>();
+  for (const [, raw] of all) {
+    if (!raw.slug) continue;
+    for (const old of raw.oldSlugs) {
+      redirects.set(old, raw.slug);
+    }
+  }
+  return redirects;
+}

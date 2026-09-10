@@ -21,6 +21,8 @@ export interface RawNewsletter {
   showHeroImage: boolean;
   /** Raw markdown body — template variables intact, untrimmed greeting included */
   bodyMarkdown: string;
+  /** Previous slugs that should redirect to the current slug */
+  oldSlugs: string[];
   /** Raw postscript strings (markdown, variables intact) */
   rawPs: string[];
 }
@@ -40,6 +42,10 @@ export function parseRawNewsletter(content: string, number: number): RawNewslett
   const rawImage = typeof data.image === 'string' ? data.image : null;
   const showHeroImage = !!rawImage && !body.includes(rawImage);
 
+  const oldSlugs: string[] = Array.isArray(data['old-slugs'])
+    ? data['old-slugs'].filter((s: unknown) => typeof s === 'string')
+    : [];
+
   let rawPs: string[] = [];
   if (Array.isArray(data.ps)) {
     rawPs = data.ps.filter((p: unknown) => typeof p === 'string');
@@ -55,6 +61,7 @@ export function parseRawNewsletter(content: string, number: number): RawNewslett
     description,
     rawImage,
     showHeroImage,
+    oldSlugs,
     bodyMarkdown: body,
     rawPs,
   };

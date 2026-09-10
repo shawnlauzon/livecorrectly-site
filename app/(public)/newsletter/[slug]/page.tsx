@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import SiteNav from '@/components/site-nav';
 import SiteFooter from '@/components/site-footer';
-import { getWebNewsletter, getAllSlugs } from '@/newsletters/web';
+import { getWebNewsletter, getAllSlugs, getSlugRedirects } from '@/newsletters/web';
 import { getSubscriberById, touchEngagement } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import PersonalizationCallout from './PersonalizationCallout';
@@ -22,13 +22,19 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function generateStaticParams() {
-  return (await getAllSlugs()).map((slug) => ({ slug }));
+  const current = (await getAllSlugs()).map((slug) => ({ slug }));
+  const oldSlugs = [...getSlugRedirects().keys()].map((slug) => ({ slug }));
+  return [...current, ...oldSlugs];
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const issue = await getWebNewsletter(slug);
-  if (!issue) return {};
+  if (!issue) {
+    const redirectSlug = getSlugRedirects().get(slug);
+    if (redirectSlug) permanentRedirect(`/newsletter/${redirectSlug}`);
+    return {};
+  }
 
   const url = `https://www.livecorrectly.com/newsletter/${issue.slug}`;
 
@@ -96,7 +102,15 @@ export default async function NewsletterIssuePage({
 
   // Load newsletter with chart so markdown conditionals are evaluated
   const issue = await getWebNewsletter(slug, chart);
-  if (!issue) notFound();
+  if (!issue) {
+    // Check if this is an old slug that should redirect
+    const redirectSlug = getSlugRedirects().get(slug);
+    if (redirectSlug) {
+      const qs = subscriberParam ? `?s=${subscriberParam}` : '';
+      permanentRedirect(`/newsletter/${redirectSlug}${qs}`);
+    }
+    notFound();
+  }
 
   const shareUrl = `https://www.livecorrectly.com/newsletter/${issue.slug}`;
 
