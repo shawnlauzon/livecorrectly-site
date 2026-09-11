@@ -557,25 +557,121 @@ export async function getMostRecentEmailSend(subscriberId: string): Promise<Emai
   return rows.length > 0 ? (rows[0] as EmailSend) : null;
 }
 
+/** Engagement summary for a single subscriber (used on admin list page). */
+export interface EngagementSummary {
+  lastEngagedAt: string;
+  opens: number;
+  clicks: number;
+}
+
 /**
- * Get the last engagement timestamp for each subscriber (batch query for admin list).
- * Returns a Map from subscriber ID to ISO timestamp string.
+ * Get engagement summary (last event, open count, click count) for each subscriber.
+ * Returns a Map from subscriber ID to EngagementSummary.
  */
-export async function getLastEngagementBatch(): Promise<Map<string, string>> {
+export async function getEngagementSummaryBatch(): Promise<Map<string, EngagementSummary>> {
   const db = getDb();
   const rows = await db`
-    SELECT subscriber_id, MAX(occurred_at) AS last_engaged_at
+    SELECT
+      subscriber_id,
+      MAX(occurred_at) AS last_engaged_at,
+      COUNT(*) FILTER (WHERE event_type = 'open') AS open_count,
+      COUNT(*) FILTER (WHERE event_type = 'click') AS click_count
     FROM email_events
     GROUP BY subscriber_id
   `;
-  const map = new Map<string, string>();
+  const map = new Map<string, EngagementSummary>();
   for (const row of rows) {
-    map.set(
-      row.subscriber_id as string,
-      (row.last_engaged_at as Date).toISOString()
-    );
+    map.set(row.subscriber_id as string, {
+      lastEngagedAt: (row.last_engaged_at as Date).toISOString(),
+      opens: Number(row.open_count),
+      clicks: Number(row.click_count),
+    });
   }
   return map;
+}
+
+/** Daily email activity for the admin email stats chart. */
+export interface DailyActivity {
+  date: string;
+  sends: number;
+  opens: number;
+  clicks: number;
+}
+
+/**
+ * Get daily email activity (sends, opens, clicks) grouped by day.
+ * Counts unique email sends per metric per day.
+ */
+export async function getDailyEmailActivity(): Promise<DailyActivity[]> {
+  const db = getDb();
+  const rows = await db`
+    SELECT
+      date_trunc('day', es.sent_at)::date AS day,
+      COUNT(DISTINCT es.id) AS sends,
+      COUNT(DISTINCT CASE WHEN ee.event_type = 'open' THEN es.id END) AS opens,
+      COUNT(DISTINCT CASE WHEN ee.event_type = 'click' THEN es.id END) AS clicks
+    FROM email_sends es
+    LEFT JOIN email_events ee
+      ON ee.subscriber_id = es.subscriber_id
+      AND ee.email_type = es.email_type
+      AND ee.event_type IN ('open', 'click')
+    WHERE es.resend_broadcast_id IS NOT NULL
+      AND es.sent_at >= (
+        SELECT MIN(occurred_at)::date
+        FROM email_events
+        WHERE event_type IN ('open', 'click')
+      )
+    GROUP BY date_trunc('day', es.sent_at)
+    ORDER BY day
+  `;
+  return rows.map(row => ({
+    date: (row.day as Date).toISOString().slice(0, 10),
+    sends: Number(row.sends),
+    opens: Number(row.opens),
+    clicks: Number(row.clicks),
+  }));
+}
+
+/** Per-email performance stats for the admin email stats endpoint. */
+export interface EmailPerformanceStat {
+  emailType: string;
+  category: string;
+  sent: number;
+  opened: number;
+  clicked: number;
+}
+
+/**
+ * Get per-email-type performance stats (sent, opened, clicked counts).
+ * Counts unique subscribers per metric to avoid inflating numbers from repeat events.
+ */
+export async function getEmailPerformanceStats(): Promise<EmailPerformanceStat[]> {
+  const db = getDb();
+  const rows = await db`
+    SELECT
+      es.email_type,
+      es.category,
+      COUNT(DISTINCT es.subscriber_id) AS sent,
+      COUNT(DISTINCT CASE WHEN ee.event_type = 'open' THEN ee.subscriber_id END) AS opened,
+      COUNT(DISTINCT CASE WHEN ee.event_type = 'click' THEN ee.subscriber_id END) AS clicked
+    FROM email_sends es
+    LEFT JOIN email_events ee
+      ON ee.email_type = es.email_type
+      AND ee.subscriber_id = es.subscriber_id
+      AND ee.event_type IN ('open', 'click')
+    WHERE es.resend_broadcast_id IS NOT NULL
+    GROUP BY es.email_type, es.category
+    HAVING COUNT(DISTINCT CASE WHEN ee.event_type = 'open' THEN ee.subscriber_id END) > 0
+        OR COUNT(DISTINCT CASE WHEN ee.event_type = 'click' THEN ee.subscriber_id END) > 0
+    ORDER BY MAX(es.sent_at) DESC
+  `;
+  return rows.map(row => ({
+    emailType: row.email_type as string,
+    category: row.category as string,
+    sent: Number(row.sent),
+    opened: Number(row.opened),
+    clicked: Number(row.clicked),
+  }));
 }
 
 /**

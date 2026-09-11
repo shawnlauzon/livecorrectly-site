@@ -7,9 +7,8 @@
  * Run with:
  *   npx tsx --env-file=.env.local scripts/backfill-email-events.ts
  *
- * Safe to re-run — events are inserted without dedup (Resend data is
- * point-in-time, so running twice will create duplicates; clear the table
- * first if re-running).
+ * Safe to re-run — events are deduped per (subscriber_id, event_type,
+ * email_type), so existing events are skipped.
  */
 
 import { neon } from '@neondatabase/serverless';
@@ -111,14 +110,6 @@ async function main() {
     }
 
     console.log(`\nProcessing: "${broadcast.name}" → ${emailType} (id=${broadcast.id})`);
-
-    // Backfill resend_broadcast_id into email_sends
-    await sql`
-      UPDATE email_sends
-      SET resend_broadcast_id = ${broadcast.id}
-      WHERE email_type = ${emailType}
-        AND resend_broadcast_id IS NULL
-    `;
 
     // Fetch opened recipients
     for (const eventType of ['opened', 'clicked'] as const) {
