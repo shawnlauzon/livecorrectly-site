@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
 import { types } from '@/lib/hd-chart/constants';
-import { getChartProperty, VALID_PROFILES } from '@/lib/redirect';
+import { VALID_PROFILES } from '@/lib/redirect';
 import type { RedirectRule } from '@/lib/db';
-import type { Subscriber } from '@/lib/types/subscriber';
 import styles from './redirects.module.css';
 
 const TYPE_VALUES = types;
 const PROPERTY_TYPES = ['type', 'profile'] as const;
+
+type Sample = { email: string; firstName: string };
 
 function getValueOptions(propertyType: string): string[] {
   switch (propertyType) {
@@ -22,12 +22,11 @@ function getValueOptions(propertyType: string): string[] {
   }
 }
 
-export default function RedirectsAdminPage() {
-  const [password, setPassword] = useState('');
-  const [isAuthorized, setIsAuthorized] = useState(false);
+export default function TestRedirectsPage() {
   const [rules, setRules] = useState<RedirectRule[]>([]);
-  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [samplesByType, setSamplesByType] = useState<Record<string, Sample>>({});
+  const [samplesByProfile, setSamplesByProfile] = useState<Record<string, Sample>>({});
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   // Add-form state
@@ -44,37 +43,16 @@ export default function RedirectsAdminPage() {
   // Copy-URL feedback
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
-  const getAdminPassword = useCallback(() => {
-    return sessionStorage.getItem('adminPassword') ?? '';
-  }, []);
-
-  const loadRules = useCallback(async (pwd: string) => {
+  const loadRules = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const headers = { Authorization: `Bearer ${pwd}` };
-      const [rulesRes, subsRes] = await Promise.all([
-        fetch('/api/admin/redirects', { headers }),
-        fetch('/api/admin/subscribers', { headers }),
-      ]);
-      if (!rulesRes.ok) {
-        if (rulesRes.status === 401) {
-          sessionStorage.removeItem('adminPassword');
-          setIsAuthorized(false);
-          setError('Session expired');
-          return;
-        }
-        throw new Error('Failed to load redirect rules');
-      }
-      const rulesData = await rulesRes.json();
-      setRules(rulesData.rules);
-
-      if (subsRes.ok) {
-        const subsData = await subsRes.json();
-        setSubscribers(subsData.subscribers);
-      }
-
-      setIsAuthorized(true);
+      const response = await fetch('/api/redirects');
+      if (!response.ok) throw new Error('Failed to load redirect rules');
+      const data = await response.json();
+      setRules(data.rules);
+      setSamplesByType(data.samples.byType);
+      setSamplesByProfile(data.samples.byProfile);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -82,20 +60,9 @@ export default function RedirectsAdminPage() {
     }
   }, []);
 
-  // Check for existing session on mount
   useEffect(() => {
-    const saved = sessionStorage.getItem('adminPassword');
-    if (saved) {
-      setPassword(saved);
-      loadRules(saved);
-    }
+    loadRules();
   }, [loadRules]);
-
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    sessionStorage.setItem('adminPassword', password);
-    await loadRules(password);
-  };
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,13 +71,9 @@ export default function RedirectsAdminPage() {
     setAdding(true);
     setError('');
     try {
-      const pwd = getAdminPassword();
-      const response = await fetch('/api/admin/redirects', {
+      const response = await fetch('/api/redirects', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${pwd}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           slug: newSlug,
           property_type: newPropertyType,
@@ -125,10 +88,7 @@ export default function RedirectsAdminPage() {
         return;
       }
 
-      // Reload all rules to get proper ordering
-      await loadRules(pwd);
-
-      // Reset form (keep slug for convenience when adding multiple rules for same slug)
+      await loadRules();
       setNewPropertyValue('');
       setNewDestinationUrl('');
     } catch (err) {
@@ -144,14 +104,10 @@ export default function RedirectsAdminPage() {
   };
 
   const handleSaveEdit = async (id: string) => {
-    const pwd = getAdminPassword();
     try {
-      const response = await fetch(`/api/admin/redirects/${id}`, {
+      const response = await fetch(`/api/redirects/${id}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${pwd}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ destination_url: editUrl }),
       });
 
@@ -175,11 +131,9 @@ export default function RedirectsAdminPage() {
   };
 
   const handleDelete = async (id: string) => {
-    const pwd = getAdminPassword();
     try {
-      const response = await fetch(`/api/admin/redirects/${id}`, {
+      const response = await fetch(`/api/redirects/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${pwd}` },
       });
 
       if (!response.ok && response.status !== 204) {
@@ -209,22 +163,6 @@ export default function RedirectsAdminPage() {
     });
   }
 
-  // Derive sample subscribers: one per type and one per profile
-  type SampleSub = { email: string; firstName: string };
-  const samplesByType: Record<string, SampleSub> = {};
-  const samplesByProfile: Record<string, SampleSub> = {};
-  for (const sub of subscribers) {
-    if (sub.email_status !== 'active' || !sub.chart?.chart) continue;
-    const typeName = getChartProperty(sub.chart.chart, 'type');
-    const profileName = getChartProperty(sub.chart.chart, 'profile');
-    if (typeName && !samplesByType[typeName]) {
-      samplesByType[typeName] = { email: sub.email, firstName: sub.first_name };
-    }
-    if (profileName && !samplesByProfile[profileName]) {
-      samplesByProfile[profileName] = { email: sub.email, firstName: sub.first_name };
-    }
-  }
-
   if (loading) {
     return (
       <div className={styles.container}>
@@ -233,40 +171,8 @@ export default function RedirectsAdminPage() {
     );
   }
 
-  if (!isAuthorized) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>Admin Access</h1>
-        </div>
-        <form onSubmit={handlePasswordSubmit} className={styles.passwordForm}>
-          <label htmlFor="password" className={styles.passwordLabel}>
-            Password
-          </label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={styles.passwordInput}
-            placeholder="Enter admin password"
-            autoFocus
-          />
-          <button type="submit" className={styles.submitButton}>
-            Sign In
-          </button>
-          {error && <p className={styles.error}>{error}</p>}
-        </form>
-      </div>
-    );
-  }
-
   return (
     <div className={styles.container}>
-      <Link href="/admin" className={styles.backLink}>
-        &larr; Back to admin
-      </Link>
-
       <div className={styles.header}>
         <h1 className={styles.title}>Redirect Rules</h1>
         <p className={styles.subtitle}>
@@ -480,7 +386,6 @@ export default function RedirectsAdminPage() {
           <p className={styles.testSectionTitle}>Test links</p>
           {Object.keys(groupedRules).map(slug => {
             const slugRules = groupedRules[slug];
-            // Determine which types and profiles are referenced by rules for this slug
             const referencedTypes = new Set<string>();
             const referencedProfiles = new Set<string>();
             let hasTypeWildcard = false;
@@ -495,7 +400,6 @@ export default function RedirectsAdminPage() {
               }
             }
 
-            // If there's a wildcard, show all available samples for that property type
             const typeEntries = (hasTypeWildcard
               ? Object.entries(samplesByType)
               : Object.entries(samplesByType).filter(([t]) => referencedTypes.has(t))

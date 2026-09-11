@@ -1,23 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { checkAdminPassword } from '@/lib/admin-auth';
+import { NextResponse } from 'next/server';
 import { updateRedirectRule, deleteRedirectRule } from '@/lib/db';
 
-function getPassword(request: NextRequest): string | null {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader) return null;
-  return authHeader.replace('Bearer ', '');
-}
-
 export async function PATCH(
-  request: NextRequest,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const password = getPassword(request);
-    if (!password || !checkAdminPassword(password)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { id } = await params;
     const body = await request.json();
     const { destination_url } = body;
@@ -38,15 +26,10 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: NextRequest,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const password = getPassword(request);
-    if (!password || !checkAdminPassword(password)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { id } = await params;
     await deleteRedirectRule(id);
     return new NextResponse(null, { status: 204 });
