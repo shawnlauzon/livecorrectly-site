@@ -181,7 +181,7 @@ export default function AdminDetailPage({
 
       <NewsletterSection subscriber={subscriber} />
 
-      <EmailHistorySection sends={emailSends} events={emailEvents} />
+      <EmailTimeline sends={emailSends} events={emailEvents} />
 
       <ChartJson chart={subscriber.chart} />
     </div>
@@ -2028,7 +2028,7 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
   );
 }
 
-function EmailHistorySection({
+function EmailTimeline({
   sends,
   events,
 }: {
@@ -2037,83 +2037,180 @@ function EmailHistorySection({
 }) {
   if (sends.length === 0 && events.length === 0) return null;
 
-  const formatTimestamp = (ts: string) =>
+  // Compute summary stats
+  const totalSent = sends.length;
+  const openCount = events.filter(e => e.event_type === 'open').length;
+  const clickCount = events.filter(e => e.event_type === 'click').length;
+  const openRate = totalSent > 0 ? Math.round((openCount / totalSent) * 100) : 0;
+
+  // Group events by email_send_id, then by email_type for those without a send_id
+  const eventsBySendId = new Map<string, EmailEvent[]>();
+  const orphanEvents: EmailEvent[] = [];
+
+  for (const event of events) {
+    if (event.email_send_id) {
+      const existing = eventsBySendId.get(event.email_send_id) ?? [];
+      existing.push(event);
+      eventsBySendId.set(event.email_send_id, existing);
+    } else {
+      // Try to match by email_type to a send
+      const matchingSend = sends.find(s => s.email_type === event.email_type);
+      if (matchingSend) {
+        const existing = eventsBySendId.get(matchingSend.id) ?? [];
+        existing.push(event);
+        eventsBySendId.set(matchingSend.id, existing);
+      } else {
+        orphanEvents.push(event);
+      }
+    }
+  }
+
+  // Sort sends newest first
+  const sortedSends = [...sends].sort(
+    (a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime()
+  );
+
+  const formatDate = (ts: string) =>
     new Date(ts).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
       year: 'numeric',
+    });
+
+  const formatTime = (ts: string) =>
+    new Date(ts).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
     });
 
+  const eventIcon = (type: string) => {
+    switch (type) {
+      case 'open': return '\u25CF'; // ●
+      case 'click': return '\u2197'; // ↗
+      case 'unsubscribe': return '\u2717'; // ✗
+      case 'manual_engagement': return '\u270E'; // ✎
+      default: return '\u2022'; // •
+    }
+  };
+
+  const eventLabel = (type: string) => {
+    switch (type) {
+      case 'open': return 'Opened';
+      case 'click': return 'Clicked';
+      case 'unsubscribe': return 'Unsubscribed';
+      case 'manual_engagement': return 'Manual engagement';
+      default: return type;
+    }
+  };
+
   return (
     <div className={styles.welcomeSection}>
       <div className={styles.welcomeCard}>
         <h2 className={styles.welcomeHeading}>Email History</h2>
 
-        {sends.length > 0 && (
-          <details className={styles.emailPreview}>
-            <summary className={styles.emailPreviewSummary}>
-              <span className={styles.emailPreviewLabel}>
-                Sends ({sends.length})
-              </span>
-            </summary>
-            <div className={styles.emailPreviewContent}>
-              <table style={{ width: '100%', fontSize: '0.85rem', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--line)' }}>Email</th>
-                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--line)' }}>Category</th>
-                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--line)' }}>Sent</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sends.map((send) => (
-                    <tr key={send.id}>
-                      <td style={{ padding: '4px 8px' }}>{formatUnsubFrom(send.email_type)}</td>
-                      <td style={{ padding: '4px 8px' }}>{send.category}</td>
-                      <td style={{ padding: '4px 8px' }}>{formatTimestamp(send.sent_at)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </details>
-        )}
+        <div className={styles.welcomeMeta}>
+          <div className={styles.welcomeMetaItem}>
+            <span className={styles.welcomeMetaLabel}>Emails sent</span>
+            <span>{totalSent}</span>
+          </div>
+          <div className={styles.welcomeMetaItem}>
+            <span className={styles.welcomeMetaLabel}>Opened</span>
+            <span>{openCount}</span>
+          </div>
+          <div className={styles.welcomeMetaItem}>
+            <span className={styles.welcomeMetaLabel}>Clicked</span>
+            <span>{clickCount}</span>
+          </div>
+          <div className={styles.welcomeMetaItem}>
+            <span className={styles.welcomeMetaLabel}>Open rate</span>
+            <span>{openRate}%</span>
+          </div>
+        </div>
 
-        {events.length > 0 && (
-          <details className={styles.emailPreview}>
-            <summary className={styles.emailPreviewSummary}>
-              <span className={styles.emailPreviewLabel}>
-                Events ({events.length})
-              </span>
-            </summary>
-            <div className={styles.emailPreviewContent}>
-              <table style={{ width: '100%', fontSize: '0.85rem', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--line)' }}>Event</th>
-                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--line)' }}>Email</th>
-                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--line)' }}>Detail</th>
-                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--line)' }}>When</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {events.map((event) => (
-                    <tr key={event.id}>
-                      <td style={{ padding: '4px 8px' }}>{event.event_type}</td>
-                      <td style={{ padding: '4px 8px' }}>{formatUnsubFrom(event.email_type)}</td>
-                      <td style={{ padding: '4px 8px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {event.link_url ?? '\u2014'}
-                      </td>
-                      <td style={{ padding: '4px 8px' }}>{formatTimestamp(event.occurred_at)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        <div className={styles.shadowsList}>
+          {sortedSends.map(send => {
+            const sendEvents = eventsBySendId.get(send.id) ?? [];
+            // Sort events by occurred_at ascending (earliest first)
+            const sortedEvents = [...sendEvents].sort(
+              (a, b) => new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime()
+            );
+
+            return (
+              <div key={send.id} className={styles.timelineItem}>
+                <div className={styles.timelineHeader}>
+                  <span className={styles.timelineName}>
+                    {formatUnsubFrom(send.email_type)}
+                  </span>
+                  <span className={styles.timelineDate}>
+                    {formatDate(send.sent_at)}
+                  </span>
+                </div>
+                {sortedEvents.length > 0 ? (
+                  <div className={styles.timelineEvents}>
+                    {sortedEvents.map(event => (
+                      <div key={event.id} className={styles.timelineEvent}>
+                        <span className={
+                          event.event_type === 'open' ? styles.timelineEventIconOpen
+                          : event.event_type === 'click' ? styles.timelineEventIconClick
+                          : styles.timelineEventIconDefault
+                        }>
+                          {eventIcon(event.event_type)}
+                        </span>
+                        <span className={styles.timelineEventText}>
+                          {eventLabel(event.event_type)}
+                          {event.link_url && (
+                            <span className={styles.timelineEventUrl} title={event.link_url}>
+                              {' '}{(() => {
+                                try {
+                                  const url = new URL(event.link_url);
+                                  return url.hostname + url.pathname;
+                                } catch {
+                                  return event.link_url;
+                                }
+                              })()}
+                            </span>
+                          )}
+                        </span>
+                        <span className={styles.timelineEventTime}>
+                          {formatTime(event.occurred_at)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={styles.timelineEmpty}>(no activity)</div>
+                )}
+              </div>
+            );
+          })}
+
+          {orphanEvents.length > 0 && orphanEvents.map(event => (
+            <div key={event.id} className={styles.timelineItem}>
+              <div className={styles.timelineHeader}>
+                <span className={styles.timelineName}>
+                  <span className={
+                    event.event_type === 'open' ? styles.timelineEventIconOpen
+                    : event.event_type === 'click' ? styles.timelineEventIconClick
+                    : styles.timelineEventIconDefault
+                  }>
+                    {eventIcon(event.event_type)}
+                  </span>
+                  {' '}{eventLabel(event.event_type)}
+                  {event.email_type !== 'admin_touch' && (
+                    <span className={styles.timelineEventUrl}>
+                      {' '}{formatUnsubFrom(event.email_type)}
+                    </span>
+                  )}
+                </span>
+                <span className={styles.timelineDate}>
+                  {formatDate(event.occurred_at)}
+                </span>
+              </div>
             </div>
-          </details>
-        )}
+          ))}
+        </div>
       </div>
     </div>
   );
