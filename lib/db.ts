@@ -3,6 +3,17 @@ import { neon, NeonQueryFunction } from '@neondatabase/serverless';
 import { BirthInput, EmailStatus, Subscriber, EmailSend, EmailEvent, EmailEventType } from './types/subscriber';
 import type { ChartGroup, ChartRecord } from './types/chart';
 
+/** A redirect rule mapping a slug + chart property to a destination URL. */
+export interface RedirectRule {
+  id: string;
+  slug: string;
+  property_type: string;
+  property_value: string;
+  destination_url: string;
+  created_at: string;
+  updated_at: string;
+}
+
 let sql: NeonQueryFunction<false, false>;
 
 function getDb(): NeonQueryFunction<false, false> {
@@ -692,5 +703,93 @@ export async function getUnsubFromBatch(): Promise<Map<string, string>> {
     map.set(row.subscriber_id as string, row.email_type as string);
   }
   return map;
+}
+
+// --- Redirect rules ---
+
+/**
+ * Get all redirect rules for a given slug.
+ * Used by the redirect handler to resolve a subscriber's destination.
+ */
+export async function getRedirectRulesForSlug(slug: string): Promise<RedirectRule[]> {
+  const db = getDb();
+  return await withRetry(async () => {
+    const rows = await db`
+      SELECT * FROM redirect_rules
+      WHERE slug = ${slug}
+    `;
+    return rows as RedirectRule[];
+  });
+}
+
+/**
+ * Get all redirect rules, ordered by slug then property_type.
+ * Used by the admin UI to list all rules.
+ */
+export async function getAllRedirectRules(): Promise<RedirectRule[]> {
+  const db = getDb();
+  return await withRetry(async () => {
+    const rows = await db`
+      SELECT * FROM redirect_rules
+      ORDER BY slug, property_type, property_value
+    `;
+    return rows as RedirectRule[];
+  });
+}
+
+/**
+ * Create a new redirect rule.
+ */
+export async function createRedirectRule(data: {
+  slug: string;
+  property_type: string;
+  property_value: string;
+  destination_url: string;
+}): Promise<RedirectRule> {
+  const db = getDb();
+  const rows = await withRetry(async () => {
+    return await db`
+      INSERT INTO redirect_rules (slug, property_type, property_value, destination_url)
+      VALUES (${data.slug}, ${data.property_type}, ${data.property_value}, ${data.destination_url})
+      RETURNING *
+    `;
+  });
+  return rows[0] as RedirectRule;
+}
+
+/**
+ * Update a redirect rule's destination URL.
+ */
+export async function updateRedirectRule(
+  id: string,
+  data: { destination_url: string },
+): Promise<RedirectRule> {
+  const db = getDb();
+  const rows = await withRetry(async () => {
+    return await db`
+      UPDATE redirect_rules
+      SET destination_url = ${data.destination_url},
+          updated_at = now()
+      WHERE id = ${id}
+      RETURNING *
+    `;
+  });
+  if (rows.length === 0) {
+    throw new Error(`Redirect rule ${id} not found`);
+  }
+  return rows[0] as RedirectRule;
+}
+
+/**
+ * Delete a redirect rule by ID.
+ */
+export async function deleteRedirectRule(id: string): Promise<void> {
+  const db = getDb();
+  await withRetry(async () => {
+    await db`
+      DELETE FROM redirect_rules
+      WHERE id = ${id}
+    `;
+  });
 }
 

@@ -1,0 +1,435 @@
+.container {
+  margin: 0;
+  padding: 1rem;
+}
+
+.backLink {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  color: var(--grape);
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-family: var(--display);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 0.5rem 0;
+}
+
+.subtitle {
+  font-family: var(--body);
+  font-size: 1rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* Add-rule form */
+.addForm {
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.addFormTitle {
+  font-family: var(--body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 0.75rem 0;
+}
+
+.addFormRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.formField label {
+  font-family: var(--body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.formField input,
+.formField select {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--ink);
+  background: white;
+}
+
+.formField input:focus,
+.formField select:focus {
+  outline: none;
+  border-color: var(--grape);
+}
+
+.formField input::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.urlPreview {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin: 0.75rem 0 0 0;
+}
+
+.urlPreview code {
+  font-family: monospace;
+  font-size: 0.8125rem;
+  color: var(--ink);
+  background: var(--line);
+  padding: 0.125rem 0.375rem;
+  border-radius: 3px;
+  user-select: all;
+}
+
+.addButton {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  background: var(--grape);
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.addButton:hover {
+  background: var(--grape-deep);
+}
+
+.addButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Slug groups */
+.slugGroup {
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.slugGroupHeader {
+  padding: 0.75rem 1rem;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  margin: 0;
+}
+
+.slugUrl {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.slugUrl code {
+  font-family: monospace;
+  font-size: 0.8125rem;
+  color: var(--ink);
+  background: var(--line);
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  user-select: all;
+}
+
+.copyButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.copyButton:hover {
+  color: var(--ink);
+}
+
+.rulesTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rulesTable th {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: left;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.rulesTable td {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  color: var(--ink);
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.rulesTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.defaultRow td {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.urlCell {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editInput {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--grape);
+  border-radius: 4px;
+  color: var(--ink);
+  width: 100%;
+  min-width: 200px;
+}
+
+.editInput:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(106, 75, 214, 0.2);
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.actionButton {
+  font-family: var(--body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.actionButton:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.deleteButton {
+  composes: actionButton;
+  color: var(--coral);
+  border-color: var(--coral);
+}
+
+.deleteButton:hover {
+  background: var(--coral);
+  color: white;
+}
+
+.saveButton {
+  composes: actionButton;
+  color: var(--grape);
+  border-color: var(--grape);
+}
+
+.saveButton:hover {
+  background: var(--grape);
+  color: white;
+}
+
+.error {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  color: var(--coral);
+  margin-top: 0.5rem;
+}
+
+.loading {
+  text-align: center;
+  font-family: var(--body);
+  color: var(--muted);
+  padding: 2rem;
+}
+
+.empty {
+  text-align: center;
+  padding: 3rem;
+  font-family: var(--body);
+  color: var(--muted);
+}
+
+/* Password form — reuse admin pattern */
+.passwordForm {
+  max-width: 400px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.passwordLabel {
+  display: block;
+  font-family: var(--body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+}
+
+.passwordInput {
+  width: 100%;
+  padding: 0.75rem;
+  font-family: var(--body);
+  font-size: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.passwordInput:focus {
+  outline: none;
+  border-color: var(--grape);
+}
+
+.submitButton {
+  width: 100%;
+  padding: 0.75rem;
+  font-family: var(--body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  background: var(--grape);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.submitButton:hover {
+  background: var(--grape-deep);
+}
+
+/* Test links section */
+.testSection {
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.25rem;
+  margin-top: 2rem;
+}
+
+.testSectionTitle {
+  font-family: var(--body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 1rem 0;
+}
+
+.testSlugHeading {
+  font-family: monospace;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--paper);
+  padding: 0.375rem 0.625rem;
+  border-radius: 4px;
+  margin: 1rem 0 0.5rem 0;
+  display: inline-block;
+}
+
+.testSlugHeading:first-of-type {
+  margin-top: 0;
+}
+
+.testGroupLabel {
+  font-family: var(--body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted);
+  margin: 0.5rem 0 0.25rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.testTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.5rem;
+}
+
+.testTable td {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  color: var(--ink);
+  padding: 0.25rem 0.75rem 0.25rem 0;
+  vertical-align: baseline;
+}
+
+.testTable td:first-child {
+  white-space: nowrap;
+  width: 1%;
+  color: var(--muted);
+}
+
+.testLink {
+  color: var(--grape);
+  text-decoration: none;
+  font-family: monospace;
+  font-size: 0.8125rem;
+}
+
+.testLink:hover {
+  text-decoration: underline;
+  color: var(--grape-deep);
+}
+
+.testEmpty {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  color: var(--muted);
+  font-style: italic;
+}
