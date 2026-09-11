@@ -294,3 +294,34 @@
 .breakdownSelected .breakdownLabel {
   color: #fff;
 }
+
+/* Engagement indicators in Active column */
+.engagementDot {
+  color: var(--grape);
+  font-size: 0.625rem;
+}
+
+.engagementClick {
+  color: var(--marigold);
+  font-size: 0.75rem;
+}
+
+/* Daily activity line chart (Recharts) */
+.dailyChart {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.dailyChartTitle {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 0.5rem 0;
+}
+
+/* Per-email horizontal bar chart (Recharts) */
+.perfBarChart {
+  margin-top: 0.25rem;
+}

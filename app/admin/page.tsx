@@ -7,13 +7,41 @@ import type { Chart, ChartRecord } from '@/lib/types/chart';
 import hdChart from '@/lib/hd-chart';
 import { innerAuthorityTypes, careerDesigns } from '@/lib/hd-chart/constants';
 import { BodygraphChart } from '@/components/bodygraph/bodygraph-chart';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { formatUnsubFrom } from './utils';
 import styles from './admin.module.css';
 
+interface EngagementSummary {
+  lastEngagedAt: string;
+  opens: number;
+  clicks: number;
+}
+
 interface AdminSubscribersResponse {
   subscribers: Subscriber[];
-  engagement: Record<string, string>;
+  engagement: Record<string, EngagementSummary>;
   unsubFrom: Record<string, string>;
+}
+
+interface EmailPerformanceStat {
+  emailType: string;
+  category: string;
+  sent: number;
+  opened: number;
+  clicked: number;
+}
+
+interface DailyActivity {
+  date: string;
+  sends: number;
+  opens: number;
+  clicks: number;
+}
+
+interface EmailStatsResponse {
+  emails: EmailPerformanceStat[];
+  totals: { sent: number; opened: number; clicked: number };
+  daily: DailyActivity[];
 }
 
 async function fetchSubscribers(pwd: string): Promise<{ ok: true; data: AdminSubscribersResponse } | { ok: false; error: string }> {
@@ -135,12 +163,12 @@ function findDifferences(obj1: any, obj2: any, path = ''): Record<string, { old:
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-function getEngagementLabel(engagedAt: string | undefined, now: number): { label: string; stale: boolean } {
-  if (!engagedAt) return { label: '\u2014', stale: false };
-  const then = new Date(engagedAt).getTime();
+function getEngagementLabel(summary: EngagementSummary | undefined, now: number): { label: string; stale: boolean; opens: number; clicks: number } {
+  if (!summary) return { label: '\u2014', stale: false, opens: 0, clicks: 0 };
+  const then = new Date(summary.lastEngagedAt).getTime();
   const totalDays = Math.floor((now - then) / (1000 * 60 * 60 * 24));
 
-  if (totalDays <= 0) return { label: 'Today', stale: false };
+  if (totalDays <= 0) return { label: 'Today', stale: false, opens: summary.opens, clicks: summary.clicks };
 
   const yearsFull = totalDays / 365;
   const months = Math.floor(totalDays / 30);
@@ -156,13 +184,13 @@ function getEngagementLabel(engagedAt: string | undefined, now: number): { label
     label = `${days}\u00A0${days === 1 ? 'day' : 'days'}`;
   }
 
-  return { label, stale: totalDays > 90 };
+  return { label, stale: totalDays > 90, opens: summary.opens, clicks: summary.clicks };
 }
 
 const WELCOME_SERIES_LENGTH = 3;
 
 type StatFilter = 'active' | 'inWelcome' | 'receivingNewsletters'
-  | 'unsubscribed' | 'bouncedComplained' | 'last7Days' | 'last30Days';
+  | 'unsubscribed' | 'bouncedComplained' | 'last7Days' | 'last30Days' | 'emailEngagement';
 
 const STAT_FILTERS: Record<StatFilter, (s: Subscriber, now: number) => boolean> = {
   active:                (s)      => s.email_status === 'active',
@@ -172,6 +200,8 @@ const STAT_FILTERS: Record<StatFilter, (s: Subscriber, now: number) => boolean> 
   bouncedComplained:     (s)      => s.email_status === 'bounced' || s.email_status === 'complained',
   last7Days:             (s, now) => new Date(s.created_at).getTime() >= now - 7 * 86400000,
   last30Days:            (s, now) => new Date(s.created_at).getTime() >= now - 30 * 86400000,
+  // emailEngagement doesn't filter the subscriber table — it just opens the DetailPanel
+  emailEngagement:       ()       => true,
 };
 
 const FILTER_LABELS: Record<StatFilter, string> = {
@@ -182,6 +212,7 @@ const FILTER_LABELS: Record<StatFilter, string> = {
   bouncedComplained: 'Bounced / complained',
   last7Days: 'Last 7 days',
   last30Days: 'Last 30 days',
+  emailEngagement: 'Email engagement',
 };
 
 function computePipelineStats(subscribers: Subscriber[]) {
@@ -233,6 +264,7 @@ function DetailPanel({
   activeTypeFilter,
   onTypeClick,
   unsubFromMap,
+  emailStats,
 }: {
   filter: StatFilter;
   filtered: Subscriber[];
@@ -241,6 +273,7 @@ function DetailPanel({
   activeTypeFilter?: string | null;
   onTypeClick?: (typeName: string) => void;
   unsubFromMap?: Record<string, string>;
+  emailStats?: EmailStatsResponse | null;
 }) {
   const [dateNow] = useState(() => Date.now());
   const title = FILTER_LABELS[filter];
@@ -369,6 +402,137 @@ function DetailPanel({
       breakdown = weeks.filter(w => w.count > 0);
       break;
     }
+
+    case 'emailEngagement':
+      // No breakdown — handled separately below
+      break;
+  }
+
+  // Email engagement filter shows charts instead of the standard breakdown
+  if (filter === 'emailEngagement') {
+    const stats = emailStats;
+
+    const dailyData = (stats?.daily ?? []).map(d => {
+      const dt = new Date(d.date + 'T00:00:00');
+      return {
+        ...d,
+        label: dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      };
+    });
+
+    const barData = (stats?.emails ?? []).map(e => ({
+      name: formatUnsubFrom(e.emailType),
+      sent: e.sent,
+      opened: e.opened,
+      clicked: e.clicked,
+    }));
+
+    return (
+      <div className={styles.detailPanel}>
+        <div className={styles.detailPanelHeader}>
+          <div>
+            <p className={styles.detailPanelTitle}>{title}</p>
+            {stats && (
+              <p className={styles.detailPanelSubtitle}>
+                {stats.totals.sent} sent · {stats.totals.opened} opened · {stats.totals.clicked} clicked
+              </p>
+            )}
+          </div>
+          <button
+            className={styles.detailPanelClose}
+            onClick={onClose}
+            title="Close"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        {stats ? (
+          <>
+            {/* Daily activity line chart */}
+            {dailyData.length > 1 && (
+              <div className={styles.dailyChart}>
+                <p className={styles.dailyChartTitle}>Daily activity</p>
+                <ResponsiveContainer width="100%" height={140}>
+                  <LineChart data={dailyData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 11, fill: 'var(--muted)' }}
+                      tickLine={false}
+                      axisLine={false}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: 'var(--muted)' }}
+                      tickLine={false}
+                      axisLine={false}
+                      allowDecimals={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        fontSize: '0.75rem',
+                        background: 'var(--card)',
+                        border: '1px solid var(--line)',
+                        borderRadius: 6,
+                      }}
+                    />
+                    <Line type="monotone" dataKey="sends" stroke="var(--line)" strokeWidth={2} dot={false} name="Sent" />
+                    <Line type="monotone" dataKey="opens" stroke="var(--grape)" strokeWidth={2} dot={false} name="Opened" />
+                    <Line type="monotone" dataKey="clicks" stroke="var(--marigold)" strokeWidth={2} dot={false} name="Clicked" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Per-email horizontal bar chart */}
+            {barData.length > 0 && (
+              <div className={styles.perfBarChart}>
+                <ResponsiveContainer width="100%" height={barData.length * 36 + 20}>
+                  <BarChart
+                    data={barData}
+                    layout="vertical"
+                    margin={{ top: 0, right: 4, bottom: 0, left: 0 }}
+                  >
+                    <XAxis type="number" hide />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={120}
+                      tick={{ fontSize: 11, fill: 'var(--ink)' }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        fontSize: '0.75rem',
+                        background: 'var(--card)',
+                        border: '1px solid var(--line)',
+                        borderRadius: 6,
+                      }}
+                      formatter={(value, name, item) => {
+                        const v = Number(value);
+                        const sent = (item.payload as typeof barData[number])?.sent;
+                        if (!sent || name === 'Sent') return [v, name];
+                        const pct = Math.round((v / sent) * 100);
+                        return [`${v} (${pct}%)`, name];
+                      }}
+                    />
+                    <Bar dataKey="sent" fill="var(--line)" radius={[0, 3, 3, 0]} name="Sent" />
+                    <Bar dataKey="opened" fill="var(--grape)" radius={[0, 3, 3, 0]} name="Opened" />
+                    <Bar dataKey="clicked" fill="var(--marigold)" radius={[0, 3, 3, 0]} name="Clicked" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className={styles.detailPanelSubtitle}>Loading...</p>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -446,7 +610,7 @@ function AdminPageContent() {
   const [password, setPassword] = useState('');
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
-  const [engagementMap, setEngagementMap] = useState<Record<string, string>>({});
+  const [engagementMap, setEngagementMap] = useState<Record<string, EngagementSummary>>({});
   const [unsubFromMap, setUnsubFromMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -456,11 +620,27 @@ function AdminPageContent() {
   const [saving, setSaving] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<StatFilter | null>(null);
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [emailStats, setEmailStats] = useState<EmailStatsResponse | null>(null);
 
   // Timestamp captured when subscribers are loaded, used for engagement
   // label computation. Stored alongside subscriber data so it's available
   // during render without calling Date.now() (which is impure).
   const [subscribersFetchedAt, setSubscribersFetchedAt] = useState(() => Date.now());
+
+  const fetchEmailStats = useCallback(async (pwd: string) => {
+    try {
+      const response = await fetch('/api/admin/email-stats', {
+        headers: { Authorization: `Bearer ${pwd}` },
+      });
+      if (response.ok) {
+        const data: EmailStatsResponse = await response.json();
+        setEmailStats(data);
+      }
+    } catch (err) {
+      // Non-critical — email stats are supplementary
+      console.error('Error loading email stats:', err);
+    }
+  }, []);
 
   const loadSubscribers = useCallback(async (pwd: string) => {
     setLoading(true);
@@ -472,11 +652,13 @@ function AdminPageContent() {
       setUnsubFromMap(result.data.unsubFrom);
       setSubscribersFetchedAt(Date.now());
       setIsAuthorized(true);
+      // Fetch email stats in background (non-blocking)
+      fetchEmailStats(pwd);
     } else {
       setError(result.error);
     }
     setLoading(false);
-  }, []);
+  }, [fetchEmailStats]);
 
   // Check for existing session on mount.
   // State updates are deferred to avoid synchronous setState in the effect body.
@@ -501,6 +683,7 @@ function AdminPageContent() {
         setUnsubFromMap(result.data.unsubFrom);
         setSubscribersFetchedAt(Date.now());
         setIsAuthorized(true);
+        fetchEmailStats(savedPassword);
       } else {
         setError(result.error);
       }
@@ -508,7 +691,7 @@ function AdminPageContent() {
     })();
 
     return () => { cancelled = true; };
-  }, []);
+  }, [fetchEmailStats]);
 
   // Reload subscribers when returning via back navigation (bfcache restore)
   useEffect(() => {
@@ -718,9 +901,9 @@ function AdminPageContent() {
       case 'created':
         return new Date(subscriber.created_at).getTime();
       case 'lastActive': {
-        const engagedAt = engagementMap[subscriber.id];
-        if (!engagedAt) return 0;
-        return new Date(engagedAt).getTime();
+        const summary = engagementMap[subscriber.id];
+        if (!summary) return 0;
+        return new Date(summary.lastEngagedAt).getTime();
       }
       default:
         return '';
@@ -850,6 +1033,10 @@ function AdminPageContent() {
                 <div className={styles.statValue}>{stats.last30Days}</div>
                 <div className={styles.statLabel}>Last 30 days</div>
               </div>
+              <div {...statCardProps('emailEngagement')}>
+                <div className={styles.statValue}>{emailStats ? emailStats.totals.opened : '\u2014'}</div>
+                <div className={styles.statLabel}>Email opens</div>
+              </div>
             </div>
 
             {activeFilter && <DetailPanel
@@ -862,6 +1049,7 @@ function AdminPageContent() {
               activeTypeFilter={typeFilter}
               onTypeClick={(typeName) => setTypeFilter(prev => prev === typeName ? null : typeName)}
               unsubFromMap={unsubFromMap}
+              emailStats={emailStats}
             />}
           </>
         );
@@ -1074,6 +1262,8 @@ function AdminPageContent() {
                 <td>{formatDate(subscriber.created_at)}</td>
                 <td className={engagement.stale ? styles.engagementStale : undefined}>
                   {engagement.label}
+                  {engagement.opens > 0 && <span className={styles.engagementDot} title={`${engagement.opens} open${engagement.opens !== 1 ? 's' : ''}`}>{'\u00A0\u25CF'}</span>}
+                  {engagement.clicks > 0 && <span className={styles.engagementClick} title={`${engagement.clicks} click${engagement.clicks !== 1 ? 's' : ''}`}>{'\u00A0\u2197'}</span>}
                 </td>
               </tr>
               );

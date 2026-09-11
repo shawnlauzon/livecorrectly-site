@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
-import { getAllSubscribers, getLastEngagementBatch, getUnsubFromBatch } from '@/lib/db';
+import { getAllSubscribers, getEngagementSummaryBatch, getUnsubFromBatch } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,12 +19,12 @@ export async function GET(request: NextRequest) {
     // Fetch subscribers + engagement/unsub data in parallel
     const [subscribers, engagementMap, unsubFromMap] = await Promise.all([
       getAllSubscribers(),
-      getLastEngagementBatch(),
+      getEngagementSummaryBatch(),
       getUnsubFromBatch(),
     ]);
 
     // Convert Maps to plain objects for JSON serialization
-    const engagement: Record<string, string> = Object.fromEntries(engagementMap);
+    const engagement: Record<string, { lastEngagedAt: string; opens: number; clicks: number }> = Object.fromEntries(engagementMap);
     const unsubFrom: Record<string, string> = Object.fromEntries(unsubFromMap);
 
     return NextResponse.json({ subscribers, engagement, unsubFrom });
