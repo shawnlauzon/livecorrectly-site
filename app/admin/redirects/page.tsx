@@ -277,6 +277,20 @@ export default function RedirectsAdminPage() {
 
       {error && <p className={styles.error}>{error}</p>}
 
+      {/* Flodesk instructions */}
+      <div className={styles.instructions}>
+        <p className={styles.instructionsTitle}>Using in Flodesk</p>
+        <p className={styles.instructionsText}>
+          Create a button or link in your Flodesk email and set the URL to:
+        </p>
+        <code className={styles.instructionsCode}>
+          {'https://livecorrectly.com/r/[slug]?email={{ subscriber.email }}'}
+        </code>
+        <p className={styles.instructionsText}>
+          Replace <code>[slug]</code> with your slug name. Flodesk will substitute the subscriber{"'"}s email automatically.
+        </p>
+      </div>
+
       {/* Add-rule form */}
       <form onSubmit={handleAdd} className={styles.addForm}>
         <p className={styles.addFormTitle}>Add rule</p>
