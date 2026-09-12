@@ -705,6 +705,53 @@ export async function getUnsubFromBatch(): Promise<Map<string, string>> {
   return map;
 }
 
+/** Per-subscriber engagement data for a specific email type (used by admin drill-down). */
+export interface EmailSubscriberEngagement {
+  id: string;
+  firstName: string;
+  lastName: string | null;
+  email: string;
+  sentAt: string;
+  openedAt: string | null;
+  clickedAt: string | null;
+  unsubscribedAt: string | null;
+}
+
+/**
+ * Get subscribers who received a specific email type, with first open/click timestamps.
+ * Used by the admin email stats drill-down to show who opened/clicked a given email.
+ */
+export async function getSubscribersForEmailType(emailType: string): Promise<EmailSubscriberEngagement[]> {
+  const db = getDb();
+  const rows = await db`
+    SELECT
+      s.id, s.first_name, s.last_name, s.email,
+      es.sent_at,
+      MIN(ee.occurred_at) FILTER (WHERE ee.event_type = 'open') AS opened_at,
+      MIN(ee.occurred_at) FILTER (WHERE ee.event_type = 'click') AS clicked_at,
+      MIN(ee.occurred_at) FILTER (WHERE ee.event_type = 'unsubscribe') AS unsubscribed_at
+    FROM email_sends es
+    JOIN subscribers s ON s.id = es.subscriber_id
+    LEFT JOIN email_events ee
+      ON ee.subscriber_id = es.subscriber_id
+      AND ee.email_type = es.email_type
+      AND ee.event_type IN ('open', 'click', 'unsubscribe')
+    WHERE es.email_type = ${emailType}
+    GROUP BY s.id, s.first_name, s.last_name, s.email, es.sent_at
+    ORDER BY es.sent_at DESC
+  `;
+  return rows.map(row => ({
+    id: row.id as string,
+    firstName: row.first_name as string,
+    lastName: row.last_name as string | null,
+    email: row.email as string,
+    sentAt: (row.sent_at as Date).toISOString(),
+    openedAt: row.opened_at ? (row.opened_at as Date).toISOString() : null,
+    clickedAt: row.clicked_at ? (row.clicked_at as Date).toISOString() : null,
+    unsubscribedAt: row.unsubscribed_at ? (row.unsubscribed_at as Date).toISOString() : null,
+  }));
+}
+
 // --- Redirect rules ---
 
 /**

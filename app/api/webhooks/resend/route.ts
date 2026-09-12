@@ -68,6 +68,7 @@ async function verifySignature(
 
 interface ResendWebhookEvent {
   type: string;
+  created_at?: string;
   data: {
     // Email events use `to` (string[]) for recipients
     email_id?: string;
@@ -229,6 +230,7 @@ export async function POST(request: NextRequest) {
               emailSendId,
               linkUrl,
               resendEmailId: event.data.email_id,
+              occurredAt: event.created_at ? new Date(event.created_at) : undefined,
             });
           }
 
@@ -257,6 +259,7 @@ export async function POST(request: NextRequest) {
               subscriberId: subscriber.id,
               eventType: 'unsubscribe',
               emailType: recentSend?.email_type ?? 'unknown',
+              occurredAt: event.created_at ? new Date(event.created_at) : undefined,
             });
 
             console.log(

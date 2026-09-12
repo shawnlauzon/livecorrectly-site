@@ -44,6 +44,27 @@ interface EmailStatsResponse {
   daily: DailyActivity[];
 }
 
+interface EmailSubscriberEngagement {
+  id: string;
+  firstName: string;
+  lastName: string | null;
+  email: string;
+  sentAt: string;
+  openedAt: string | null;
+  clickedAt: string | null;
+  unsubscribedAt: string | null;
+}
+
+/**
+ * Detect bulk-imported engagement timestamps: if the event timestamp is within
+ * 2 minutes of the send timestamp, it was imported without a real per-subscriber
+ * timestamp. Display "Yes" instead of a misleading date.
+ */
+function isBulkImportedTimestamp(eventAt: string, sentAt: string): boolean {
+  const diff = Math.abs(new Date(eventAt).getTime() - new Date(sentAt).getTime());
+  return diff < 120_000;
+}
+
 async function fetchSubscribers(pwd: string): Promise<{ ok: true; data: AdminSubscribersResponse } | { ok: false; error: string }> {
   try {
     const response = await fetch('/api/admin/subscribers', {
@@ -256,6 +277,242 @@ type SortDirection = 'asc' | 'desc';
 const VALID_SORT_COLUMNS: SortColumn[] = ['name','email','profile','authority','type','split','shadow','status','nextEmail','created','lastActive'];
 
 
+function EmailEngagementPanel({
+  emailStats,
+  title,
+  onClose,
+}: {
+  emailStats: EmailStatsResponse | null;
+  title: string;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [selectedEmailType, setSelectedEmailType] = useState<string | null>(null);
+  const [emailSubscribers, setEmailSubscribers] = useState<EmailSubscriberEngagement[]>([]);
+  const [emailSubsLoading, setEmailSubsLoading] = useState(false);
+
+  const stats = emailStats;
+
+  const dailyData = (stats?.daily ?? []).map(d => {
+    const dt = new Date(d.date + 'T00:00:00');
+    return {
+      ...d,
+      label: dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    };
+  });
+
+  const barData = (stats?.emails ?? []).map(e => ({
+    name: formatUnsubFrom(e.emailType),
+    emailType: e.emailType,
+    sent: e.sent,
+    opened: e.opened,
+    clicked: e.clicked,
+  }));
+
+  const handleBarClick = useCallback(async (emailType: string) => {
+    if (selectedEmailType === emailType) {
+      setSelectedEmailType(null);
+      setEmailSubscribers([]);
+      return;
+    }
+
+    setSelectedEmailType(emailType);
+    setEmailSubsLoading(true);
+    try {
+      const pwd = sessionStorage.getItem('adminPassword') ?? '';
+      const response = await fetch(`/api/admin/email-stats/subscribers?emailType=${encodeURIComponent(emailType)}`, {
+        headers: { Authorization: `Bearer ${pwd}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setEmailSubscribers(data.subscribers);
+      }
+    } catch (err) {
+      console.error('Error fetching email subscribers:', err);
+    } finally {
+      setEmailSubsLoading(false);
+    }
+  }, [selectedEmailType]);
+
+  /* eslint-disable @typescript-eslint/no-explicit-any -- Recharts click handler payload is untyped */
+  const onBarClick = useCallback((data: any) => {
+    const emailType = data?.emailType as string | undefined;
+    if (emailType) handleBarClick(emailType);
+  }, [handleBarClick]);
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
+  return (
+    <div className={styles.detailPanel}>
+      <div className={styles.detailPanelHeader}>
+        <div>
+          <p className={styles.detailPanelTitle}>{title}</p>
+          {stats && (
+            <p className={styles.detailPanelSubtitle}>
+              {stats.totals.sent} sent · {stats.totals.opened} opened · {stats.totals.clicked} clicked
+            </p>
+          )}
+        </div>
+        <button
+          className={styles.detailPanelClose}
+          onClick={onClose}
+          title="Close"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+      {stats ? (
+        <>
+          {/* Daily activity line chart */}
+          {dailyData.length > 1 && (
+            <div className={styles.dailyChart}>
+              <p className={styles.dailyChartTitle}>Daily activity</p>
+              <ResponsiveContainer width="100%" height={140}>
+                <LineChart data={dailyData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fill: 'var(--muted)' }}
+                    tickLine={false}
+                    axisLine={false}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: 'var(--muted)' }}
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      fontSize: '0.75rem',
+                      background: 'var(--card)',
+                      border: '1px solid var(--line)',
+                      borderRadius: 6,
+                    }}
+                  />
+                  <Line type="monotone" dataKey="sends" stroke="var(--line)" strokeWidth={2} dot={false} name="Sent" />
+                  <Line type="monotone" dataKey="opens" stroke="var(--grape)" strokeWidth={2} dot={false} name="Opened" />
+                  <Line type="monotone" dataKey="clicks" stroke="var(--marigold)" strokeWidth={2} dot={false} name="Clicked" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Per-email horizontal bar chart */}
+          {barData.length > 0 && (
+            <div className={styles.perfBarChart}>
+              <ResponsiveContainer width="100%" height={barData.length * 36 + 20}>
+                <BarChart
+                  data={barData}
+                  layout="vertical"
+                  margin={{ top: 0, right: 4, bottom: 0, left: 0 }}
+                >
+                  <XAxis type="number" hide />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={120}
+                    tick={{ fontSize: 11, fill: 'var(--ink)' }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      fontSize: '0.75rem',
+                      background: 'var(--card)',
+                      border: '1px solid var(--line)',
+                      borderRadius: 6,
+                    }}
+                    formatter={(value, name, item) => {
+                      const v = Number(value);
+                      const sent = (item.payload as typeof barData[number])?.sent;
+                      if (!sent || name === 'Sent') return [v, name];
+                      const pct = Math.round((v / sent) * 100);
+                      return [`${v} (${pct}%)`, name];
+                    }}
+                  />
+                  <Bar dataKey="sent" fill="var(--line)" radius={[0, 3, 3, 0]} name="Sent" onClick={onBarClick} style={{ cursor: 'pointer' }} />
+                  <Bar dataKey="opened" fill="var(--grape)" radius={[0, 3, 3, 0]} name="Opened" onClick={onBarClick} style={{ cursor: 'pointer' }} />
+                  <Bar dataKey="clicked" fill="var(--marigold)" radius={[0, 3, 3, 0]} name="Clicked" onClick={onBarClick} style={{ cursor: 'pointer' }} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Subscriber drill-down list */}
+          {selectedEmailType && (
+            <div className={styles.emailDrilldown}>
+              <div className={styles.emailDrilldownHeader}>
+                <p className={styles.emailDrilldownTitle}>
+                  {formatUnsubFrom(selectedEmailType)} — {emailSubsLoading ? 'Loading...' : `${emailSubscribers.length} recipients`}
+                </p>
+                <button
+                  className={styles.emailDrilldownClose}
+                  onClick={() => { setSelectedEmailType(null); setEmailSubscribers([]); }}
+                  title="Close drill-down"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+              {!emailSubsLoading && emailSubscribers.length > 0 && (
+                <table className={styles.emailDrilldownTable}>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Sent</th>
+                      <th>Read</th>
+                      <th>Clicked</th>
+                      <th>Unsub</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {emailSubscribers.map(sub => (
+                      <tr
+                        key={sub.id}
+                        onClick={() => router.push(`/admin/${sub.id}`)}
+                      >
+                        <td>{sub.firstName}{sub.lastName ? ` ${sub.lastName}` : ''}</td>
+                        <td>{new Date(sub.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</td>
+                        <td className={sub.openedAt ? styles.emailDrilldownYes : styles.emailDrilldownNo}>
+                          {sub.openedAt
+                            ? isBulkImportedTimestamp(sub.openedAt, sub.sentAt)
+                              ? 'Yes'
+                              : new Date(sub.openedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                            : '\u2014'}
+                        </td>
+                        <td className={sub.clickedAt ? styles.emailDrilldownYes : styles.emailDrilldownNo}>
+                          {sub.clickedAt
+                            ? isBulkImportedTimestamp(sub.clickedAt, sub.sentAt)
+                              ? 'Yes'
+                              : new Date(sub.clickedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                            : '\u2014'}
+                        </td>
+                        <td className={sub.unsubscribedAt ? styles.emailDrilldownNo : undefined}>
+                          {sub.unsubscribedAt
+                            ? new Date(sub.unsubscribedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                            : '\u2014'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+        </>
+      ) : (
+        <p className={styles.detailPanelSubtitle}>Loading...</p>
+      )}
+    </div>
+  );
+}
+
 function DetailPanel({
   filter,
   filtered,
@@ -410,129 +667,7 @@ function DetailPanel({
 
   // Email engagement filter shows charts instead of the standard breakdown
   if (filter === 'emailEngagement') {
-    const stats = emailStats;
-
-    const dailyData = (stats?.daily ?? []).map(d => {
-      const dt = new Date(d.date + 'T00:00:00');
-      return {
-        ...d,
-        label: dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      };
-    });
-
-    const barData = (stats?.emails ?? []).map(e => ({
-      name: formatUnsubFrom(e.emailType),
-      sent: e.sent,
-      opened: e.opened,
-      clicked: e.clicked,
-    }));
-
-    return (
-      <div className={styles.detailPanel}>
-        <div className={styles.detailPanelHeader}>
-          <div>
-            <p className={styles.detailPanelTitle}>{title}</p>
-            {stats && (
-              <p className={styles.detailPanelSubtitle}>
-                {stats.totals.sent} sent · {stats.totals.opened} opened · {stats.totals.clicked} clicked
-              </p>
-            )}
-          </div>
-          <button
-            className={styles.detailPanelClose}
-            onClick={onClose}
-            title="Close"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-        {stats ? (
-          <>
-            {/* Daily activity line chart */}
-            {dailyData.length > 1 && (
-              <div className={styles.dailyChart}>
-                <p className={styles.dailyChartTitle}>Daily activity</p>
-                <ResponsiveContainer width="100%" height={140}>
-                  <LineChart data={dailyData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fontSize: 11, fill: 'var(--muted)' }}
-                      tickLine={false}
-                      axisLine={false}
-                      interval="preserveStartEnd"
-                    />
-                    <YAxis
-                      tick={{ fontSize: 11, fill: 'var(--muted)' }}
-                      tickLine={false}
-                      axisLine={false}
-                      allowDecimals={false}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        fontSize: '0.75rem',
-                        background: 'var(--card)',
-                        border: '1px solid var(--line)',
-                        borderRadius: 6,
-                      }}
-                    />
-                    <Line type="monotone" dataKey="sends" stroke="var(--line)" strokeWidth={2} dot={false} name="Sent" />
-                    <Line type="monotone" dataKey="opens" stroke="var(--grape)" strokeWidth={2} dot={false} name="Opened" />
-                    <Line type="monotone" dataKey="clicks" stroke="var(--marigold)" strokeWidth={2} dot={false} name="Clicked" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {/* Per-email horizontal bar chart */}
-            {barData.length > 0 && (
-              <div className={styles.perfBarChart}>
-                <ResponsiveContainer width="100%" height={barData.length * 36 + 20}>
-                  <BarChart
-                    data={barData}
-                    layout="vertical"
-                    margin={{ top: 0, right: 4, bottom: 0, left: 0 }}
-                  >
-                    <XAxis type="number" hide />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      width={120}
-                      tick={{ fontSize: 11, fill: 'var(--ink)' }}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        fontSize: '0.75rem',
-                        background: 'var(--card)',
-                        border: '1px solid var(--line)',
-                        borderRadius: 6,
-                      }}
-                      formatter={(value, name, item) => {
-                        const v = Number(value);
-                        const sent = (item.payload as typeof barData[number])?.sent;
-                        if (!sent || name === 'Sent') return [v, name];
-                        const pct = Math.round((v / sent) * 100);
-                        return [`${v} (${pct}%)`, name];
-                      }}
-                    />
-                    <Bar dataKey="sent" fill="var(--line)" radius={[0, 3, 3, 0]} name="Sent" />
-                    <Bar dataKey="opened" fill="var(--grape)" radius={[0, 3, 3, 0]} name="Opened" />
-                    <Bar dataKey="clicked" fill="var(--marigold)" radius={[0, 3, 3, 0]} name="Clicked" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </>
-        ) : (
-          <p className={styles.detailPanelSubtitle}>Loading...</p>
-        )}
-      </div>
-    );
+    return <EmailEngagementPanel emailStats={emailStats ?? null} title={title} onClose={onClose} />;
   }
 
   return (

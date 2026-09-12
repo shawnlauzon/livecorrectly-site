@@ -325,3 +325,96 @@
 .perfBarChart {
   margin-top: 0.25rem;
 }
+
+/* Email subscriber drill-down list */
+.emailDrilldown {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.emailDrilldownHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.emailDrilldownTitle {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+
+.emailDrilldownClose {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.emailDrilldownClose:hover {
+  color: var(--ink);
+}
+
+.emailDrilldownTable {
+  border-collapse: collapse;
+  font-family: var(--body);
+  font-size: 0.8125rem;
+}
+
+.emailDrilldownTable th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.375rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.emailDrilldownTable th:nth-child(3),
+.emailDrilldownTable th:nth-child(4) {
+  text-align: center;
+}
+
+.emailDrilldownTable td {
+  padding: 0.375rem 0.5rem;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.emailDrilldownTable td:nth-child(3),
+.emailDrilldownTable td:nth-child(4) {
+  text-align: center;
+}
+
+.emailDrilldownTable tbody tr {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.emailDrilldownTable tbody tr:hover {
+  background: var(--paper);
+}
+
+.emailDrilldownTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.emailDrilldownYes {
+  color: var(--grape);
+  font-weight: 600;
+}
+
+.emailDrilldownNo {
+  color: var(--line);
+}
