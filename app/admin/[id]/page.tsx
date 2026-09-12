@@ -847,6 +847,9 @@ function WelcomeSeries({
 
   const handleSend = useCallback(
     async (step: number) => {
+      const emailName = step === 1 ? 'Welcome' : DAY_LABELS[step - 2];
+      if (!window.confirm(`Send "${emailName}" email to ${subscriber.email}?`)) return;
+
       const password = sessionStorage.getItem('adminPassword');
       if (!password) return;
 
@@ -893,10 +896,12 @@ function WelcomeSeries({
         setSendingStep(null);
       }
     },
-    [subscriber.id],
+    [subscriber.id, subscriber.email],
   );
 
   const handleRestart = useCallback(async () => {
+    if (!window.confirm(`Restart welcome series for ${subscriber.email}? This will send the Welcome email immediately and queue the rest.`)) return;
+
     const password = sessionStorage.getItem('adminPassword');
     if (!password) return;
 
@@ -954,7 +959,7 @@ function WelcomeSeries({
     } finally {
       setRestarting(false);
     }
-  }, [subscriber.id, onSubscriberUpdate]);
+  }, [subscriber.id, subscriber.email, onSubscriberUpdate]);
 
   const handleTouchEngagement = useCallback(async () => {
     const password = sessionStorage.getItem('adminPassword');
@@ -1506,6 +1511,7 @@ function BroadcastSection({ subscriber }: { subscriber: Subscriber }) {
 
   const handleSend = useCallback(async () => {
     if (!selectedSlug) return;
+    if (!window.confirm(`Send broadcast "${selectedSlug}" to ${subscriber.email}?`)) return;
 
     const password = sessionStorage.getItem('adminPassword');
     if (!password) return;
@@ -1546,7 +1552,7 @@ function BroadcastSection({ subscriber }: { subscriber: Subscriber }) {
     } finally {
       setSending(false);
     }
-  }, [subscriber.id, selectedSlug]);
+  }, [subscriber.id, subscriber.email, selectedSlug]);
 
   const handleSlugChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -1817,6 +1823,8 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
 
   const handleSend = useCallback(async () => {
     if (selectedStep === null) return;
+    if (!window.confirm(`Send Newsletter #${selectedStep} to ${subscriber.email}?`)) return;
+
     const password = sessionStorage.getItem('adminPassword');
     if (!password) return;
 
@@ -1859,7 +1867,7 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
     } finally {
       setSending(false);
     }
-  }, [subscriber.id, selectedStep]);
+  }, [subscriber.id, subscriber.email, selectedStep]);
 
   const handleStepChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
