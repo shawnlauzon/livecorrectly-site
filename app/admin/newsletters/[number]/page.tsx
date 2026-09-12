@@ -53,6 +53,28 @@ function EditorPanel({
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
+  const handleUploadImage = useCallback(async (file: File) => {
+    const pwd = getPassword();
+    if (!pwd) throw new Error('Not authenticated');
+
+    const form = new FormData();
+    form.append('file', file);
+
+    const res = await fetch('/api/admin/upload-image', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${pwd}` },
+      body: form,
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || `Upload failed (${res.status})`);
+    }
+
+    const { url } = await res.json();
+    return { url };
+  }, []);
+
   const handleSave = async () => {
     if (!editorRef.current) return;
     const pwd = getPassword();
@@ -130,6 +152,7 @@ function EditorPanel({
           ref={editorRef}
           content={content}
           theme="basic"
+          onUploadImage={handleUploadImage}
           onUpdate={() => setDirty(true)}
         />
       </div>
@@ -158,6 +181,7 @@ export default function NewsletterEditorPage() {
   // Import markdown modal
   const [showImportModal, setShowImportModal] = useState(false);
   const [importMarkdown, setImportMarkdown] = useState('');
+  const [importing, setImporting] = useState(false);
 
   // Editor content — set once after load or import
   const [editorContent, setEditorContent] = useState<Content | null>(null);
@@ -208,14 +232,58 @@ export default function NewsletterEditorPage() {
     void (async () => { await fetchNewsletter(); })();
   }, [fetchNewsletter]);
 
-  const handleImportMarkdown = () => {
+  const handleImportMarkdown = async () => {
     if (!importMarkdown.trim()) return;
-    const html = basicMarkdownToHtml(importMarkdown);
-    setEditorContent(html);
-    setEditorKey(k => k + 1);
-    setShowImportModal(false);
-    setImportMarkdown('');
-    setDirty(true);
+    const pwd = getPassword();
+    if (!pwd) return;
+
+    setImporting(true);
+    try {
+      // Upload local images to Blob, replacing {{appUrl}}/path with the Blob URL
+      let md = importMarkdown;
+      const imageRegex = /!\[([^\]]*)\]\(\{\{appUrl\}\}\/([^)]+)\)/g;
+      const matches = [...md.matchAll(imageRegex)];
+
+      for (const match of matches) {
+        const localPath = `/${match[2]}`;
+        try {
+          const res = await fetch(localPath);
+          if (!res.ok) {
+            console.error(`Failed to fetch local image ${localPath}: ${res.status}`);
+            continue;
+          }
+          const blob = await res.blob();
+          const filename = localPath.split('/').pop() ?? 'image.png';
+          const file = new File([blob], filename, { type: blob.type });
+
+          const form = new FormData();
+          form.append('file', file);
+          const uploadRes = await fetch('/api/admin/upload-image', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${pwd}` },
+            body: form,
+          });
+
+          if (uploadRes.ok) {
+            const { url } = await uploadRes.json();
+            md = md.replaceAll(match[0], `![${match[1]}](${url})`);
+          } else {
+            console.error(`Failed to upload ${localPath}:`, await uploadRes.text());
+          }
+        } catch (err) {
+          console.error(`Error uploading image ${localPath}:`, err);
+        }
+      }
+
+      const html = basicMarkdownToHtml(md);
+      setEditorContent(html);
+      setEditorKey(k => k + 1);
+      setShowImportModal(false);
+      setImportMarkdown('');
+      setDirty(true);
+    } finally {
+      setImporting(false);
+    }
   };
 
   const handlePostscriptChange = (index: number, value: string) => {
@@ -401,8 +469,9 @@ export default function NewsletterEditorPage() {
               <button
                 onClick={handleImportMarkdown}
                 className={styles.saveButton}
+                disabled={importing}
               >
-                Import
+                {importing ? 'Uploading images…' : 'Import'}
               </button>
             </div>
           </div>
@@ -428,7 +497,9 @@ function basicMarkdownToHtml(md: string): string {
   html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  html = html.replace(/(?<!\w)_(.+?)_(?!\w)/g, '<em>$1</em>');
 
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;height:auto" />');
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 
   html = html.replace(/^---$/gm, '<hr>');
@@ -452,6 +523,8 @@ function basicMarkdownToHtml(md: string): string {
 
   html = html.replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>');
 
+  html = html.replace(/\\\n/g, '<br>');
+
   const lines = html.split('\n');
   const result: string[] = [];
   let inBlock = false;
@@ -462,7 +535,7 @@ function basicMarkdownToHtml(md: string): string {
       inBlock = false;
       continue;
     }
-    if (/^<(h[1-6]|ul|ol|li|blockquote|hr|div|table|p)/.test(trimmed)) {
+    if (/^<(h[1-6]|ul|ol|li|blockquote|hr|div|table|p|img)/.test(trimmed)) {
       result.push(trimmed);
       inBlock = false;
     } else if (!inBlock && !trimmed.startsWith('<')) {
