@@ -3,8 +3,11 @@ import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
 import { renderEmail, buildUnsubscribeUrl } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getNewsletterEmail, getNewsletterSubject, getNewsletterNumbers } from '@/emails/newsletter';
+import { getNewsletterNumbers } from '@/emails/newsletter';
+import { getNewsletterWithChart } from '@/emails/newsletter-loader';
+import { NewsletterTemplate } from '@/emails/newsletter-template';
 import { sendPrerenderedBroadcast } from '@/lib/resend-broadcasts';
+import React from 'react';
 
 /**
  * POST /api/admin/subscribers/[id]/send-newsletter
@@ -60,17 +63,29 @@ export async function POST(
     }
 
     const chart = parseChartForEmail(subscriber.chart.chart);
-    const subject = getNewsletterSubject(step, subscriber.first_name, subscriber.id);
     const emailLabel = `newsletter_${step}`;
     const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
-    const emailComponent = getNewsletterEmail(step, subscriber, chart, unsubscribeUrl);
 
-    if (!emailComponent) {
+    // Use getNewsletterWithChart to resolve Liquid conditionals with subscriber's chart data
+    const newsletter = await getNewsletterWithChart(step, subscriber.first_name, chart, subscriber.id);
+    if (!newsletter) {
       return NextResponse.json(
         { error: `Failed to build newsletter for step ${step}` },
         { status: 500 }
       );
     }
+
+    const subject = newsletter.subject;
+
+    const emailComponent = React.createElement(NewsletterTemplate, {
+      preview: newsletter.preview,
+      bodyHtml: newsletter.bodyHtml,
+      image: newsletter.image,
+      chart,
+      unsubscribeUrl,
+      number: newsletter.number,
+      ps: newsletter.ps,
+    });
 
     const html = await renderEmail(emailComponent);
 

@@ -752,6 +752,146 @@ export async function getSubscribersForEmailType(emailType: string): Promise<Ema
   }));
 }
 
+// --- Newsletter schedules ---
+
+/** A scheduled newsletter broadcast tracked in newsletter_schedules. */
+export interface NewsletterSchedule {
+  id: number;
+  newsletter_num: number;
+  broadcast_id: string;
+  segment_id: string | null;
+  scheduled_at: string;
+  subscriber_count: number;
+  status: string; // 'scheduled' | 'sent' | 'cancelled'
+  created_at: string;
+}
+
+/**
+ * Insert a new newsletter schedule record.
+ */
+export async function insertNewsletterSchedule(data: {
+  newsletterNum: number;
+  broadcastId: string;
+  segmentId: string | null;
+  scheduledAt: Date;
+  subscriberCount: number;
+}): Promise<NewsletterSchedule> {
+  const db = getDb();
+  const rows = await db`
+    INSERT INTO newsletter_schedules (newsletter_num, broadcast_id, segment_id, scheduled_at, subscriber_count)
+    VALUES (${data.newsletterNum}, ${data.broadcastId}, ${data.segmentId}, ${data.scheduledAt.toISOString()}, ${data.subscriberCount})
+    RETURNING *
+  `;
+  return rows[0] as NewsletterSchedule;
+}
+
+/**
+ * Get all newsletter schedules, newest first.
+ */
+export async function getNewsletterSchedules(): Promise<NewsletterSchedule[]> {
+  const db = getDb();
+  const rows = await db`
+    SELECT * FROM newsletter_schedules
+    ORDER BY created_at DESC
+  `;
+  return rows as NewsletterSchedule[];
+}
+
+/**
+ * Get the schedule for a specific newsletter number (most recent).
+ */
+export async function getScheduleForNewsletter(newsletterNum: number): Promise<NewsletterSchedule | null> {
+  const db = getDb();
+  const rows = await db`
+    SELECT * FROM newsletter_schedules
+    WHERE newsletter_num = ${newsletterNum}
+    ORDER BY created_at DESC
+    LIMIT 1
+  `;
+  return rows.length > 0 ? (rows[0] as NewsletterSchedule) : null;
+}
+
+/**
+ * Update the status of a newsletter schedule.
+ */
+export async function updateScheduleStatus(
+  id: number,
+  status: string,
+): Promise<void> {
+  const db = getDb();
+  await db`
+    UPDATE newsletter_schedules
+    SET status = ${status}
+    WHERE id = ${id}
+  `;
+}
+
+/**
+ * Get newsletter numbers that have been published (scheduled or sent).
+ * Used by the cron to know which newsletters are safe to send to catch-up subscribers.
+ */
+export async function getPublishedNewsletterNumbers(): Promise<Set<number>> {
+  const db = getDb();
+  const rows = await db`
+    SELECT DISTINCT newsletter_num
+    FROM newsletter_schedules
+    WHERE status IN ('scheduled', 'sent')
+  `;
+  return new Set(rows.map(r => r.newsletter_num as number));
+}
+
+/**
+ * Get subscriber IDs that were included in a specific newsletter broadcast.
+ * Used for rollback when cancelling a scheduled newsletter.
+ */
+export async function getSubscribersForNewsletterSchedule(
+  newsletterNum: number,
+  broadcastId: string,
+): Promise<string[]> {
+  const db = getDb();
+  const rows = await db`
+    SELECT subscriber_id FROM email_sends
+    WHERE email_type = ${'newsletter_' + newsletterNum}
+      AND resend_broadcast_id = ${broadcastId}
+  `;
+  return rows.map(r => r.subscriber_id as string);
+}
+
+/**
+ * Roll back next_step for subscribers that were advanced for a cancelled broadcast.
+ * Decrements next_step by 1 for all subscribers in the list.
+ */
+export async function rollBackNewsletterAdvancement(
+  subscriberIds: string[],
+  newsletterNum: number,
+): Promise<number> {
+  if (subscriberIds.length === 0) return 0;
+  const db = getDb();
+  // Only roll back if their current next_step is newsletterNum + 1
+  // (they haven't been advanced further by another send)
+  const result = await db`
+    UPDATE subscribers
+    SET next_step = ${newsletterNum}
+    WHERE id = ANY(${subscriberIds})
+      AND next_step = ${newsletterNum + 1}
+    RETURNING id
+  `;
+  return result.length;
+}
+
+/**
+ * Delete email_sends records for a cancelled broadcast.
+ */
+export async function deleteEmailSendsForBroadcast(
+  broadcastId: string,
+): Promise<void> {
+  const db = getDb();
+  await db`
+    DELETE FROM email_sends
+    WHERE resend_broadcast_id = ${broadcastId}
+  `;
+}
+
 // --- Redirect rules ---
 
 /**

@@ -1,9 +1,13 @@
 import { Marked, Renderer, type Tokens } from 'marked';
+import { Liquid } from 'liquidjs';
 import { getNewsletterSendDates } from '@/lib/db';
 import { loadAllNewsletters, type RawNewsletter } from './loader';
-import { processConditionals, hasMarkdownConditionals } from './conditionals';
+import { processConditionals } from './conditionals';
 import { resolveContactVars } from './resolve-contact-vars';
+import { hasLiquidConditionals, buildLiquidContext } from './liquid-properties';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
+
+const liquidEngine = new Liquid();
 
 export interface WebNewsletter {
   slug: string;
@@ -78,17 +82,37 @@ const marked = new Marked({ renderer: createWebRenderer() });
 /**
  * Render a RawNewsletter for web display.
  * Returns null if the newsletter has no slug (email-only issue).
+ *
+ * Processing pipeline:
+ * 1. Strip greeting + replace variables
+ * 2. Resolve {if:email}/{if:web} channel conditionals
+ * 3. Resolve Liquid conditionals ({% if type == "Builder" %} etc.) if chart provided
+ * 4. Resolve {{{contact.key}}} variables
+ * 5. Render markdown → HTML
  */
-function renderForWeb(
+async function renderForWeb(
   raw: RawNewsletter,
   publishedAt: string,
   published: boolean,
   chart?: EmailChartData | null,
-): WebNewsletter | null {
+): Promise<WebNewsletter | null> {
   if (!raw.slug) return null;
 
   const cleaned = replaceVariables(stripGreeting(raw.bodyMarkdown.trim()));
-  const processed = processConditionals(cleaned, chart ?? null, 'web');
+  const channelResolved = processConditionals(cleaned, 'web');
+
+  // Resolve Liquid conditionals if chart is available and markdown has them
+  let processed: string;
+  if (chart && hasLiquidConditionals(channelResolved)) {
+    const context = buildLiquidContext(chart);
+    processed = await liquidEngine.parseAndRender(channelResolved, context);
+  } else if (hasLiquidConditionals(channelResolved)) {
+    // No chart — strip Liquid blocks (render with empty context so all conditions are false)
+    processed = await liquidEngine.parseAndRender(channelResolved, {});
+  } else {
+    processed = channelResolved;
+  }
+
   const resolved = resolveContactVars(processed, chart ?? null);
   const bodyHtml = marked.parse(resolved) as string;
   const ps = raw.rawPs.map(
@@ -127,7 +151,7 @@ export async function getWebNewsletters(): Promise<WebNewsletter[]> {
     if (!sentAt && !isDev) continue;
 
     const publishedAt = sentAt ?? new Date().toISOString();
-    const parsed = renderForWeb(raw, publishedAt, !!sentAt);
+    const parsed = await renderForWeb(raw, publishedAt, !!sentAt);
     if (parsed) results.push(parsed);
   }
 
@@ -153,7 +177,7 @@ export async function getWebNewsletter(
     const sentAt = sendDates.get(num);
     if (!sentAt && !isDev) return null;
     const publishedAt = sentAt ?? new Date().toISOString();
-    return renderForWeb(raw, publishedAt, !!sentAt, chart);
+    return await renderForWeb(raw, publishedAt, !!sentAt, chart);
   }
 
   return null;

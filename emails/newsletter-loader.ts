@@ -5,6 +5,11 @@ import {
 } from '@/newsletters/loader';
 import { emailMarked, replaceVariables as replaceVars, replaceChartSubpaths, replaceDesignedCta } from './markdown-renderer';
 import { processConditionals } from '@/newsletters/conditionals';
+import { hasLiquidConditionals, buildLiquidContext } from '@/newsletters/liquid-properties';
+import { Liquid } from 'liquidjs';
+import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
+
+const liquidEngine = new Liquid();
 
 export {
   getNewsletterCount,
@@ -33,7 +38,7 @@ export interface Newsletter {
  */
 function renderForEmail(raw: RawNewsletter): Newsletter {
   const image = raw.showHeroImage ? raw.rawImage : null;
-  const stripped = processConditionals(raw.bodyMarkdown.trim(), null, 'email');
+  const stripped = processConditionals(raw.bodyMarkdown.trim(), 'email');
   const bodyHtml = emailMarked.parse(stripped) as string;
   const ps = raw.rawPs.map(p =>
     emailMarked.parseInline(p.trim()) as string,
@@ -96,6 +101,53 @@ export function getNewsletter(step: number, firstName: string, subscriberId?: st
   const raw = loadNewsletter(step);
   if (!raw) return null;
   return replaceNewsletterVariables(renderForEmail(raw), firstName, subscriberId);
+}
+
+/**
+ * Get a newsletter with Liquid conditionals resolved for a specific subscriber.
+ *
+ * Used by admin manual sends where we have the subscriber's chart data and need
+ * per-type content rendered. Liquid blocks are resolved before markdown→HTML
+ * conversion so they render correctly.
+ *
+ * Falls back to getNewsletter() for newsletters without Liquid blocks.
+ */
+export async function getNewsletterWithChart(
+  step: number,
+  firstName: string,
+  chart: EmailChartData,
+  subscriberId?: string,
+): Promise<Newsletter | null> {
+  const raw = loadNewsletter(step);
+  if (!raw) return null;
+
+  const channelResolved = processConditionals(raw.bodyMarkdown.trim(), 'email');
+
+  if (!hasLiquidConditionals(channelResolved)) {
+    // No Liquid — use the standard synchronous path
+    return replaceNewsletterVariables(renderForEmail(raw), firstName, subscriberId);
+  }
+
+  // Resolve Liquid conditionals with subscriber's chart data
+  const context = buildLiquidContext(chart);
+  const liquidResolved = await liquidEngine.parseAndRender(channelResolved, context);
+
+  // Render to email HTML
+  const image = raw.showHeroImage ? raw.rawImage : null;
+  const bodyHtml = emailMarked.parse(liquidResolved) as string;
+  const ps = raw.rawPs.map(p => emailMarked.parseInline(p.trim()) as string);
+
+  const newsletter: Newsletter = {
+    number: raw.number,
+    subject: raw.subject,
+    preview: raw.preview,
+    slug: raw.slug,
+    image,
+    bodyHtml,
+    ps,
+  };
+
+  return replaceNewsletterVariables(newsletter, firstName, subscriberId);
 }
 
 /**

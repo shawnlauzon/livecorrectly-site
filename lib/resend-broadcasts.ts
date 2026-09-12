@@ -1,6 +1,9 @@
 import React from 'react';
 import { getResendClient, ensureNeonIdProperty, ensureChartContactProperties } from './resend-contacts';
 import { getNewsletter } from '@/emails/newsletter-loader';
+import { loadNewsletter } from '@/newsletters/loader';
+import { processConditionals } from '@/newsletters/conditionals';
+import { emailMarked, replaceVariables as replaceVars, replaceChartSubpaths, replaceDesignedCta } from '@/emails/markdown-renderer';
 import { NewsletterTemplate } from '@/emails/newsletter-template';
 import { getNewsletterSubject } from '@/emails/newsletter';
 import { renderEmail } from '@/emails/send';
@@ -13,7 +16,6 @@ import {
 } from '@/emails/broadcast-config';
 import { getBroadcastFileConfig } from '@/emails/broadcast-loader';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import contactProperties from '@/newsletters/contact-properties';
 import { buildContactPropertyValues } from '@/newsletters/resolve-contact-vars';
 import type { Subscriber } from '@/lib/types/subscriber';
 
@@ -280,6 +282,79 @@ export async function renderNewsletterForBroadcast(
     resendSubscriberId,
   );
 
+  return { html, subject };
+}
+
+/**
+ * Render a newsletter for broadcast delivery using custom markdown.
+ *
+ * Used when the newsletter contains Liquid conditional blocks that have been
+ * extracted and replaced with Resend contact property placeholders. The custom
+ * markdown has {{{contact.nl_NN_sN|}}} in place of the Liquid blocks.
+ *
+ * Mirrors renderNewsletterForBroadcast but processes provided markdown instead
+ * of loading from disk.
+ */
+export async function renderNewsletterForBroadcastWithMarkdown(
+  newsletterNumber: number,
+  customMarkdown: string,
+): Promise<{
+  html: string;
+  subject: string;
+}> {
+  const resendFirstName = '{{{FIRST_NAME|there}}}';
+  const resendSubscriberId = '{{{contact.neon_id}}}';
+
+  // Load the newsletter for metadata (subject, preview, image, ps)
+  const raw = loadNewsletter(newsletterNumber);
+  if (!raw) {
+    throw new Error(`Newsletter ${newsletterNumber} not found`);
+  }
+
+  // Process channel conditionals on the custom markdown (Liquid blocks already replaced)
+  const stripped = processConditionals(customMarkdown, 'email');
+
+  // Render markdown → email HTML
+  const bodyHtml = emailMarked.parse(stripped) as string;
+
+  // Replace template variables
+  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
+  const chartUrl = resendSubscriberId
+    ? `${appUrl}/see-your-design/${resendSubscriberId}?utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletterNumber}`
+    : '';
+  const vars: Record<string, string> = {
+    firstName: resendFirstName,
+    appUrl,
+    chartUrl,
+  };
+  let processedHtml = replaceVars(bodyHtml, vars);
+  processedHtml = replaceChartSubpaths(processedHtml, resendSubscriberId, newsletterNumber);
+  if (resendSubscriberId) {
+    processedHtml = replaceDesignedCta(processedHtml, raw.slug, resendSubscriberId, newsletterNumber);
+  }
+
+  // Process postscripts
+  const ps = raw.rawPs.map(p => {
+    const rendered = emailMarked.parseInline(p.trim()) as string;
+    return replaceVars(rendered, vars);
+  });
+
+  // Build the subject with variables
+  const subject = replaceVars(raw.subject, vars);
+
+  const image = raw.showHeroImage ? raw.rawImage : null;
+
+  const component = React.createElement(NewsletterTemplate, {
+    preview: replaceVars(raw.preview, vars),
+    bodyHtml: processedHtml,
+    image,
+    chart: null,
+    unsubscribeUrl: '{{{RESEND_UNSUBSCRIBE_URL}}}',
+    number: newsletterNumber,
+    ps,
+  });
+
+  const html = await renderEmail(component);
   return { html, subject };
 }
 

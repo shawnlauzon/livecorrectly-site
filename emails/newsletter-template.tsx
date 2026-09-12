@@ -4,6 +4,8 @@ import { EmailLayout } from './components/email-layout';
 import type { EmailChartData } from '../lib/hd-chart/parse-for-email';
 import { Newsletter04Personalization } from '@/newsletters/personalizations/04';
 import { Newsletter05Personalization } from '@/newsletters/personalizations/05';
+import { loadNewsletter } from '@/newsletters/loader';
+import { hasLiquidConditionals } from '@/newsletters/liquid-properties';
 
 interface NewsletterTemplateProps {
   preview: string;
@@ -26,12 +28,30 @@ const personalizations: Record<number, React.ComponentType<{ chart: EmailChartDa
 };
 
 /**
- * Whether a newsletter number has inline per-subscriber personalization.
+ * Whether a newsletter number has inline per-subscriber personalization
+ * (React components that differ per chart type).
  * Newsletters with personalization MUST be sent transactionally (one email per
  * subscriber) because the body differs per chart type. Others can use broadcasts.
  */
 export function hasInlinePersonalization(number: number): boolean {
   return number in personalizations;
+}
+
+/**
+ * Whether a newsletter requires per-subscriber rendering.
+ * True if the newsletter has either React personalization components
+ * OR Liquid conditional blocks in the markdown.
+ *
+ * Used by the cron to decide between transactional (per-subscriber) and
+ * broadcast (single API call) sending paths.
+ */
+export function requiresPerSubscriberRendering(number: number): boolean {
+  if (number in personalizations) return true;
+
+  const raw = loadNewsletter(number);
+  if (raw && hasLiquidConditionals(raw.bodyMarkdown)) return true;
+
+  return false;
 }
 
 /**

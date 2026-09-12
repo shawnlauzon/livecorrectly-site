@@ -1,22 +1,43 @@
+import React from 'react';
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { getNewsletterDueSubscribers, advanceEmailSeries, acquireCronLock, recordEmailSend } from '@/lib/db';
-import { sendWelcomeEmail, formatEmailRecipient, buildUnsubscribeUrl } from '@/emails/send';
+import {
+  getNewsletterDueSubscribers,
+  advanceEmailSeries,
+  acquireCronLock,
+  recordEmailSend,
+  getPublishedNewsletterNumbers,
+} from '@/lib/db';
+import { sendWelcomeEmail, formatEmailRecipient, buildUnsubscribeUrl, renderEmail } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getNewsletterEmail, getNewsletterSubject, getMaxNewsletterNumber } from '@/emails/newsletter';
-import { hasInlinePersonalization } from '@/emails/newsletter-template';
-import { sendNewsletterBroadcast, syncBroadcastContactProperties } from '@/lib/resend-broadcasts';
+import { getNewsletterWithChart } from '@/emails/newsletter-loader';
+import { NewsletterTemplate } from '@/emails/newsletter-template';
+import { requiresPerSubscriberRendering } from '@/emails/newsletter-template';
+import {
+  sendNewsletterBroadcast,
+  syncBroadcastContactProperties,
+  sendPrerenderedBroadcast,
+} from '@/lib/resend-broadcasts';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
+import { hasLiquidConditionals } from '@/newsletters/liquid-properties';
+import { loadNewsletter } from '@/newsletters/loader';
 import type { Subscriber } from '@/lib/types/subscriber';
 
 /**
  * Cron endpoint: sends due newsletter emails.
  * Secured by CRON_SECRET (Vercel sends Authorization: Bearer <CRON_SECRET>).
- * Runs weekly on Wednesdays at 14:47 UTC (configured in vercel.json).
+ * Runs weekly on Wednesdays (configured in vercel.json).
  *
- * Dual-path sending:
- * - Newsletters with inline personalization (#4, #5) → transactional (one email per subscriber)
- * - All others → Resend broadcast (single API call, no daily limit)
+ * Three-path sending:
+ * - Newsletters with React personalization (#4, #5) → transactional (one per subscriber)
+ * - Newsletters with Liquid conditionals (#7+) → transactional with Liquid resolution
+ *   (only sent as catch-up for subscribers who missed the admin-scheduled broadcast)
+ * - All others → Resend broadcast (single API call)
+ *
+ * Published check: newsletters with Liquid conditionals are only sent if they've
+ * been previously scheduled via the admin UI (have a row in newsletter_schedules).
+ * This prevents the cron from sending unreviewed newsletters.
  *
  * The CRON_EMAIL_ENABLED kill switch is checked here — when not 'true',
  * the route returns early without querying or sending anything.
@@ -52,6 +73,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, sent: 0, skipped: 0, noNewsletters: true });
   }
 
+  // Get published newsletter numbers (those that have been scheduled/sent via admin)
+  const publishedNumbers = await getPublishedNewsletterNumbers();
+
   const dueSubscribers = await getNewsletterDueSubscribers(WELCOME_SERIES_LENGTH);
   console.log(`[cron] Found ${dueSubscribers.length} subscriber(s) due for newsletter`);
 
@@ -71,38 +95,104 @@ export async function GET(request: NextRequest) {
   let skipped = dueSubscribers.filter(s => s.next_step > maxNewsletterNumber).length;
 
   for (const [newsletterNumber, subscribers] of groups) {
-    if (hasInlinePersonalization(newsletterNumber)) {
+    // Check if this newsletter has Liquid and whether it's been published
+    const raw = loadNewsletter(newsletterNumber);
+    const hasLiquid = raw ? hasLiquidConditionals(raw.bodyMarkdown) : false;
+
+    // Skip unpublished newsletters that have Liquid conditionals.
+    // These should be sent via the admin scheduling UI first.
+    if (hasLiquid && !publishedNumbers.has(newsletterNumber)) {
+      console.log(
+        `[cron] Skipping newsletter #${newsletterNumber}: has Liquid conditionals but not yet published via admin`,
+      );
+      skipped += subscribers.length;
+      continue;
+    }
+
+    if (requiresPerSubscriberRendering(newsletterNumber)) {
       // Transactional path: send individually (body differs per subscriber)
+      // Handles both React personalization (04/05) and Liquid conditionals (07+)
       for (const subscriber of subscribers) {
-        const chart = parseChartForEmail(subscriber.chart.chart);
-        const subject = getNewsletterSubject(newsletterNumber, subscriber.first_name, subscriber.id);
-        const emailLabel = `newsletter_${newsletterNumber}`;
-        const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
-        const emailComponent = getNewsletterEmail(newsletterNumber, subscriber, chart, unsubscribeUrl);
+        try {
+          const chart = parseChartForEmail(subscriber.chart.chart);
+          const emailLabel = `newsletter_${newsletterNumber}`;
+          const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
 
-        if (!emailComponent) {
-          skipped++;
-          continue;
-        }
+          if (hasLiquid) {
+            // Liquid path: resolve conditionals with subscriber's chart, send as broadcast-of-one
+            const newsletter = await getNewsletterWithChart(
+              newsletterNumber,
+              subscriber.first_name,
+              chart,
+              subscriber.id,
+            );
+            if (!newsletter) {
+              skipped++;
+              continue;
+            }
 
-        const result = await sendWelcomeEmail({
-          to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
-          subject,
-          react: emailComponent,
-          unsubToken: subscriber.unsub_token,
-          emailLabel,
-        });
+            const emailComponent = React.createElement(NewsletterTemplate, {
+              preview: newsletter.preview,
+              bodyHtml: newsletter.bodyHtml,
+              image: newsletter.image,
+              chart,
+              unsubscribeUrl,
+              number: newsletter.number,
+              ps: newsletter.ps,
+            });
+            const html = await renderEmail(emailComponent);
 
-        if (result.success) {
-          await advanceEmailSeries(subscriber.id, subscriber.next_step + 1);
-          await recordEmailSend({
-            subscriberId: subscriber.id,
-            emailType: `newsletter_${newsletterNumber}`,
-            category: 'newsletter',
-            resendEmailId: result.id,
-          });
-          sent++;
-        } else {
+            const { broadcastId } = await sendPrerenderedBroadcast({
+              name: `Cron: Newsletter #${newsletterNumber} → ${subscriber.email}`,
+              html,
+              subject: newsletter.subject,
+              subscriber,
+            });
+
+            await advanceEmailSeries(subscriber.id, subscriber.next_step + 1);
+            await recordEmailSend({
+              subscriberId: subscriber.id,
+              emailType: `newsletter_${newsletterNumber}`,
+              category: 'newsletter',
+              resendBroadcastId: broadcastId,
+            });
+            sent++;
+          } else {
+            // React personalization path (04/05)
+            const subject = getNewsletterSubject(newsletterNumber, subscriber.first_name, subscriber.id);
+            const emailComponent = getNewsletterEmail(newsletterNumber, subscriber, chart, unsubscribeUrl);
+
+            if (!emailComponent) {
+              skipped++;
+              continue;
+            }
+
+            const result = await sendWelcomeEmail({
+              to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
+              subject,
+              react: emailComponent,
+              unsubToken: subscriber.unsub_token,
+              emailLabel,
+            });
+
+            if (result.success) {
+              await advanceEmailSeries(subscriber.id, subscriber.next_step + 1);
+              await recordEmailSend({
+                subscriberId: subscriber.id,
+                emailType: `newsletter_${newsletterNumber}`,
+                category: 'newsletter',
+                resendEmailId: result.id,
+              });
+              sent++;
+            } else {
+              skipped++;
+            }
+          }
+        } catch (err) {
+          console.error(
+            `[cron] Failed to send newsletter #${newsletterNumber} to ${subscriber.email}:`,
+            err,
+          );
           skipped++;
         }
       }
