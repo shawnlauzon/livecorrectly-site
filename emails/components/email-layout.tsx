@@ -5,6 +5,7 @@ import {
   Preview,
   Body,
   Container,
+  Img,
   Section,
   Hr,
   Text,
@@ -33,8 +34,7 @@ function getPostscriptPrefix(index: number): string {
  * Provides consistent structure: container, children slot, signature,
  * divider, and footer with physical address + unsubscribe link.
  *
- * No header image — skipped per plan (old FHD header doesn't apply;
- * Live Correctly branded header TBD).
+ * Header: Permission Slip logo at the top of every email.
  */
 export function EmailLayout({
   preview,
@@ -42,6 +42,8 @@ export function EmailLayout({
   children,
   postscripts = [],
 }: EmailLayoutProps) {
+  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
+
   return (
     <Tailwind>
       <Html lang="en">
@@ -49,6 +51,13 @@ export function EmailLayout({
         <Preview>{preview}</Preview>
         <Body className="bg-[#FAF8F4] font-sans">
           <Container className="mx-auto max-w-[660px] bg-white px-[24px] py-[32px]">
+            <Img
+              src={`${appUrl}/newsletter/permission-slip-logo.png`}
+              alt="Permission Slip"
+              width={381}
+              height={167}
+              className="mx-auto mb-[24px]"
+            />
             {children}
 
             <Signature />
