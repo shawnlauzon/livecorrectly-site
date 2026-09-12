@@ -38,9 +38,9 @@ export interface EmailSend {
   sent_at: string;           // ISO timestamp
 }
 
-export type EmailEventType = 'open' | 'click' | 'unsubscribe' | 'manual_engagement';
+export type EmailEventType = 'open' | 'click' | 'unsubscribe' | 'manual_engagement' | 'reply';
 
-/** A tracked event for a subscriber (open, click, unsubscribe, manual engagement). */
+/** A tracked event for a subscriber (open, click, unsubscribe, manual engagement, reply). */
 export interface EmailEvent {
   id: string;
   subscriber_id: string;

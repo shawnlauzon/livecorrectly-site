@@ -276,6 +276,28 @@ export async function POST(request: NextRequest) {
       break;
     }
 
+    case 'email.received': {
+      // Inbound reply — record as engagement event
+      const senderRaw = event.data?.from;
+      const senderEmail = senderRaw ? extractEmail(senderRaw) : undefined;
+      if (senderEmail) {
+        const subscriber = await getSubscriberByEmailForWebhook(senderEmail);
+        if (subscriber) {
+          const recentSend = await getMostRecentEmailSend(subscriber.id);
+          await recordEmailEvent({
+            subscriberId: subscriber.id,
+            eventType: 'reply',
+            emailType: recentSend?.email_type ?? 'unknown',
+            occurredAt: event.created_at ? new Date(event.created_at) : undefined,
+          });
+          console.log(
+            `[webhook] Reply from ${senderEmail} (subscriber ${subscriber.id}, attributed to ${recentSend?.email_type ?? 'unknown'})`
+          );
+        }
+      }
+      break;
+    }
+
     // Acknowledge other events without action
     // case 'email.delivered':
     // case 'email.delivery_delayed': (transient — no status change)

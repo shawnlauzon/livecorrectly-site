@@ -2091,6 +2091,7 @@ function EmailTimeline({
       case 'click': return '\u2197'; // ↗
       case 'unsubscribe': return '\u2717'; // ✗
       case 'manual_engagement': return '\u270E'; // ✎
+      case 'reply': return '\u21A9'; // ↩
       default: return '\u2022'; // •
     }
   };
@@ -2101,6 +2102,7 @@ function EmailTimeline({
       case 'click': return 'Clicked';
       case 'unsubscribe': return 'Unsubscribed';
       case 'manual_engagement': return 'Manual engagement';
+      case 'reply': return 'Replied';
       default: return type;
     }
   };
