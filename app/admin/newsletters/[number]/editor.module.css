@@ -1,0 +1,292 @@
+/* Metadata panel */
+.metadataPanel {
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.metadataGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1.25rem;
+}
+
+.fieldLabel {
+  font-family: var(--body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.fieldInput {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  color: var(--ink);
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  width: 100%;
+}
+
+.fieldInput:focus {
+  outline: none;
+  border-color: var(--grape);
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  margin-left: 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: #E6F9ED;
+  color: #1a7a3a;
+}
+
+.badgeMuted {
+  display: inline-block;
+  margin-left: 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--muted);
+}
+
+/* Action bar */
+.actionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.actionBarLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.actionBarRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.importButton {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  background: none;
+  color: var(--grape);
+  border: 1px solid var(--grape);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.importButton:hover {
+  background: var(--paper);
+}
+
+.saveButton {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.5rem 1.5rem;
+  background: var(--grape);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.saveButton:hover {
+  background: var(--grape-deep);
+}
+
+.saveButton:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.saveSuccess {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  color: #1a7a3a;
+  font-weight: 600;
+}
+
+.saveError {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  color: var(--coral);
+  font-weight: 600;
+}
+
+/* Editor wrapper */
+.editorWrapper {
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-bottom: 1rem;
+  min-height: 400px;
+}
+
+.editor {
+  min-height: 400px;
+}
+
+/* Postscripts section */
+.postscriptsSection {
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.sectionTitle {
+  font-family: var(--body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 0.75rem 0;
+}
+
+.postscriptRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.postscriptLabel {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+  min-width: 3rem;
+}
+
+.removeButton {
+  font-family: var(--body);
+  font-size: 1.25rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0 0.25rem;
+  line-height: 1;
+}
+
+.removeButton:hover {
+  color: var(--coral);
+}
+
+.addButton {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--grape);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0;
+}
+
+.addButton:hover {
+  text-decoration: underline;
+}
+
+/* Import Markdown Modal */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 700px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalTitle {
+  font-family: var(--display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 0.5rem 0;
+}
+
+.modalDescription {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin: 0 0 1rem 0;
+}
+
+.markdownTextarea {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.8125rem;
+  color: var(--ink);
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  resize: vertical;
+  flex: 1;
+  min-height: 300px;
+  line-height: 1.5;
+}
+
+.markdownTextarea:focus {
+  outline: none;
+  border-color: var(--grape);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.cancelButton {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  background: none;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancelButton:hover {
+  background: var(--paper);
+}

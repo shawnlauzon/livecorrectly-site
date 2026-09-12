@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from '../admin.module.css';
@@ -43,7 +43,7 @@ function getPassword(): string | null {
   return sessionStorage.getItem('adminPassword');
 }
 
-function formatDateTime(iso: string): string {
+function formatDateTime(iso: string, tz?: string): string {
   const d = new Date(iso);
   return d.toLocaleString('en-US', {
     month: 'short',
@@ -51,8 +51,126 @@ function formatDateTime(iso: string): string {
     year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-    timeZoneName: 'short',
+    ...(tz ? { timeZone: tz } : {}),
   });
+}
+
+/** Convert an ISO string to a datetime-local input value in the given timezone. */
+function toDatetimeLocal(iso: string, tz: string): string {
+  const d = new Date(iso);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(d);
+
+  const get = (type: string) => parts.find(p => p.type === type)?.value ?? '00';
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
+}
+
+/** Interval options for the repeat cadence. */
+const INTERVAL_OPTIONS = [
+  { label: 'Every week', days: 7 },
+  { label: 'Every 2 weeks', days: 14 },
+  { label: 'Every 3 weeks', days: 21 },
+  { label: 'Every 4 weeks', days: 28 },
+];
+
+/** Common timezones for the selector. */
+const TIMEZONE_OPTIONS = [
+  'America/Chicago',
+  'America/New_York',
+  'America/Denver',
+  'America/Los_Angeles',
+  'UTC',
+  'Europe/London',
+  'Europe/Berlin',
+];
+
+/**
+ * Convert a datetime-local value + timezone to a UTC ISO string.
+ * Uses the Intl API to resolve the timezone offset at the given date.
+ */
+function localToUtcIso(datetimeLocal: string, timezone: string): string {
+  // Parse the datetime-local string as if it's in the given timezone
+  // by constructing a Date in UTC and then adjusting for the timezone offset.
+  const [datePart, timePart] = datetimeLocal.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute] = timePart.split(':').map(Number);
+
+  // Create a formatter that outputs UTC offset for the target timezone
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+    timeZoneName: 'shortOffset',
+  });
+
+  // Use a reference date close to the target to get the correct offset
+  const rough = new Date(Date.UTC(year, month - 1, day, hour, minute));
+  const parts = formatter.formatToParts(rough);
+  const tzNamePart = parts.find(p => p.type === 'timeZoneName')?.value ?? '+00:00';
+
+  // Parse offset like "GMT-5" or "GMT+5:30" or "GMT"
+  let offsetMinutes = 0;
+  const offsetMatch = tzNamePart.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
+  if (offsetMatch) {
+    const sign = offsetMatch[1] === '+' ? 1 : -1;
+    const hours = parseInt(offsetMatch[2], 10);
+    const mins = parseInt(offsetMatch[3] ?? '0', 10);
+    offsetMinutes = sign * (hours * 60 + mins);
+  }
+
+  // The datetime-local is in the selected timezone, so subtract the offset to get UTC
+  const utcMs = Date.UTC(year, month - 1, day, hour, minute) - offsetMinutes * 60 * 1000;
+  return new Date(utcMs).toISOString();
+}
+
+/** Format a timezone for display (e.g., "America/Chicago" → "Chicago (CST)"). */
+function formatTimezone(tz: string): string {
+  const city = tz.split('/').pop()?.replace(/_/g, ' ') ?? tz;
+  try {
+    const abbr = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      timeZoneName: 'short',
+    }).formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value ?? '';
+    return `${city} (${abbr})`;
+  } catch {
+    return city;
+  }
+}
+
+/**
+ * Compute projected send dates for unsent newsletters based on a start date + interval.
+ * The nextSendAtUtc should be a UTC ISO string (already timezone-converted).
+ * Returns a Map from newsletter number to ISO string.
+ */
+function computeProjectedDates(
+  newsletters: NewsletterInfo[],
+  nextSendAtUtc: string,
+  intervalDays: number,
+): Map<number, string> {
+  const dates = new Map<number, string>();
+  const startDate = new Date(nextSendAtUtc);
+  let slot = 0;
+
+  for (const nl of newsletters) {
+    // Already scheduled or sent — keep the actual date
+    if (nl.schedule?.status === 'scheduled' || nl.schedule?.status === 'sent') {
+      continue;
+    }
+    // Unsent — assign the next available cadence slot
+    const sendDate = new Date(startDate.getTime() + slot * intervalDays * 24 * 60 * 60 * 1000);
+    dates.set(nl.number, sendDate.toISOString());
+    slot++;
+  }
+
+  return dates;
 }
 
 export default function AdminNewslettersPage() {
@@ -65,6 +183,11 @@ export default function AdminNewslettersPage() {
   const [expandedReady, setExpandedReady] = useState<number | null>(null);
   const [expandedLater, setExpandedLater] = useState<number | null>(null);
   const [confirmSchedule, setConfirmSchedule] = useState<number | null>(null);
+
+  // Cadence controls
+  const [nextSendAt, setNextSendAt] = useState<string>('');
+  const [intervalDays, setIntervalDays] = useState<number>(7);
+  const [timezone, setTimezone] = useState<string>('America/Chicago');
 
   const fetchNewsletters = useCallback(async () => {
     const pwd = getPassword();
@@ -87,6 +210,17 @@ export default function AdminNewslettersPage() {
       }
       const data: NewslettersResponse = await res.json();
       setNewsletters(data.newsletters);
+
+      // Initialize the cadence date picker from the first unsent newsletter's projected date
+      if (!nextSendAt) {
+        const firstUnsent = data.newsletters.find(
+          nl => nl.schedule?.status !== 'scheduled' && nl.schedule?.status !== 'sent',
+        );
+        if (firstUnsent?.projectedSendAt) {
+          setNextSendAt(toDatetimeLocal(firstUnsent.projectedSendAt, timezone));
+        }
+      }
+
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load');
@@ -123,7 +257,7 @@ export default function AdminNewslettersPage() {
       }
 
       setActionMessage(
-        `Scheduled! Broadcast ${data.broadcastId}, ${data.contactCount} contacts for ${formatDateTime(data.scheduledAt)}`,
+        `Scheduled! Broadcast ${data.broadcastId}, ${data.contactCount} contacts for ${formatDateTime(data.scheduledAt, timezone)}`,
       );
       setConfirmSchedule(null);
       await fetchNewsletters();
@@ -218,7 +352,7 @@ export default function AdminNewslettersPage() {
   ) {
     return (
       <tr>
-        <td colSpan={7} style={{ padding: 0 }}>
+        <td colSpan={8} style={{ padding: 0 }}>
           <div
             style={{
               background: 'var(--paper)',
@@ -309,6 +443,27 @@ export default function AdminNewslettersPage() {
     );
   }
 
+  // Compute projected send dates from the cadence controls (convert local → UTC)
+  const nextSendAtUtc = useMemo(
+    () => nextSendAt ? localToUtcIso(nextSendAt, timezone) : null,
+    [nextSendAt, timezone],
+  );
+
+  const projectedDates = useMemo(
+    () => nextSendAtUtc
+      ? computeProjectedDates(newsletters, nextSendAtUtc, intervalDays)
+      : new Map<number, string>(),
+    [newsletters, nextSendAtUtc, intervalDays],
+  );
+
+  /** Get the effective send date for a newsletter (actual schedule or projected). */
+  const getSendDate = useCallback((nl: NewsletterInfo): string | null => {
+    if (nl.schedule?.status === 'scheduled' || nl.schedule?.status === 'sent') {
+      return nl.schedule.scheduledAt;
+    }
+    return projectedDates.get(nl.number) ?? nl.projectedSendAt;
+  }, [projectedDates]);
+
   if (loading) {
     return (
       <div className={styles.container}>
@@ -341,6 +496,114 @@ export default function AdminNewslettersPage() {
         </p>
       </div>
 
+      {/* Cadence controls */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1.25rem',
+          marginBottom: '1rem',
+          padding: '0.75rem 1rem',
+          background: 'var(--card)',
+          borderRadius: '8px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        }}
+      >
+        <label
+          style={{
+            fontFamily: 'var(--body)',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            color: 'var(--muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
+          Next send
+          <input
+            type="datetime-local"
+            value={nextSendAt}
+            onChange={(e) => setNextSendAt(e.target.value)}
+            style={{
+              fontFamily: 'var(--body)',
+              fontSize: '0.875rem',
+              color: 'var(--ink)',
+              padding: '0.375rem 0.5rem',
+              border: '1px solid var(--line)',
+              borderRadius: '4px',
+              background: '#fff',
+            }}
+          />
+        </label>
+        <label
+          style={{
+            fontFamily: 'var(--body)',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            color: 'var(--muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
+          Repeat
+          <select
+            value={intervalDays}
+            onChange={(e) => setIntervalDays(Number(e.target.value))}
+            style={{
+              fontFamily: 'var(--body)',
+              fontSize: '0.875rem',
+              color: 'var(--ink)',
+              padding: '0.375rem 0.5rem',
+              border: '1px solid var(--line)',
+              borderRadius: '4px',
+              background: '#fff',
+            }}
+          >
+            {INTERVAL_OPTIONS.map(opt => (
+              <option key={opt.days} value={opt.days}>{opt.label}</option>
+            ))}
+          </select>
+        </label>
+        <label
+          style={{
+            fontFamily: 'var(--body)',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            color: 'var(--muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
+          Timezone
+          <select
+            value={timezone}
+            onChange={(e) => setTimezone(e.target.value)}
+            style={{
+              fontFamily: 'var(--body)',
+              fontSize: '0.875rem',
+              color: 'var(--ink)',
+              padding: '0.375rem 0.5rem',
+              border: '1px solid var(--line)',
+              borderRadius: '4px',
+              background: '#fff',
+            }}
+          >
+            {TIMEZONE_OPTIONS.map(tz => (
+              <option key={tz} value={tz}>{formatTimezone(tz)}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
       {actionMessage && (
         <div
           style={{
@@ -369,6 +632,7 @@ export default function AdminNewslettersPage() {
             <th style={{ width: '4.5rem', textAlign: 'center' }}>Sent</th>
             <th style={{ width: '6rem', textAlign: 'center' }}>Next week</th>
             <th style={{ width: '5.5rem', textAlign: 'center' }}>2+ weeks</th>
+            <th style={{ width: '6rem', textAlign: 'center' }}>Status</th>
             <th style={{ width: '10rem' }}>Send date</th>
             <th style={{ width: '10rem' }}>Actions</th>
           </tr>
@@ -390,7 +654,26 @@ export default function AdminNewslettersPage() {
                 {nl.number}
               </td>
               <td>
-                <span style={{ color: 'var(--ink)' }}>{nl.subject}</span>
+                <Link
+                  href={`/admin/newsletters/${nl.number}`}
+                  style={{
+                    color: 'var(--ink)',
+                    textDecoration: 'none',
+                    fontWeight: 500,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLAnchorElement).style.color = 'var(--grape)';
+                    (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline';
+                    (e.currentTarget as HTMLAnchorElement).style.textUnderlineOffset = '2px';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLAnchorElement).style.color = 'var(--ink)';
+                    (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none';
+                  }}
+                >
+                  {nl.subject}
+                </Link>
                 {nl.hasLiquid && (
                   <span
                     style={{
@@ -436,6 +719,48 @@ export default function AdminNewslettersPage() {
                   },
                 )}
               </td>
+              <td style={{ textAlign: 'center' }}>
+                {nl.schedule?.status === 'scheduled' ? (
+                  <span
+                    style={{
+                      fontSize: '0.6875rem',
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: '3px',
+                      background: '#E6F9ED',
+                      color: '#1a7a3a',
+                    }}
+                  >
+                    Scheduled
+                  </span>
+                ) : nl.schedule?.status === 'sent' ? (
+                  <span
+                    style={{
+                      fontSize: '0.6875rem',
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: '3px',
+                      background: 'var(--paper)',
+                      color: 'var(--muted)',
+                    }}
+                  >
+                    Sent
+                  </span>
+                ) : (
+                  <span
+                    style={{
+                      fontSize: '0.6875rem',
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: '3px',
+                      background: '#FFF5F5',
+                      color: 'var(--coral)',
+                    }}
+                  >
+                    Unscheduled
+                  </span>
+                )}
+              </td>
               <td>
                 <span
                   style={{
@@ -444,7 +769,9 @@ export default function AdminNewslettersPage() {
                     color: 'var(--muted)',
                   }}
                 >
-                  {nl.projectedSendAt ? formatDateTime(nl.projectedSendAt) : '—'}
+                  {(nl.schedule?.status === 'scheduled' || nl.schedule?.status === 'sent') && getSendDate(nl)
+                    ? formatDateTime(getSendDate(nl)!, timezone)
+                    : '—'}
                 </span>
               </td>
               <td>
@@ -452,26 +779,6 @@ export default function AdminNewslettersPage() {
                   style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', alignItems: 'center' }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {/* Status badge — only for scheduled or sent */}
-                  {(nl.schedule?.status === 'scheduled' || nl.schedule?.status === 'sent') && (
-                    <span
-                      style={{
-                        fontSize: '0.6875rem',
-                        fontWeight: 600,
-                        padding: '2px 8px',
-                        borderRadius: '3px',
-                        background: nl.schedule?.status === 'scheduled'
-                          ? '#E6F9ED'
-                          : 'var(--paper)',
-                        color: nl.schedule?.status === 'scheduled'
-                          ? '#1a7a3a'
-                          : 'var(--muted)',
-                      }}
-                    >
-                      {nl.schedule?.status === 'scheduled' ? 'Scheduled' : 'Sent'}
-                    </span>
-                  )}
-
                   {/* Schedule button — show if not currently scheduled and has next-week subscribers */}
                   {nl.schedule?.status !== 'scheduled' && nl.nextWeekCount > 0 && (
                     <>
@@ -494,7 +801,7 @@ export default function AdminNewslettersPage() {
                           </div>
                           <div style={{ display: 'flex', gap: '0.375rem' }}>
                             <button
-                              onClick={() => handleSchedule(nl.number, nl.projectedSendAt)}
+                              onClick={() => handleSchedule(nl.number, getSendDate(nl))}
                               disabled={actionLoading}
                               style={{
                                 fontFamily: 'var(--body)',

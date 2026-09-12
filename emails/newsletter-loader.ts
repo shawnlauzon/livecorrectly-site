@@ -35,11 +35,22 @@ export interface Newsletter {
 
 /**
  * Render a RawNewsletter into email-ready HTML.
+ *
+ * If the newsletter has pre-rendered HTML from the visual editor (bodyHtml),
+ * uses that directly instead of rendering from markdown.
  */
 function renderForEmail(raw: RawNewsletter): Newsletter {
   const image = raw.showHeroImage ? raw.rawImage : null;
-  const stripped = processConditionals(raw.bodyMarkdown.trim(), 'email');
-  const bodyHtml = emailMarked.parse(stripped) as string;
+
+  // Use editor-rendered HTML if available, otherwise render from markdown
+  let bodyHtml: string;
+  if (raw.bodyHtml) {
+    bodyHtml = raw.bodyHtml;
+  } else {
+    const stripped = processConditionals(raw.bodyMarkdown.trim(), 'email');
+    bodyHtml = emailMarked.parse(stripped) as string;
+  }
+
   const ps = raw.rawPs.map(p =>
     emailMarked.parseInline(p.trim()) as string,
   );

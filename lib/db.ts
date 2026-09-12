@@ -1050,6 +1050,8 @@ function rowToRawNewsletter(row: Record<string, unknown>): RawNewsletter {
     bodyMarkdown,
     oldSlugs: (row.old_slugs as string[]) ?? [],
     rawPs: (row.postscripts as string[]) ?? [],
+    bodyJson: (row.body_json as unknown) ?? null,
+    bodyHtml: (row.body_html as string | null) ?? null,
   };
 }
 
@@ -1089,5 +1091,50 @@ export async function getDbNewsletterNumbers(): Promise<number[]> {
     SELECT number FROM newsletters ORDER BY number
   `);
   return rows.map(r => r.number as number);
+}
+
+/**
+ * Get a single newsletter by number with all columns (including body_json, body_html).
+ * Used by the editor API to load full content for editing.
+ */
+export async function getDbNewsletterFull(num: number): Promise<RawNewsletter | null> {
+  const db = getDb();
+  const rows = await withRetry(() => db`
+    SELECT * FROM newsletters WHERE number = ${num}
+  `);
+  return rows.length > 0 ? rowToRawNewsletter(rows[0]) : null;
+}
+
+/**
+ * Update a newsletter's editable fields (metadata + editor content).
+ * Used by the visual editor to save changes.
+ */
+export async function updateNewsletter(
+  num: number,
+  data: {
+    subject?: string;
+    preview?: string;
+    slug?: string | null;
+    description?: string;
+    image?: string | null;
+    postscripts?: string[];
+    bodyJson?: unknown;
+    bodyHtml?: string;
+  },
+): Promise<void> {
+  const db = getDb();
+  await db`
+    UPDATE newsletters SET
+      subject = COALESCE(${data.subject ?? null}, subject),
+      preview = COALESCE(${data.preview ?? null}, preview),
+      slug = COALESCE(${data.slug !== undefined ? data.slug : null}, slug),
+      description = COALESCE(${data.description ?? null}, description),
+      image = COALESCE(${data.image !== undefined ? data.image : null}, image),
+      postscripts = COALESCE(${data.postscripts ? JSON.stringify(data.postscripts) : null}::jsonb, postscripts),
+      body_json = COALESCE(${data.bodyJson ? JSON.stringify(data.bodyJson) : null}::jsonb, body_json),
+      body_html = COALESCE(${data.bodyHtml ?? null}, body_html),
+      updated_at = now()
+    WHERE number = ${num}
+  `;
 }
 

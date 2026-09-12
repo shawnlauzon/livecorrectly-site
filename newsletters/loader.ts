@@ -24,6 +24,10 @@ export interface RawNewsletter {
   oldSlugs: string[];
   /** Raw postscript strings (markdown, variables intact) */
   rawPs: string[];
+  /** TipTap editor JSON (null if newsletter hasn't been edited visually) */
+  bodyJson: unknown | null;
+  /** Pre-rendered HTML from the visual editor (null if not edited visually) */
+  bodyHtml: string | null;
 }
 
 /**
@@ -63,6 +67,8 @@ export function parseRawNewsletter(content: string, number: number): RawNewslett
     oldSlugs,
     bodyMarkdown: body,
     rawPs,
+    bodyJson: null,
+    bodyHtml: null,
   };
 }
 
