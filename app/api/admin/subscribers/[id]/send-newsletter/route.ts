@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
-import { sendWelcomeEmail, formatEmailRecipient, buildUnsubscribeUrl } from '@/emails/send';
+import { renderEmail, buildUnsubscribeUrl } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getNewsletterEmail, getNewsletterSubject, getNewsletterNumbers } from '@/emails/newsletter';
+import { sendPrerenderedBroadcast } from '@/lib/resend-broadcasts';
 
 /**
  * POST /api/admin/subscribers/[id]/send-newsletter
@@ -71,23 +72,17 @@ export async function POST(
       );
     }
 
-    const result = await sendWelcomeEmail({
-      to: formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email),
+    const html = await renderEmail(emailComponent);
+
+    const { broadcastId } = await sendPrerenderedBroadcast({
+      name: `Admin: Newsletter #${step} → ${subscriber.email}`,
+      html,
       subject,
-      react: emailComponent,
-      unsubToken: subscriber.unsub_token,
-      emailLabel
+      subscriber,
     });
 
-    if (!result.success) {
-      return NextResponse.json(
-        { error: 'Failed to send email' },
-        { status: 500 }
-      );
-    }
-
-    console.log(`[admin] Manually sent newsletter #${step} to ${subscriber.email} (id=${result.id})`);
-    return NextResponse.json({ ok: true, step, emailId: result.id });
+    console.log(`[admin] Manually sent newsletter #${step} to ${subscriber.email} (broadcast=${broadcastId})`);
+    return NextResponse.json({ ok: true, step, broadcastId });
   } catch (error) {
     console.error('[admin] Error sending newsletter:', error);
     return NextResponse.json(

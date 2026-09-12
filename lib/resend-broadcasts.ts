@@ -149,6 +149,89 @@ export async function syncBroadcastContactProperties(
 }
 
 /**
+ * Send pre-rendered HTML as a broadcast to a single subscriber.
+ *
+ * Used by admin manual sends: the newsletter is rendered with the subscriber's
+ * real data (including personalized content for types like #4/#5), then sent
+ * as a broadcast-of-one so Resend tracks opens and clicks.
+ */
+export async function sendPrerenderedBroadcast(opts: {
+  name: string;
+  html: string;
+  subject: string;
+  subscriber: Subscriber;
+}): Promise<{ segmentId: string; broadcastId: string }> {
+  const { name, html, subject, subscriber } = opts;
+
+  // Sync contact properties for this subscriber
+  await syncBroadcastContactProperties([subscriber]);
+
+  const client = getResendClient();
+
+  // Clean up stale ephemeral segments to stay within Resend's segment limit
+  await cleanupEphemeralSegments();
+
+  const segmentName = `newsletter_admin_${Date.now()}`;
+
+  // Create ephemeral segment
+  const { data: segmentData, error: segmentError } =
+    await client.segments.create({
+      name: segmentName,
+    });
+  if (segmentError || !segmentData) {
+    throw new Error(
+      `Failed to create segment "${segmentName}": ${JSON.stringify(segmentError)}`,
+    );
+  }
+  const segmentId = segmentData.id;
+
+  // Add subscriber to segment
+  const { error: addError } = await client.contacts.segments.add({
+    email: subscriber.email,
+    segmentId,
+  });
+  if (addError) {
+    throw new Error(
+      `Failed to add ${subscriber.email} to segment ${segmentId}: ${JSON.stringify(addError)}`,
+    );
+  }
+
+  // Determine from/replyTo (same logic as sendNewsletterBroadcast)
+  const broadcastDomain = process.env.EMAIL_DOMAIN_BROADCAST;
+  const from = broadcastDomain
+    ? `Shawn Lauzon <shawn@${broadcastDomain}>`
+    : process.env.EMAIL_FROM_MARKETING ??
+      'Shawn Lauzon <updates@livecorrectly.com>';
+  const replyTo = broadcastDomain
+    ? undefined
+    : process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+
+  // Create + send broadcast
+  const { data: broadcastData, error: broadcastError } =
+    await client.broadcasts.create({
+      name,
+      segmentId,
+      from,
+      replyTo,
+      subject,
+      html,
+      send: true,
+    });
+
+  if (broadcastError || !broadcastData) {
+    throw new Error(
+      `Failed to create broadcast "${name}": ${JSON.stringify(broadcastError)}`,
+    );
+  }
+
+  console.log(
+    `[broadcast] Sent "${name}" as broadcast ${broadcastData.id} to ${subscriber.email} via segment ${segmentId}`,
+  );
+
+  return { segmentId, broadcastId: broadcastData.id };
+}
+
+/**
  * Render a newsletter for broadcast delivery.
  *
  * Template variables are replaced with Resend triple-brace template syntax

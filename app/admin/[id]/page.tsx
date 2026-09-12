@@ -1845,7 +1845,7 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
 
       setFeedback({
         type: 'success',
-        message: `Newsletter #${selectedStep} sent successfully`,
+        message: `Newsletter #${selectedStep} sent as broadcast (${data.broadcastId})`,
       });
     } catch (err) {
       console.error('Error sending newsletter:', err);
@@ -2005,8 +2005,8 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
               onClick={handleSend}
             >
               {sending
-                ? 'Sending...'
-                : `Send Newsletter #${selectedStep ?? ''}`}
+                ? 'Broadcasting...'
+                : `Broadcast Newsletter #${selectedStep ?? ''}`}
             </button>
           </div>
         ) : (
