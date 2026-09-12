@@ -127,60 +127,28 @@
   font-weight: 600;
 }
 
-/* Two-panel layout: editor canvas + inspector sidebar */
-.editorLayout {
-  display: flex;
+/* Editor section label */
+.editorLabel {
+  font-family: var(--body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.5rem;
+}
+
+/* Editor wrapper */
+.editorWrap {
+  border: 1px solid var(--line);
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 1rem;
-  min-height: 600px;
 }
 
-/* Left panel: centered email canvas on gray background */
-.editorCanvas {
-  flex: 1;
-  background: #e8e5ef;
-  padding: 2rem;
-  overflow-y: auto;
-  position: relative;
-}
-
-/* EditorContent wrapper — centers the white canvas */
-.editorContent {
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-/* The TipTap editable area */
-.editorContent :global(.tiptap) {
-  background: var(--card);
-  border-radius: 6px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
-  padding: 2.5rem 3rem;
+.editorWrap :global(.tiptap.ProseMirror[contenteditable]) {
   min-height: 500px;
-  font-family: var(--body);
-  font-size: 16px;
-  line-height: 1.6;
-  color: var(--ink);
-  outline: none;
-}
-
-.editorContent :global(.tiptap p.is-editor-empty:first-child::before) {
-  color: var(--muted);
-}
-
-/* Right panel: inspector sidebar */
-.inspectorRoot {
-  width: 280px;
-  min-width: 280px;
-  background: var(--card);
-  border-left: 1px solid var(--line);
-  padding: 1rem;
-  overflow-y: auto;
-  font-family: var(--body);
-  font-size: 0.8125rem;
-  color: var(--ink);
+  padding: 1.5rem 3rem;
 }
 
 /* Postscripts section */

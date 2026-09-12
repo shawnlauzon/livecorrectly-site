@@ -1,13 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { StarterKit } from '@react-email/editor/extensions';
-import { EmailTheming } from '@react-email/editor/plugins';
-import { BubbleMenu, SlashCommand, defaultSlashCommands, Inspector } from '@react-email/editor/ui';
-import { composeReactEmail } from '@react-email/editor/core';
-import { useEditor, EditorContent, EditorContext } from '@tiptap/react';
+import { EmailEditor, type EmailEditorRef } from '@react-email/editor';
 import type { Content } from '@tiptap/core';
 import '@react-email/editor/themes/default.css';
 import styles from './editor.module.css';
@@ -30,12 +26,6 @@ function getPassword(): string | null {
   return sessionStorage.getItem('adminPassword');
 }
 
-const extensions = [StarterKit, EmailTheming.configure({ theme: 'basic' })];
-
-/**
- * The editor panel: canvas + inspector in a flex layout.
- * Uses useEditor for full control over where the editable content renders.
- */
 function EditorPanel({
   content,
   editorKey,
@@ -59,17 +49,12 @@ function EditorPanel({
   postscripts: string[];
   setDirty: (d: boolean) => void;
 }) {
-  const editor = useEditor({
-    extensions,
-    content,
-    onUpdate: () => setDirty(true),
-  }, [editorKey]);
-
+  const editorRef = useRef<EmailEditorRef>(null);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   const handleSave = async () => {
-    if (!editor) return;
+    if (!editorRef.current) return;
     const pwd = getPassword();
     if (!pwd) return;
 
@@ -77,8 +62,8 @@ function EditorPanel({
     setSaveMessage(null);
 
     try {
-      const { html } = await composeReactEmail({ editor });
-      const json = editor.getJSON();
+      const html = await editorRef.current.getEmailHTML();
+      const json = editorRef.current.getJSON();
 
       const res = await fetch(`/api/admin/newsletters/${num}`, {
         method: 'PUT',
@@ -113,10 +98,8 @@ function EditorPanel({
     }
   };
 
-  if (!editor) return null;
-
   return (
-    <EditorContext.Provider value={{ editor }}>
+    <>
       {/* Save bar */}
       <div className={styles.saveBar}>
         {saveMessage && (
@@ -139,24 +122,18 @@ function EditorPanel({
         </button>
       </div>
 
-      {/* Two-panel layout */}
-      <div className={styles.editorLayout}>
-        <div className={styles.editorCanvas}>
-          <EditorContent editor={editor} className={styles.editorContent} />
-          <BubbleMenu />
-          <BubbleMenu.LinkDefault />
-          <BubbleMenu.ButtonDefault />
-          <BubbleMenu.ImageDefault />
-          <SlashCommand items={defaultSlashCommands} />
-        </div>
-        <Inspector.Root className={styles.inspectorRoot}>
-          <Inspector.Breadcrumb />
-          <Inspector.Document />
-          <Inspector.Node />
-          <Inspector.Text />
-        </Inspector.Root>
+      {/* Editor */}
+      <p className={styles.editorLabel}>Email body</p>
+      <div className={styles.editorWrap}>
+        <EmailEditor
+          key={editorKey}
+          ref={editorRef}
+          content={content}
+          theme="basic"
+          onUpdate={() => setDirty(true)}
+        />
       </div>
-    </EditorContext.Provider>
+    </>
   );
 }
 
