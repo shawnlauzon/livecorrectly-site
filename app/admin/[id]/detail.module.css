@@ -266,6 +266,19 @@
   background: #fff3f0;
 }
 
+.broadcastAudience {
+  width: 100%;
+  margin: 0;
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.broadcastAudience strong {
+  color: var(--ink);
+}
+
 .welcomeDisabled {
   margin-top: 0.75rem;
   font-family: var(--body);

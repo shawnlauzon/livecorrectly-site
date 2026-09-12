@@ -1668,6 +1668,9 @@ function BroadcastSection({ subscriber }: { subscriber: Subscriber }) {
 
             {isActive ? (
               <div className={styles.welcomeButtons}>
+                <p className={styles.broadcastAudience}>
+                  Sends to <strong>{subscriber.email}</strong> only (1 person via ephemeral Resend segment)
+                </p>
                 <button
                   className={styles.dayButton}
                   disabled={sending || loading}
@@ -1999,6 +2002,9 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
 
         {isActive ? (
           <div className={styles.welcomeButtons}>
+            <p className={styles.broadcastAudience}>
+              Sends to <strong>{subscriber.email}</strong> only (1 person via ephemeral Resend segment)
+            </p>
             <button
               className={styles.dayButton}
               disabled={sending || loading || selectedStep === null}
