@@ -6,8 +6,6 @@ import SiteFooter from '@/components/site-footer';
 import { getWebNewsletter, getAllSlugs, getSlugRedirects } from '@/newsletters/web';
 import { getSubscriberById } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import PersonalizationCallout from './PersonalizationCallout';
-import PersonalizedSection from './PersonalizedSection';
 import NewsletterCta from './NewsletterCta';
 import NewsletterShare from './NewsletterShare';
 import NewsletterTracker from './NewsletterTracker';

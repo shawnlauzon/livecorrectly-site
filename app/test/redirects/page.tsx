@@ -61,7 +61,7 @@ export default function TestRedirectsPage() {
   }, []);
 
   useEffect(() => {
-    loadRules();
+    void (async () => { await loadRules(); })();
   }, [loadRules]);
 
   const handleAdd = async (e: React.FormEvent) => {
