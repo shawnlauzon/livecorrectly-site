@@ -1,9 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { EmailEditor, type EmailEditorRef } from '@react-email/editor';
+import { StarterKit } from '@react-email/editor/extensions';
+import { EmailTheming } from '@react-email/editor/plugins';
+import { BubbleMenu, SlashCommand, defaultSlashCommands, Inspector } from '@react-email/editor/ui';
+import { composeReactEmail } from '@react-email/editor/core';
+import { useEditor, EditorContent, EditorContext } from '@tiptap/react';
+import type { Content } from '@tiptap/core';
 import '@react-email/editor/themes/default.css';
 import styles from './editor.module.css';
 import adminStyles from '../../admin.module.css';
@@ -25,86 +30,46 @@ function getPassword(): string | null {
   return sessionStorage.getItem('adminPassword');
 }
 
-export default function NewsletterEditorPage() {
-  const router = useRouter();
-  const params = useParams();
-  const num = Number(params.number);
+const extensions = [StarterKit, EmailTheming.configure({ theme: 'basic' })];
 
-  const editorRef = useRef<EmailEditorRef>(null);
+/**
+ * The editor panel: canvas + inspector in a flex layout.
+ * Uses useEditor for full control over where the editable content renders.
+ */
+function EditorPanel({
+  content,
+  editorKey,
+  num,
+  subject,
+  preview,
+  slug,
+  description,
+  image,
+  postscripts,
+  setDirty,
+}: {
+  content: Content;
+  editorKey: number;
+  num: number;
+  subject: string;
+  preview: string;
+  slug: string;
+  description: string;
+  image: string;
+  postscripts: string[];
+  setDirty: (d: boolean) => void;
+}) {
+  const editor = useEditor({
+    extensions,
+    content,
+    onUpdate: () => setDirty(true),
+  }, [editorKey]);
 
-  const [data, setData] = useState<NewsletterData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [dirty, setDirty] = useState(false);
-
-  // Metadata fields
-  const [subject, setSubject] = useState('');
-  const [preview, setPreview] = useState('');
-  const [slug, setSlug] = useState('');
-  const [description, setDescription] = useState('');
-  const [image, setImage] = useState('');
-  const [postscripts, setPostscripts] = useState<string[]>([]);
-
-  // Import markdown modal
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importMarkdown, setImportMarkdown] = useState('');
-
-  // Editor content — set once after load or import
-  const [editorContent, setEditorContent] = useState<string | object | null>(null);
-  // Key to force re-mount of EmailEditor when content changes
-  const [editorKey, setEditorKey] = useState(0);
-
-  const fetchNewsletter = useCallback(async () => {
-    const pwd = getPassword();
-    if (!pwd) {
-      router.push('/admin');
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/admin/newsletters/${num}`, {
-        headers: { Authorization: `Bearer ${pwd}` },
-      });
-      if (!res.ok) {
-        if (res.status === 401) {
-          sessionStorage.removeItem('adminPassword');
-          router.push('/admin');
-          return;
-        }
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const json: NewsletterData = await res.json();
-      setData(json);
-      setSubject(json.subject);
-      setPreview(json.preview);
-      setSlug(json.slug ?? '');
-      setDescription(json.description);
-      setImage(json.image ?? '');
-      setPostscripts(json.postscripts ?? []);
-
-      // Load editor content: prefer saved TipTap JSON, otherwise start empty
-      if (json.bodyJson) {
-        setEditorContent(json.bodyJson as object);
-      } else {
-        // No editor content yet — start with placeholder
-        setEditorContent('<p>Use "Import from Markdown" to load existing content, or start typing.</p>');
-      }
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load');
-    } finally {
-      setLoading(false);
-    }
-  }, [num, router]);
-
-  useEffect(() => {
-    void (async () => { await fetchNewsletter(); })();
-  }, [fetchNewsletter]);
 
   const handleSave = async () => {
-    if (!editorRef.current) return;
+    if (!editor) return;
     const pwd = getPassword();
     if (!pwd) return;
 
@@ -112,8 +77,8 @@ export default function NewsletterEditorPage() {
     setSaveMessage(null);
 
     try {
-      const { html } = await editorRef.current.getEmail();
-      const json = editorRef.current.getJSON();
+      const { html } = await composeReactEmail({ editor });
+      const json = editor.getJSON();
 
       const res = await fetch(`/api/admin/newsletters/${num}`, {
         method: 'PUT',
@@ -148,13 +113,126 @@ export default function NewsletterEditorPage() {
     }
   };
 
+  if (!editor) return null;
+
+  return (
+    <EditorContext.Provider value={{ editor }}>
+      {/* Save bar */}
+      <div className={styles.saveBar}>
+        {saveMessage && (
+          <span
+            className={
+              saveMessage.startsWith('Error')
+                ? styles.saveError
+                : styles.saveSuccess
+            }
+          >
+            {saveMessage}
+          </span>
+        )}
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className={styles.saveButton}
+        >
+          {saving ? 'Saving...' : 'Save'}
+        </button>
+      </div>
+
+      {/* Two-panel layout */}
+      <div className={styles.editorLayout}>
+        <div className={styles.editorCanvas}>
+          <EditorContent editor={editor} className={styles.editorContent} />
+          <BubbleMenu />
+          <BubbleMenu.LinkDefault />
+          <BubbleMenu.ButtonDefault />
+          <BubbleMenu.ImageDefault />
+          <SlashCommand items={defaultSlashCommands} />
+        </div>
+        <Inspector.Root className={styles.inspectorRoot}>
+          <Inspector.Breadcrumb />
+          <Inspector.Document />
+          <Inspector.Node />
+          <Inspector.Text />
+        </Inspector.Root>
+      </div>
+    </EditorContext.Provider>
+  );
+}
+
+export default function NewsletterEditorPage() {
+  const router = useRouter();
+  const params = useParams();
+  const num = Number(params.number);
+
+  const [data, setData] = useState<NewsletterData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+
+  // Metadata fields
+  const [subject, setSubject] = useState('');
+  const [preview, setPreview] = useState('');
+  const [slug, setSlug] = useState('');
+  const [description, setDescription] = useState('');
+  const [image, setImage] = useState('');
+  const [postscripts, setPostscripts] = useState<string[]>([]);
+
+  // Import markdown modal
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importMarkdown, setImportMarkdown] = useState('');
+
+  // Editor content — set once after load or import
+  const [editorContent, setEditorContent] = useState<Content | null>(null);
+  const [editorKey, setEditorKey] = useState(0);
+
+  const fetchNewsletter = useCallback(async () => {
+    const pwd = getPassword();
+    if (!pwd) {
+      router.push('/admin');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/newsletters/${num}`, {
+        headers: { Authorization: `Bearer ${pwd}` },
+      });
+      if (!res.ok) {
+        if (res.status === 401) {
+          sessionStorage.removeItem('adminPassword');
+          router.push('/admin');
+          return;
+        }
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const json: NewsletterData = await res.json();
+      setData(json);
+      setSubject(json.subject);
+      setPreview(json.preview);
+      setSlug(json.slug ?? '');
+      setDescription(json.description);
+      setImage(json.image ?? '');
+      setPostscripts(json.postscripts ?? []);
+
+      if (json.bodyJson) {
+        setEditorContent(json.bodyJson as Content);
+      } else {
+        setEditorContent('<p></p>');
+      }
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load');
+    } finally {
+      setLoading(false);
+    }
+  }, [num, router]);
+
+  useEffect(() => {
+    void (async () => { await fetchNewsletter(); })();
+  }, [fetchNewsletter]);
+
   const handleImportMarkdown = () => {
     if (!importMarkdown.trim()) return;
-
-    // Convert markdown to HTML using a simple approach:
-    // The editor can parse HTML strings, so we do a basic markdown→HTML conversion client-side.
-    // For a more complete conversion, we'd use a library, but the editor's HTML parser
-    // handles basic HTML well enough that we can use a lightweight approach.
     const html = basicMarkdownToHtml(importMarkdown);
     setEditorContent(html);
     setEditorKey(k => k + 1);
@@ -197,21 +275,28 @@ export default function NewsletterEditorPage() {
   }
 
   return (
-    <div className={adminStyles.container}>
-      <div className={adminStyles.header}>
-        <h1 className={adminStyles.title}>
-          Newsletter #{num}
-        </h1>
-        <p className={adminStyles.subtitle}>
-          <Link href="/admin/newsletters" style={{ color: 'var(--grape)' }}>
-            Back to newsletters
-          </Link>
-          {data?.bodyJson ? (
-            <span className={styles.badge}>Editor content saved</span>
-          ) : (
-            <span className={styles.badgeMuted}>Markdown only — import to edit visually</span>
-          )}
-        </p>
+    <div className={styles.pageContainer}>
+      <div className={styles.pageHeader}>
+        <div>
+          <h1 className={adminStyles.title}>Newsletter #{num}</h1>
+          <p className={adminStyles.subtitle}>
+            <Link href="/admin/newsletters" style={{ color: 'var(--grape)' }}>
+              Back to newsletters
+            </Link>
+            {data?.bodyJson != null && (
+              <span className={styles.badge}>Saved</span>
+            )}
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            setImportMarkdown(data?.bodyMarkdown ?? '');
+            setShowImportModal(true);
+          }}
+          className={styles.importButton}
+        >
+          Import from Markdown
+        </button>
       </div>
 
       {/* Metadata panel */}
@@ -267,53 +352,20 @@ export default function NewsletterEditorPage() {
         </div>
       </div>
 
-      {/* Action bar */}
-      <div className={styles.actionBar}>
-        <div className={styles.actionBarLeft}>
-          <button
-            onClick={() => {
-              setImportMarkdown(data?.bodyMarkdown ?? '');
-              setShowImportModal(true);
-            }}
-            className={styles.importButton}
-          >
-            Import from Markdown
-          </button>
-        </div>
-        <div className={styles.actionBarRight}>
-          {saveMessage && (
-            <span
-              className={
-                saveMessage.startsWith('Error')
-                  ? styles.saveError
-                  : styles.saveSuccess
-              }
-            >
-              {saveMessage}
-            </span>
-          )}
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className={styles.saveButton}
-          >
-            {saving ? 'Saving...' : 'Save'}
-          </button>
-        </div>
-      </div>
-
       {/* Editor */}
       {editorContent !== null && (
-        <div className={styles.editorWrapper}>
-          <EmailEditor
-            key={editorKey}
-            ref={editorRef}
-            content={editorContent as string | object}
-            theme="basic"
-            onUpdate={() => setDirty(true)}
-            className={styles.editor}
-          />
-        </div>
+        <EditorPanel
+          content={editorContent}
+          editorKey={editorKey}
+          num={num}
+          subject={subject}
+          preview={preview}
+          slug={slug}
+          description={description}
+          image={image}
+          postscripts={postscripts}
+          setDirty={setDirty}
+        />
       )}
 
       {/* Postscripts */}
@@ -385,16 +437,10 @@ export default function NewsletterEditorPage() {
 
 /**
  * Basic markdown to HTML conversion for editor import.
- * Handles the most common patterns. The TipTap editor's HTML parser
- * does the heavy lifting of converting to its internal format.
  */
 function basicMarkdownToHtml(md: string): string {
   let html = md;
 
-  // Escape HTML entities in the source
-  // (skip this — markdown may contain intentional HTML)
-
-  // Headers
   html = html.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>');
   html = html.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>');
   html = html.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>');
@@ -402,19 +448,15 @@ function basicMarkdownToHtml(md: string): string {
   html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
   html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
 
-  // Bold and italic
   html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
 
-  // Links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 
-  // Horizontal rules
   html = html.replace(/^---$/gm, '<hr>');
   html = html.replace(/^\*\*\*$/gm, '<hr>');
 
-  // Unordered lists
   html = html.replace(/^(?:- (.+)\n?)+/gm, (match) => {
     const items = match.trim().split('\n').map(line => {
       const content = line.replace(/^- /, '');
@@ -423,7 +465,6 @@ function basicMarkdownToHtml(md: string): string {
     return `<ul>${items}</ul>`;
   });
 
-  // Ordered lists
   html = html.replace(/^(?:\d+\. (.+)\n?)+/gm, (match) => {
     const items = match.trim().split('\n').map(line => {
       const content = line.replace(/^\d+\.\s/, '');
@@ -432,10 +473,8 @@ function basicMarkdownToHtml(md: string): string {
     return `<ol>${items}</ol>`;
   });
 
-  // Blockquotes
   html = html.replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>');
 
-  // Paragraphs: wrap remaining lines that aren't already HTML
   const lines = html.split('\n');
   const result: string[] = [];
   let inBlock = false;
