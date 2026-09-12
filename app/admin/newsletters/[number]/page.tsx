@@ -1,10 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { EmailEditor, type EmailEditorRef } from '@react-email/editor';
-import type { Content } from '@tiptap/core';
+import type { Content, Editor, JSONContent } from '@tiptap/core';
+import { EditorProvider, useCurrentEditor } from '@tiptap/react';
+import { Placeholder } from '@tiptap/extension-placeholder';
+import { StarterKit } from '@react-email/editor/extensions';
+import { EmailTheming, useEditorImage, imageSlashCommand } from '@react-email/editor/plugins';
+import { BubbleMenu, SlashCommand, defaultSlashCommands } from '@react-email/editor/ui';
+import { composeReactEmail } from '@react-email/editor/core';
 import '@react-email/editor/themes/default.css';
 import styles from './editor.module.css';
 import adminStyles from '../../admin.module.css';
@@ -22,9 +27,46 @@ interface NewsletterData {
   bodyMarkdown: string;
 }
 
+interface EditorHandle {
+  getEmailHTML: () => Promise<string>;
+  getJSON: () => JSONContent;
+}
+
 function getPassword(): string | null {
   return sessionStorage.getItem('adminPassword');
 }
+
+/** Bridges the TipTap editor instance into an imperative ref for save. */
+function RefBridge({
+  editorRef,
+  onUpdate,
+}: {
+  editorRef: React.RefObject<EditorHandle | null>;
+  onUpdate: () => void;
+}) {
+  const { editor } = useCurrentEditor();
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+
+  React.useImperativeHandle(editorRef, () => ({
+    getEmailHTML: async () => {
+      if (!editor) return '';
+      return (await composeReactEmail({ editor })).html;
+    },
+    getJSON: () => editor?.getJSON() ?? { type: 'doc', content: [] },
+  }), [editor]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const handler = () => onUpdateRef.current();
+    editor.on('update', handler);
+    return () => { editor.off('update', handler); };
+  }, [editor]);
+
+  return null;
+}
+
+const slashCommandItems = [...defaultSlashCommands, imageSlashCommand];
 
 function EditorPanel({
   content,
@@ -49,7 +91,7 @@ function EditorPanel({
   postscripts: string[];
   setDirty: (d: boolean) => void;
 }) {
-  const editorRef = useRef<EmailEditorRef>(null);
+  const editorRef = useRef<EditorHandle | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
@@ -74,6 +116,21 @@ function EditorPanel({
     const { url } = await res.json();
     return { url };
   }, []);
+
+  const imageExtension = useEditorImage({ uploadImage: handleUploadImage });
+
+  const extensions = useMemo(() => [
+    StarterKit.configure(),
+    Placeholder.configure({
+      placeholder: ({ node }: { node: { type: { name: string }; attrs: { level?: number } } }) => {
+        if (node.type.name === 'heading') return `Heading ${node.attrs.level}`;
+        return "Press '/' for commands";
+      },
+      includeChildren: true,
+    }),
+    EmailTheming.configure({ theme: 'basic' }),
+    imageExtension,
+  ], [imageExtension]);
 
   const handleSave = async () => {
     if (!editorRef.current) return;
@@ -147,14 +204,19 @@ function EditorPanel({
       {/* Editor */}
       <p className={styles.editorLabel}>Email body</p>
       <div className={styles.editorWrap}>
-        <EmailEditor
+        <EditorProvider
           key={editorKey}
-          ref={editorRef}
+          extensions={extensions}
           content={content}
-          theme="basic"
-          onUploadImage={handleUploadImage}
-          onUpdate={() => setDirty(true)}
-        />
+          immediatelyRender={false}
+        >
+          <RefBridge editorRef={editorRef} onUpdate={() => setDirty(true)} />
+          <BubbleMenu hideWhenActiveNodes={['button', 'horizontalRule']} hideWhenActiveMarks={['link']} />
+          <BubbleMenu.LinkDefault />
+          <BubbleMenu.ButtonDefault />
+          <BubbleMenu.ImageDefault />
+          <SlashCommand items={slashCommandItems} />
+        </EditorProvider>
       </div>
     </>
   );
@@ -521,7 +583,10 @@ function basicMarkdownToHtml(md: string): string {
     return `<ol>${items}</ol>`;
   });
 
+  // Convert each > line to its own blockquote, with an empty paragraph between
+  // consecutive ones so TipTap/ProseMirror doesn't merge adjacent blockquotes.
   html = html.replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>');
+  html = html.replace(/<\/blockquote>\n<blockquote>/g, '</blockquote>\n<p></p>\n<blockquote>');
 
   html = html.replace(/\\\n/g, '<br>');
 
