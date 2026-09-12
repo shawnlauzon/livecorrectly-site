@@ -8,16 +8,34 @@ import { getNewsletterNumbers } from '@/emails/newsletter-loader';
 import { loadNewsletter } from '@/newsletters/loader';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import { hasLiquidConditionals } from '@/newsletters/liquid-properties';
+import { getNextCadenceDates } from '@/newsletters/cadence';
+
+/**
+ * Project how many weeks until a subscriber at `currentStep` reaches newsletter `targetNum`.
+ *
+ * Welcome-series subscribers finish within the first week (daily sends), so they're
+ * treated as starting at WELCOME_SERIES_LENGTH + 1.  After that, newsletters go out
+ * once per week, so weeks = targetNum - effectiveStep + 1.
+ *
+ * Returns 0 for "already sent" (currentStep > targetNum).
+ */
+function weeksUntilReady(currentStep: number, targetNum: number): number {
+  if (currentStep > targetNum) return 0; // already sent
+  const effectiveStep = Math.max(currentStep, WELCOME_SERIES_LENGTH + 1);
+  return targetNum - effectiveStep + 1;
+}
 
 /**
  * GET /api/admin/newsletters
  *
- * List all newsletters with their scheduling status and audience counts.
+ * List all newsletters with their scheduling status, audience counts, and
+ * projected send dates.
  *
  * Per newsletter returns:
  * - sentCount: subscribers who have already received this newsletter (next_step > N)
- * - nextWeekCount: active subscribers due for it now (next_step = N, will be sent when scheduled)
- * - laterCount: active subscribers still working through earlier emails (next_step < N)
+ * - nextWeekCount: active subscribers projected to be ready within 1 week
+ * - laterCount: active subscribers projected to need 2+ weeks
+ * - projectedSendAt: ISO timestamp of the projected (or actual) send date
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -48,23 +66,50 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const newsletterNumbers = getNewsletterNumbers();
+    const newsletterNumbers = await getNewsletterNumbers();
     const postWelcomeNumbers = newsletterNumbers.filter(n => n > WELCOME_SERIES_LENGTH);
 
-    const newsletters = postWelcomeNumbers.map(num => {
-      const raw = loadNewsletter(num);
+    // Compute projected cadence dates for unsent/unscheduled newsletters.
+    // Sent/scheduled newsletters use their actual date; unsent ones get assigned
+    // consecutive cadence slots in sequence order.
+    const unsentNumbers = postWelcomeNumbers.filter(num => {
+      const schedule = scheduleMap.get(num);
+      return !schedule || (schedule.status !== 'scheduled' && schedule.status !== 'sent');
+    });
+    const cadenceDates = getNextCadenceDates(new Date(), unsentNumbers.length);
+    const projectedDateMap = new Map<number, string>();
+    unsentNumbers.forEach((num, i) => {
+      projectedDateMap.set(num, cadenceDates[i].toISOString());
+    });
+
+    const newsletters = await Promise.all(postWelcomeNumbers.map(async num => {
+      const raw = await loadNewsletter(num);
       const schedule = scheduleMap.get(num);
 
       // Sent: all subscribers (any status) who have progressed past this newsletter
       const sentCount = allSubscribers.filter(s => s.next_step > num).length;
 
-      // Next week: active subscribers whose next_step is exactly this newsletter
-      const nextWeekSubs = activeSubscribers.filter(s => s.next_step === num);
+      // Project readiness: welcome-series subscribers finish within the first week,
+      // then newsletters go out once per week.
+      const nextWeekSubs = activeSubscribers.filter(
+        s => s.next_step <= num && weeksUntilReady(s.next_step, num) === 1,
+      );
       const nextWeekCount = nextWeekSubs.length;
 
-      // Later: active subscribers still on earlier emails (will eventually reach this one)
-      const laterSubs = activeSubscribers.filter(s => s.next_step < num);
+      const laterSubs = activeSubscribers.filter(
+        s => s.next_step <= num && weeksUntilReady(s.next_step, num) > 1,
+      );
       const laterCount = laterSubs.length;
+
+      // Determine the send date to display:
+      // - Scheduled/sent → use the schedule's actual date
+      // - Unsent → use the projected cadence date
+      let projectedSendAt: string | null = null;
+      if (schedule?.status === 'scheduled' || schedule?.status === 'sent') {
+        projectedSendAt = schedule.scheduled_at;
+      } else {
+        projectedSendAt = projectedDateMap.get(num) ?? null;
+      }
 
       return {
         number: num,
@@ -74,6 +119,7 @@ export async function GET(request: NextRequest) {
         sentCount,
         nextWeekCount,
         laterCount,
+        projectedSendAt,
         nextWeekSubscribers: nextWeekSubs.map(s => ({
           id: s.id,
           firstName: s.first_name,
@@ -97,7 +143,7 @@ export async function GET(request: NextRequest) {
             }
           : null,
       };
-    });
+    }));
 
     return NextResponse.json({ newsletters });
   } catch (error) {

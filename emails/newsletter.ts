@@ -11,13 +11,13 @@ export { getNewsletterCount, getMaxNewsletterNumber, getNewsletterNumbers } from
  * Step matches subscriber.next_step directly.
  * Returns null if the newsletter doesn't exist.
  */
-export function getNewsletterEmail(
+export async function getNewsletterEmail(
   step: number,
   subscriber: Subscriber,
   chart: ReturnType<typeof parseChartForEmail> | null,
   unsubscribeUrl: string
-): React.ReactElement | null {
-  const newsletter = getNewsletter(step, subscriber.first_name, subscriber.id);
+): Promise<React.ReactElement | null> {
+  const newsletter = await getNewsletter(step, subscriber.first_name, subscriber.id);
   if (!newsletter) return null;
 
   return React.createElement(NewsletterTemplate, {
@@ -34,7 +34,7 @@ export function getNewsletterEmail(
 /**
  * Get the subject line for a newsletter step, with firstName replacement.
  */
-export function getNewsletterSubject(step: number, firstName: string, subscriberId?: string): string {
-  const newsletter = getNewsletter(step, firstName, subscriberId);
+export async function getNewsletterSubject(step: number, firstName: string, subscriberId?: string): Promise<string> {
+  const newsletter = await getNewsletter(step, firstName, subscriberId);
   return newsletter?.subject ?? '';
 }

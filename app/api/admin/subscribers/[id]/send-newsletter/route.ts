@@ -38,7 +38,7 @@ export async function POST(
 
     const body = await request.json();
     const step = body.step;
-    const newsletterNumbers = getNewsletterNumbers();
+    const newsletterNumbers = await getNewsletterNumbers();
 
     if (typeof step !== 'number' || !newsletterNumbers.includes(step)) {
       return NextResponse.json(

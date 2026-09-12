@@ -1,6 +1,5 @@
-import fs from 'fs';
-import path from 'path';
 import matter from 'gray-matter';
+import { getDbNewsletters } from '@/lib/db';
 
 /**
  * Raw newsletter content parsed from front-matter + markdown.
@@ -29,7 +28,7 @@ export interface RawNewsletter {
 
 /**
  * Parse a newsletter markdown string into a RawNewsletter.
- * Exported for testing — no file I/O involved.
+ * Exported for the seed script and tests — no DB or file I/O involved.
  */
 export function parseRawNewsletter(content: string, number: number): RawNewsletter {
   const { data, content: body } = matter(content);
@@ -67,71 +66,57 @@ export function parseRawNewsletter(content: string, number: number): RawNewslett
   };
 }
 
-/** Cached raw newsletters loaded from disk, keyed by number */
-let cache: Map<number, RawNewsletter> | null = null;
+/** Cached raw newsletters loaded from DB, keyed by number */
+let nlCache: Map<number, RawNewsletter> | null = null;
 
 /**
- * Load all newsletters from newsletters/*.md.
+ * Load all newsletters from the DB.
  * In production, results are cached for the process lifetime.
- * In development, files are re-read on every call so edits are reflected immediately.
+ * In development, DB is re-queried on every call so edits are reflected.
  */
-function loadAll(): Map<number, RawNewsletter> {
-  if (cache && process.env.NODE_ENV === 'production') return cache;
+async function loadAll(): Promise<Map<number, RawNewsletter>> {
+  if (nlCache && process.env.NODE_ENV === 'production') return nlCache;
 
-  cache = new Map();
-  const dir = path.join(process.cwd(), 'newsletters');
-
-  let files: string[];
-  try {
-    files = fs.readdirSync(dir).filter(f => f.endsWith('.md')).sort();
-  } catch {
-    // Directory doesn't exist — no newsletters available
-    return cache;
-  }
-
-  for (const file of files) {
-    const num = parseInt(file.replace('.md', ''), 10);
-    if (isNaN(num) || num < 1) continue;
-
-    const raw = fs.readFileSync(path.join(dir, file), 'utf-8');
-    cache.set(num, parseRawNewsletter(raw, num));
-  }
-
-  return cache;
+  nlCache = await getDbNewsletters();
+  return nlCache;
 }
 
 /**
  * Load a single newsletter by its number (matches subscriber.next_step).
  * Returns null if the newsletter doesn't exist.
  */
-export function loadNewsletter(step: number): RawNewsletter | null {
-  return loadAll().get(step) ?? null;
+export async function loadNewsletter(step: number): Promise<RawNewsletter | null> {
+  const all = await loadAll();
+  return all.get(step) ?? null;
 }
 
 /**
  * Load all newsletters as a Map keyed by number.
  */
-export function loadAllNewsletters(): Map<number, RawNewsletter> {
+export async function loadAllNewsletters(): Promise<Map<number, RawNewsletter>> {
   return loadAll();
 }
 
-/** How many newsletters are available on disk. */
-export function getNewsletterCount(): number {
-  return loadAll().size;
+/** How many newsletters are available in the DB. */
+export async function getNewsletterCount(): Promise<number> {
+  const all = await loadAll();
+  return all.size;
 }
 
-/** The highest newsletter number on disk, or 0 if none exist. */
-export function getMaxNewsletterNumber(): number {
-  const keys = [...loadAll().keys()];
+/** The highest newsletter number in the DB, or 0 if none exist. */
+export async function getMaxNewsletterNumber(): Promise<number> {
+  const all = await loadAll();
+  const keys = [...all.keys()];
   return keys.length > 0 ? Math.max(...keys) : 0;
 }
 
-/** Sorted array of all newsletter numbers on disk. */
-export function getNewsletterNumbers(): number[] {
-  return [...loadAll().keys()].sort((a, b) => a - b);
+/** Sorted array of all newsletter numbers in the DB. */
+export async function getNewsletterNumbers(): Promise<number[]> {
+  const all = await loadAll();
+  return [...all.keys()].sort((a, b) => a - b);
 }
 
 /** Clear the cache (useful for tests). */
 export function clearNewsletterCache(): void {
-  cache = null;
+  nlCache = null;
 }

@@ -21,7 +21,7 @@ const UUID_RE =
 
 export async function generateStaticParams() {
   const current = (await getAllSlugs()).map((slug) => ({ slug }));
-  const oldSlugs = [...getSlugRedirects().keys()].map((slug) => ({ slug }));
+  const oldSlugs = [...(await getSlugRedirects()).keys()].map((slug) => ({ slug }));
   return [...current, ...oldSlugs];
 }
 
@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const issue = await getWebNewsletter(slug);
   if (!issue) {
-    const redirectSlug = getSlugRedirects().get(slug);
+    const redirectSlug = (await getSlugRedirects()).get(slug);
     if (redirectSlug) permanentRedirect(`/newsletter/${redirectSlug}`);
     return {};
   }
@@ -98,7 +98,7 @@ export default async function NewsletterIssuePage({
   const issue = await getWebNewsletter(slug, chart);
   if (!issue) {
     // Check if this is an old slug that should redirect
-    const redirectSlug = getSlugRedirects().get(slug);
+    const redirectSlug = (await getSlugRedirects()).get(slug);
     if (redirectSlug) {
       const qs = subscriberParam ? `?s=${subscriberParam}` : '';
       permanentRedirect(`/newsletter/${redirectSlug}${qs}`);

@@ -45,10 +45,10 @@ export function hasInlinePersonalization(number: number): boolean {
  * Used by the cron to decide between transactional (per-subscriber) and
  * broadcast (single API call) sending paths.
  */
-export function requiresPerSubscriberRendering(number: number): boolean {
+export async function requiresPerSubscriberRendering(number: number): Promise<boolean> {
   if (number in personalizations) return true;
 
-  const raw = loadNewsletter(number);
+  const raw = await loadNewsletter(number);
   if (raw && hasLiquidConditionals(raw.bodyMarkdown)) return true;
 
   return false;

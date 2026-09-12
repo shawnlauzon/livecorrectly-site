@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, duplicate: true, sent: 0, skipped: 0 });
   }
 
-  const maxNewsletterNumber = getMaxNewsletterNumber();
+  const maxNewsletterNumber = await getMaxNewsletterNumber();
   if (maxNewsletterNumber === 0) {
     console.log('[cron] No newsletter files found, skipping');
     return NextResponse.json({ ok: true, sent: 0, skipped: 0, noNewsletters: true });
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
 
   for (const [newsletterNumber, subscribers] of groups) {
     // Check if this newsletter has Liquid and whether it's been published
-    const raw = loadNewsletter(newsletterNumber);
+    const raw = await loadNewsletter(newsletterNumber);
     const hasLiquid = raw ? hasLiquidConditionals(raw.bodyMarkdown) : false;
 
     // Skip unpublished newsletters that have Liquid conditionals.
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
       continue;
     }
 
-    if (requiresPerSubscriberRendering(newsletterNumber)) {
+    if (await requiresPerSubscriberRendering(newsletterNumber)) {
       // Transactional path: send individually (body differs per subscriber)
       // Handles both React personalization (04/05) and Liquid conditionals (07+)
       for (const subscriber of subscribers) {
@@ -159,8 +159,8 @@ export async function GET(request: NextRequest) {
             sent++;
           } else {
             // React personalization path (04/05)
-            const subject = getNewsletterSubject(newsletterNumber, subscriber.first_name, subscriber.id);
-            const emailComponent = getNewsletterEmail(newsletterNumber, subscriber, chart, unsubscribeUrl);
+            const subject = await getNewsletterSubject(newsletterNumber, subscriber.first_name, subscriber.id);
+            const emailComponent = await getNewsletterEmail(newsletterNumber, subscriber, chart, unsubscribeUrl);
 
             if (!emailComponent) {
               skipped++;

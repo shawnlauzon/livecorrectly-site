@@ -346,7 +346,7 @@ async function run(): Promise<void> {
   // --- Newsletters ---
 
   if (runNewsletter) {
-    const maxNum = getMaxNewsletterNumber();
+    const maxNum = await getMaxNewsletterNumber();
     report.maxNewsletterNumber = maxNum;
 
     const allNewsletterDue = await getNewsletterDueSubscribers(WELCOME_SERIES_LENGTH);
@@ -374,9 +374,9 @@ async function run(): Promise<void> {
       }
 
       const chart = parseChartForEmail(subscriber.chart.chart);
-      const subject = getNewsletterSubject(step, subscriber.first_name, subscriber.id);
+      const subject = await getNewsletterSubject(step, subscriber.first_name, subscriber.id);
       const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, `newsletter_${step}`);
-      const emailComponent = getNewsletterEmail(step, subscriber, chart, unsubscribeUrl);
+      const emailComponent = await getNewsletterEmail(step, subscriber, chart, unsubscribeUrl);
 
       const recipient = formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email);
       const sendable = await canSendTo(recipient);

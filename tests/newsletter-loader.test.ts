@@ -171,30 +171,30 @@ Body.
 });
 
 describe('getNewsletter', () => {
-  it('replaces {{firstName}} in subject, preview, and body', () => {
-    // getNewsletter reads from disk — use the actual 04.md file (first newsletter, matches next_step 4)
-    const result = getNewsletter(4, 'Alice');
+  it('replaces {{firstName}} in subject, preview, and body', async () => {
+    // getNewsletter reads from DB — use the actual newsletter 4 (first newsletter, matches next_step 4)
+    const result = await getNewsletter(4, 'Alice');
     expect(result).not.toBeNull();
     expect(result!.bodyHtml).toContain('Alice');
     expect(result!.bodyHtml).not.toContain('{{firstName}}');
   });
 
-  it('returns null for non-existent step', () => {
-    expect(getNewsletter(999, 'Alice')).toBeNull();
+  it('returns null for non-existent step', async () => {
+    expect(await getNewsletter(999, 'Alice')).toBeNull();
   });
 });
 
 describe('getNewsletterRaw', () => {
-  it('returns newsletter without variable replacement', () => {
-    const result = getNewsletterRaw(4);
+  it('returns newsletter without variable replacement', async () => {
+    const result = await getNewsletterRaw(4);
     expect(result).not.toBeNull();
     expect(result!.bodyHtml).toContain('{{firstName}}');
   });
 });
 
 describe('getNewsletterCount', () => {
-  it('returns the number of newsletter files', () => {
-    const count = getNewsletterCount();
+  it('returns the number of newsletter files', async () => {
+    const count = await getNewsletterCount();
     expect(count).toBeGreaterThanOrEqual(1);
   });
 });

@@ -36,7 +36,7 @@ export async function GET(
     }
 
     const step = parseInt(stepParam, 10);
-    const newsletterNumbers = getNewsletterNumbers();
+    const newsletterNumbers = await getNewsletterNumbers();
 
     if (isNaN(step) || !newsletterNumbers.includes(step)) {
       return NextResponse.json(
@@ -51,15 +51,15 @@ export async function GET(
     }
 
     const chart = parseChartForEmail(subscriber.chart.chart);
-    const subject = getNewsletterSubject(step, subscriber.first_name, subscriber.id);
+    const subject = await getNewsletterSubject(step, subscriber.first_name, subscriber.id);
     const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, `newsletter_${step}`);
 
-    const emailComponent = getNewsletterEmail(step, subscriber, chart, unsubscribeUrl);
+    const emailComponent = await getNewsletterEmail(step, subscriber, chart, unsubscribeUrl);
     if (!emailComponent) {
       return NextResponse.json({ error: `No newsletter template for step ${step}` }, { status: 400 });
     }
 
-    const newsletter = getNewsletter(step, subscriber.first_name, subscriber.id);
+    const newsletter = await getNewsletter(step, subscriber.first_name, subscriber.id);
     const preview = newsletter?.preview ?? '';
     const html = await renderEmail(emailComponent);
 

@@ -142,7 +142,7 @@ async function renderForWeb(
 export async function getWebNewsletters(): Promise<WebNewsletter[]> {
   const sendDates = await getNewsletterSendDates();
   const isDev = process.env.NODE_ENV === 'development';
-  const all = loadAllNewsletters();
+  const all = await loadAllNewsletters();
 
   const results: WebNewsletter[] = [];
   for (const [num, raw] of all) {
@@ -170,7 +170,7 @@ export async function getWebNewsletter(
 ): Promise<WebNewsletter | null> {
   const sendDates = await getNewsletterSendDates();
   const isDev = process.env.NODE_ENV === 'development';
-  const all = loadAllNewsletters();
+  const all = await loadAllNewsletters();
 
   for (const [num, raw] of all) {
     if (raw.slug !== slug) continue;
@@ -194,8 +194,8 @@ export async function getAllSlugs(): Promise<string[]> {
  * Build a map of old slug → current slug for all newsletters that declare old-slugs.
  * Used to issue permanent redirects when visitors hit a renamed URL.
  */
-export function getSlugRedirects(): Map<string, string> {
-  const all = loadAllNewsletters();
+export async function getSlugRedirects(): Promise<Map<string, string>> {
+  const all = await loadAllNewsletters();
   const redirects = new Map<string, string>();
   for (const [, raw] of all) {
     if (!raw.slug) continue;

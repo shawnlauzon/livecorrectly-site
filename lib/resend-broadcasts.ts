@@ -251,7 +251,7 @@ export async function renderNewsletterForBroadcast(
   const resendFirstName = '{{{FIRST_NAME|there}}}';
   const resendSubscriberId = '{{{contact.neon_id}}}';
 
-  const newsletter = getNewsletter(
+  const newsletter = await getNewsletter(
     newsletterNumber,
     resendFirstName,
     resendSubscriberId,
@@ -273,7 +273,7 @@ export async function renderNewsletterForBroadcast(
   const html = await renderEmail(component);
 
   // Subject also needs Resend template vars for firstName
-  const subject = getNewsletterSubject(
+  const subject = await getNewsletterSubject(
     newsletterNumber,
     resendFirstName,
     resendSubscriberId,
@@ -303,7 +303,7 @@ export async function renderNewsletterForBroadcastWithMarkdown(
   const resendSubscriberId = '{{{contact.neon_id}}}';
 
   // Load the newsletter for metadata (subject, preview, image, ps)
-  const raw = loadNewsletter(newsletterNumber);
+  const raw = await loadNewsletter(newsletterNumber);
   if (!raw) {
     throw new Error(`Newsletter ${newsletterNumber} not found`);
   }

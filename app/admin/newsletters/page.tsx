@@ -29,6 +29,7 @@ interface NewsletterInfo {
   sentCount: number;
   nextWeekCount: number;
   laterCount: number;
+  projectedSendAt: string | null;
   nextWeekSubscribers: ReadySubscriber[];
   laterSubscribers: ReadySubscriber[];
   schedule: NewsletterSchedule | null;
@@ -98,7 +99,7 @@ export default function AdminNewslettersPage() {
     void (async () => { await fetchNewsletters(); })();
   }, [fetchNewsletters]);
 
-  const handleSchedule = async (newsletterNumber: number) => {
+  const handleSchedule = async (newsletterNumber: number, sendAt?: string | null) => {
     const pwd = getPassword();
     if (!pwd) return;
 
@@ -112,7 +113,7 @@ export default function AdminNewslettersPage() {
           Authorization: `Bearer ${pwd}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ newsletterNumber }),
+        body: JSON.stringify({ newsletterNumber, ...(sendAt && { sendAt }) }),
       });
 
       const data = await res.json();
@@ -217,7 +218,7 @@ export default function AdminNewslettersPage() {
   ) {
     return (
       <tr>
-        <td colSpan={6} style={{ padding: 0 }}>
+        <td colSpan={7} style={{ padding: 0 }}>
           <div
             style={{
               background: 'var(--paper)',
@@ -368,7 +369,8 @@ export default function AdminNewslettersPage() {
             <th style={{ width: '4.5rem', textAlign: 'center' }}>Sent</th>
             <th style={{ width: '6rem', textAlign: 'center' }}>Next week</th>
             <th style={{ width: '5.5rem', textAlign: 'center' }}>2+ weeks</th>
-            <th style={{ width: '14rem' }}>Actions</th>
+            <th style={{ width: '10rem' }}>Send date</th>
+            <th style={{ width: '10rem' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -435,35 +437,40 @@ export default function AdminNewslettersPage() {
                 )}
               </td>
               <td>
+                <span
+                  style={{
+                    fontFamily: 'var(--body)',
+                    fontSize: '0.75rem',
+                    color: 'var(--muted)',
+                  }}
+                >
+                  {nl.projectedSendAt ? formatDateTime(nl.projectedSendAt) : '—'}
+                </span>
+              </td>
+              <td>
                 <div
                   style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', alignItems: 'center' }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {/* Scheduled/unscheduled status badge */}
-                  <span
-                    style={{
-                      fontSize: '0.6875rem',
-                      fontWeight: 600,
-                      padding: '2px 8px',
-                      borderRadius: '3px',
-                      background: nl.schedule?.status === 'scheduled'
-                        ? '#E6F9ED'
-                        : nl.schedule?.status === 'sent'
-                          ? 'var(--paper)'
-                          : '#FFF8E6',
-                      color: nl.schedule?.status === 'scheduled'
-                        ? '#1a7a3a'
-                        : nl.schedule?.status === 'sent'
-                          ? 'var(--muted)'
-                          : '#A67C00',
-                    }}
-                  >
-                    {nl.schedule?.status === 'scheduled'
-                      ? 'Scheduled'
-                      : nl.schedule?.status === 'sent'
-                        ? 'Sent'
-                        : 'Unscheduled'}
-                  </span>
+                  {/* Status badge — only for scheduled or sent */}
+                  {(nl.schedule?.status === 'scheduled' || nl.schedule?.status === 'sent') && (
+                    <span
+                      style={{
+                        fontSize: '0.6875rem',
+                        fontWeight: 600,
+                        padding: '2px 8px',
+                        borderRadius: '3px',
+                        background: nl.schedule?.status === 'scheduled'
+                          ? '#E6F9ED'
+                          : 'var(--paper)',
+                        color: nl.schedule?.status === 'scheduled'
+                          ? '#1a7a3a'
+                          : 'var(--muted)',
+                      }}
+                    >
+                      {nl.schedule?.status === 'scheduled' ? 'Scheduled' : 'Sent'}
+                    </span>
+                  )}
 
                   {/* Schedule button — show if not currently scheduled and has next-week subscribers */}
                   {nl.schedule?.status !== 'scheduled' && nl.nextWeekCount > 0 && (
@@ -487,7 +494,7 @@ export default function AdminNewslettersPage() {
                           </div>
                           <div style={{ display: 'flex', gap: '0.375rem' }}>
                             <button
-                              onClick={() => handleSchedule(nl.number)}
+                              onClick={() => handleSchedule(nl.number, nl.projectedSendAt)}
                               disabled={actionLoading}
                               style={{
                                 fontFamily: 'var(--body)',
@@ -567,18 +574,6 @@ export default function AdminNewslettersPage() {
                     </button>
                   )}
 
-                  {/* Scheduled time info */}
-                  {nl.schedule?.status === 'scheduled' && (
-                    <span
-                      style={{
-                        fontFamily: 'var(--body)',
-                        fontSize: '0.6875rem',
-                        color: 'var(--muted)',
-                      }}
-                    >
-                      {formatDateTime(nl.schedule.scheduledAt)}
-                    </span>
-                  )}
                 </div>
               </td>
             </tr>

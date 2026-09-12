@@ -2,6 +2,7 @@ import { cache } from 'react';
 import { neon, NeonQueryFunction } from '@neondatabase/serverless';
 import { BirthInput, EmailStatus, Subscriber, EmailSend, EmailEvent, EmailEventType } from './types/subscriber';
 import type { ChartGroup, ChartRecord } from './types/chart';
+import type { RawNewsletter } from '@/newsletters/loader';
 
 /** A redirect rule mapping a slug + chart property to a destination URL. */
 export interface RedirectRule {
@@ -1026,5 +1027,67 @@ export async function getAllContactSyncStates(): Promise<Map<string, ContactSync
     });
   }
   return map;
+}
+
+// --- Newsletters (DB-backed content) ---
+
+/**
+ * Map a newsletters table row to the RawNewsletter interface.
+ */
+function rowToRawNewsletter(row: Record<string, unknown>): RawNewsletter {
+  const rawImage = (row.image as string | null) ?? null;
+  const bodyMarkdown = row.body_markdown as string;
+  const showHeroImage = !!rawImage && !bodyMarkdown.includes(rawImage);
+
+  return {
+    number: row.number as number,
+    subject: row.subject as string,
+    preview: (row.preview as string) ?? '',
+    slug: (row.slug as string | null) ?? null,
+    description: (row.description as string) ?? '',
+    rawImage,
+    showHeroImage,
+    bodyMarkdown,
+    oldSlugs: (row.old_slugs as string[]) ?? [],
+    rawPs: (row.postscripts as string[]) ?? [],
+  };
+}
+
+/**
+ * Get a single newsletter by number from the DB.
+ */
+export async function getDbNewsletter(num: number): Promise<RawNewsletter | null> {
+  const db = getDb();
+  const rows = await withRetry(() => db`
+    SELECT * FROM newsletters WHERE number = ${num}
+  `);
+  return rows.length > 0 ? rowToRawNewsletter(rows[0]) : null;
+}
+
+/**
+ * Get all newsletters from the DB, keyed by number.
+ */
+export async function getDbNewsletters(): Promise<Map<number, RawNewsletter>> {
+  const db = getDb();
+  const rows = await withRetry(() => db`
+    SELECT * FROM newsletters ORDER BY number
+  `);
+  const map = new Map<number, RawNewsletter>();
+  for (const row of rows) {
+    const nl = rowToRawNewsletter(row);
+    map.set(nl.number, nl);
+  }
+  return map;
+}
+
+/**
+ * Get sorted array of all newsletter numbers from the DB.
+ */
+export async function getDbNewsletterNumbers(): Promise<number[]> {
+  const db = getDb();
+  const rows = await withRetry(() => db`
+    SELECT number FROM newsletters ORDER BY number
+  `);
+  return rows.map(r => r.number as number);
 }
 

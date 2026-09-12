@@ -97,8 +97,8 @@ function replaceNewsletterVariables(newsletter: Newsletter, firstName: string, s
  * Returns null if the newsletter doesn't exist.
  * Replaces {{firstName}}, {{appUrl}}, and {{chartUrl}} template variables.
  */
-export function getNewsletter(step: number, firstName: string, subscriberId?: string): Newsletter | null {
-  const raw = loadNewsletter(step);
+export async function getNewsletter(step: number, firstName: string, subscriberId?: string): Promise<Newsletter | null> {
+  const raw = await loadNewsletter(step);
   if (!raw) return null;
   return replaceNewsletterVariables(renderForEmail(raw), firstName, subscriberId);
 }
@@ -118,13 +118,13 @@ export async function getNewsletterWithChart(
   chart: EmailChartData,
   subscriberId?: string,
 ): Promise<Newsletter | null> {
-  const raw = loadNewsletter(step);
+  const raw = await loadNewsletter(step);
   if (!raw) return null;
 
   const channelResolved = processConditionals(raw.bodyMarkdown.trim(), 'email');
 
   if (!hasLiquidConditionals(channelResolved)) {
-    // No Liquid — use the standard synchronous path
+    // No Liquid — use the standard path
     return replaceNewsletterVariables(renderForEmail(raw), firstName, subscriberId);
   }
 
@@ -153,8 +153,8 @@ export async function getNewsletterWithChart(
 /**
  * Get a newsletter without variable replacement (for testing / introspection).
  */
-export function getNewsletterRaw(step: number): Newsletter | null {
-  const raw = loadNewsletter(step);
+export async function getNewsletterRaw(step: number): Promise<Newsletter | null> {
+  const raw = await loadNewsletter(step);
   if (!raw) return null;
   return renderForEmail(raw);
 }

@@ -22,13 +22,17 @@ import {
 } from '@/lib/resend-broadcasts';
 import { getResendClient } from '@/lib/resend-contacts';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
+import { getNextCadenceDate } from '@/newsletters/cadence';
 
 /**
  * POST /api/admin/newsletters/schedule
  *
- * Schedule a newsletter for broadcast delivery at a specific date/time.
+ * Schedule a newsletter for broadcast delivery at the next cadence date.
  *
- * Body: { newsletterNumber: number, scheduledAt: string (ISO 8601) }
+ * Body: { newsletterNumber: number }
+ *
+ * The scheduledAt date is auto-computed from the weekly cadence (Wednesdays
+ * at 11:00 UTC) — no date picker needed.
  *
  * Pipeline:
  * 1. Query due subscribers (by next_step)
@@ -53,22 +57,14 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { newsletterNumber, scheduledAt } = body;
+    const { newsletterNumber, sendAt } = body;
 
     if (typeof newsletterNumber !== 'number' || newsletterNumber < 1) {
       return NextResponse.json({ error: 'Invalid newsletterNumber' }, { status: 400 });
     }
-    if (!scheduledAt || isNaN(Date.parse(scheduledAt))) {
-      return NextResponse.json({ error: 'Invalid scheduledAt' }, { status: 400 });
-    }
 
-    const scheduledDate = new Date(scheduledAt);
-    if (scheduledDate <= new Date()) {
-      return NextResponse.json(
-        { error: 'scheduledAt must be in the future' },
-        { status: 400 },
-      );
-    }
+    // Use provided sendAt if present, otherwise compute from cadence
+    const scheduledDate = sendAt ? new Date(sendAt) : getNextCadenceDate();
 
     // Check if already scheduled
     const existingSchedule = await getScheduleForNewsletter(newsletterNumber);
@@ -80,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Load the newsletter markdown
-    const raw = loadNewsletter(newsletterNumber);
+    const raw = await loadNewsletter(newsletterNumber);
     if (!raw) {
       return NextResponse.json(
         { error: `Newsletter #${newsletterNumber} not found` },
