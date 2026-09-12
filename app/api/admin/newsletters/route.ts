@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
-import { getNewsletterSchedules, getNewsletterDueSubscribers } from '@/lib/db';
+import {
+  getAllSubscribers,
+  getNewsletterSchedules,
+} from '@/lib/db';
 import { getNewsletterNumbers } from '@/emails/newsletter-loader';
 import { loadNewsletter } from '@/newsletters/loader';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
@@ -9,9 +12,12 @@ import { hasLiquidConditionals } from '@/newsletters/liquid-properties';
 /**
  * GET /api/admin/newsletters
  *
- * List all newsletters with their scheduling status and ready counts.
- * Returns each newsletter's number, subject, subscriber ready count,
- * and latest schedule status.
+ * List all newsletters with their scheduling status and audience counts.
+ *
+ * Per newsletter returns:
+ * - sentCount: subscribers who have already received this newsletter (next_step > N)
+ * - nextWeekCount: active subscribers due for it now (next_step = N, will be sent when scheduled)
+ * - laterCount: active subscribers still working through earlier emails (next_step < N)
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -24,23 +30,14 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [schedules, dueSubscribers] = await Promise.all([
+    const [allSubscribers, schedules] = await Promise.all([
+      getAllSubscribers(),
       getNewsletterSchedules(),
-      getNewsletterDueSubscribers(WELCOME_SERIES_LENGTH),
     ]);
 
-    // Group subscribers per next_step
-    const readyGroups = new Map<number, { id: string; firstName: string; lastName: string | null; email: string }[]>();
-    for (const sub of dueSubscribers) {
-      const group = readyGroups.get(sub.next_step) ?? [];
-      group.push({
-        id: sub.id,
-        firstName: sub.first_name,
-        lastName: sub.last_name,
-        email: sub.email,
-      });
-      readyGroups.set(sub.next_step, group);
-    }
+    const activeSubscribers = allSubscribers.filter(
+      s => s.email_status === 'active' || s.email_status === 'failed',
+    );
 
     // Build schedule lookup: newsletter_num → latest schedule
     const scheduleMap = new Map<number, typeof schedules[0]>();
@@ -52,19 +49,43 @@ export async function GET(request: NextRequest) {
     }
 
     const newsletterNumbers = getNewsletterNumbers();
-    // Only include newsletters after welcome series
     const postWelcomeNumbers = newsletterNumbers.filter(n => n > WELCOME_SERIES_LENGTH);
 
     const newsletters = postWelcomeNumbers.map(num => {
       const raw = loadNewsletter(num);
       const schedule = scheduleMap.get(num);
+
+      // Sent: all subscribers (any status) who have progressed past this newsletter
+      const sentCount = allSubscribers.filter(s => s.next_step > num).length;
+
+      // Next week: active subscribers whose next_step is exactly this newsletter
+      const nextWeekSubs = activeSubscribers.filter(s => s.next_step === num);
+      const nextWeekCount = nextWeekSubs.length;
+
+      // Later: active subscribers still on earlier emails (will eventually reach this one)
+      const laterSubs = activeSubscribers.filter(s => s.next_step < num);
+      const laterCount = laterSubs.length;
+
       return {
         number: num,
         subject: raw?.subject ?? '',
         slug: raw?.slug ?? null,
         hasLiquid: raw ? hasLiquidConditionals(raw.bodyMarkdown) : false,
-        ready: readyGroups.get(num)?.length ?? 0,
-        readySubscribers: readyGroups.get(num) ?? [],
+        sentCount,
+        nextWeekCount,
+        laterCount,
+        nextWeekSubscribers: nextWeekSubs.map(s => ({
+          id: s.id,
+          firstName: s.first_name,
+          lastName: s.last_name,
+          email: s.email,
+        })),
+        laterSubscribers: laterSubs.map(s => ({
+          id: s.id,
+          firstName: s.first_name,
+          lastName: s.last_name,
+          email: s.email,
+        })),
         schedule: schedule
           ? {
               id: schedule.id,

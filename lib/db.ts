@@ -980,3 +980,51 @@ export async function deleteRedirectRule(id: string): Promise<void> {
   });
 }
 
+// --- Contact sync state ---
+
+/** Snapshot of what was last synced to Resend for a subscriber. */
+export interface ContactSyncState {
+  subscriberId: string;
+  syncedAt: string;
+  syncedValues: Record<string, string>;
+}
+
+/**
+ * Upsert contact sync state: merge values into existing synced_values JSONB.
+ * On insert, creates a new row. On conflict, merges new values into the existing
+ * snapshot (preserving keys not in this update) and refreshes synced_at.
+ */
+export async function upsertContactSyncState(
+  subscriberId: string,
+  values: Record<string, string>,
+): Promise<void> {
+  const db = getDb();
+  await db`
+    INSERT INTO contact_sync_state (subscriber_id, synced_values)
+    VALUES (${subscriberId}, ${JSON.stringify(values)})
+    ON CONFLICT (subscriber_id) DO UPDATE SET
+      synced_values = contact_sync_state.synced_values || ${JSON.stringify(values)}::jsonb,
+      synced_at = now()
+  `;
+}
+
+/**
+ * Get all contact sync states as a Map from subscriber ID to sync state.
+ */
+export async function getAllContactSyncStates(): Promise<Map<string, ContactSyncState>> {
+  const db = getDb();
+  const rows = await db`
+    SELECT subscriber_id, synced_at, synced_values
+    FROM contact_sync_state
+  `;
+  const map = new Map<string, ContactSyncState>();
+  for (const row of rows) {
+    map.set(row.subscriber_id as string, {
+      subscriberId: row.subscriber_id as string,
+      syncedAt: (row.synced_at as Date).toISOString(),
+      syncedValues: row.synced_values as Record<string, string>,
+    });
+  }
+  return map;
+}
+

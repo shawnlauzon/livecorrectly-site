@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 import contactProperties from '@/newsletters/contact-properties';
 import { buildContactPropertyValues } from '@/newsletters/resolve-contact-vars';
+import { upsertContactSyncState } from '@/lib/db';
 
 /**
  * Resend contact management — separate from emails/send.ts (the sole
@@ -126,6 +127,13 @@ export async function syncContactToResend({
         throw new Error(`Failed to update Resend contact ${email}: ${JSON.stringify(updateError)}`);
       }
       console.log(`[resend-contacts] Updated existing contact: ${email}`);
+      // Record sync state with the values just sent
+      const syncValues: Record<string, string> = {
+        first_name: firstName,
+        last_name: lastName ?? '',
+        ...properties,
+      };
+      await upsertContactSyncState(subscriberId, syncValues);
       return;
     }
 
@@ -133,6 +141,13 @@ export async function syncContactToResend({
   }
 
   console.log(`[resend-contacts] Created contact: ${email}`);
+  // Record sync state with the values just sent
+  const syncValues: Record<string, string> = {
+    first_name: firstName,
+    last_name: lastName ?? '',
+    ...properties,
+  };
+  await upsertContactSyncState(subscriberId, syncValues);
 }
 
 /**

@@ -17,6 +17,7 @@ import {
 import { getBroadcastFileConfig } from '@/emails/broadcast-loader';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { buildContactPropertyValues } from '@/newsletters/resolve-contact-vars';
+import { upsertContactSyncState } from '@/lib/db';
 import type { Subscriber } from '@/lib/types/subscriber';
 
 /**
@@ -27,7 +28,7 @@ import type { Subscriber } from '@/lib/types/subscriber';
  * will ensure the property exists and sync computed values to each recipient
  * just before sending — no signup-flow changes or backfill scripts needed.
  */
-const BROADCAST_CONTACT_PROPERTIES: Record<
+export const BROADCAST_CONTACT_PROPERTIES: Record<
   string,
   {
     key: string;
@@ -146,6 +147,17 @@ export async function syncBroadcastContactProperties(
         `[broadcast] Failed to sync properties for ${subscriber.email}:`,
         error,
       );
+    } else {
+      // Record sync state with the broadcast + chart properties just sent
+      try {
+        await upsertContactSyncState(subscriber.id, properties);
+      } catch (syncErr) {
+        // Don't let sync state recording failure block the broadcast
+        console.warn(
+          `[broadcast] Failed to record sync state for ${subscriber.email}:`,
+          syncErr instanceof Error ? syncErr.message : syncErr,
+        );
+      }
     }
   }
 }
