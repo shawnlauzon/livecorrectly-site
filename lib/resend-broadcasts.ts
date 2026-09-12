@@ -1,5 +1,5 @@
 import React from 'react';
-import { getResendClient, ensureNeonIdProperty, ensureChartContactProperties } from './resend-contacts';
+import { getResendClient, ensureNeonIdProperty, ensureChartContactProperties, createPropertyIfMissing } from './resend-contacts';
 import { getNewsletter } from '@/emails/newsletter-loader';
 import { loadNewsletter } from '@/newsletters/loader';
 import { processConditionals } from '@/newsletters/conditionals';
@@ -106,22 +106,7 @@ export async function syncBroadcastContactProperties(
     await ensureChartContactProperties();
 
     for (const entry of Object.values(BROADCAST_CONTACT_PROPERTIES)) {
-      const { error } = await client.contactProperties.create({
-        key: entry.key,
-        type: 'string' as const,
-      });
-      if (error) {
-        if (
-          'statusCode' in error &&
-          (error as { statusCode: number }).statusCode === 409
-        ) {
-          // Property already exists — expected
-        } else {
-          throw new Error(
-            `Failed to create ${entry.key} contact property: ${JSON.stringify(error)}`,
-          );
-        }
-      }
+      await createPropertyIfMissing(entry.key);
     }
     broadcastPropertiesEnsured = true;
   }

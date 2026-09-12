@@ -22,29 +22,76 @@ export function getResendClient(): Resend {
   return resend;
 }
 
+/** Cached set of property keys known to exist in Resend (populated once per process). */
+let existingPropertyKeys: Set<string> | null = null;
+
+/**
+ * Fetch all contact property keys from Resend (once per process).
+ * Subsequent calls return the cached set, updated as new properties are created.
+ */
+async function getExistingPropertyKeys(): Promise<Set<string>> {
+  if (existingPropertyKeys) return existingPropertyKeys;
+
+  const client = getResendClient();
+  const keys = new Set<string>();
+
+  // Paginate through all properties (max 100 per page)
+  let after: string | undefined;
+  let hasMore = true;
+  while (hasMore) {
+    const { data, error } = await client.contactProperties.list({
+      limit: 100,
+      ...(after ? { after } : {}),
+    });
+    if (error || !data) {
+      throw new Error(`Failed to list contact properties: ${JSON.stringify(error)}`);
+    }
+    for (const prop of data.data) {
+      keys.add(prop.key);
+    }
+    hasMore = data.has_more;
+    if (hasMore && data.data.length > 0) {
+      after = data.data[data.data.length - 1].id;
+    }
+  }
+
+  existingPropertyKeys = keys;
+  return keys;
+}
+
+/**
+ * Create a contact property in Resend if it doesn't already exist.
+ * Updates the local cache on success.
+ */
+export async function createPropertyIfMissing(key: string): Promise<void> {
+  const keys = await getExistingPropertyKeys();
+  if (keys.has(key)) return;
+
+  const client = getResendClient();
+  const { error } = await client.contactProperties.create({
+    key,
+    type: 'string' as const,
+  });
+  if (error) {
+    if ('statusCode' in error && (error as { statusCode: number }).statusCode === 409) {
+      // Race condition: created between list and create — harmless
+    } else {
+      throw new Error(`Failed to create ${key} contact property: ${JSON.stringify(error)}`);
+    }
+  }
+
+  keys.add(key);
+}
+
 let neonIdPropertyEnsured = false;
 
 /**
  * Ensure the neon_id contact property exists in Resend.
  * Called once per process before the first contact sync.
- * 409 (already exists) is expected and harmless.
  */
 export async function ensureNeonIdProperty(): Promise<void> {
   if (neonIdPropertyEnsured) return;
-
-  const client = getResendClient();
-  const { error } = await client.contactProperties.create({
-    key: 'neon_id',
-    type: 'string' as const,
-  });
-  if (error) {
-    if ('statusCode' in error && (error as { statusCode: number }).statusCode === 409) {
-      // Property already exists — expected
-    } else {
-      throw new Error(`Failed to create neon_id contact property: ${JSON.stringify(error)}`);
-    }
-  }
-
+  await createPropertyIfMissing('neon_id');
   neonIdPropertyEnsured = true;
 }
 
@@ -54,24 +101,12 @@ let chartPropertiesEnsured = false;
  * Ensure chart-derived contact properties exist in Resend.
  * Iterates the contact-properties registry and creates each key as a
  * string-typed contact property. Called once per process.
- * 409 (already exists) is expected and harmless.
  */
 export async function ensureChartContactProperties(): Promise<void> {
   if (chartPropertiesEnsured) return;
 
-  const client = getResendClient();
   for (const key of Object.keys(contactProperties)) {
-    const { error } = await client.contactProperties.create({
-      key,
-      type: 'string' as const,
-    });
-    if (error) {
-      if ('statusCode' in error && (error as { statusCode: number }).statusCode === 409) {
-        // Property already exists — expected
-      } else {
-        throw new Error(`Failed to create ${key} contact property: ${JSON.stringify(error)}`);
-      }
-    }
+    await createPropertyIfMissing(key);
   }
 
   chartPropertiesEnsured = true;
