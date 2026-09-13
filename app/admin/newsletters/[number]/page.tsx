@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import type { Content, Editor, JSONContent } from '@tiptap/core';
+import { Extension, InputRule, type Content, type Editor, type JSONContent } from '@tiptap/core';
 import { EditorProvider, useCurrentEditor } from '@tiptap/react';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { StarterKit } from '@react-email/editor/extensions';
@@ -15,7 +15,7 @@ import '@react-email/editor/themes/default.css';
 import styles from './editor.module.css';
 import adminStyles from '../../admin.module.css';
 import { VariableNode, VariableEditForm, VARIABLE } from './variable-node';
-import { ConditionalBlockNode, ConditionalBranchNode, ConditionalKeymap, IF_THEN_ELSE } from './conditional-node';
+import { ConditionalBlockNode, ConditionalBranchNode, ConditionalKeymap, IF_THEN_ELSE, DEFAULT_CONDITION } from './conditional-node';
 import {
   types,
   careerDesigns,
@@ -80,6 +80,40 @@ function RefBridge({
 // Sort by category to match the visual grouping in the SlashCommand menu.
 // The library's CommandList groups items by category but uses array indices
 // for selection, so the array order must match the grouped display order.
+// {{ → insert Variable node, {% → insert Conditional node
+const BraceShortcuts = Extension.create({
+  name: 'braceShortcuts',
+  addInputRules() {
+    return [
+      new InputRule({
+        find: /\{\{$/,
+        handler: ({ chain, range }) => {
+          chain()
+            .deleteRange(range)
+            .insertContent({ type: 'variableNode', attrs: {} })
+            .setNodeSelection(range.from)
+            .run();
+        },
+      }),
+      new InputRule({
+        find: /\{%$/,
+        handler: ({ chain, range }) => {
+          chain()
+            .deleteRange(range)
+            .insertContent({
+              type: 'conditionalBlock',
+              content: [
+                { type: 'conditionalBranch', attrs: { branchType: 'if', condition: DEFAULT_CONDITION }, content: [{ type: 'paragraph' }] },
+                { type: 'conditionalBranch', attrs: { branchType: 'else', condition: '' }, content: [{ type: 'paragraph' }] },
+              ],
+            })
+            .run();
+        },
+      }),
+    ];
+  },
+});
+
 const SLASH_CATEGORY_ORDER = ['Text', 'Media', 'Layout', 'Conditionals', 'Utility'];
 const slashCommandItems = [...defaultSlashCommands, imageSlashCommand, VARIABLE, IF_THEN_ELSE]
   .sort((a, b) => {
@@ -87,6 +121,7 @@ const slashCommandItems = [...defaultSlashCommands, imageSlashCommand, VARIABLE,
     const bi = SLASH_CATEGORY_ORDER.indexOf(b.category);
     return (ai === -1 ? SLASH_CATEGORY_ORDER.length : ai) - (bi === -1 ? SLASH_CATEGORY_ORDER.length : bi);
   });
+
 
 function EditorPanel({
   content,
@@ -145,7 +180,7 @@ function EditorPanel({
     Placeholder.configure({
       placeholder: ({ node }: { node: { type: { name: string }; attrs: { level?: number } } }) => {
         if (node.type.name === 'heading') return `Heading ${node.attrs.level}`;
-        return "Press '/' for commands";
+        return "Press '/' for commands, '{{' for variable, '{%' for conditional";
       },
       includeChildren: true,
     }),
@@ -155,6 +190,7 @@ function EditorPanel({
     ConditionalBlockNode,
     ConditionalBranchNode,
     ConditionalKeymap,
+    BraceShortcuts,
   ], [imageExtension]);
 
   const handleSave = async () => {
@@ -258,7 +294,7 @@ function EditorPanel({
           <BubbleMenu.ImageDefault />
           <BubbleMenu
             trigger={({ editor: e }: { editor: Editor }) => e.isActive('variableNode')}
-            placement="bottom-start"
+            placement="bottom"
           >
             <VariableEditForm />
           </BubbleMenu>

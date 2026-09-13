@@ -613,7 +613,7 @@ export const ConditionalKeymap = Extension.create({
 // Slash command
 // ---------------------------------------------------------------------------
 
-const DEFAULT_CONDITION = composeCondition('career_type', '==', 'Builder (any)');
+export const DEFAULT_CONDITION = composeCondition('career_type', '==', 'Builder (any)');
 
 export const IF_THEN_ELSE: SlashCommandItem = {
   title: 'If-Then',
