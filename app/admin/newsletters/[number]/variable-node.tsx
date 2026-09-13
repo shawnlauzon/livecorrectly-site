@@ -54,16 +54,20 @@ export function VariableEditForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attrs?.variableId, attrs?.default, attrs?.capitalize]);
 
-  const apply = () => {
+  /** Push current draft values to the node, preserving selection. */
+  const updateNode = (overrides: Partial<{ variableId: string; default: string; capitalize: boolean }> = {}) => {
     if (!editor) return;
-    const trimmedId = draftId.trim();
-    if (trimmedId) {
-      editor.commands.updateAttributes('variableNode', {
-        variableId: trimmedId,
-        default: draftDefault.trim(),
-        capitalize: draftCapitalize,
-      });
-    }
+    const id = overrides.variableId ?? draftId;
+    if (!id.trim()) return;
+    const pos = editor.state.selection.from;
+    editor.chain()
+      .updateAttributes('variableNode', {
+        variableId: id.trim(),
+        default: (overrides.default ?? draftDefault).trim(),
+        capitalize: overrides.capitalize ?? draftCapitalize,
+      })
+      .setNodeSelection(pos)
+      .run();
   };
 
   return (
@@ -84,11 +88,15 @@ export function VariableEditForm() {
               if (selected.default !== undefined) {
                 setDraftDefault(selected.default);
               }
+              updateNode({
+                variableId: selected.value,
+                ...(selected.default !== undefined ? { default: selected.default } : {}),
+              });
             }
           }}
           style={{ fontSize: 13, padding: '5px 7px', border: '1px solid #E6E1F4', borderRadius: 4, outline: 'none', width: '100%', background: '#fff' }}
         >
-          <option value="" disabled>Custom…</option>
+          <option value="" disabled>Select property…</option>
           {KNOWN_PROPERTIES.map((p) => (
             <option key={p.value} value={p.value}>{p.label}</option>
           ))}
@@ -99,11 +107,8 @@ export function VariableEditForm() {
         <input
           type="text"
           value={draftDefault}
-          onChange={(e) => setDraftDefault(e.target.value)}
-          onKeyDown={(e) => {
-            e.stopPropagation();
-            if (e.key === 'Enter') { e.preventDefault(); apply(); }
-          }}
+          onChange={(e) => { setDraftDefault(e.target.value); updateNode({ default: e.target.value }); }}
+          onKeyDown={(e) => e.stopPropagation()}
           placeholder="If not set"
           style={{ fontSize: 13, padding: '5px 7px', border: '1px solid #E6E1F4', borderRadius: 4, outline: 'none', width: '100%' }}
         />
@@ -112,20 +117,11 @@ export function VariableEditForm() {
         <input
           type="checkbox"
           checked={draftCapitalize}
-          onChange={(e) => setDraftCapitalize(e.target.checked)}
+          onChange={(e) => { setDraftCapitalize(e.target.checked); updateNode({ capitalize: e.target.checked }); }}
           style={{ margin: 0 }}
         />
         Capitalize
       </label>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-        <button
-          type="button"
-          onClick={apply}
-          style={{ fontSize: 12, fontWeight: 600, padding: '4px 12px', background: '#6A4BD6', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
-        >
-          Apply
-        </button>
-      </div>
     </div>
   );
 }
@@ -146,7 +142,7 @@ export const VariableNode = EmailNode.create({
 
   addAttributes() {
     return {
-      variableId: { default: 'first_name' },
+      variableId: { default: '' },
       default: { default: '' },
       capitalize: { default: false },
     };
@@ -165,12 +161,21 @@ export const VariableNode = EmailNode.create({
         'data-variable-default': defaultVal,
         'data-variable-capitalize': capitalize ? 'true' : undefined,
       }),
-      capitalize ? `{{ ${variableId} | capitalize }}` : `{{ ${variableId} }}`,
+      (() => {
+        if (!variableId) return '{{ … }}';
+        const filters: string[] = [];
+        if (defaultVal) filters.push(`default: '${defaultVal}'`);
+        if (capitalize) filters.push('capitalize');
+        const filterStr = filters.length ? ` | ${filters.join(' | ')}` : '';
+        return `{{ ${variableId}${filterStr} }}`;
+      })(),
     ];
   },
 
   renderToReactEmail({ node }) {
-    const variableId = node.attrs?.variableId ?? 'first_name';
+    const variableId = node.attrs?.variableId;
+    if (!variableId) return <span />;
+
     const defaultVal = node.attrs?.default;
     const capitalize = node.attrs?.capitalize ?? false;
 
@@ -194,14 +199,16 @@ export const VARIABLE: SlashCommandItem = {
   icon: <span style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 600 }}>{'{ }'}</span>,
   category: 'Text',
   command: ({ editor, range }) => {
+    const insertPos = range.from;
     editor
       .chain()
       .focus()
       .deleteRange(range)
       .insertContent({
         type: 'variableNode',
-        attrs: { variableId: 'first_name' },
+        attrs: {},
       })
+      .setNodeSelection(insertPos)
       .run();
   },
 };

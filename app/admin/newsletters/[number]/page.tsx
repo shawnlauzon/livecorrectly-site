@@ -258,7 +258,7 @@ function EditorPanel({
           <BubbleMenu.ImageDefault />
           <BubbleMenu
             trigger={({ editor: e }: { editor: Editor }) => e.isActive('variableNode')}
-            placement="bottom"
+            placement="bottom-start"
           >
             <VariableEditForm />
           </BubbleMenu>
