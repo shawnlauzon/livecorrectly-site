@@ -22,13 +22,12 @@ const KNOWN_PROPERTIES: { label: string; value: string; fallback?: string }[] = 
   { label: 'Inner Authority', value: 'inner_authority' },
   { label: 'Signature Theme', value: 'signature_theme' },
   { label: 'Not-Self Theme', value: 'not_self_theme' },
-  { label: 'Decision Strategy', value: 'decision_making_strategy' },
+  { label: 'Decision-making Strategy', value: 'decision_making_strategy' },
 ];
 
 /**
  * VariableEditForm — edit UI rendered inside a BubbleMenu when a
- * variableNode is selected. Shows a property dropdown, variable input,
- * and fallback input.
+ * variableNode is selected. Shows a property dropdown and fallback input.
  */
 export function VariableEditForm() {
   const { editor } = useCurrentEditor();
@@ -96,20 +95,6 @@ export function VariableEditForm() {
             <option key={p.value} value={p.value}>{p.label}</option>
           ))}
         </select>
-      </label>
-      <label style={{ fontSize: 11, fontWeight: 600, color: '#6E688A', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', flexDirection: 'column', gap: 3 }}>
-        variable
-        <input
-          type="text"
-          value={draftId}
-          onChange={(e) => setDraftId(e.target.value)}
-          onKeyDown={(e) => {
-            e.stopPropagation();
-            if (e.key === 'Enter') { e.preventDefault(); apply(); }
-          }}
-          placeholder="Variable name"
-          style={{ fontSize: 13, padding: '5px 7px', border: '1px solid #E6E1F4', borderRadius: 4, outline: 'none', width: '100%' }}
-        />
       </label>
       <label style={{ fontSize: 11, fontWeight: 600, color: '#6E688A', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', flexDirection: 'column', gap: 3 }}>
         fallback
