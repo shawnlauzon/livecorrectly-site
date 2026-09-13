@@ -18,11 +18,8 @@ export interface WebNewsletter {
   description: string;
   /** Short teaser shown on the index page (from front-matter `preview`) */
   preview: string;
-  /** Filename in /public/newsletter/ (e.g. "matrix01.jpg"), or null if unset */
-  image: string | null;
-  /** Whether the detail page should render image as a hero above the body.
-   *  False when the image already appears inline in the markdown body. */
-  showHeroImage: boolean;
+  /** First image URL from the body, or null if none */
+  thumbnailUrl: string | null;
   publishedAt: string;
   /** Whether this newsletter has been sent (has a DB send record) */
   published: boolean;
@@ -33,6 +30,12 @@ export interface WebNewsletter {
 }
 
 const APP_URL = 'https://www.livecorrectly.com';
+
+/** Extract the first <img> src from an HTML string, or null if none. */
+function extractFirstImageUrl(html: string): string | null {
+  const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+  return match?.[1] ?? null;
+}
 
 /**
  * Strip the greeting line that starts with "Hey {{firstName}}," or
@@ -119,14 +122,16 @@ async function renderForWeb(
     (p) => marked.parseInline(replaceVariables(p.trim())) as string,
   );
 
+  // Extract thumbnail from body content (editor HTML or rendered markdown)
+  const thumbnailUrl = extractFirstImageUrl(raw.bodyHtml ?? '') ?? extractFirstImageUrl(bodyHtml);
+
   return {
     slug: raw.slug,
     number: raw.number,
     title: raw.subject,
     description: raw.description,
     preview: raw.preview,
-    image: raw.rawImage,
-    showHeroImage: raw.showHeroImage,
+    thumbnailUrl,
     publishedAt,
     published,
     bodyHtml,

@@ -14,10 +14,6 @@ export interface RawNewsletter {
   slug: string | null;
   /** SEO description (from front-matter) */
   description: string;
-  /** Hero image filename (e.g. "lightning.jpg") from front-matter, or null if unset */
-  rawImage: string | null;
-  /** false when the image already appears inline in the markdown body */
-  showHeroImage: boolean;
   /** Raw markdown body — template variables intact, untrimmed greeting included */
   bodyMarkdown: string;
   /** Previous slugs that should redirect to the current slug */
@@ -56,9 +52,6 @@ export function parseRawNewsletter(content: string, number: number): RawNewslett
   const slug = typeof data.slug === 'string' ? data.slug : null;
   const description = typeof data.description === 'string' ? data.description : '';
 
-  const rawImage = typeof data.image === 'string' ? data.image : null;
-  const showHeroImage = !!rawImage && !body.includes(rawImage);
-
   const oldSlugs: string[] = Array.isArray(data['old-slugs'])
     ? data['old-slugs'].filter((s: unknown) => typeof s === 'string')
     : [];
@@ -76,8 +69,6 @@ export function parseRawNewsletter(content: string, number: number): RawNewslett
     preview,
     slug,
     description,
-    rawImage,
-    showHeroImage,
     oldSlugs,
     bodyMarkdown: body,
     rawPs,

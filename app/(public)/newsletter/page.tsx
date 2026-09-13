@@ -42,9 +42,9 @@ export default async function NewsletterIndexPage({
           {issues.map((issue) => (
             <li key={issue.slug} className={styles.item}>
               <Link href={subscriberParam ? `/newsletter/${issue.slug}?s=${subscriberParam}` : `/newsletter/${issue.slug}`} className={styles.itemLink}>
-                {issue.image && (
+                {issue.thumbnailUrl && (
                   <Image
-                    src={`/newsletter/${issue.image}`}
+                    src={issue.thumbnailUrl}
                     alt=""
                     width={160}
                     height={100}

@@ -45,14 +45,13 @@ async function run(): Promise<void> {
     await sql`
       INSERT INTO newsletters (
         number, subject, preview, slug, description,
-        image, body_markdown, postscripts, old_slugs
+        body_markdown, postscripts, old_slugs
       ) VALUES (
         ${raw.number},
         ${raw.subject},
         ${raw.preview},
         ${raw.slug},
         ${raw.description},
-        ${raw.rawImage},
         ${raw.bodyMarkdown},
         ${JSON.stringify(raw.rawPs)},
         ${JSON.stringify(raw.oldSlugs)}
@@ -62,7 +61,6 @@ async function run(): Promise<void> {
         preview = EXCLUDED.preview,
         slug = EXCLUDED.slug,
         description = EXCLUDED.description,
-        image = EXCLUDED.image,
         body_markdown = EXCLUDED.body_markdown,
         postscripts = EXCLUDED.postscripts,
         old_slugs = EXCLUDED.old_slugs,

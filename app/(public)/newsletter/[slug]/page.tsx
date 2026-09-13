@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import { notFound, permanentRedirect } from 'next/navigation';
 import SiteNav from '@/components/site-nav';
 import SiteFooter from '@/components/site-footer';
@@ -133,16 +132,6 @@ export default async function NewsletterIssuePage({
         <article>
           {!issue.published && (
             <p className={styles.draftBanner}>Unpublished draft</p>
-          )}
-          {issue.showHeroImage && (
-            <Image
-              src={`/newsletter/${issue.image}`}
-              alt=""
-              width={672}
-              height={380}
-              className={styles.hero}
-              priority
-            />
           )}
           <NewsletterTracker slug={issue.slug} issue={issue.number} personalized={!!subscriberParam} />
           <div className={styles.dateLine}>

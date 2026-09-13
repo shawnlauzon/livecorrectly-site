@@ -15,7 +15,7 @@ import '@react-email/editor/themes/default.css';
 import styles from './editor.module.css';
 import adminStyles from '../../admin.module.css';
 import { VariableNode, VariableEditForm, VARIABLE } from './variable-node';
-import { ConditionalBlockNode, ConditionalBranchNode, IF_THEN_ELSE } from './conditional-node';
+import { ConditionalBlockNode, ConditionalBranchNode, ConditionalKeymap, IF_THEN_ELSE } from './conditional-node';
 import {
   types,
   careerDesigns,
@@ -33,7 +33,6 @@ interface NewsletterData {
   preview: string;
   slug: string | null;
   description: string;
-  image: string | null;
   postscripts: string[];
   bodyJson: unknown | null;
   bodyHtml: string | null;
@@ -98,7 +97,6 @@ function EditorPanel({
   preview,
   slug,
   description,
-  image,
   postscripts,
   setDirty,
   editorRef,
@@ -111,7 +109,6 @@ function EditorPanel({
   preview: string;
   slug: string;
   description: string;
-  image: string;
   postscripts: string[];
   setDirty: (d: boolean) => void;
   editorRef: React.RefObject<EditorHandle | null>;
@@ -158,6 +155,7 @@ function EditorPanel({
     VariableNode,
     ConditionalBlockNode,
     ConditionalBranchNode,
+    ConditionalKeymap,
   ], [imageExtension]);
 
   const handleSave = async () => {
@@ -185,7 +183,6 @@ function EditorPanel({
           preview: preview || undefined,
           slug: slug || null,
           description: description || undefined,
-          image: image || null,
           postscripts,
         }),
       });
@@ -354,6 +351,12 @@ async function resolvePreview(
   return resolved;
 }
 
+/** Generate postscript prefix: P.S., P.P.S., P.P.P.S., etc. */
+function getPostscriptPrefix(index: number): string {
+  if (index === 0) return 'P.S.';
+  return 'P.' + 'P.'.repeat(index) + 'S.';
+}
+
 /** Format a subscriber's profile number (e.g. 46 → "4/6"). */
 function formatProfile(profile: number): string {
   const s = String(profile);
@@ -364,9 +367,11 @@ function formatProfile(profile: number): string {
 function PreviewPane({
   editorRef,
   previewTrigger,
+  postscripts,
 }: {
   editorRef: React.RefObject<EditorHandle | null>;
   previewTrigger: number;
+  postscripts: string[];
 }) {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
@@ -461,7 +466,65 @@ function PreviewPane({
           <p className={styles.previewEmpty}>Type in the editor to see a preview</p>
         )}
         {previewHtml && (
-          <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
+          <div className={styles.previewEmailContainer}>
+            {/* Logo */}
+            <img
+              src="/newsletter/permission-slip-logo.png"
+              alt="Permission Slip"
+              width={381}
+              height={167}
+              style={{ display: 'block', margin: '0 auto 24px' }}
+            />
+            {/* Body */}
+            <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
+            {/* Signature */}
+            <div style={{ marginTop: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+              <img
+                src="/shawn-lauzon-headshot.jpg"
+                alt="Shawn Lauzon headshot"
+                width={48}
+                height={48}
+                style={{ borderRadius: '50%', flexShrink: 0 }}
+              />
+              <div>
+                <div style={{ margin: 0, fontSize: '14px', fontWeight: 600, lineHeight: '20px', color: '#292524' }}>
+                  Shawn Lauzon
+                </div>
+                <div style={{ margin: 0, fontSize: '12px', lineHeight: '16px', color: '#78716c' }}>
+                  Certified Human Design for Business<br />
+                  BG5 Career &amp; Business Consultant
+                </div>
+              </div>
+            </div>
+            {/* Postscripts */}
+            {postscripts.filter(Boolean).map((ps, i) => (
+              <p
+                key={i}
+                style={{
+                  marginTop: '24px',
+                  marginBottom: '16px',
+                  fontSize: '16px',
+                  fontStyle: 'italic',
+                  lineHeight: '24px',
+                  color: '#45585B',
+                }}
+              >
+                {getPostscriptPrefix(i)} {ps}
+              </p>
+            ))}
+            {/* Divider */}
+            <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #C9C2B4' }} />
+            {/* Footer */}
+            <div style={{ fontSize: '12px', lineHeight: '18px', color: '#45585B' }}>
+              Live Correctly<br />
+              5305 Indio Drive, Austin, TX 78745
+            </div>
+            <div style={{ marginTop: '8px', fontSize: '12px', lineHeight: '18px' }}>
+              <span style={{ color: '#45585B', textDecoration: 'underline', cursor: 'default' }}>
+                Unsubscribe
+              </span>
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -483,7 +546,6 @@ export default function NewsletterEditorPage() {
   const [preview, setPreview] = useState('');
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
-  const [image, setImage] = useState('');
   const [postscripts, setPostscripts] = useState<string[]>([]);
 
   // Import markdown modal
@@ -527,7 +589,6 @@ export default function NewsletterEditorPage() {
       setPreview(json.preview);
       setSlug(json.slug ?? '');
       setDescription(json.description);
-      setImage(json.image ?? '');
       setPostscripts(json.postscripts ?? []);
 
       if (json.bodyJson) {
@@ -699,16 +760,6 @@ export default function NewsletterEditorPage() {
               className={styles.fieldInput}
             />
           </label>
-          <label className={styles.fieldLabel}>
-            Image filename
-            <input
-              type="text"
-              value={image}
-              onChange={(e) => { setImage(e.target.value); setDirty(true); }}
-              className={styles.fieldInput}
-              placeholder="hero.jpg"
-            />
-          </label>
         </div>
       </div>
 
@@ -725,7 +776,6 @@ export default function NewsletterEditorPage() {
               preview={preview}
               slug={slug}
               description={description}
-              image={image}
               postscripts={postscripts}
               setDirty={setDirty}
               editorRef={editorRef}
@@ -769,6 +819,7 @@ export default function NewsletterEditorPage() {
           <PreviewPane
             editorRef={editorRef}
             previewTrigger={previewTrigger}
+            postscripts={postscripts}
           />
         )}
       </div>

@@ -89,7 +89,6 @@ export async function POST(request: NextRequest) {
         const emailComponent = React.createElement(NewsletterTemplate, {
           preview: newsletter.preview,
           bodyHtml: newsletter.bodyHtml,
-          image: newsletter.image,
           chart,
           unsubscribeUrl,
           number: newsletter.number,

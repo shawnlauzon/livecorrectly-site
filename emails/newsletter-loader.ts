@@ -25,8 +25,6 @@ export interface Newsletter {
   preview: string;
   /** URL-safe slug for the web version (from front-matter), or null if email-only */
   slug: string | null;
-  /** Hero image filename (e.g. "lightning.jpg"), or null if unset or already in body */
-  image: string | null;
   /** Email-styled HTML rendered from markdown body */
   bodyHtml: string;
   /** Postscripts rendered after the signature (markdown → inline-styled HTML) */
@@ -40,8 +38,6 @@ export interface Newsletter {
  * uses that directly instead of rendering from markdown.
  */
 function renderForEmail(raw: RawNewsletter): Newsletter {
-  const image = raw.showHeroImage ? raw.rawImage : null;
-
   // Use editor-rendered HTML if available, otherwise render from markdown
   let bodyHtml: string;
   if (raw.bodyHtml) {
@@ -60,7 +56,6 @@ function renderForEmail(raw: RawNewsletter): Newsletter {
     subject: raw.subject,
     preview: raw.preview,
     slug: raw.slug,
-    image,
     bodyHtml,
     ps,
   };
@@ -153,7 +148,6 @@ export async function getNewsletterWithChart(
       '{% raw %}{{{$1}}}{% endraw %}',
     );
     const resolvedHtml = await liquidEngine.parseAndRender(escaped, context);
-    const image = raw.showHeroImage ? raw.rawImage : null;
     const ps = raw.rawPs.map(p => emailMarked.parseInline(p.trim()) as string);
 
     const newsletter: Newsletter = {
@@ -161,7 +155,6 @@ export async function getNewsletterWithChart(
       subject: raw.subject,
       preview: raw.preview,
       slug: raw.slug,
-      image,
       bodyHtml: resolvedHtml,
       ps,
     };
@@ -172,7 +165,6 @@ export async function getNewsletterWithChart(
   // Markdown path: resolve Liquid then render to HTML
   const liquidResolved = await liquidEngine.parseAndRender(channelResolved, context);
 
-  const image = raw.showHeroImage ? raw.rawImage : null;
   const bodyHtml = emailMarked.parse(liquidResolved) as string;
   const ps = raw.rawPs.map(p => emailMarked.parseInline(p.trim()) as string);
 
@@ -181,7 +173,6 @@ export async function getNewsletterWithChart(
     subject: raw.subject,
     preview: raw.preview,
     slug: raw.slug,
-    image,
     bodyHtml,
     ps,
   };

@@ -1035,9 +1035,7 @@ export async function getAllContactSyncStates(): Promise<Map<string, ContactSync
  * Map a newsletters table row to the RawNewsletter interface.
  */
 function rowToRawNewsletter(row: Record<string, unknown>): RawNewsletter {
-  const rawImage = (row.image as string | null) ?? null;
   const bodyMarkdown = row.body_markdown as string;
-  const showHeroImage = !!rawImage && !bodyMarkdown.includes(rawImage);
 
   return {
     number: row.number as number,
@@ -1045,8 +1043,6 @@ function rowToRawNewsletter(row: Record<string, unknown>): RawNewsletter {
     preview: (row.preview as string) ?? '',
     slug: (row.slug as string | null) ?? null,
     description: (row.description as string) ?? '',
-    rawImage,
-    showHeroImage,
     bodyMarkdown,
     oldSlugs: (row.old_slugs as string[]) ?? [],
     rawPs: (row.postscripts as string[]) ?? [],
@@ -1134,7 +1130,6 @@ export async function updateNewsletter(
     preview?: string;
     slug?: string | null;
     description?: string;
-    image?: string | null;
     postscripts?: string[];
     bodyJson?: unknown;
     bodyHtml?: string;
@@ -1147,7 +1142,6 @@ export async function updateNewsletter(
       preview = COALESCE(${data.preview ?? null}, preview),
       slug = COALESCE(${data.slug !== undefined ? data.slug : null}, slug),
       description = COALESCE(${data.description ?? null}, description),
-      image = COALESCE(${data.image !== undefined ? data.image : null}, image),
       postscripts = COALESCE(${data.postscripts ? JSON.stringify(data.postscripts) : null}::jsonb, postscripts),
       body_json = COALESCE(${data.bodyJson ? JSON.stringify(data.bodyJson) : null}::jsonb, body_json),
       body_html = COALESCE(${data.bodyHtml ?? null}, body_html),

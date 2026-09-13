@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Section, Img } from 'react-email';
+import { Section } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import type { EmailChartData } from '../lib/hd-chart/parse-for-email';
 import { loadNewsletter } from '@/newsletters/loader';
@@ -8,8 +8,6 @@ import { hasLiquidConditionals } from '@/newsletters/liquid-properties';
 interface NewsletterTemplateProps {
   preview: string;
   bodyHtml: string;
-  /** Hero image filename, or null to skip */
-  image: string | null;
   chart: EmailChartData | null;
   unsubscribeUrl: string;
   number: number;
@@ -39,13 +37,11 @@ export async function requiresPerSubscriberRendering(number: number): Promise<bo
 export function NewsletterTemplate({
   preview,
   bodyHtml,
-  image,
   chart: _chart,
   unsubscribeUrl,
   number: _number,
   ps,
 }: NewsletterTemplateProps) {
-  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
   const postscripts = ps.map((p, i) => (
     <span key={i} dangerouslySetInnerHTML={{ __html: p }} />
   ));
@@ -56,14 +52,6 @@ export function NewsletterTemplate({
       unsubscribeUrl={unsubscribeUrl}
       postscripts={postscripts}
     >
-      {image && (
-        <Img
-          src={`${appUrl}/newsletter/${image}`}
-          alt=""
-          width={612}
-          style={{ display: 'block', borderRadius: '8px', marginBottom: '24px', width: '100%', height: 'auto' }}
-        />
-      )}
       <Section>
         <div dangerouslySetInnerHTML={{ __html: bodyHtml }} />
       </Section>

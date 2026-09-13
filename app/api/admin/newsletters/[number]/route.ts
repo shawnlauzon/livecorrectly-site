@@ -40,7 +40,6 @@ export async function GET(
       preview: newsletter.preview,
       slug: newsletter.slug,
       description: newsletter.description,
-      image: newsletter.rawImage,
       postscripts: newsletter.rawPs,
       bodyJson: newsletter.bodyJson,
       bodyHtml: newsletter.bodyHtml,
@@ -85,7 +84,6 @@ export async function PUT(
       preview,
       slug,
       description,
-      image,
       postscripts,
     } = body;
 
@@ -103,7 +101,6 @@ export async function PUT(
       preview,
       slug,
       description,
-      image,
       postscripts,
     });
 

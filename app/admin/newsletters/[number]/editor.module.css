@@ -415,8 +415,15 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   overflow-y: auto;
-  background: #fff;
+  background: #FAF8F4;
   padding: 1.5rem;
+}
+
+.previewEmailContainer {
+  max-width: 660px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 32px 24px;
 }
 
 .previewEmpty {

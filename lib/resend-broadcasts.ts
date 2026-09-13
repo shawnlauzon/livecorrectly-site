@@ -263,7 +263,6 @@ export async function renderNewsletterForBroadcast(
   const component = React.createElement(NewsletterTemplate, {
     preview: newsletter.preview,
     bodyHtml: newsletter.bodyHtml,
-    image: newsletter.image,
     chart: null,
     unsubscribeUrl: '{{{RESEND_UNSUBSCRIBE_URL}}}',
     number: newsletter.number,
@@ -302,7 +301,7 @@ export async function renderNewsletterForBroadcastWithMarkdown(
   const resendFirstName = '{{{FIRST_NAME|there}}}';
   const resendSubscriberId = '{{{contact.neon_id}}}';
 
-  // Load the newsletter for metadata (subject, preview, image, ps)
+  // Load the newsletter for metadata (subject, preview, ps)
   const raw = await loadNewsletter(newsletterNumber);
   if (!raw) {
     throw new Error(`Newsletter ${newsletterNumber} not found`);
@@ -339,12 +338,9 @@ export async function renderNewsletterForBroadcastWithMarkdown(
   // Build the subject with variables
   const subject = replaceVars(raw.subject, vars);
 
-  const image = raw.showHeroImage ? raw.rawImage : null;
-
   const component = React.createElement(NewsletterTemplate, {
     preview: replaceVars(raw.preview, vars),
     bodyHtml: processedHtml,
-    image,
     chart: null,
     unsubscribeUrl: '{{{RESEND_UNSUBSCRIBE_URL}}}',
     number: newsletterNumber,

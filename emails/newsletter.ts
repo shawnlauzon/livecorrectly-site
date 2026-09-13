@@ -27,7 +27,6 @@ export async function getNewsletterEmail(
   return React.createElement(NewsletterTemplate, {
     preview: newsletter.preview,
     bodyHtml: newsletter.bodyHtml,
-    image: newsletter.image,
     chart,
     unsubscribeUrl,
     number: newsletter.number,
