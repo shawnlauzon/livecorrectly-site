@@ -10,11 +10,22 @@ import { StarterKit } from '@react-email/editor/extensions';
 import { EmailTheming, useEditorImage, imageSlashCommand } from '@react-email/editor/plugins';
 import { BubbleMenu, SlashCommand, defaultSlashCommands } from '@react-email/editor/ui';
 import { composeReactEmail } from '@react-email/editor/core';
+import { Liquid } from 'liquidjs';
 import '@react-email/editor/themes/default.css';
 import styles from './editor.module.css';
 import adminStyles from '../../admin.module.css';
 import { VariableNode, VariableEditForm, VARIABLE } from './variable-node';
 import { ConditionalBlockNode, ConditionalBranchNode, IF_THEN_ELSE } from './conditional-node';
+import {
+  types,
+  careerDesigns,
+  strategies,
+  innerAuthorityTypes,
+  innerAuthorityDescriptions,
+  signatureThemes,
+  notSelfThemes,
+} from '@/lib/hd-chart/constants';
+import type { Subscriber } from '@/lib/types/subscriber';
 
 interface NewsletterData {
   number: number;
@@ -90,6 +101,8 @@ function EditorPanel({
   image,
   postscripts,
   setDirty,
+  editorRef,
+  onEditorUpdate,
 }: {
   content: Content;
   editorKey: number;
@@ -101,8 +114,9 @@ function EditorPanel({
   image: string;
   postscripts: string[];
   setDirty: (d: boolean) => void;
+  editorRef: React.RefObject<EditorHandle | null>;
+  onEditorUpdate: () => void;
 }) {
-  const editorRef = useRef<EditorHandle | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
@@ -241,8 +255,8 @@ function EditorPanel({
             },
           }}
         >
-          <RefBridge editorRef={editorRef} onUpdate={() => setDirty(true)} />
-          <BubbleMenu hideWhenActiveNodes={['button', 'horizontalRule', 'variableNode', 'conditionalBlock', 'conditionalBranch']} hideWhenActiveMarks={['link']} />
+          <RefBridge editorRef={editorRef} onUpdate={() => { setDirty(true); onEditorUpdate(); }} />
+          <BubbleMenu hideWhenActiveNodes={['button', 'horizontalRule', 'variableNode']} hideWhenActiveMarks={['link']} />
           <BubbleMenu.LinkDefault />
           <BubbleMenu.ButtonDefault />
           <BubbleMenu.ImageDefault />
@@ -256,6 +270,201 @@ function EditorPanel({
         </EditorProvider>
       </div>
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Preview pane — resolves Liquid + contact vars client-side
+// ---------------------------------------------------------------------------
+
+const liquidEngine = new Liquid();
+
+/** Build a Liquid context from raw chart indices (client-side, no server deps). */
+function buildPreviewContext(chart: { type: number; authority: number }): Record<string, string | boolean> {
+  const typeIdx = chart.type;
+  const authIdx = chart.authority;
+
+  const decisionMakingStrategy =
+    typeIdx === 2
+      ? `${innerAuthorityDescriptions[authIdx]}, and then ${strategies[typeIdx]}`
+      : `${strategies[typeIdx]}, and then ${innerAuthorityDescriptions[authIdx]}`;
+
+  return {
+    career_type: careerDesigns[typeIdx],
+    type: types[typeIdx],
+    strategy: strategies[typeIdx],
+    inner_authority: innerAuthorityTypes[authIdx],
+    inner_authority_description: innerAuthorityDescriptions[authIdx],
+    signature_theme: signatureThemes[typeIdx],
+    not_self_theme: notSelfThemes[typeIdx],
+    decision_making_strategy: decisionMakingStrategy,
+
+    isBuilder: typeIdx === 0 || typeIdx === 1,
+    isClassicBuilder: typeIdx === 0,
+    isExpressBuilder: typeIdx === 1,
+    isInitiator: typeIdx === 2,
+    isAdvisor: typeIdx === 3,
+    isEvaluator: typeIdx === 4,
+    isEmotional: authIdx === 0,
+  };
+}
+
+/** Resolve preview HTML: escape Resend vars, run Liquid, replace contact/template vars. */
+async function resolvePreview(
+  html: string,
+  subscriber: Subscriber,
+): Promise<string> {
+  const chart = subscriber.chart?.chart;
+  if (!chart) return html;
+
+  // 1. Escape Resend triple-brace vars so Liquid doesn't choke on them
+  const escaped = html.replace(
+    /\{\{\{([^}]+)\}\}\}/g,
+    '{% raw %}{{{$1}}}{% endraw %}',
+  );
+
+  // 2. Build context and run Liquid
+  const ctx = buildPreviewContext(chart);
+  let resolved = await liquidEngine.parseAndRender(escaped, ctx);
+
+  // 3. Replace Resend contact property vars: {{{contact.key|fallback}}} or {{{contact.key}}}
+  resolved = resolved.replace(
+    /\{\{\{contact\.([a-zA-Z_]+)(?:\|([^}]*))?\}\}\}/g,
+    (_match: string, key: string, fallback?: string) => {
+      const val = ctx[key];
+      if (typeof val === 'string' && val) return val;
+      return fallback ?? '';
+    },
+  );
+
+  // 4. Replace Resend standard vars: {{{FIRST_NAME|fallback}}} or {{{FIRST_NAME}}}
+  resolved = resolved.replace(
+    /\{\{\{FIRST_NAME(?:\|([^}]*))?\}\}\}/g,
+    (_match: string, fallback?: string) => subscriber.first_name || fallback || '',
+  );
+  resolved = resolved.replace(
+    /\{\{\{LAST_NAME(?:\|([^}]*))?\}\}\}/g,
+    (_match: string, fallback?: string) => subscriber.last_name || fallback || '',
+  );
+  resolved = resolved.replace(
+    /\{\{\{EMAIL(?:\|([^}]*))?\}\}\}/g,
+    (_match: string, fallback?: string) => subscriber.email || fallback || '',
+  );
+
+  return resolved;
+}
+
+/** Format a subscriber's profile number (e.g. 46 → "4/6"). */
+function formatProfile(profile: number): string {
+  const s = String(profile);
+  if (s.length === 2) return `${s[0]}/${s[1]}`;
+  return s;
+}
+
+function PreviewPane({
+  editorRef,
+  previewTrigger,
+}: {
+  editorRef: React.RefObject<EditorHandle | null>;
+  previewTrigger: number;
+}) {
+  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+  const [selectedId, setSelectedId] = useState<string>('');
+  const [previewHtml, setPreviewHtml] = useState<string>('');
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Fetch subscribers on mount
+  useEffect(() => {
+    const pwd = getPassword();
+    if (!pwd) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch('/api/admin/subscribers', {
+          headers: { Authorization: `Bearer ${pwd}` },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const subs: Subscriber[] = (data.subscribers ?? []).filter(
+          (s: Subscriber) => s.chart?.chart != null,
+        );
+        if (cancelled) return;
+        setSubscribers(subs);
+        if (subs.length > 0) setSelectedId(subs[0].id);
+      } catch (err) {
+        if (!cancelled) setFetchError(err instanceof Error ? err.message : 'Failed to load subscribers');
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, []);
+
+  // Regenerate preview on trigger change or subscriber selection (debounced)
+  useEffect(() => {
+    if (!selectedId || !editorRef.current) return;
+
+    const subscriber = subscribers.find(s => s.id === selectedId);
+    if (!subscriber) return;
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      if (cancelled) return;
+      try {
+        const html = await editorRef.current!.getEmailHTML();
+        if (cancelled) return;
+        const resolved = await resolvePreview(html, subscriber);
+        if (!cancelled) setPreviewHtml(resolved);
+      } catch (err) {
+        console.error('Preview render error:', err);
+        if (!cancelled) setPreviewHtml('<p style="color: var(--coral)">Preview error</p>');
+      }
+    }, 500);
+
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [previewTrigger, selectedId, subscribers, editorRef]);
+
+  const subscriberLabel = useCallback((s: Subscriber) => {
+    const chart = s.chart?.chart;
+    const name = [s.first_name, s.last_name].filter(Boolean).join(' ');
+    if (!chart) return name || s.email;
+    const career = careerDesigns[chart.type] ?? '';
+    const profile = chart.profile != null ? formatProfile(chart.profile) : '';
+    return `${name} — ${career} (${profile})`;
+  }, []);
+
+  return (
+    <div className={styles.rightColumn}>
+      <div className={styles.previewHeader}>
+        <span className={styles.previewLabel}>Preview</span>
+        {fetchError ? (
+          <span className={styles.previewEmpty}>{fetchError}</span>
+        ) : (
+          <select
+            className={styles.previewSelect}
+            value={selectedId}
+            onChange={e => setSelectedId(e.target.value)}
+          >
+            {subscribers.length === 0 && (
+              <option value="">Loading subscribers...</option>
+            )}
+            {subscribers.map(s => (
+              <option key={s.id} value={s.id}>
+                {subscriberLabel(s)}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+      <div className={styles.previewBody}>
+        {!previewHtml && subscribers.length > 0 && (
+          <p className={styles.previewEmpty}>Type in the editor to see a preview</p>
+        )}
+        {previewHtml && (
+          <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -285,6 +494,13 @@ export default function NewsletterEditorPage() {
   // Editor content — set once after load or import
   const [editorContent, setEditorContent] = useState<Content | null>(null);
   const [editorKey, setEditorKey] = useState(0);
+
+  // Lifted editor ref + preview trigger
+  const editorRef = useRef<EditorHandle | null>(null);
+  const [previewTrigger, setPreviewTrigger] = useState(0);
+  const handleEditorUpdate = useCallback(() => {
+    setPreviewTrigger(t => t + 1);
+  }, []);
 
   const fetchNewsletter = useCallback(async () => {
     const pwd = getPassword();
@@ -496,50 +712,65 @@ export default function NewsletterEditorPage() {
         </div>
       </div>
 
-      {/* Editor */}
-      {editorContent !== null && (
-        <EditorPanel
-          content={editorContent}
-          editorKey={editorKey}
-          num={num}
-          subject={subject}
-          preview={preview}
-          slug={slug}
-          description={description}
-          image={image}
-          postscripts={postscripts}
-          setDirty={setDirty}
-        />
-      )}
-
-      {/* Postscripts */}
-      <div className={styles.postscriptsSection}>
-        <h3 className={styles.sectionTitle}>Postscripts</h3>
-        {postscripts.map((ps, i) => (
-          <div key={i} className={styles.postscriptRow}>
-            <span className={styles.postscriptLabel}>P.{i > 0 ? 'P.'.repeat(i) : ''}S.</span>
-            <input
-              type="text"
-              value={ps}
-              onChange={(e) => handlePostscriptChange(i, e.target.value)}
-              className={styles.fieldInput}
-              style={{ flex: 1 }}
+      {/* Split layout: editor + postscripts (left) | preview (right) */}
+      <div className={styles.splitContainer}>
+        <div className={styles.leftColumn}>
+          {/* Editor */}
+          {editorContent !== null && (
+            <EditorPanel
+              content={editorContent}
+              editorKey={editorKey}
+              num={num}
+              subject={subject}
+              preview={preview}
+              slug={slug}
+              description={description}
+              image={image}
+              postscripts={postscripts}
+              setDirty={setDirty}
+              editorRef={editorRef}
+              onEditorUpdate={handleEditorUpdate}
             />
+          )}
+
+          {/* Postscripts */}
+          <div className={styles.postscriptsSection}>
+            <h3 className={styles.sectionTitle}>Postscripts</h3>
+            {postscripts.map((ps, i) => (
+              <div key={i} className={styles.postscriptRow}>
+                <span className={styles.postscriptLabel}>P.{i > 0 ? 'P.'.repeat(i) : ''}S.</span>
+                <input
+                  type="text"
+                  value={ps}
+                  onChange={(e) => handlePostscriptChange(i, e.target.value)}
+                  className={styles.fieldInput}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  onClick={() => handleRemovePostscript(i)}
+                  className={styles.removeButton}
+                  title="Remove postscript"
+                >
+                  &times;
+                </button>
+              </div>
+            ))}
             <button
-              onClick={() => handleRemovePostscript(i)}
-              className={styles.removeButton}
-              title="Remove postscript"
+              onClick={handleAddPostscript}
+              className={styles.addButton}
             >
-              &times;
+              + Add postscript
             </button>
           </div>
-        ))}
-        <button
-          onClick={handleAddPostscript}
-          className={styles.addButton}
-        >
-          + Add postscript
-        </button>
+        </div>
+
+        {/* Live preview pane */}
+        {editorContent !== null && (
+          <PreviewPane
+            editorRef={editorRef}
+            previewTrigger={previewTrigger}
+          />
+        )}
       </div>
 
       {/* Import Markdown Modal */}
