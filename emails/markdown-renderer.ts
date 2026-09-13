@@ -195,6 +195,44 @@ export function replaceDesignedCta(
 }
 
 /**
+ * Resolve `<a>` tags marked with `data-relative="true"` into full subscriber
+ * chart-page URLs. If no subscriberId is available the `<a>` tag is stripped,
+ * leaving just the link text.
+ *
+ * Attribute order in HTML is unpredictable, so we match any `<a>` containing
+ * the data-relative attribute regardless of where it appears relative to href.
+ */
+export function resolveRelativeLinks(
+  html: string,
+  subscriberId: string | undefined,
+  newsletterNumber: number,
+): string {
+  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
+
+  // Match <a ...data-relative="true"...>text</a> — attribute order varies
+  return html.replace(
+    /<a\b([^>]*?\bdata-relative="true"[^>]*)>([\s\S]*?)<\/a>/gi,
+    (_match, attrs: string, text: string) => {
+      if (!subscriberId) return text;
+
+      // Extract href value
+      const hrefMatch = attrs.match(/\bhref="([^"]*)"/);
+      if (!hrefMatch) return text;
+      const path = hrefMatch[1];
+
+      const url = `${appUrl}/see-your-design/${subscriberId}${path}?utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletterNumber}`;
+
+      // Rebuild attrs: replace href with resolved URL and strip data-relative
+      const newAttrs = attrs
+        .replace(/\bhref="[^"]*"/, `href="${url}"`)
+        .replace(/\s*\bdata-relative="true"/, '');
+
+      return `<a${newAttrs}>${text}</a>`;
+    },
+  );
+}
+
+/**
  * Build a variable map from EmailChartData for use in markdown templates.
  * Iterates all string/number/boolean fields, prefixed with "chart.".
  * Skips arrays and objects (e.g. bridgeDescriptions) — those need React components.

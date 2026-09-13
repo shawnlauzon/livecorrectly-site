@@ -94,7 +94,7 @@ export default async function NewsletterIssuePage({
   }
 
   // Load newsletter with chart so markdown conditionals are evaluated
-  const issue = await getWebNewsletter(slug, chart);
+  const issue = await getWebNewsletter(slug, chart, subscriberParam ?? undefined);
   if (!issue) {
     // Check if this is an old slug that should redirect
     const redirectSlug = (await getSlugRedirects()).get(slug);

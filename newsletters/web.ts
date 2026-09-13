@@ -2,6 +2,7 @@ import { getNewsletterSendDates } from '@/lib/db';
 import { loadAllNewsletters, type RawNewsletter } from './loader';
 import { resolveContactVars } from './resolve-contact-vars';
 import { resolveLiquid } from './liquid-properties';
+import { resolveRelativeLinks } from '@/emails/markdown-renderer';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 
 export interface WebNewsletter {
@@ -77,6 +78,7 @@ async function renderForWeb(
   publishedAt: string,
   published: boolean,
   chart?: EmailChartData | null,
+  subscriberId?: string,
 ): Promise<WebNewsletter | null> {
   if (!raw.slug) return null;
 
@@ -89,6 +91,8 @@ async function renderForWeb(
   html = await resolveLiquid(html, { chart, mode: 'web' });
 
   html = resolveContactVars(html, chart ?? null);
+
+  html = resolveRelativeLinks(html, subscriberId, raw.number);
 
   return {
     slug: raw.slug,
@@ -145,6 +149,7 @@ export async function getWebNewsletters(): Promise<WebNewsletter[]> {
 export async function getWebNewsletter(
   slug: string,
   chart?: EmailChartData | null,
+  subscriberId?: string,
 ): Promise<WebNewsletter | null> {
   const sendDates = await getNewsletterSendDates();
   const isDev = process.env.NODE_ENV === 'development';
@@ -156,7 +161,7 @@ export async function getWebNewsletter(
     if (!sentAt && !isDev) return null;
     const publishedAt = sentAt ?? new Date().toISOString();
     try {
-      return await renderForWeb(raw, publishedAt, !!sentAt, chart);
+      return await renderForWeb(raw, publishedAt, !!sentAt, chart, subscriberId);
     } catch (error) {
       console.error(
         `Failed to render newsletter #${num} (${slug}):`,

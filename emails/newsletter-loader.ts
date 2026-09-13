@@ -2,7 +2,7 @@ import {
   loadNewsletter,
   type RawNewsletter,
 } from '@/newsletters/loader';
-import { emailMarked, replaceVariables as replaceVars, replaceChartSubpaths, replaceDesignedCta } from './markdown-renderer';
+import { emailMarked, replaceVariables as replaceVars, replaceChartSubpaths, replaceDesignedCta, resolveRelativeLinks } from './markdown-renderer';
 import { resolveLiquid } from '@/newsletters/liquid-properties';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 
@@ -61,6 +61,7 @@ function replaceNewsletterVariables(newsletter: Newsletter, firstName: string, s
   };
   let bodyHtml = replaceVars(newsletter.bodyHtml, vars);
   bodyHtml = replaceChartSubpaths(bodyHtml, subscriberId, newsletter.number);
+  bodyHtml = resolveRelativeLinks(bodyHtml, subscriberId, newsletter.number);
   if (subscriberId) {
     bodyHtml = replaceDesignedCta(bodyHtml, newsletter.slug, subscriberId, newsletter.number);
   }

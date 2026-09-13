@@ -4,6 +4,7 @@ import { getSubscriberById } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { resolveLiquid } from '@/newsletters/liquid-properties';
 import { resolveContactVars } from '@/newsletters/resolve-contact-vars';
+import { resolveRelativeLinks } from '@/emails/markdown-renderer';
 
 /**
  * POST /api/admin/newsletters/preview
@@ -27,7 +28,11 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { html, subscriberId } = body as { html?: string; subscriberId?: string };
+  const { html, subscriberId, newsletterNumber } = body as {
+    html?: string;
+    subscriberId?: string;
+    newsletterNumber?: number;
+  };
 
   if (!html || !subscriberId) {
     return NextResponse.json(
@@ -44,12 +49,13 @@ export async function POST(request: NextRequest) {
   const chartRecord = subscriber.chart?.chart;
   if (!chartRecord) {
     // No chart data — return HTML with Liquid defaults applied (no chart context)
-    const resolved = await resolveLiquid(html, {
+    let resolved = await resolveLiquid(html, {
       mode: 'email',
       firstName: subscriber.first_name,
       lastName: subscriber.last_name ?? '',
       email: subscriber.email,
     });
+    resolved = resolveRelativeLinks(resolved, subscriberId, newsletterNumber ?? 0);
     return NextResponse.json({ html: resolved });
   }
 
@@ -64,6 +70,8 @@ export async function POST(request: NextRequest) {
 
   // Resolve any {{{contact.key}}} patterns remaining in the HTML
   resolved = resolveContactVars(resolved, chart);
+
+  resolved = resolveRelativeLinks(resolved, subscriberId, newsletterNumber ?? 0);
 
   return NextResponse.json({ html: resolved });
 }

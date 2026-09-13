@@ -434,6 +434,30 @@
   padding: 32px 24px;
 }
 
+/* Relative-link checkbox row inside custom link bubble */
+.relativeLinkRow {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 4px 0 2px;
+}
+
+.relativeLinkCheckbox {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--grape);
+  cursor: pointer;
+  margin: 0;
+}
+
+.relativeLinkLabel {
+  font-size: 0.6875rem;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
 .previewEmpty {
   font-family: var(--body);
   font-size: 0.875rem;

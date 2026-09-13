@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation';
 import NextLink from 'next/link';
 import { Extension, InputRule, type Content, type Editor, type JSONContent } from '@tiptap/core';
+import { PluginKey } from '@tiptap/pm/state';
 import { EditorProvider, useCurrentEditor } from '@tiptap/react';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { StarterKit, Link } from '@react-email/editor/extensions';
@@ -11,7 +12,7 @@ import { EmailTheming, useEditorImage, imageSlashCommand } from '@react-email/ed
 import { BubbleMenu, SlashCommand, defaultSlashCommands } from '@react-email/editor/ui';
 import { composeReactEmail } from '@react-email/editor/core';
 import { toast, Toaster } from 'sonner';
-import { LinkBubble } from './link-bubble';
+import { LinkBubble, TextBubbleMenu } from './link-bubble';
 import '@react-email/editor/themes/default.css';
 import styles from './editor.module.css';
 import adminStyles from '../../admin.module.css';
@@ -107,6 +108,8 @@ const BraceShortcuts = Extension.create({
   },
 });
 
+const variableBubblePluginKey = new PluginKey('variableBubbleMenu');
+
 /** Extend the editor's Link mark to store a `data-relative` attribute. */
 const RelativeLink = Link.extend({
   addAttributes() {
@@ -144,6 +147,24 @@ function collectRelativeHrefs(json: JSONContent): Set<string> {
   }
   walk(json);
   return hrefs;
+}
+
+/**
+ * Re-inject `data-relative="true"` into `<a>` tags whose hrefs are marked
+ * relative in the TipTap JSON. Needed because composeReactEmail() strips
+ * custom data-* attributes from link marks.
+ */
+function injectRelativeAttrs(html: string, json: JSONContent): string {
+  const relativeHrefs = collectRelativeHrefs(json);
+  let result = html;
+  for (const href of relativeHrefs) {
+    const escaped = href.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(
+      new RegExp(`(<a\\b[^>]*?href="${escaped}"[^>]*?)(/?>)`, 'g'),
+      '$1 data-relative="true"$2',
+    );
+  }
+  return result;
 }
 
 const SLASH_CATEGORY_ORDER = ['Text', 'Media', 'Layout', 'Conditionals', 'Utility'];
@@ -239,19 +260,7 @@ function EditorPanel({
     try {
       const html = await editorRef.current.getEmailHTML();
       const json = editorRef.current.getJSON();
-
-      // Post-process: composeReactEmail() drops custom data-* attributes from
-      // link marks. Re-inject `data-relative="true"` on the matching <a> tags
-      // by cross-referencing the TipTap JSON.
-      const relativeHrefs = collectRelativeHrefs(json);
-      let processedHtml = html;
-      for (const href of relativeHrefs) {
-        const escaped = href.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        processedHtml = processedHtml.replace(
-          new RegExp(`(<a\\b[^>]*?href="${escaped}"[^>]*?)(/?>)`, 'g'),
-          '$1 data-relative="true"$2',
-        );
-      }
+      const processedHtml = injectRelativeAttrs(html, json);
 
       const res = await fetch(`/api/admin/newsletters/${num}`, {
         method: 'PUT',
@@ -336,11 +345,12 @@ function EditorPanel({
           }}
         >
           <RefBridge editorRef={editorRef} onUpdate={() => { setDirty(true); onEditorUpdate(); }} />
-          <BubbleMenu hideWhenActiveNodes={['button', 'horizontalRule', 'variableNode']} hideWhenActiveMarks={['link']} />
+          <TextBubbleMenu />
           <LinkBubble />
           <BubbleMenu.ButtonDefault />
           <BubbleMenu.ImageDefault />
           <BubbleMenu
+            pluginKey={variableBubblePluginKey}
             trigger={({ editor: e }: { editor: Editor }) => e.isActive('variableNode')}
             placement="bottom"
           >
@@ -424,7 +434,9 @@ function PreviewPane({
     const timer = setTimeout(async () => {
       if (cancelled) return;
       try {
-        const html = await editorRef.current!.getEmailHTML();
+        const rawHtml = await editorRef.current!.getEmailHTML();
+        const json = editorRef.current!.getJSON();
+        const html = injectRelativeAttrs(rawHtml, json);
         if (cancelled) return;
         const pwd = getPassword();
         const res = await fetch('/api/admin/newsletters/preview', {
