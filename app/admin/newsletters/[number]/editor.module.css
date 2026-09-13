@@ -178,6 +178,14 @@
   margin: 12px 0;
 }
 
+/* The editor theme sets a fixed width (600px) on .node-container for email
+   layout. Inside conditional blocks that container can exceed the available
+   width (reduced by padding + dashed border), causing overflow: hidden on
+   the block wrapper to clip text. Cap it so it never overflows. */
+.editorWrap :global([data-type="conditional-block"] .node-container) {
+  max-width: 100%;
+}
+
 /* Branch divider — visual separator between sibling branches */
 .editorWrap :global([data-branch-type] + [data-branch-type]) {
   border-top: 1px dashed var(--line, #E6E1F4);
