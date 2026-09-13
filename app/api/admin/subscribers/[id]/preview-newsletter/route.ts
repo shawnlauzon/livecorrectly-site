@@ -5,6 +5,8 @@ import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { renderEmail, buildUnsubscribeUrl } from '@/emails/send';
 import { getNewsletterEmail, getNewsletterSubject, getNewsletterNumbers } from '@/emails/newsletter';
 import { getNewsletter } from '@/emails/newsletter-loader';
+import { resolveContactVars } from '@/newsletters/resolve-contact-vars';
+import { replaceResendContactVars } from '@/emails/markdown-renderer';
 
 /**
  * GET /api/admin/subscribers/[id]/preview-newsletter?step=1
@@ -61,7 +63,18 @@ export async function GET(
 
     const newsletter = await getNewsletter(step, subscriber.first_name, subscriber.id);
     const preview = newsletter?.preview ?? '';
-    const html = await renderEmail(emailComponent);
+    let html = await renderEmail(emailComponent);
+
+    // Resolve remaining Resend contact property placeholders for preview.
+    // After Liquid resolution, the HTML may still contain {{{contact.key|}}} and
+    // {{{FIRST_NAME|}}} patterns that Resend would normally resolve at send time.
+    html = resolveContactVars(html, chart);
+    html = replaceResendContactVars(html, {
+      FIRST_NAME: subscriber.first_name,
+      LAST_NAME: subscriber.last_name ?? '',
+      EMAIL: subscriber.email,
+      RESEND_UNSUBSCRIBE_URL: unsubscribeUrl,
+    });
 
     return NextResponse.json({ subject, preview, html, newsletterNumbers });
   } catch (error) {

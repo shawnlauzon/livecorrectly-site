@@ -28,6 +28,20 @@ export interface RawNewsletter {
   bodyJson: unknown | null;
   /** Pre-rendered HTML from the visual editor (null if not edited visually) */
   bodyHtml: string | null;
+  /** Stable key assignments for Liquid dynamic sections (null if no Liquid) */
+  liquidSectionMap: LiquidSectionMap | null;
+}
+
+/**
+ * Stable key mapping for Liquid dynamic sections in a newsletter.
+ * Keys are reused across schedule runs; removed sections free their key
+ * but the index is never reused (monotonically increasing).
+ */
+export interface LiquidSectionMap {
+  /** Current section property keys in order, e.g. ["nl_08_s1", "nl_08_s2"] */
+  keys: string[];
+  /** Next index to assign (only increments), e.g. 3 */
+  nextIndex: number;
 }
 
 /**
@@ -69,6 +83,7 @@ export function parseRawNewsletter(content: string, number: number): RawNewslett
     rawPs,
     bodyJson: null,
     bodyHtml: null,
+    liquidSectionMap: null,
   };
 }
 

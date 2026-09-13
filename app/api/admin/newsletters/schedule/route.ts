@@ -6,12 +6,14 @@ import {
   recordEmailSend,
   insertNewsletterSchedule,
   getScheduleForNewsletter,
+  updateNewsletterLiquidMap,
 } from '@/lib/db';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import { loadNewsletter } from '@/newsletters/loader';
 import { processConditionals } from '@/newsletters/conditionals';
 import {
   hasLiquidConditionals,
+  hasLiquidOutputTags,
   extractDynamicSections,
   buildDynamicContactProperties,
 } from '@/newsletters/liquid-properties';
@@ -20,7 +22,7 @@ import {
   renderNewsletterForBroadcastWithMarkdown,
   syncBroadcastContactProperties,
 } from '@/lib/resend-broadcasts';
-import { getResendClient } from '@/lib/resend-contacts';
+import { getResendClient, createPropertyIfMissing, deleteNewsletterProperties } from '@/lib/resend-contacts';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getNextCadenceDate } from '@/newsletters/cadence';
 
@@ -36,8 +38,14 @@ import { getNextCadenceDate } from '@/newsletters/cadence';
  *
  * Pipeline:
  * 1. Query due subscribers (by next_step)
- * 2. If Liquid conditionals exist: extract dynamic sections, render per-subscriber,
- *    sync as contact properties, render broadcast template with placeholders
+ * 2. If Liquid conditionals or output tags exist:
+ *    a. Load stored section map for stable key assignment
+ *    b. Extract dynamic sections with map-aware key allocation
+ *    c. Replace simple output tags with Resend contact property syntax
+ *    d. Render per-subscriber, sync as contact properties
+ *    e. Clean up removed section properties from Resend
+ *    f. Save updated map to DB
+ *    g. Render broadcast template with placeholders
  * 3. If no Liquid: render broadcast template normally
  * 4. Sync standard chart contact properties
  * 5. Create ephemeral segment, add subscribers
@@ -99,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     // Resolve channel conditionals (keep email content, strip web)
     const channelResolved = processConditionals(raw.bodyMarkdown.trim(), 'email');
-    const hasLiquid = hasLiquidConditionals(channelResolved);
+    const hasLiquid = hasLiquidConditionals(channelResolved) || hasLiquidOutputTags(channelResolved);
 
     let html: string;
     let subject: string;
@@ -107,26 +115,29 @@ export async function POST(request: NextRequest) {
     if (hasLiquid) {
       // --- Liquid path: extract dynamic sections, render per-subscriber, create broadcast with placeholders ---
 
-      const { broadcastTemplate, sections } = extractDynamicSections(
+      // Load stored section map for stable key assignment
+      const storedMap = raw.liquidSectionMap;
+
+      const { broadcastTemplate, sections, sectionMap: newMap } = extractDynamicSections(
         channelResolved,
         newsletterNumber,
+        storedMap,
       );
+
+      // Compute removed keys: keys in old map but not in new map
+      const oldKeys = new Set(storedMap?.keys ?? []);
+      const newKeys = new Set(newMap.keys);
+      const removedKeys = [...oldKeys].filter(k => !newKeys.has(k));
+
+      // Delete removed section properties from Resend
+      if (removedKeys.length > 0) {
+        console.log(`[schedule] Cleaning up ${removedKeys.length} removed section properties: ${removedKeys.join(', ')}`);
+        await deleteNewsletterProperties(removedKeys);
+      }
 
       // Ensure dynamic section contact properties exist in Resend
       for (const section of sections) {
-        const { error } = await client.contactProperties.create({
-          key: section.propertyKey,
-          type: 'string' as const,
-        });
-        if (error) {
-          if ('statusCode' in error && (error as { statusCode: number }).statusCode === 409) {
-            // Property already exists — expected
-          } else {
-            throw new Error(
-              `Failed to create contact property ${section.propertyKey}: ${JSON.stringify(error)}`,
-            );
-          }
-        }
+        await createPropertyIfMissing(section.propertyKey);
       }
 
       // Render dynamic sections for each subscriber and sync as contact properties
@@ -142,6 +153,7 @@ export async function POST(request: NextRequest) {
           channelResolved,
           chart,
           newsletterNumber,
+          storedMap,
         );
 
         if (Object.keys(dynamicProps).length > 0) {
@@ -157,6 +169,9 @@ export async function POST(request: NextRequest) {
           }
         }
       }
+
+      // Save updated section map to DB
+      await updateNewsletterLiquidMap(newsletterNumber, newMap);
 
       // Render broadcast HTML using the template with contact property placeholders
       const rendered = await renderNewsletterForBroadcastWithMarkdown(

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Subscriber } from '@/lib/types/subscriber';
-import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getNewsletter } from './newsletter-loader';
+import { parseChartForEmail, type EmailChartData } from '@/lib/hd-chart/parse-for-email';
+import { getNewsletter, getNewsletterWithChart } from './newsletter-loader';
 import { NewsletterTemplate } from './newsletter-template';
 
 export { getNewsletterCount, getMaxNewsletterNumber, getNewsletterNumbers } from './newsletter-loader';
@@ -9,6 +9,7 @@ export { getNewsletterCount, getMaxNewsletterNumber, getNewsletterNumbers } from
 /**
  * Build the React element for a newsletter step.
  * Step matches subscriber.next_step directly.
+ * When chart data is available, Liquid conditionals and output tags are resolved.
  * Returns null if the newsletter doesn't exist.
  */
 export async function getNewsletterEmail(
@@ -17,7 +18,10 @@ export async function getNewsletterEmail(
   chart: ReturnType<typeof parseChartForEmail> | null,
   unsubscribeUrl: string
 ): Promise<React.ReactElement | null> {
-  const newsletter = await getNewsletter(step, subscriber.first_name, subscriber.id);
+  // Use chart-aware loader to resolve Liquid conditionals + output tags
+  const newsletter = chart
+    ? await getNewsletterWithChart(step, subscriber.first_name, chart as EmailChartData, subscriber.id)
+    : await getNewsletter(step, subscriber.first_name, subscriber.id);
   if (!newsletter) return null;
 
   return React.createElement(NewsletterTemplate, {

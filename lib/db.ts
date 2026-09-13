@@ -2,7 +2,7 @@ import { cache } from 'react';
 import { neon, NeonQueryFunction } from '@neondatabase/serverless';
 import { BirthInput, EmailStatus, Subscriber, EmailSend, EmailEvent, EmailEventType } from './types/subscriber';
 import type { ChartGroup, ChartRecord } from './types/chart';
-import type { RawNewsletter } from '@/newsletters/loader';
+import type { RawNewsletter, LiquidSectionMap } from '@/newsletters/loader';
 
 /** A redirect rule mapping a slug + chart property to a destination URL. */
 export interface RedirectRule {
@@ -1052,6 +1052,7 @@ function rowToRawNewsletter(row: Record<string, unknown>): RawNewsletter {
     rawPs: (row.postscripts as string[]) ?? [],
     bodyJson: (row.body_json as unknown) ?? null,
     bodyHtml: (row.body_html as string | null) ?? null,
+    liquidSectionMap: (row.liquid_section_map as LiquidSectionMap | null) ?? null,
   };
 }
 
@@ -1103,6 +1104,23 @@ export async function getDbNewsletterFull(num: number): Promise<RawNewsletter | 
     SELECT * FROM newsletters WHERE number = ${num}
   `);
   return rows.length > 0 ? rowToRawNewsletter(rows[0]) : null;
+}
+
+/**
+ * Update a newsletter's liquid_section_map column.
+ * Used by the schedule route to persist stable key assignments.
+ */
+export async function updateNewsletterLiquidMap(
+  num: number,
+  map: LiquidSectionMap,
+): Promise<void> {
+  const db = getDb();
+  await db`
+    UPDATE newsletters
+    SET liquid_section_map = ${JSON.stringify(map)}::jsonb,
+        updated_at = now()
+    WHERE number = ${num}
+  `;
 }
 
 /**

@@ -83,6 +83,66 @@ export async function createPropertyIfMissing(key: string): Promise<void> {
   keys.add(key);
 }
 
+/**
+ * Delete newsletter section contact properties from Resend.
+ * Used when sections are removed from a newsletter — the orphaned properties
+ * must be deleted so stale values don't persist on contacts.
+ *
+ * Finds each property by listing all properties and matching by key,
+ * then deletes by ID. Updates the local cache to remove the deleted keys.
+ */
+export async function deleteNewsletterProperties(keys: string[]): Promise<void> {
+  if (keys.length === 0) return;
+
+  const client = getResendClient();
+  const keysToDelete = new Set(keys);
+
+  // List all properties to find the IDs for the keys we want to delete
+  const propertyIds: Map<string, string> = new Map();
+  let after: string | undefined;
+  let hasMore = true;
+  while (hasMore) {
+    const { data, error } = await client.contactProperties.list({
+      limit: 100,
+      ...(after ? { after } : {}),
+    });
+    if (error || !data) {
+      console.warn('[resend-contacts] Failed to list properties for deletion:', error);
+      return;
+    }
+    for (const prop of data.data) {
+      if (keysToDelete.has(prop.key)) {
+        propertyIds.set(prop.key, prop.id);
+      }
+    }
+    hasMore = data.has_more;
+    if (hasMore && data.data.length > 0) {
+      after = data.data[data.data.length - 1].id;
+    }
+  }
+
+  // Delete each found property
+  for (const [key, id] of propertyIds) {
+    const { error } = await client.contactProperties.remove(id);
+    if (error) {
+      console.warn(`[resend-contacts] Failed to delete property "${key}" (${id}):`, error);
+    } else {
+      console.log(`[resend-contacts] Deleted property "${key}" (${id})`);
+      // Remove from local cache
+      if (existingPropertyKeys) {
+        existingPropertyKeys.delete(key);
+      }
+    }
+  }
+
+  // Warn about keys we couldn't find
+  for (const key of keysToDelete) {
+    if (!propertyIds.has(key)) {
+      console.warn(`[resend-contacts] Property "${key}" not found in Resend — may already be deleted`);
+    }
+  }
+}
+
 let neonIdPropertyEnsured = false;
 
 /**

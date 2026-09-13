@@ -116,13 +116,15 @@ export function replaceResendContactVars(
     },
   );
 
-  // Replace {{{RESEND_UNSUBSCRIBE_URL}}}
-  if ('RESEND_UNSUBSCRIBE_URL' in contactVars) {
-    result = result.replaceAll(
-      '{{{RESEND_UNSUBSCRIBE_URL}}}',
-      contactVars['RESEND_UNSUBSCRIBE_URL'],
-    );
-  }
+  // Replace default Resend fields: {{{FIRST_NAME|there}}}, {{{FIRST_NAME}}}, {{{RESEND_UNSUBSCRIBE_URL}}}
+  result = result.replace(
+    /\{\{\{(FIRST_NAME|LAST_NAME|EMAIL|RESEND_UNSUBSCRIBE_URL)(?:\|([^}]*))?\}\}\}/g,
+    (_match, key: string, fallback: string | undefined) => {
+      if (key in contactVars) return contactVars[key];
+      if (fallback !== undefined) return fallback;
+      return _match;
+    },
+  );
 
   return result;
 }
