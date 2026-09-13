@@ -227,7 +227,7 @@ export default function AdminNewslettersPage() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, nextSendAt, timezone]);
 
   useEffect(() => {
     void (async () => { await fetchNewsletters(); })();

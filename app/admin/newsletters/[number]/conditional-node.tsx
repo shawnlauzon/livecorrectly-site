@@ -1,0 +1,490 @@
+'use client';
+
+import React from 'react';
+import { mergeAttributes } from '@tiptap/core';
+import { EmailNode } from '@react-email/editor/core';
+import {
+  ReactNodeViewRenderer,
+  NodeViewWrapper,
+  NodeViewContent,
+} from '@tiptap/react';
+import type { ReactNodeViewProps } from '@tiptap/react';
+import type { SlashCommandItem } from '@react-email/editor/ui';
+
+// ---------------------------------------------------------------------------
+// Condition field definitions — same contact property names as the Variable node
+// ---------------------------------------------------------------------------
+
+interface ConditionField {
+  key: string;
+  label: string;
+  values: string[];
+}
+
+/**
+ * Fields available for conditions. Each maps to a contact property
+ * (same names used by the Variable node and buildLiquidContext).
+ *
+ * `career_type` = BG5 career design, `type` = traditional HD type.
+ * "(any)" entries use Liquid `contains` to match multiple subtypes.
+ */
+const CONDITION_FIELDS: ConditionField[] = [
+  { key: 'career_type', label: 'Career Type', values: ['Builder (any)', 'Classic Builder', 'Express Builder', 'Initiator', 'Advisor', 'Evaluator'] },
+  { key: 'type', label: 'Type', values: ['Generator (any)', 'Generator', 'Manifesting Generator', 'Manifestor', 'Projector', 'Reflector'] },
+  { key: 'inner_authority', label: 'Inner Authority', values: ['Emotional', 'Sacral', 'Splenic', 'Ego', 'Self-Projected', 'Ego-Projected', 'None'] },
+  { key: 'strategy', label: 'Strategy', values: ['wait to respond before engaging', 'inform before taking action', 'wait for recognition and invitation', 'wait a 28 day cycle to reflect and assess'] },
+  { key: 'signature_theme', label: 'Signature Theme', values: ['satisfaction', 'peace', 'success', 'surprise'] },
+  { key: 'not_self_theme', label: 'Not-Self Theme', values: ['frustration', 'anger', 'bitterness', 'disappointment'] },
+];
+
+const OPERATORS = ['==', '!='] as const;
+
+const FIELD_BY_KEY = new Map(CONDITION_FIELDS.map(f => [f.key, f]));
+
+/**
+ * Compound "any" values expand to `field == "A" or field == "B"` in Liquid.
+ * To the author they're just another value in the dropdown.
+ */
+const ANY_VALUES: Record<string, { field: string; members: string[] }> = {
+  'Builder (any)': { field: 'career_type', members: ['Classic Builder', 'Express Builder'] },
+  'Generator (any)': { field: 'type', members: ['Generator', 'Manifesting Generator'] },
+};
+
+/** Parse a Liquid condition string into structured field/op/value parts. */
+function parseCondition(condition: string): { field: string; op: string; value: string } | null {
+  // Compound "any" with `or`: `field == "A" or field == "B"`
+  for (const [anyLabel, def] of Object.entries(ANY_VALUES)) {
+    const eqParts = def.members.map(m => `${def.field} == "${m}"`).join(' or ');
+    const neqParts = def.members.map(m => `${def.field} != "${m}"`).join(' and ');
+    if (condition === eqParts) return { field: def.field, op: '==', value: anyLabel };
+    if (condition === neqParts) return { field: def.field, op: '!=', value: anyLabel };
+  }
+  // Standard: `field == "value"` or `field != "value"`
+  const match = condition.match(/^(\w+)\s*(==|!=)\s*"(.+)"$/);
+  if (!match) return null;
+  return { field: match[1], op: match[2], value: match[3] };
+}
+
+/** Compose structured parts into a Liquid condition string. */
+function composeCondition(field: string, op: string, value: string): string {
+  const any = ANY_VALUES[value];
+  if (any) {
+    if (op === '!=') {
+      // All must not match: `field != "A" and field != "B"`
+      return any.members.map(m => `${any.field} != "${m}"`).join(' and ');
+    }
+    // Any must match: `field == "A" or field == "B"`
+    return any.members.map(m => `${any.field} == "${m}"`).join(' or ');
+  }
+  return `${field} ${op} "${value}"`;
+}
+
+const BRANCH_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  if: { bg: '#E8F5E9', text: '#2E7D32', border: '#A5D6A7' },
+  elsif: { bg: '#FFF3E0', text: '#E65100', border: '#FFCC80' },
+  else: { bg: '#F3E5F5', text: '#7B1FA2', border: '#CE93D8' },
+};
+
+const selectStyle = (borderColor: string): React.CSSProperties => ({
+  fontSize: 12,
+  padding: '2px 4px',
+  border: `1px solid ${borderColor}`,
+  borderRadius: 3,
+  background: '#fff',
+  outline: 'none',
+});
+
+// ---------------------------------------------------------------------------
+// ConditionalBranchView — React NodeView for a single branch
+// ---------------------------------------------------------------------------
+
+function ConditionalBranchView({ node, updateAttributes, deleteNode }: ReactNodeViewProps) {
+  const branchType: string = node.attrs.branchType ?? 'if';
+  const condition: string = node.attrs.condition ?? '';
+  const colors = BRANCH_COLORS[branchType] ?? BRANCH_COLORS.if;
+  const showCondition = branchType !== 'else';
+  const canDelete = branchType !== 'if';
+
+  const parsed = showCondition ? parseCondition(condition) : null;
+  const field = parsed?.field ?? CONDITION_FIELDS[0].key;
+  const op = parsed?.op ?? '==';
+  const value = parsed?.value ?? '';
+  const fieldDef = FIELD_BY_KEY.get(field);
+  const update = (f: string, o: string, v: string) => {
+    updateAttributes({ condition: composeCondition(f, o, v) });
+  };
+
+  return (
+    <NodeViewWrapper data-branch-type={branchType}>
+      {/* Branch header bar */}
+      <div
+        contentEditable={false}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '6px 10px',
+          background: colors.bg,
+          borderBottom: `1px solid ${colors.border}`,
+          userSelect: 'none',
+        }}
+      >
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            color: colors.text,
+            flexShrink: 0,
+            minWidth: 44,
+          }}
+        >
+          {branchType === 'elsif' ? 'ELSE IF' : branchType.toUpperCase()}
+        </span>
+
+        {showCondition && (
+          <>
+            {/* Field picklist */}
+            <select
+              value={field}
+              onChange={(e) => {
+                const newField = e.target.value;
+                const newFieldDef = FIELD_BY_KEY.get(newField);
+                const newValue = newFieldDef?.values[0] ?? '';
+                update(newField, op, newValue);
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={selectStyle(colors.border)}
+            >
+              {CONDITION_FIELDS.map((f) => (
+                <option key={f.key} value={f.key}>{f.label}</option>
+              ))}
+            </select>
+
+            {/* Operator picklist */}
+            <select
+              value={op}
+              onChange={(e) => update(field, e.target.value, value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{ ...selectStyle(colors.border), width: 44 }}
+            >
+              {OPERATORS.map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+
+            {/* Value picklist */}
+            <select
+              value={fieldDef?.values.includes(value) ? value : ''}
+              onChange={(e) => update(field, op, e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={selectStyle(colors.border)}
+            >
+              {!fieldDef?.values.includes(value) && value && (
+                <option value="">{value}</option>
+              )}
+              {(fieldDef?.values ?? []).map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          </>
+        )}
+
+        {canDelete && (
+          <button
+            type="button"
+            onClick={deleteNode}
+            onMouseDown={(e) => e.stopPropagation()}
+            title={`Remove ${branchType} branch`}
+            style={{
+              marginLeft: 'auto',
+              fontSize: 16,
+              lineHeight: 1,
+              background: 'none',
+              border: 'none',
+              color: colors.text,
+              cursor: 'pointer',
+              padding: '0 2px',
+              opacity: 0.6,
+              flexShrink: 0,
+            }}
+          >
+            &times;
+          </button>
+        )}
+      </div>
+
+      {/* Editable content area */}
+      <NodeViewContent
+        style={{
+          padding: '8px 12px',
+          minHeight: 40,
+        }}
+      />
+    </NodeViewWrapper>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ConditionalBlockView — React NodeView wrapping all branches
+// ---------------------------------------------------------------------------
+
+function ConditionalBlockView({ node, editor, deleteNode, getPos }: ReactNodeViewProps) {
+  // Check if an 'else' branch already exists
+  const hasElse = (() => {
+    let found = false;
+    node.content.forEach((child) => {
+      if (child.attrs.branchType === 'else') found = true;
+    });
+    return found;
+  })();
+
+  const addBranch = (type: 'elsif' | 'else') => {
+    const pos = getPos();
+    if (pos === undefined) return;
+
+    // Find the insertion position. Elsif goes before the else (if present),
+    // else goes at the end.
+    let insertPos = pos + node.nodeSize - 1; // default: end of block
+    if (type === 'elsif' && hasElse) {
+      // Walk children to find the else branch and insert before it
+      let offset = 1; // +1 for the block's opening token
+      node.content.forEach((child) => {
+        if (child.attrs.branchType === 'else') {
+          insertPos = pos + offset;
+        }
+        offset += child.nodeSize;
+      });
+    }
+
+    const branchNode = editor.schema.nodes.conditionalBranch.create(
+      {
+        branchType: type,
+        condition: type === 'elsif' ? composeCondition('career_type', '==', 'Builder (any)') : '',
+      },
+      editor.schema.nodes.paragraph.create(),
+    );
+    editor.chain().focus().insertContentAt(insertPos, branchNode.toJSON()).run();
+  };
+
+  return (
+    <NodeViewWrapper data-type="conditional-block">
+      <div
+        style={{
+          border: '2px dashed var(--line, #E6E1F4)',
+          borderRadius: 8,
+          margin: '12px 0',
+          overflow: 'hidden',
+          background: '#FAFAFA',
+        }}
+      >
+        <NodeViewContent />
+
+        {/* Footer bar: add branch + delete block buttons */}
+        <div
+          contentEditable={false}
+          style={{
+            display: 'flex',
+            gap: 8,
+            padding: '6px 10px',
+            borderTop: '1px dashed var(--line, #E6E1F4)',
+            background: '#F5F5F5',
+            userSelect: 'none',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => addBranch('elsif')}
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: BRANCH_COLORS.elsif.text,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '2px 6px',
+            }}
+          >
+            + else if
+          </button>
+          {!hasElse && (
+            <button
+              type="button"
+              onClick={() => addBranch('else')}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: BRANCH_COLORS.else.text,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '2px 6px',
+              }}
+            >
+              + else
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={deleteNode}
+            onMouseDown={(e) => e.stopPropagation()}
+            title="Delete conditional block"
+            style={{
+              marginLeft: 'auto',
+              fontSize: 12,
+              fontWeight: 600,
+              color: '#999',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '2px 6px',
+            }}
+          >
+            Delete block
+          </button>
+        </div>
+      </div>
+    </NodeViewWrapper>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ConditionalBranchNode — TipTap extension
+// ---------------------------------------------------------------------------
+
+export const ConditionalBranchNode = EmailNode.create({
+  name: 'conditionalBranch',
+  group: 'conditionalBranch',
+  content: 'block+',
+  isolating: true,
+  defining: true,
+
+  addAttributes() {
+    return {
+      branchType: { default: 'if' },
+      condition: { default: '' },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'div[data-branch-type]' }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    const { branchType, condition, ...rest } = HTMLAttributes;
+    return [
+      'div',
+      mergeAttributes(rest, {
+        'data-branch-type': branchType,
+        'data-condition': condition,
+      }),
+      0,
+    ];
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(ConditionalBranchView);
+  },
+
+  renderToReactEmail({ node, children }) {
+    const branchType: string = node.attrs?.branchType ?? 'if';
+    const condition: string = node.attrs?.condition ?? '';
+
+    let openTag: string;
+    if (branchType === 'if') {
+      openTag = `{% if ${condition} %}`;
+    } else if (branchType === 'elsif') {
+      openTag = `{% elsif ${condition} %}`;
+    } else {
+      openTag = '{% else %}';
+    }
+
+    return (
+      <>
+        <span dangerouslySetInnerHTML={{ __html: openTag }} />
+        {children}
+      </>
+    );
+  },
+});
+
+// ---------------------------------------------------------------------------
+// ConditionalBlockNode — TipTap extension
+// ---------------------------------------------------------------------------
+
+export const ConditionalBlockNode = EmailNode.create({
+  name: 'conditionalBlock',
+  group: 'block',
+  content: 'conditionalBranch+',
+
+  parseHTML() {
+    return [{ tag: 'div[data-type="conditional-block"]' }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'div',
+      mergeAttributes(HTMLAttributes, {
+        'data-type': 'conditional-block',
+      }),
+      0,
+    ];
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(ConditionalBlockView);
+  },
+
+  renderToReactEmail({ children }) {
+    return (
+      <>
+        {children}
+        <span dangerouslySetInnerHTML={{ __html: '{% endif %}' }} />
+      </>
+    );
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Slash command
+// ---------------------------------------------------------------------------
+
+const DEFAULT_CONDITION = composeCondition('career_type', '==', 'Builder (any)');
+
+export const IF_THEN_ELSE: SlashCommandItem = {
+  title: 'If-Then',
+  description: 'Conditional content per subscriber type',
+  searchTerms: ['if', 'then', 'else', 'conditional', 'liquid', 'personalize', 'type'],
+  icon: (
+    <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600, lineHeight: 1 }}>
+      {'{ ? }'}
+    </span>
+  ),
+  category: 'Conditionals',
+  command: ({ editor, range }) => {
+    editor
+      .chain()
+      .focus()
+      .deleteRange(range)
+      .insertContent({
+        type: 'conditionalBlock',
+        content: [
+          {
+            type: 'conditionalBranch',
+            attrs: { branchType: 'if', condition: DEFAULT_CONDITION },
+            content: [{ type: 'paragraph' }],
+          },
+          {
+            type: 'conditionalBranch',
+            attrs: { branchType: 'else', condition: '' },
+            content: [{ type: 'paragraph' }],
+          },
+        ],
+      })
+      .run();
+  },
+};

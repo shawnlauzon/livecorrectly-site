@@ -14,6 +14,7 @@ import '@react-email/editor/themes/default.css';
 import styles from './editor.module.css';
 import adminStyles from '../../admin.module.css';
 import { VariableNode, VariableEditForm, VARIABLE } from './variable-node';
+import { ConditionalBlockNode, ConditionalBranchNode, IF_THEN_ELSE } from './conditional-node';
 
 interface NewsletterData {
   number: number;
@@ -47,7 +48,7 @@ function RefBridge({
 }) {
   const { editor } = useCurrentEditor();
   const onUpdateRef = useRef(onUpdate);
-  onUpdateRef.current = onUpdate;
+  useEffect(() => { onUpdateRef.current = onUpdate; });
 
   React.useImperativeHandle(editorRef, () => ({
     getEmailHTML: async () => {
@@ -70,8 +71,8 @@ function RefBridge({
 // Sort by category to match the visual grouping in the SlashCommand menu.
 // The library's CommandList groups items by category but uses array indices
 // for selection, so the array order must match the grouped display order.
-const SLASH_CATEGORY_ORDER = ['Text', 'Media', 'Layout', 'Utility'];
-const slashCommandItems = [...defaultSlashCommands, imageSlashCommand, VARIABLE]
+const SLASH_CATEGORY_ORDER = ['Text', 'Media', 'Layout', 'Conditionals', 'Utility'];
+const slashCommandItems = [...defaultSlashCommands, imageSlashCommand, VARIABLE, IF_THEN_ELSE]
   .sort((a, b) => {
     const ai = SLASH_CATEGORY_ORDER.indexOf(a.category);
     const bi = SLASH_CATEGORY_ORDER.indexOf(b.category);
@@ -141,6 +142,8 @@ function EditorPanel({
     EmailTheming.configure({ theme: 'basic' }),
     imageExtension,
     VariableNode,
+    ConditionalBlockNode,
+    ConditionalBranchNode,
   ], [imageExtension]);
 
   const handleSave = async () => {
@@ -222,7 +225,7 @@ function EditorPanel({
           immediatelyRender={false}
         >
           <RefBridge editorRef={editorRef} onUpdate={() => setDirty(true)} />
-          <BubbleMenu hideWhenActiveNodes={['button', 'horizontalRule', 'variableNode']} hideWhenActiveMarks={['link']} />
+          <BubbleMenu hideWhenActiveNodes={['button', 'horizontalRule', 'variableNode', 'conditionalBlock', 'conditionalBranch']} hideWhenActiveMarks={['link']} />
           <BubbleMenu.LinkDefault />
           <BubbleMenu.ButtonDefault />
           <BubbleMenu.ImageDefault />
@@ -247,7 +250,7 @@ export default function NewsletterEditorPage() {
   const [data, setData] = useState<NewsletterData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dirty, setDirty] = useState(false);
+  const [_dirty, setDirty] = useState(false);
 
   // Metadata fields
   const [subject, setSubject] = useState('');

@@ -168,6 +168,28 @@
   outline-offset: 1px;
 }
 
+/* Conditional block — wrapper rendered by ConditionalBlockView */
+.editorWrap :global([data-type="conditional-block"]) {
+  margin: 12px 0;
+}
+
+/* Branch divider — visual separator between sibling branches */
+.editorWrap :global([data-branch-type] + [data-branch-type]) {
+  border-top: 1px dashed var(--line, #E6E1F4);
+}
+
+/* Ensure branch content areas have proper paragraph spacing */
+.editorWrap :global([data-branch-type] [data-node-view-content] > p) {
+  margin: 0;
+}
+
+/* Selected conditional block outline */
+.editorWrap :global(.ProseMirror-selectednode [data-type="conditional-block"]) {
+  outline: 2px solid var(--grape);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
 /* Postscripts section */
 .postscriptsSection {
   background: var(--card);

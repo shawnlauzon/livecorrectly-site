@@ -115,7 +115,9 @@ export async function GET(request: NextRequest) {
         number: num,
         subject: raw?.subject ?? '',
         slug: raw?.slug ?? null,
-        hasLiquid: raw ? hasLiquidConditionals(raw.bodyMarkdown) : false,
+        hasLiquid: raw
+          ? hasLiquidConditionals(raw.bodyMarkdown) || (raw.bodyHtml ? hasLiquidConditionals(raw.bodyHtml) : false)
+          : false,
         sentCount,
         nextWeekCount,
         laterCount,

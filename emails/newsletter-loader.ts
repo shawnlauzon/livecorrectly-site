@@ -133,17 +133,45 @@ export async function getNewsletterWithChart(
   if (!raw) return null;
 
   const channelResolved = processConditionals(raw.bodyMarkdown.trim(), 'email');
+  const hasMarkdownLiquid = hasLiquidConditionals(channelResolved);
+  const hasHtmlLiquid = raw.bodyHtml ? hasLiquidConditionals(raw.bodyHtml) : false;
 
-  if (!hasLiquidConditionals(channelResolved)) {
+  if (!hasMarkdownLiquid && !hasHtmlLiquid) {
     // No Liquid — use the standard path
     return replaceNewsletterVariables(renderForEmail(raw), firstName, subscriberId);
   }
 
   // Resolve Liquid conditionals with subscriber's chart data
   const context = buildLiquidContext(chart);
+
+  if (hasHtmlLiquid && raw.bodyHtml) {
+    // Editor-authored HTML with Liquid — resolve conditionals in the HTML.
+    // Escape Resend triple-brace variables ({{{...}}}) with Liquid {% raw %} blocks
+    // so they survive Liquid processing and are resolved by Resend at send time.
+    const escaped = raw.bodyHtml.replace(
+      /\{\{\{([^}]+)\}\}\}/g,
+      '{% raw %}{{{$1}}}{% endraw %}',
+    );
+    const resolvedHtml = await liquidEngine.parseAndRender(escaped, context);
+    const image = raw.showHeroImage ? raw.rawImage : null;
+    const ps = raw.rawPs.map(p => emailMarked.parseInline(p.trim()) as string);
+
+    const newsletter: Newsletter = {
+      number: raw.number,
+      subject: raw.subject,
+      preview: raw.preview,
+      slug: raw.slug,
+      image,
+      bodyHtml: resolvedHtml,
+      ps,
+    };
+
+    return replaceNewsletterVariables(newsletter, firstName, subscriberId);
+  }
+
+  // Markdown path: resolve Liquid then render to HTML
   const liquidResolved = await liquidEngine.parseAndRender(channelResolved, context);
 
-  // Render to email HTML
   const image = raw.showHeroImage ? raw.rawImage : null;
   const bodyHtml = emailMarked.parse(liquidResolved) as string;
   const ps = raw.rawPs.map(p => emailMarked.parseInline(p.trim()) as string);

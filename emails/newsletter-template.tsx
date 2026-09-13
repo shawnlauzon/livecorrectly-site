@@ -50,6 +50,7 @@ export async function requiresPerSubscriberRendering(number: number): Promise<bo
 
   const raw = await loadNewsletter(number);
   if (raw && hasLiquidConditionals(raw.bodyMarkdown)) return true;
+  if (raw?.bodyHtml && hasLiquidConditionals(raw.bodyHtml)) return true;
 
   return false;
 }

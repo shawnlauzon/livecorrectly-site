@@ -6,17 +6,23 @@ import { EmailNode } from '@react-email/editor/core';
 import { useCurrentEditor, useEditorState } from '@tiptap/react';
 import type { SlashCommandItem } from '@react-email/editor/ui';
 
+/**
+ * Standard Resend fields that don't need the `contact.` prefix in template syntax.
+ * Custom contact properties are referenced as `{{{contact.key}}}`.
+ */
+const STANDARD_RESEND_FIELDS = new Set(['FIRST_NAME', 'LAST_NAME', 'EMAIL']);
+
 const KNOWN_PROPERTIES: { label: string; value: string; fallback?: string }[] = [
   { label: 'First Name', value: 'FIRST_NAME', fallback: 'there' },
   { label: 'Last Name', value: 'LAST_NAME' },
   { label: 'Email', value: 'EMAIL' },
-  { label: 'Career Type', value: 'contact.career_type' },
-  { label: 'Type', value: 'contact.type' },
-  { label: 'Strategy', value: 'contact.strategy' },
-  { label: 'Inner Authority', value: 'contact.inner_authority' },
-  { label: 'Signature Theme', value: 'contact.signature_theme' },
-  { label: 'Not-Self Theme', value: 'contact.not_self_theme' },
-  { label: 'Decision Strategy', value: 'contact.decision_making_strategy' },
+  { label: 'Career Type', value: 'career_type' },
+  { label: 'Type', value: 'type' },
+  { label: 'Strategy', value: 'strategy' },
+  { label: 'Inner Authority', value: 'inner_authority' },
+  { label: 'Signature Theme', value: 'signature_theme' },
+  { label: 'Not-Self Theme', value: 'not_self_theme' },
+  { label: 'Decision Strategy', value: 'decision_making_strategy' },
 ];
 
 /**
@@ -41,12 +47,15 @@ export function VariableEditForm() {
   const [draftId, setDraftId] = useState(attrs?.variableId ?? '');
   const [draftFallback, setDraftFallback] = useState(attrs?.fallback ?? '');
 
-  // Sync drafts when the selected node changes
+  // Sync drafts when the selected node changes.
   useEffect(() => {
     if (attrs) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sync external attr → local draft
       setDraftId(attrs.variableId);
       setDraftFallback(attrs.fallback);
     }
+    // Only re-sync when the specific attribute values change, not the attrs object ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attrs?.variableId, attrs?.fallback]);
 
   const apply = () => {
@@ -168,9 +177,14 @@ export const VariableNode = EmailNode.create({
   renderToReactEmail({ node }) {
     const variableId = node.attrs?.variableId ?? 'FIRST_NAME';
     const fallback = node.attrs?.fallback;
+    // Custom contact properties need the `contact.` prefix in Resend template syntax.
+    // Standard fields (FIRST_NAME, etc.) are referenced directly.
+    const resendVar = STANDARD_RESEND_FIELDS.has(variableId)
+      ? variableId
+      : `contact.${variableId}`;
     const template = fallback
-      ? `{{{${variableId}|${fallback}}}}`
-      : `{{{${variableId}}}}`;
+      ? `{{{${resendVar}|${fallback}}}}`
+      : `{{{${resendVar}}}}`;
     return <span>{template}</span>;
   },
 });

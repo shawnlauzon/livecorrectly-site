@@ -88,16 +88,26 @@ export function extractDynamicSections(
 /**
  * Build a Liquid context object from EmailChartData.
  *
- * Uses BG5/career-design terminology that matches newsletter writing conventions:
- * - `type` = "Builder", "Advisor", etc. (careerDesign name)
- * - `hdType` = "Generator", "Projector", etc. (traditional HD name)
+ * Variable names match the contact property registry (newsletters/contact-properties.ts)
+ * so both Variable nodes and Conditional nodes reference the same names:
+ * - `career_type` = "Builder", "Advisor", etc. (BG5 career design)
+ * - `type` = "Generator", "Projector", etc. (traditional HD type)
  * - Boolean flags: `isBuilder`, `isAdvisor`, etc.
- * - Other chart fields: strategy, innerAuthority, etc.
+ * - Snake_case chart fields: `strategy`, `inner_authority`, etc.
  */
 export function buildLiquidContext(chart: EmailChartData): Record<string, string | boolean> {
   return {
-    type: chart.careerDesign,
-    hdType: chart.type,
+    // Contact property names (snake_case) — canonical names for both nodes
+    career_type: chart.careerDesign,
+    type: chart.type,
+    strategy: chart.strategy,
+    inner_authority: chart.innerAuthority,
+    inner_authority_description: chart.innerAuthorityDescription,
+    signature_theme: chart.signatureTheme,
+    not_self_theme: chart.notSelfTheme,
+    decision_making_strategy: chart.decisionMakingStrategy,
+
+    // Boolean flags
     isBuilder: chart.isGenerator,
     isClassicBuilder: chart.isPureGenerator,
     isExpressBuilder: chart.isManifestingGenerator,
@@ -105,13 +115,6 @@ export function buildLiquidContext(chart: EmailChartData): Record<string, string
     isAdvisor: chart.isProjector,
     isEvaluator: chart.isReflector,
     isEmotional: chart.isEmotionalAuthority,
-    strategy: chart.strategy,
-    innerAuthority: chart.innerAuthority,
-    innerAuthorityDescription: chart.innerAuthorityDescription,
-    signatureTheme: chart.signatureTheme,
-    notSelfTheme: chart.notSelfTheme,
-    decisionMakingStrategy: chart.decisionMakingStrategy,
-    careerDesign: chart.careerDesign,
   };
 }
 
