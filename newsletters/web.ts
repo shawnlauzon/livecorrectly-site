@@ -149,9 +149,17 @@ export async function getWebNewsletters(): Promise<WebNewsletter[]> {
 
     if (!sentAt && !isDev) continue;
 
-    const publishedAt = sentAt ?? new Date().toISOString();
-    const parsed = await renderForWeb(raw, publishedAt, !!sentAt);
-    if (parsed) results.push(parsed);
+    try {
+      const publishedAt = sentAt ?? new Date().toISOString();
+      const parsed = await renderForWeb(raw, publishedAt, !!sentAt);
+      if (parsed) results.push(parsed);
+    } catch (error) {
+      console.error(
+        `Failed to render newsletter #${num} (${raw.slug ?? 'no-slug'}):`,
+        error
+      );
+      // Continue processing other newsletters
+    }
   }
 
   // Newest first
@@ -176,7 +184,15 @@ export async function getWebNewsletter(
     const sentAt = sendDates.get(num);
     if (!sentAt && !isDev) return null;
     const publishedAt = sentAt ?? new Date().toISOString();
-    return await renderForWeb(raw, publishedAt, !!sentAt, chart);
+    try {
+      return await renderForWeb(raw, publishedAt, !!sentAt, chart);
+    } catch (error) {
+      console.error(
+        `Failed to render newsletter #${num} (${slug}):`,
+        error
+      );
+      throw error; // Re-throw for single newsletter to show error page
+    }
   }
 
   return null;
