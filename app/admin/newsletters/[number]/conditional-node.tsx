@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { mergeAttributes } from '@tiptap/core';
+import { Extension, mergeAttributes } from '@tiptap/core';
 import { EmailNode } from '@react-email/editor/core';
 import {
   ReactNodeViewRenderer,
@@ -10,6 +10,8 @@ import {
 } from '@tiptap/react';
 import type { ReactNodeViewProps } from '@tiptap/react';
 import type { SlashCommandItem } from '@react-email/editor/ui';
+import { canJoin } from '@tiptap/pm/transform';
+import { TextSelection } from '@tiptap/pm/state';
 
 // ---------------------------------------------------------------------------
 // Condition field definitions — same contact property names as the Variable node
@@ -445,6 +447,164 @@ export const ConditionalBlockNode = EmailNode.create({
         <span dangerouslySetInnerHTML={{ __html: '{% endif %}' }} />
       </>
     );
+  },
+});
+
+// ---------------------------------------------------------------------------
+// ConditionalKeymap — standalone Extension for keyboard shortcuts
+// ---------------------------------------------------------------------------
+// EmailNode.create does not wire addKeyboardShortcuts into TipTap's keymap
+// plugin system (schema methods like addNodeView work, plugin methods don't).
+// A plain Extension.create registers properly.
+
+export const ConditionalKeymap = Extension.create({
+  name: 'conditionalKeymap',
+
+  addKeyboardShortcuts() {
+    return {
+      Backspace: ({ editor }) => {
+        const { state } = editor.view;
+        const { $head, empty } = state.selection;
+
+        if (!empty) return false;
+
+        // Must be inside a conditionalBranch
+        const branchDepth = (() => {
+          for (let d = $head.depth; d > 0; d--) {
+            if ($head.node(d).type.name === 'conditionalBranch') return d;
+          }
+          return null;
+        })();
+        if (branchDepth === null) return false;
+
+        const branch = $head.node(branchDepth);
+
+        // --- Delete empty non-if branch ---
+        if (branch.attrs.branchType !== 'if' && branch.textContent === '') {
+          const branchStart = $head.before(branchDepth);
+          const branchEnd = $head.after(branchDepth);
+          const tr = state.tr.delete(branchStart, branchEnd);
+          const $newPos = tr.doc.resolve(branchStart);
+          if ($newPos.nodeBefore) {
+            tr.setSelection(TextSelection.near(tr.doc.resolve(branchStart - 1), -1));
+          }
+          editor.view.dispatch(tr);
+          return true;
+        }
+
+        // --- Replace entire block if all branches are empty ---
+        const blockDepth = (() => {
+          for (let d = $head.depth; d > 0; d--) {
+            if ($head.node(d).type.name === 'conditionalBlock') return d;
+          }
+          return null;
+        })();
+        if (blockDepth !== null) {
+          const block = $head.node(blockDepth);
+          if (block.textContent === '') {
+            const blockStart = $head.before(blockDepth);
+            const blockEnd = $head.after(blockDepth);
+            const paragraph = state.schema.nodes.paragraph.create();
+            const tr = state.tr.replaceWith(blockStart, blockEnd, paragraph);
+            tr.setSelection(TextSelection.near(tr.doc.resolve(blockStart + 1)));
+            editor.view.dispatch(tr);
+            return true;
+          }
+        }
+
+        // --- Join with previous paragraph inside the branch ---
+        if ($head.parentOffset !== 0) return false;
+
+        const paragraphDepth = $head.depth;
+        if (paragraphDepth <= branchDepth) return false;
+
+        // ReactNodeViewRenderer wraps content in extra div nodes, so
+        // paragraphs may not be direct siblings. Find the outermost depth
+        // (between branch and paragraph) where there IS a preceding sibling.
+        let outerJoinDepth: number | null = null;
+        for (let d = paragraphDepth; d > branchDepth; d--) {
+          if ($head.index(d - 1) > 0) {
+            outerJoinDepth = d;
+            break;
+          }
+        }
+        if (outerJoinDepth === null) return false;
+
+        // Join at each nesting level from the outer wrapper down to the
+        // paragraph. Each join merges two sibling nodes, making the next
+        // level's nodes siblings so the following join can proceed.
+        // After each join the document changes, so re-resolve the cursor
+        // position to find the correct next join point.
+        const tr = state.tr;
+        for (let d = outerJoinDepth; d <= paragraphDepth; d++) {
+          const mappedPos = tr.mapping.map($head.before(d));
+          const $mapped = tr.doc.resolve(mappedPos);
+          // Verify nodes on both sides are the same type before joining
+          if ($mapped.nodeBefore && $mapped.nodeAfter
+              && $mapped.nodeBefore.type === $mapped.nodeAfter.type) {
+            tr.join(mappedPos);
+          }
+        }
+        if (tr.docChanged) {
+          editor.view.dispatch(tr);
+          return true;
+        }
+
+        return false;
+      },
+
+      Delete: ({ editor }) => {
+        const { state } = editor.view;
+        const { $head, empty } = state.selection;
+
+        if (!empty) return false;
+
+        const branchDepth = (() => {
+          for (let d = $head.depth; d > 0; d--) {
+            if ($head.node(d).type.name === 'conditionalBranch') return d;
+          }
+          return null;
+        })();
+        if (branchDepth === null) return false;
+
+        // Cursor must be at end of its textblock
+        if ($head.parentOffset !== $head.parent.content.size) return false;
+
+        // Work from the paragraph depth, not branchDepth + 1
+        // (ReactNodeViewRenderer wraps content in extra div nodes)
+        const paragraphDepth = $head.depth;
+        if (paragraphDepth <= branchDepth) return false;
+
+        // Find the outermost depth with a following sibling
+        let outerJoinDepth: number | null = null;
+        for (let d = paragraphDepth; d > branchDepth; d--) {
+          const parent = $head.node(d - 1);
+          if ($head.index(d - 1) < parent.childCount - 1) {
+            outerJoinDepth = d;
+            break;
+          }
+        }
+        if (outerJoinDepth === null) return false;
+
+        // Join at each nesting level from the outer wrapper down to the
+        // paragraph, merging wrappers then content.
+        const tr = state.tr;
+        for (let d = outerJoinDepth; d <= paragraphDepth; d++) {
+          const mappedPos = tr.mapping.map($head.after(d));
+          const $mapped = tr.doc.resolve(mappedPos);
+          if ($mapped.nodeBefore && $mapped.nodeAfter
+              && $mapped.nodeBefore.type === $mapped.nodeAfter.type) {
+            tr.join(mappedPos);
+          }
+        }
+        if (tr.docChanged) {
+          editor.view.dispatch(tr);
+          return true;
+        }
+
+        return false;
+      },
+    };
   },
 });
 
