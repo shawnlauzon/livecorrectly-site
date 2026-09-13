@@ -95,9 +95,7 @@ export async function GET(request: NextRequest) {
   for (const [newsletterNumber, subscribers] of groups) {
     // Check if this newsletter has Liquid and whether it's been published
     const raw = await loadNewsletter(newsletterNumber);
-    const hasLiquid = raw
-      ? hasLiquidConditionals(raw.bodyMarkdown) || (raw.bodyHtml ? hasLiquidConditionals(raw.bodyHtml) : false)
-      : false;
+    const hasLiquid = raw ? hasLiquidConditionals(raw.bodyHtml) : false;
 
     // Skip unpublished newsletters that have Liquid conditionals.
     // These should be sent via the admin scheduling UI first.

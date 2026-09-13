@@ -1035,19 +1035,16 @@ export async function getAllContactSyncStates(): Promise<Map<string, ContactSync
  * Map a newsletters table row to the RawNewsletter interface.
  */
 function rowToRawNewsletter(row: Record<string, unknown>): RawNewsletter {
-  const bodyMarkdown = row.body_markdown as string;
-
   return {
     number: row.number as number,
     subject: row.subject as string,
     preview: (row.preview as string) ?? '',
     slug: (row.slug as string | null) ?? null,
     description: (row.description as string) ?? '',
-    bodyMarkdown,
     oldSlugs: (row.old_slugs as string[]) ?? [],
     rawPs: (row.postscripts as string[]) ?? [],
-    bodyJson: (row.body_json as unknown) ?? null,
-    bodyHtml: (row.body_html as string | null) ?? null,
+    bodyJson: row.body_json as unknown,
+    bodyHtml: row.body_html as string,
     liquidSectionMap: (row.liquid_section_map as LiquidSectionMap | null) ?? null,
   };
 }
@@ -1091,7 +1088,7 @@ export async function getDbNewsletterNumbers(): Promise<number[]> {
 }
 
 /**
- * Get a single newsletter by number with all columns (including body_json, body_html).
+ * Get a single newsletter by number with all columns.
  * Used by the editor API to load full content for editing.
  */
 export async function getDbNewsletterFull(num: number): Promise<RawNewsletter | null> {

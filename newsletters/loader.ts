@@ -1,8 +1,7 @@
-import matter from 'gray-matter';
 import { getDbNewsletters } from '@/lib/db';
 
 /**
- * Raw newsletter content parsed from front-matter + markdown.
+ * Raw newsletter content from the DB.
  * No rendering has been applied — consumers render for their target (email vs web).
  */
 export interface RawNewsletter {
@@ -10,20 +9,18 @@ export interface RawNewsletter {
   /** Subject line — template variables ({{firstName}}, etc.) still intact */
   subject: string;
   preview: string;
-  /** URL-safe slug for the web version (from front-matter), or null if email-only */
+  /** URL-safe slug for the web version, or null if email-only */
   slug: string | null;
-  /** SEO description (from front-matter) */
+  /** SEO description */
   description: string;
-  /** Raw markdown body — template variables intact, untrimmed greeting included */
-  bodyMarkdown: string;
   /** Previous slugs that should redirect to the current slug */
   oldSlugs: string[];
-  /** Raw postscript strings (markdown, variables intact) */
+  /** Raw postscript strings (variables intact) */
   rawPs: string[];
-  /** TipTap editor JSON (null if newsletter hasn't been edited visually) */
-  bodyJson: unknown | null;
-  /** Pre-rendered HTML from the visual editor (null if not edited visually) */
-  bodyHtml: string | null;
+  /** TipTap editor JSON */
+  bodyJson: unknown;
+  /** Pre-rendered HTML from the visual editor */
+  bodyHtml: string;
   /** Stable key assignments for Liquid dynamic sections (null if no Liquid) */
   liquidSectionMap: LiquidSectionMap | null;
 }
@@ -38,44 +35,6 @@ export interface LiquidSectionMap {
   keys: string[];
   /** Next index to assign (only increments), e.g. 3 */
   nextIndex: number;
-}
-
-/**
- * Parse a newsletter markdown string into a RawNewsletter.
- * Exported for the seed script and tests — no DB or file I/O involved.
- */
-export function parseRawNewsletter(content: string, number: number): RawNewsletter {
-  const { data, content: body } = matter(content);
-
-  const subject = typeof data.subject === 'string' ? data.subject : '';
-  const preview = typeof data.preview === 'string' ? data.preview : '';
-  const slug = typeof data.slug === 'string' ? data.slug : null;
-  const description = typeof data.description === 'string' ? data.description : '';
-
-  const oldSlugs: string[] = Array.isArray(data['old-slugs'])
-    ? data['old-slugs'].filter((s: unknown) => typeof s === 'string')
-    : [];
-
-  let rawPs: string[] = [];
-  if (Array.isArray(data.ps)) {
-    rawPs = data.ps.filter((p: unknown) => typeof p === 'string');
-  } else if (typeof data.ps === 'string') {
-    rawPs = [data.ps];
-  }
-
-  return {
-    number,
-    subject,
-    preview,
-    slug,
-    description,
-    oldSlugs,
-    bodyMarkdown: body,
-    rawPs,
-    bodyJson: null,
-    bodyHtml: null,
-    liquidSectionMap: null,
-  };
 }
 
 /** Cached raw newsletters loaded from DB, keyed by number */

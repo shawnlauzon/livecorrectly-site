@@ -1,8 +1,6 @@
-import { Marked, Renderer, type Tokens } from 'marked';
 import { Liquid } from 'liquidjs';
 import { getNewsletterSendDates } from '@/lib/db';
 import { loadAllNewsletters, type RawNewsletter } from './loader';
-import { processConditionals } from './conditionals';
 import { resolveContactVars } from './resolve-contact-vars';
 import { hasLiquidConditionals, buildLiquidContext } from './liquid-properties';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
@@ -12,24 +10,22 @@ const liquidEngine = new Liquid();
 export interface WebNewsletter {
   slug: string;
   number: number;
-  /** Display title (from front-matter `subject`) */
+  /** Display title (from subject) */
   title: string;
   /** SEO-only description (used in metadata, not displayed on index) */
   description: string;
-  /** Short teaser shown on the index page (from front-matter `preview`) */
+  /** Short teaser shown on the index page (from preview) */
   preview: string;
   /** First image URL from the body, or null if none */
   thumbnailUrl: string | null;
   publishedAt: string;
   /** Whether this newsletter has been sent (has a DB send record) */
   published: boolean;
-  /** Semantic HTML rendered from markdown body */
+  /** HTML rendered from editor content */
   bodyHtml: string;
-  /** Postscripts (semantic HTML from markdown) */
+  /** Postscripts (plain text) */
   ps: string[];
 }
-
-const APP_URL = 'https://www.livecorrectly.com';
 
 /** Extract the first <img> src from an HTML string, or null if none. */
 function extractFirstImageUrl(html: string): string | null {
@@ -37,61 +33,59 @@ function extractFirstImageUrl(html: string): string | null {
   return match?.[1] ?? null;
 }
 
-/**
- * Strip the greeting line that starts with "Hey {{firstName}}," or
- * "Hi {{firstName}}," — this is email-only and shouldn't appear on the web.
- */
-function stripGreeting(markdown: string): string {
-  return markdown.replace(/^(Hey|Hi|Hello)\s+\{\{firstName\}\},?\s*\n+/im, '');
+/** Strip inline style="..." attributes so web CSS can style the content cleanly. */
+function stripInlineStyles(html: string): string {
+  return html.replace(/\s+style="[^"]*"/gi, '');
 }
 
-/**
- * Replace template variables with web-appropriate values.
- */
-function replaceVariables(markdown: string): string {
-  return markdown
-    .replace(/\{\{appUrl\}\}/g, APP_URL)
-    .replace(/\{\{chartUrl\}\}/g, '/see-your-design')
-    .replace(/\{\{chart:\/[^}]*\}\}/g, '/see-your-design')
-    .replace(/\{\{firstName\}\}/g, '')
-    .replace(/^\{\{designed:.+?\}\}\s*$/gm, '');
-}
-
-/** Slugify heading text into a URL-safe anchor id. */
+/** Slugify text into a URL-safe anchor id. */
 function slugify(text: string): string {
   return text
     .toLowerCase()
-    .replace(/[_*`~]/g, '')           // strip markdown emphasis chars
-    .replace(/[^a-z0-9 -]/g, '')      // strip non-alphanumeric except spaces/hyphens
-    .replace(/\s+/g, '-')             // spaces → hyphens
-    .replace(/-+/g, '-')              // collapse consecutive hyphens
-    .replace(/^-|-$/g, '');           // trim leading/trailing hyphens
+    .replace(/<[^>]*>/g, '')            // strip HTML tags
+    .replace(/[^a-z0-9 -]/g, '')       // strip non-alphanumeric except spaces/hyphens
+    .replace(/\s+/g, '-')              // spaces → hyphens
+    .replace(/-+/g, '-')               // collapse consecutive hyphens
+    .replace(/^-|-$/g, '');            // trim leading/trailing hyphens
 }
 
-/** Custom renderer that adds id attributes to headings for anchor linking. */
-function createWebRenderer(): Renderer {
-  const renderer = new Renderer();
-  renderer.heading = function ({ tokens, depth }: Tokens.Heading): string {
-    const text = this.parser.parseInline(tokens);
-    const id = slugify(text.replace(/<[^>]*>/g, '')); // strip HTML tags before slugifying
-    return `<h${depth} id="${id}">${text}</h${depth}>\n`;
-  };
-  return renderer;
+/** Add id attributes to h2/h3/h4 tags for anchor linking. */
+function addHeadingIds(html: string): string {
+  return html.replace(
+    /<(h[2-4])([^>]*)>([\s\S]*?)<\/\1>/gi,
+    (_match, tag: string, attrs: string, content: string) => {
+      // Don't overwrite an existing id
+      if (/\bid=/.test(attrs)) return _match;
+      const id = slugify(content);
+      if (!id) return _match;
+      return `<${tag}${attrs} id="${id}">${content}</${tag}>`;
+    },
+  );
 }
 
-/** Marked instance with heading-id renderer (clean semantic HTML) */
-const marked = new Marked({ renderer: createWebRenderer() });
+/**
+ * Resolve Resend default variables ({{{FIRST_NAME|there}}}, {{{RESEND_UNSUBSCRIBE_URL}}}, etc.)
+ * for web display. Uses the fallback value when present, otherwise strips the variable.
+ */
+function resolveResendDefaultVars(html: string): string {
+  return html.replace(
+    /\{\{\{([A-Z_]+)(?:\|([^}]*))?\}\}\}/g,
+    (_match, _key: string, fallback?: string) => fallback ?? '',
+  );
+}
 
 /**
  * Render a RawNewsletter for web display.
  * Returns null if the newsletter has no slug (email-only issue).
  *
  * Processing pipeline:
- * 1. Strip greeting + replace variables
- * 2. Resolve {if:email}/{if:web} channel conditionals
- * 3. Resolve Liquid conditionals ({% if type == "Builder" %} etc.) if chart provided
- * 4. Resolve {{{contact.key}}} variables
- * 5. Render markdown → HTML
+ * 1. Start from editor HTML (bodyHtml)
+ * 2. Strip inline style attributes for clean web CSS
+ * 3. Add heading IDs for anchor linking
+ * 4. Resolve Liquid conditionals if chart provided
+ * 5. Resolve {{{contact.key}}} variables
+ * 6. Resolve Resend default variables ({{{FIRST_NAME|there}}}, etc.)
+ * 7. Extract thumbnail from original (unstyled-stripped) HTML
  */
 async function renderForWeb(
   raw: RawNewsletter,
@@ -101,29 +95,29 @@ async function renderForWeb(
 ): Promise<WebNewsletter | null> {
   if (!raw.slug) return null;
 
-  const cleaned = replaceVariables(stripGreeting(raw.bodyMarkdown.trim()));
-  const channelResolved = processConditionals(cleaned, 'web');
+  // Extract thumbnail from original editor HTML (before style stripping)
+  const thumbnailUrl = extractFirstImageUrl(raw.bodyHtml);
 
-  // Resolve Liquid conditionals if chart is available and markdown has them
-  let processed: string;
-  if (chart && hasLiquidConditionals(channelResolved)) {
-    const context = buildLiquidContext(chart);
-    processed = await liquidEngine.parseAndRender(channelResolved, context);
-  } else if (hasLiquidConditionals(channelResolved)) {
-    // No chart — strip Liquid blocks (render with empty context so all conditions are false)
-    processed = await liquidEngine.parseAndRender(channelResolved, {});
-  } else {
-    processed = channelResolved;
+  let html = stripInlineStyles(raw.bodyHtml);
+  html = addHeadingIds(html);
+
+  // Resolve Liquid conditionals if present
+  if (hasLiquidConditionals(html)) {
+    // Escape double/triple-brace variables so Liquid doesn't choke on them.
+    // Triple braces are Resend vars ({{{FIRST_NAME|there}}}), double braces
+    // are legacy template vars ({{chartUrl}}) — neither are Liquid syntax.
+    // Liquid only needs to see {% if %} / {% endif %} tags.
+    // Single-pass regex: triple-brace first (greedy), then double-brace.
+    const escaped = html.replace(
+      /\{\{\{[^}]+\}\}\}|\{\{[^%}][^}]*\}\}/g,
+      (match) => `{% raw %}${match}{% endraw %}`,
+    );
+    const context = chart ? buildLiquidContext(chart) : {};
+    html = await liquidEngine.parseAndRender(escaped, context);
   }
 
-  const resolved = resolveContactVars(processed, chart ?? null);
-  const bodyHtml = marked.parse(resolved) as string;
-  const ps = raw.rawPs.map(
-    (p) => marked.parseInline(replaceVariables(p.trim())) as string,
-  );
-
-  // Extract thumbnail from body content (editor HTML or rendered markdown)
-  const thumbnailUrl = extractFirstImageUrl(raw.bodyHtml ?? '') ?? extractFirstImageUrl(bodyHtml);
+  html = resolveContactVars(html, chart ?? null);
+  html = resolveResendDefaultVars(html);
 
   return {
     slug: raw.slug,
@@ -134,8 +128,8 @@ async function renderForWeb(
     thumbnailUrl,
     publishedAt,
     published,
-    bodyHtml,
-    ps,
+    bodyHtml: html,
+    ps: raw.rawPs,
   };
 }
 

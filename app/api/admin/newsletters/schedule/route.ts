@@ -10,7 +10,6 @@ import {
 } from '@/lib/db';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import { loadNewsletter } from '@/newsletters/loader';
-import { processConditionals } from '@/newsletters/conditionals';
 import {
   hasLiquidConditionals,
   hasLiquidOutputTags,
@@ -19,7 +18,7 @@ import {
 } from '@/newsletters/liquid-properties';
 import {
   renderNewsletterForBroadcast,
-  renderNewsletterForBroadcastWithMarkdown,
+  renderNewsletterForBroadcastWithHtml,
   syncBroadcastContactProperties,
 } from '@/lib/resend-broadcasts';
 import { getResendClient, createPropertyIfMissing, deleteNewsletterProperties } from '@/lib/resend-contacts';
@@ -105,9 +104,8 @@ export async function POST(request: NextRequest) {
 
     const client = getResendClient();
 
-    // Resolve channel conditionals (keep email content, strip web)
-    const channelResolved = processConditionals(raw.bodyMarkdown.trim(), 'email');
-    const hasLiquid = hasLiquidConditionals(channelResolved) || hasLiquidOutputTags(channelResolved);
+    // Check for Liquid conditionals or output tags in the editor HTML
+    const hasLiquid = hasLiquidConditionals(raw.bodyHtml) || hasLiquidOutputTags(raw.bodyHtml);
 
     let html: string;
     let subject: string;
@@ -119,7 +117,7 @@ export async function POST(request: NextRequest) {
       const storedMap = raw.liquidSectionMap;
 
       const { broadcastTemplate, sections, sectionMap: newMap } = extractDynamicSections(
-        channelResolved,
+        raw.bodyHtml,
         newsletterNumber,
         storedMap,
       );
@@ -150,7 +148,7 @@ export async function POST(request: NextRequest) {
         }
         const chart = parseChartForEmail(subscriber.chart.chart);
         const dynamicProps = await buildDynamicContactProperties(
-          channelResolved,
+          raw.bodyHtml,
           chart,
           newsletterNumber,
           storedMap,
@@ -174,7 +172,7 @@ export async function POST(request: NextRequest) {
       await updateNewsletterLiquidMap(newsletterNumber, newMap);
 
       // Render broadcast HTML using the template with contact property placeholders
-      const rendered = await renderNewsletterForBroadcastWithMarkdown(
+      const rendered = await renderNewsletterForBroadcastWithHtml(
         newsletterNumber,
         broadcastTemplate,
       );

@@ -1,5 +1,4 @@
 import { Liquid } from 'liquidjs';
-import { emailMarked } from '@/emails/markdown-renderer';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 import type { LiquidSectionMap } from './loader';
 import contactProperties from './contact-properties';
@@ -18,10 +17,10 @@ import contactProperties from './contact-properties';
  * resolves them at send time.
  *
  * Pipeline:
- * 1. extractDynamicSections() splits markdown into static + dynamic segments
+ * 1. extractDynamicSections() splits HTML into static + dynamic segments
  *    (handles both {% if %} blocks and {{ var | filter }} output tags)
  * 2. replaceLiquidOutputTags() converts simple {{ var }} to {{{contact.var|}}}
- * 3. renderDynamicSection() runs Liquid + markdown→HTML for one subscriber
+ * 3. renderDynamicSection() runs Liquid on extracted HTML for one subscriber
  * 4. buildDynamicContactProperties() returns all properties for one subscriber
  */
 
@@ -58,30 +57,30 @@ const TEMPLATE_VARS = new Set(['firstName', 'appUrl', 'chartUrl']);
 /** Known contact property keys from the registry. */
 const KNOWN_CONTACT_KEYS = new Set(Object.keys(contactProperties));
 
-/** Check whether markdown contains any Liquid conditional blocks. */
-export function hasLiquidConditionals(markdown: string): boolean {
-  return /\{%[-\s]*if\b/.test(markdown);
+/** Check whether content contains any Liquid conditional blocks. */
+export function hasLiquidConditionals(content: string): boolean {
+  return /\{%[-\s]*if\b/.test(content);
 }
 
 /**
- * Check whether markdown contains Liquid output tags ({{ var }}).
+ * Check whether content contains Liquid output tags ({{ var }}).
  * Excludes template variables handled by replaceVars().
  */
-export function hasLiquidOutputTags(markdown: string): boolean {
+export function hasLiquidOutputTags(content: string): boolean {
   const re = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\|[^}]*)?\s*\}\}/g;
   let match;
-  while ((match = re.exec(markdown)) !== null) {
+  while ((match = re.exec(content)) !== null) {
     const varName = match[1];
     if (!TEMPLATE_VARS.has(varName)) return true;
   }
   return false;
 }
 
-/** A dynamic section extracted from newsletter markdown. */
+/** A dynamic section extracted from newsletter HTML. */
 export interface DynamicSection {
   /** 0-indexed position in the split result */
   index: number;
-  /** The raw Liquid+markdown source for this section */
+  /** The raw Liquid+HTML source for this section */
   source: string;
   /** Contact property key: nl_NN_sN */
   propertyKey: string;
@@ -155,7 +154,7 @@ export function replaceLiquidOutputTags(
 }
 
 /**
- * Split newsletter markdown into static template + dynamic sections.
+ * Split newsletter HTML into static template + dynamic sections.
  *
  * Static parts stay in the broadcast template as-is. Each dynamic section
  * (containing Liquid conditionals or filtered output tags) is extracted
@@ -164,12 +163,12 @@ export function replaceLiquidOutputTags(
  * When an existing map is provided, property keys are reused for sections
  * at the same position. New sections get the next available index.
  *
- * @param markdown - Raw newsletter markdown (after channel conditionals are resolved)
+ * @param html - Newsletter HTML from the visual editor
  * @param newsletterNumber - Newsletter number for property key naming
  * @param existingMap - Optional stored map for stable key assignment
  */
 export function extractDynamicSections(
-  markdown: string,
+  html: string,
   newsletterNumber: number,
   existingMap?: LiquidSectionMap | null,
 ): ExtractionResult {
@@ -182,7 +181,7 @@ export function extractDynamicSections(
   let conditionalIndex = 0;
 
   // Pass 1: Extract {% if %} conditional blocks
-  const afterConditionals = markdown.replace(LIQUID_BLOCK_RE, (match) => {
+  const afterConditionals = html.replace(LIQUID_BLOCK_RE, (match) => {
     let propertyKey: string;
 
     if (conditionalIndex < oldKeys.length) {
@@ -268,43 +267,38 @@ export function buildLiquidContext(chart: EmailChartData): Record<string, string
 /**
  * Render a single dynamic section for one subscriber.
  *
- * Runs Liquid engine to resolve conditionals, then renders the resulting
- * markdown to inline-styled HTML (email format).
+ * Runs Liquid engine to resolve conditionals in the extracted HTML section.
  *
  * @returns HTML string for this section, or empty string if the subscriber
  *          doesn't match any conditional branch.
  */
 export async function renderDynamicSection(
-  sectionMarkdown: string,
+  sectionHtml: string,
   chart: EmailChartData,
 ): Promise<string> {
   const context = buildLiquidContext(chart);
-  const resolved = await engine.parseAndRender(sectionMarkdown, context);
+  const resolved = await engine.parseAndRender(sectionHtml, context);
 
   // If all conditionals resolved to empty, skip rendering
-  const trimmed = resolved.trim();
-  if (!trimmed) return '';
-
-  // Render markdown → email-styled HTML
-  return emailMarked.parse(trimmed) as string;
+  return resolved.trim();
 }
 
 /**
  * Build all dynamic contact properties for one subscriber.
  *
- * For each dynamic section in the newsletter, runs Liquid + markdown→HTML
- * and returns a map of property keys to rendered HTML values.
+ * For each dynamic section in the newsletter, runs Liquid and returns
+ * a map of property keys to rendered HTML values.
  *
  * @returns Record<string, string> — keys are property names (e.g. "nl_07_s1"),
  *          values are rendered HTML. Empty sections produce empty string values.
  */
 export async function buildDynamicContactProperties(
-  markdown: string,
+  html: string,
   chart: EmailChartData,
   newsletterNumber: number,
   existingMap?: LiquidSectionMap | null,
 ): Promise<Record<string, string>> {
-  const { sections } = extractDynamicSections(markdown, newsletterNumber, existingMap);
+  const { sections } = extractDynamicSections(html, newsletterNumber, existingMap);
   const properties: Record<string, string> = {};
 
   for (const section of sections) {

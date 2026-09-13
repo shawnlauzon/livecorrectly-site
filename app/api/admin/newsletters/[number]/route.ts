@@ -43,7 +43,6 @@ export async function GET(
       postscripts: newsletter.rawPs,
       bodyJson: newsletter.bodyJson,
       bodyHtml: newsletter.bodyHtml,
-      bodyMarkdown: newsletter.bodyMarkdown,
     });
   } catch (error) {
     console.error(`[admin/newsletters/${num}] Error:`, error);
