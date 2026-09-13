@@ -131,7 +131,7 @@ function EditorPanel({
   const imageExtension = useEditorImage({ uploadImage: handleUploadImage });
 
   const extensions = useMemo(() => [
-    StarterKit.configure(),
+    StarterKit.configure({ CodeBlockPrism: false }),
     Placeholder.configure({
       placeholder: ({ node }: { node: { type: { name: string }; attrs: { level?: number } } }) => {
         if (node.type.name === 'heading') return `Heading ${node.attrs.level}`;
@@ -223,6 +223,23 @@ function EditorPanel({
           extensions={extensions}
           content={content}
           immediatelyRender={false}
+          editorProps={{
+            transformPastedHTML(html) {
+              // Strip inline styles and classes so PreservedStyle doesn't
+              // capture colors/fonts the editor UI can't remove.
+              const cleaned = html.replace(/\s+style="[^"]*"/gi, '').replace(/\s+class="[^"]*"/gi, '');
+
+              // Unwrap conditional block/branch wrappers so that copying
+              // text from one branch pastes only the text content, not the
+              // entire conditional structure.
+              const doc = new DOMParser().parseFromString(cleaned, 'text/html');
+              doc.querySelectorAll('[data-type="conditional-block"], [data-branch-type]').forEach(el => {
+                while (el.firstChild) el.parentNode?.insertBefore(el.firstChild, el);
+                el.remove();
+              });
+              return doc.body.innerHTML;
+            },
+          }}
         >
           <RefBridge editorRef={editorRef} onUpdate={() => setDirty(true)} />
           <BubbleMenu hideWhenActiveNodes={['button', 'horizontalRule', 'variableNode', 'conditionalBlock', 'conditionalBranch']} hideWhenActiveMarks={['link']} />

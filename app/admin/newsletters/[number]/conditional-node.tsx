@@ -361,7 +361,6 @@ export const ConditionalBranchNode = EmailNode.create({
   group: 'conditionalBranch',
   content: 'block+',
   isolating: true,
-  defining: true,
 
   addAttributes() {
     return {
