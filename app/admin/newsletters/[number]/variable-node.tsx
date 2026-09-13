@@ -6,9 +6,23 @@ import { EmailNode } from '@react-email/editor/core';
 import { useCurrentEditor, useEditorState } from '@tiptap/react';
 import type { SlashCommandItem } from '@react-email/editor/ui';
 
+const KNOWN_PROPERTIES: { label: string; value: string; fallback?: string }[] = [
+  { label: 'First Name', value: 'FIRST_NAME', fallback: 'there' },
+  { label: 'Last Name', value: 'LAST_NAME' },
+  { label: 'Email', value: 'EMAIL' },
+  { label: 'Career Type', value: 'contact.career_type' },
+  { label: 'Type', value: 'contact.type' },
+  { label: 'Strategy', value: 'contact.strategy' },
+  { label: 'Inner Authority', value: 'contact.inner_authority' },
+  { label: 'Signature Theme', value: 'contact.signature_theme' },
+  { label: 'Not-Self Theme', value: 'contact.not_self_theme' },
+  { label: 'Decision Strategy', value: 'contact.decision_making_strategy' },
+];
+
 /**
  * VariableEditForm — edit UI rendered inside a BubbleMenu when a
- * variableNode is selected. Shows "variable" and "fallback" inputs.
+ * variableNode is selected. Shows a property dropdown, variable input,
+ * and fallback input.
  */
 export function VariableEditForm() {
   const { editor } = useCurrentEditor();
@@ -54,6 +68,27 @@ export function VariableEditForm() {
       style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 8, minWidth: 240 }}
     >
       <label style={{ fontSize: 11, fontWeight: 600, color: '#6E688A', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', flexDirection: 'column', gap: 3 }}>
+        property
+        <select
+          value={KNOWN_PROPERTIES.some((p) => p.value === draftId) ? draftId : ''}
+          onChange={(e) => {
+            const selected = KNOWN_PROPERTIES.find((p) => p.value === e.target.value);
+            if (selected) {
+              setDraftId(selected.value);
+              if (selected.fallback !== undefined) {
+                setDraftFallback(selected.fallback);
+              }
+            }
+          }}
+          style={{ fontSize: 13, padding: '5px 7px', border: '1px solid #E6E1F4', borderRadius: 4, outline: 'none', width: '100%', background: '#fff' }}
+        >
+          <option value="" disabled>Custom…</option>
+          {KNOWN_PROPERTIES.map((p) => (
+            <option key={p.value} value={p.value}>{p.label}</option>
+          ))}
+        </select>
+      </label>
+      <label style={{ fontSize: 11, fontWeight: 600, color: '#6E688A', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', flexDirection: 'column', gap: 3 }}>
         variable
         <input
           type="text"
@@ -64,7 +99,6 @@ export function VariableEditForm() {
             if (e.key === 'Enter') { e.preventDefault(); apply(); }
           }}
           placeholder="Variable name"
-          autoFocus
           style={{ fontSize: 13, padding: '5px 7px', border: '1px solid #E6E1F4', borderRadius: 4, outline: 'none', width: '100%' }}
         />
       </label>
