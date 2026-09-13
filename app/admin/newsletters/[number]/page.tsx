@@ -36,7 +36,6 @@ interface NewsletterData {
   postscripts: string[];
   bodyJson: unknown | null;
   bodyHtml: string | null;
-  bodyMarkdown: string;
 }
 
 interface EditorHandle {
@@ -320,8 +319,13 @@ async function resolvePreview(
     '{% raw %}{{{$1}}}{% endraw %}',
   );
 
-  // 2. Build context and run Liquid
-  const ctx = buildPreviewContext(chart);
+  // 2. Build context and run Liquid (include subscriber identity fields)
+  const ctx: Record<string, string | boolean> = {
+    ...buildPreviewContext(chart),
+    FIRST_NAME: subscriber.first_name || '',
+    LAST_NAME: subscriber.last_name || '',
+    EMAIL: subscriber.email || '',
+  };
   let resolved = await liquidEngine.parseAndRender(escaped, ctx);
 
   // 3. Replace Resend contact property vars: {{{contact.key|fallback}}} or {{{contact.key}}}
@@ -548,12 +552,7 @@ export default function NewsletterEditorPage() {
   const [description, setDescription] = useState('');
   const [postscripts, setPostscripts] = useState<string[]>([]);
 
-  // Import markdown modal
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importMarkdown, setImportMarkdown] = useState('');
-  const [importing, setImporting] = useState(false);
-
-  // Editor content — set once after load or import
+  // Editor content — set once after load
   const [editorContent, setEditorContent] = useState<Content | null>(null);
   const [editorKey, setEditorKey] = useState(0);
 
@@ -608,60 +607,6 @@ export default function NewsletterEditorPage() {
     void (async () => { await fetchNewsletter(); })();
   }, [fetchNewsletter]);
 
-  const handleImportMarkdown = async () => {
-    if (!importMarkdown.trim()) return;
-    const pwd = getPassword();
-    if (!pwd) return;
-
-    setImporting(true);
-    try {
-      // Upload local images to Blob, replacing {{appUrl}}/path with the Blob URL
-      let md = importMarkdown;
-      const imageRegex = /!\[([^\]]*)\]\(\{\{appUrl\}\}\/([^)]+)\)/g;
-      const matches = [...md.matchAll(imageRegex)];
-
-      for (const match of matches) {
-        const localPath = `/${match[2]}`;
-        try {
-          const res = await fetch(localPath);
-          if (!res.ok) {
-            console.error(`Failed to fetch local image ${localPath}: ${res.status}`);
-            continue;
-          }
-          const blob = await res.blob();
-          const filename = localPath.split('/').pop() ?? 'image.png';
-          const file = new File([blob], filename, { type: blob.type });
-
-          const form = new FormData();
-          form.append('file', file);
-          const uploadRes = await fetch('/api/admin/upload-image', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${pwd}` },
-            body: form,
-          });
-
-          if (uploadRes.ok) {
-            const { url } = await uploadRes.json();
-            md = md.replaceAll(match[0], `![${match[1]}](${url})`);
-          } else {
-            console.error(`Failed to upload ${localPath}:`, await uploadRes.text());
-          }
-        } catch (err) {
-          console.error(`Error uploading image ${localPath}:`, err);
-        }
-      }
-
-      const html = basicMarkdownToHtml(md);
-      setEditorContent(html);
-      setEditorKey(k => k + 1);
-      setShowImportModal(false);
-      setImportMarkdown('');
-      setDirty(true);
-    } finally {
-      setImporting(false);
-    }
-  };
-
   const handlePostscriptChange = (index: number, value: string) => {
     const updated = [...postscripts];
     updated[index] = value;
@@ -709,15 +654,6 @@ export default function NewsletterEditorPage() {
             )}
           </p>
         </div>
-        <button
-          onClick={() => {
-            setImportMarkdown(data?.bodyMarkdown ?? '');
-            setShowImportModal(true);
-          }}
-          className={styles.importButton}
-        >
-          Import from Markdown
-        </button>
       </div>
 
       {/* Metadata panel */}
@@ -824,110 +760,7 @@ export default function NewsletterEditorPage() {
         )}
       </div>
 
-      {/* Import Markdown Modal */}
-      {showImportModal && (
-        <div className={styles.modalOverlay} onClick={() => setShowImportModal(false)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <h3 className={styles.modalTitle}>Import from Markdown</h3>
-            <p className={styles.modalDescription}>
-              Paste markdown below. It will be converted to the visual editor format.
-              The existing markdown content is pre-filled.
-            </p>
-            <textarea
-              value={importMarkdown}
-              onChange={(e) => setImportMarkdown(e.target.value)}
-              className={styles.markdownTextarea}
-              rows={20}
-              placeholder="Paste markdown here..."
-            />
-            <div className={styles.modalActions}>
-              <button
-                onClick={() => setShowImportModal(false)}
-                className={styles.cancelButton}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleImportMarkdown}
-                className={styles.saveButton}
-                disabled={importing}
-              >
-                {importing ? 'Uploading images…' : 'Import'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-/**
- * Basic markdown to HTML conversion for editor import.
- */
-function basicMarkdownToHtml(md: string): string {
-  let html = md;
-
-  html = html.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>');
-  html = html.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>');
-  html = html.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>');
-  html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
-
-  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  html = html.replace(/(?<!\w)_(.+?)_(?!\w)/g, '<em>$1</em>');
-
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;height:auto" />');
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
-
-  html = html.replace(/^---$/gm, '<hr>');
-  html = html.replace(/^\*\*\*$/gm, '<hr>');
-
-  html = html.replace(/^(?:- (.+)\n?)+/gm, (match) => {
-    const items = match.trim().split('\n').map(line => {
-      const content = line.replace(/^- /, '');
-      return `<li>${content}</li>`;
-    }).join('');
-    return `<ul>${items}</ul>`;
-  });
-
-  html = html.replace(/^(?:\d+\. (.+)\n?)+/gm, (match) => {
-    const items = match.trim().split('\n').map(line => {
-      const content = line.replace(/^\d+\.\s/, '');
-      return `<li>${content}</li>`;
-    }).join('');
-    return `<ol>${items}</ol>`;
-  });
-
-  // Convert each > line to its own blockquote, with an empty paragraph between
-  // consecutive ones so TipTap/ProseMirror doesn't merge adjacent blockquotes.
-  html = html.replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>');
-  html = html.replace(/<\/blockquote>\n<blockquote>/g, '</blockquote>\n<p></p>\n<blockquote>');
-
-  html = html.replace(/\\\n/g, '<br>');
-
-  const lines = html.split('\n');
-  const result: string[] = [];
-  let inBlock = false;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) {
-      inBlock = false;
-      continue;
-    }
-    if (/^<(h[1-6]|ul|ol|li|blockquote|hr|div|table|p|img)/.test(trimmed)) {
-      result.push(trimmed);
-      inBlock = false;
-    } else if (!inBlock && !trimmed.startsWith('<')) {
-      result.push(`<p>${trimmed}</p>`);
-    } else {
-      result.push(trimmed);
-    }
-  }
-
-  return result.join('\n');
-}

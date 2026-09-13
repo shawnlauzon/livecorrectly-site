@@ -6,12 +6,6 @@ import { EmailNode } from '@react-email/editor/core';
 import { useCurrentEditor, useEditorState } from '@tiptap/react';
 import type { SlashCommandItem } from '@react-email/editor/ui';
 
-/**
- * Standard Resend fields that don't need the `contact.` prefix in template syntax.
- * Custom contact properties are referenced as `{{{contact.key}}}`.
- */
-const STANDARD_RESEND_FIELDS = new Set(['FIRST_NAME', 'LAST_NAME', 'EMAIL']);
-
 const KNOWN_PROPERTIES: { label: string; value: string; fallback?: string }[] = [
   { label: 'First Name', value: 'FIRST_NAME', fallback: 'there' },
   { label: 'Last Name', value: 'LAST_NAME' },
@@ -39,12 +33,14 @@ export function VariableEditForm() {
       return e.getAttributes('variableNode') as {
         variableId: string;
         fallback: string;
+        capitalize: boolean;
       };
     },
   });
 
   const [draftId, setDraftId] = useState(attrs?.variableId ?? '');
   const [draftFallback, setDraftFallback] = useState(attrs?.fallback ?? '');
+  const [draftCapitalize, setDraftCapitalize] = useState(attrs?.capitalize ?? false);
 
   // Sync drafts when the selected node changes.
   useEffect(() => {
@@ -52,10 +48,11 @@ export function VariableEditForm() {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sync external attr → local draft
       setDraftId(attrs.variableId);
       setDraftFallback(attrs.fallback);
+      setDraftCapitalize(attrs.capitalize);
     }
     // Only re-sync when the specific attribute values change, not the attrs object ref.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attrs?.variableId, attrs?.fallback]);
+  }, [attrs?.variableId, attrs?.fallback, attrs?.capitalize]);
 
   const apply = () => {
     if (!editor) return;
@@ -64,6 +61,7 @@ export function VariableEditForm() {
       editor.commands.updateAttributes('variableNode', {
         variableId: trimmedId,
         fallback: draftFallback.trim(),
+        capitalize: draftCapitalize,
       });
     }
   };
@@ -110,6 +108,15 @@ export function VariableEditForm() {
           style={{ fontSize: 13, padding: '5px 7px', border: '1px solid #E6E1F4', borderRadius: 4, outline: 'none', width: '100%' }}
         />
       </label>
+      <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, color: '#221B3D', cursor: 'pointer', userSelect: 'none' }}>
+        <input
+          type="checkbox"
+          checked={draftCapitalize}
+          onChange={(e) => setDraftCapitalize(e.target.checked)}
+          style={{ margin: 0 }}
+        />
+        Capitalize
+      </label>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
         <button
           type="button"
@@ -126,7 +133,8 @@ export function VariableEditForm() {
 /**
  * VariableNode — inline atom node for substitution variables.
  * Renders as a styled <span> in the editor (via renderHTML + CSS).
- * Serializes to Resend triple-brace syntax via renderToReactEmail.
+ * Serializes to Liquid output tag syntax ({{ var | filter }}) via renderToReactEmail.
+ * The send pipeline converts Liquid to final values at render time.
  * Edit UI is a BubbleMenu wired up in page.tsx.
  */
 export const VariableNode = EmailNode.create({
@@ -140,6 +148,7 @@ export const VariableNode = EmailNode.create({
     return {
       variableId: { default: 'FIRST_NAME' },
       fallback: { default: 'there' },
+      capitalize: { default: false },
     };
   },
 
@@ -148,29 +157,30 @@ export const VariableNode = EmailNode.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const { variableId, fallback, ...rest } = HTMLAttributes;
+    const { variableId, fallback, capitalize, ...rest } = HTMLAttributes;
     return [
       'span',
       mergeAttributes(rest, {
         'data-variable-id': variableId,
         'data-variable-fallback': fallback,
+        'data-variable-capitalize': capitalize ? 'true' : undefined,
       }),
-      `{{ ${variableId} }}`,
+      capitalize ? `{{ ${variableId} | capitalize }}` : `{{ ${variableId} }}`,
     ];
   },
 
   renderToReactEmail({ node }) {
     const variableId = node.attrs?.variableId ?? 'FIRST_NAME';
     const fallback = node.attrs?.fallback;
-    // Custom contact properties need the `contact.` prefix in Resend template syntax.
-    // Standard fields (FIRST_NAME, etc.) are referenced directly.
-    const resendVar = STANDARD_RESEND_FIELDS.has(variableId)
-      ? variableId
-      : `contact.${variableId}`;
-    const template = fallback
-      ? `{{{${resendVar}|${fallback}}}}`
-      : `{{{${resendVar}}}}`;
-    return <span>{template}</span>;
+    const capitalize = node.attrs?.capitalize ?? false;
+
+    // Build Liquid filter chain
+    const filters: string[] = [];
+    if (fallback) filters.push(`default: '${fallback}'`);
+    if (capitalize) filters.push('capitalize');
+    const filterStr = filters.length ? ` | ${filters.join(' | ')}` : '';
+
+    return <span>{`{{ ${variableId}${filterStr} }}`}</span>;
   },
 });
 

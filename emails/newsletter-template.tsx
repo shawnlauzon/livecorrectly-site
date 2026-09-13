@@ -3,7 +3,7 @@ import { Section } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import type { EmailChartData } from '../lib/hd-chart/parse-for-email';
 import { loadNewsletter } from '@/newsletters/loader';
-import { hasLiquidConditionals } from '@/newsletters/liquid-properties';
+import { hasLiquidConditionals, hasLiquidOutputTags } from '@/newsletters/liquid-properties';
 
 interface NewsletterTemplateProps {
   preview: string;
@@ -16,15 +16,16 @@ interface NewsletterTemplateProps {
 
 /**
  * Whether a newsletter requires per-subscriber rendering.
- * True if the newsletter has Liquid conditional blocks in the markdown or HTML.
+ * True if the newsletter has Liquid conditional blocks in the HTML.
  *
  * Used by the cron to decide between transactional (per-subscriber) and
  * broadcast (single API call) sending paths.
  */
 export async function requiresPerSubscriberRendering(number: number): Promise<boolean> {
   const raw = await loadNewsletter(number);
-  if (raw && hasLiquidConditionals(raw.bodyMarkdown)) return true;
-  if (raw?.bodyHtml && hasLiquidConditionals(raw.bodyHtml)) return true;
+  if (!raw) return false;
+  if (hasLiquidConditionals(raw.bodyHtml)) return true;
+  if (hasLiquidOutputTags(raw.bodyHtml)) return true;
 
   return false;
 }
