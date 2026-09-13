@@ -1,11 +1,8 @@
-import { Liquid } from 'liquidjs';
 import { getNewsletterSendDates } from '@/lib/db';
 import { loadAllNewsletters, type RawNewsletter } from './loader';
 import { resolveContactVars } from './resolve-contact-vars';
-import { hasLiquidConditionals, buildLiquidContext } from './liquid-properties';
+import { resolveLiquid } from './liquid-properties';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
-
-const liquidEngine = new Liquid();
 
 export interface WebNewsletter {
   slug: string;
@@ -64,17 +61,6 @@ function addHeadingIds(html: string): string {
 }
 
 /**
- * Resolve Resend default variables ({{{FIRST_NAME|there}}}, {{{RESEND_UNSUBSCRIBE_URL}}}, etc.)
- * for web display. Uses the fallback value when present, otherwise strips the variable.
- */
-function resolveResendDefaultVars(html: string): string {
-  return html.replace(
-    /\{\{\{([A-Z_]+)(?:\|([^}]*))?\}\}\}/g,
-    (_match, _key: string, fallback?: string) => fallback ?? '',
-  );
-}
-
-/**
  * Render a RawNewsletter for web display.
  * Returns null if the newsletter has no slug (email-only issue).
  *
@@ -82,10 +68,9 @@ function resolveResendDefaultVars(html: string): string {
  * 1. Start from editor HTML (bodyHtml)
  * 2. Strip inline style attributes for clean web CSS
  * 3. Add heading IDs for anchor linking
- * 4. Resolve Liquid conditionals if chart provided
+ * 4. Resolve Liquid conditionals and output tags ({{ var | filter }})
  * 5. Resolve {{{contact.key}}} variables
- * 6. Resolve Resend default variables ({{{FIRST_NAME|there}}}, etc.)
- * 7. Extract thumbnail from original (unstyled-stripped) HTML
+ * 6. Extract thumbnail from original (unstyled-stripped) HTML
  */
 async function renderForWeb(
   raw: RawNewsletter,
@@ -101,23 +86,9 @@ async function renderForWeb(
   let html = stripInlineStyles(raw.bodyHtml);
   html = addHeadingIds(html);
 
-  // Resolve Liquid conditionals if present
-  if (hasLiquidConditionals(html)) {
-    // Escape double/triple-brace variables so Liquid doesn't choke on them.
-    // Triple braces are Resend vars ({{{FIRST_NAME|there}}}), double braces
-    // are legacy template vars ({{chartUrl}}) — neither are Liquid syntax.
-    // Liquid only needs to see {% if %} / {% endif %} tags.
-    // Single-pass regex: triple-brace first (greedy), then double-brace.
-    const escaped = html.replace(
-      /\{\{\{[^}]+\}\}\}|\{\{[^%}][^}]*\}\}/g,
-      (match) => `{% raw %}${match}{% endraw %}`,
-    );
-    const context = chart ? buildLiquidContext(chart, 'web') : { mode: 'web' as const };
-    html = await liquidEngine.parseAndRender(escaped, context);
-  }
+  html = await resolveLiquid(html, { chart, mode: 'web' });
 
   html = resolveContactVars(html, chart ?? null);
-  html = resolveResendDefaultVars(html);
 
   return {
     slug: raw.slug,

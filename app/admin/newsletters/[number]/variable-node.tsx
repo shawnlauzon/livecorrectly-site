@@ -185,7 +185,9 @@ export const VariableNode = EmailNode.create({
     if (capitalize) filters.push('capitalize');
     const filterStr = filters.length ? ` | ${filters.join(' | ')}` : '';
 
-    return <span>{`{{ ${variableId}${filterStr} }}`}</span>;
+    // Use dangerouslySetInnerHTML so React doesn't HTML-encode the Liquid
+    // syntax (e.g. single quotes in default filters becoming &#x27;).
+    return <span dangerouslySetInnerHTML={{ __html: `{{ ${variableId}${filterStr} }}` }} />;
   },
 });
 

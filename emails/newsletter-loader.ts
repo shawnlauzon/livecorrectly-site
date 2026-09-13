@@ -3,11 +3,8 @@ import {
   type RawNewsletter,
 } from '@/newsletters/loader';
 import { emailMarked, replaceVariables as replaceVars, replaceChartSubpaths, replaceDesignedCta } from './markdown-renderer';
-import { hasLiquidConditionals, hasLiquidOutputTags, buildLiquidContext } from '@/newsletters/liquid-properties';
-import { Liquid } from 'liquidjs';
+import { resolveLiquid } from '@/newsletters/liquid-properties';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
-
-const liquidEngine = new Liquid();
 
 export {
   getNewsletterCount,
@@ -106,25 +103,7 @@ export async function getNewsletterWithChart(
   const raw = await loadNewsletter(step);
   if (!raw) return null;
 
-  const hasLiquid = hasLiquidConditionals(raw.bodyHtml) || hasLiquidOutputTags(raw.bodyHtml);
-
-  if (!hasLiquid) {
-    // No Liquid — use the standard path
-    return replaceNewsletterVariables(renderForEmail(raw), firstName, subscriberId);
-  }
-
-  // Resolve Liquid conditionals and output tags with subscriber's chart data.
-  // Escape Resend triple-brace variables ({{{...}}}) with Liquid {% raw %} blocks
-  // so they survive Liquid processing and are resolved by Resend at send time.
-  const context = {
-    ...buildLiquidContext(chart),
-    FIRST_NAME: firstName,
-  };
-  const escaped = raw.bodyHtml.replace(
-    /\{\{\{([^}]+)\}\}\}/g,
-    '{% raw %}{{{$1}}}{% endraw %}',
-  );
-  const resolvedHtml = await liquidEngine.parseAndRender(escaped, context);
+  const resolvedHtml = await resolveLiquid(raw.bodyHtml, { chart, firstName });
   const ps = raw.rawPs.map(p => emailMarked.parseInline(p.trim()) as string);
 
   const newsletter: Newsletter = {

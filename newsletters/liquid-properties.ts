@@ -280,6 +280,51 @@ export function buildLiquidContext(
 }
 
 /**
+ * Resolve Liquid conditionals and output tags in HTML.
+ *
+ * This is the single code path for all Liquid processing — used by:
+ * - Web rendering (newsletters/web.ts)
+ * - Email rendering (emails/newsletter-loader.ts)
+ * - Admin editor preview (via /api/admin/newsletters/preview)
+ *
+ * If the HTML contains no Liquid tags, returns it unchanged.
+ */
+export async function resolveLiquid(
+  html: string,
+  options?: {
+    chart?: EmailChartData | null;
+    mode?: 'web' | 'email';
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  },
+): Promise<string> {
+  if (!hasLiquidConditionals(html) && !hasLiquidOutputTags(html)) {
+    return html;
+  }
+
+  const ctx: Record<string, string | boolean> = options?.chart
+    ? buildLiquidContext(options.chart, options?.mode ?? 'email')
+    : { mode: (options?.mode ?? 'email') as string };
+
+  // Identity fields for Variable node output tags (e.g. {{ first_name | default: 'there' }})
+  if (options?.firstName !== undefined) {
+    ctx.first_name = options.firstName;
+    ctx.FIRST_NAME = options.firstName;
+  }
+  if (options?.lastName !== undefined) {
+    ctx.last_name = options.lastName;
+    ctx.LAST_NAME = options.lastName;
+  }
+  if (options?.email !== undefined) {
+    ctx.email = options.email;
+    ctx.EMAIL = options.email;
+  }
+
+  return engine.parseAndRender(html, ctx);
+}
+
+/**
  * Render a single dynamic section for one subscriber.
  *
  * Runs Liquid engine to resolve conditionals in the extracted HTML section.

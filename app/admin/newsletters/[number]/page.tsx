@@ -10,21 +10,13 @@ import { StarterKit } from '@react-email/editor/extensions';
 import { EmailTheming, useEditorImage, imageSlashCommand } from '@react-email/editor/plugins';
 import { BubbleMenu, SlashCommand, defaultSlashCommands } from '@react-email/editor/ui';
 import { composeReactEmail } from '@react-email/editor/core';
-import { Liquid } from 'liquidjs';
+import { toast, Toaster } from 'sonner';
 import '@react-email/editor/themes/default.css';
 import styles from './editor.module.css';
 import adminStyles from '../../admin.module.css';
 import { VariableNode, VariableEditForm, VARIABLE } from './variable-node';
 import { ConditionalBlockNode, ConditionalBranchNode, ConditionalKeymap, IF_THEN_ELSE, DEFAULT_CONDITION } from './conditional-node';
-import {
-  types,
-  careerDesigns,
-  strategies,
-  innerAuthorityTypes,
-  innerAuthorityDescriptions,
-  signatureThemes,
-  notSelfThemes,
-} from '@/lib/hd-chart/constants';
+import { careerDesigns } from '@/lib/hd-chart/constants';
 import type { Subscriber } from '@/lib/types/subscriber';
 
 interface NewsletterData {
@@ -166,7 +158,9 @@ function EditorPanel({
 
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error || `Upload failed (${res.status})`);
+      const message = err.error || `Upload failed (${res.status})`;
+      toast.error(message);
+      throw new Error(message);
     }
 
     const { url } = await res.json();
@@ -306,102 +300,8 @@ function EditorPanel({
 }
 
 // ---------------------------------------------------------------------------
-// Preview pane — resolves Liquid + contact vars client-side
+// Preview pane — resolves Liquid + contact vars via server API
 // ---------------------------------------------------------------------------
-
-const liquidEngine = new Liquid();
-
-/** Build a Liquid context from raw chart indices (client-side, no server deps). */
-function buildPreviewContext(chart: { type: number; authority: number }): Record<string, string | boolean> {
-  const typeIdx = chart.type;
-  const authIdx = chart.authority;
-
-  const decisionMakingStrategy =
-    typeIdx === 2
-      ? `${innerAuthorityDescriptions[authIdx]}, and then ${strategies[typeIdx]}`
-      : `${strategies[typeIdx]}, and then ${innerAuthorityDescriptions[authIdx]}`;
-
-  return {
-    mode: 'email' as const,
-    career_type: careerDesigns[typeIdx],
-    type: types[typeIdx],
-    strategy: strategies[typeIdx],
-    inner_authority: innerAuthorityTypes[authIdx],
-    inner_authority_description: innerAuthorityDescriptions[authIdx],
-    signature_theme: signatureThemes[typeIdx],
-    not_self_theme: notSelfThemes[typeIdx],
-    decision_making_strategy: decisionMakingStrategy,
-
-    isBuilder: typeIdx === 0 || typeIdx === 1,
-    isClassicBuilder: typeIdx === 0,
-    isExpressBuilder: typeIdx === 1,
-    isInitiator: typeIdx === 2,
-    isAdvisor: typeIdx === 3,
-    isEvaluator: typeIdx === 4,
-    isEmotional: authIdx === 0,
-  };
-}
-
-/** Resolve preview HTML: escape Resend vars, run Liquid, replace contact/template vars. */
-async function resolvePreview(
-  html: string,
-  subscriber: Subscriber,
-): Promise<string> {
-  const chart = subscriber.chart?.chart;
-  if (!chart) return html;
-
-  // 1. Escape non-Liquid template patterns so Liquid doesn't choke on them
-  //    - Triple-brace Resend vars: {{{FIRST_NAME|there}}}
-  //    - Legacy double-brace vars with non-identifier chars: {{chart:/lunar-cycle}}
-  const escaped = html
-    .replace(
-      /\{\{\{([^}]+)\}\}\}/g,
-      '{% raw %}{{{$1}}}{% endraw %}',
-    )
-    .replace(
-      /\{\{([^}]*[^a-zA-Z0-9_ |'":,.\-}][^}]*)\}\}/g,
-      (match) => `{% raw %}${match}{% endraw %}`,
-    );
-
-  // 2. Build context and run Liquid (include subscriber identity fields)
-  const ctx: Record<string, string | boolean> = {
-    ...buildPreviewContext(chart),
-    first_name: subscriber.first_name || '',
-    last_name: subscriber.last_name || '',
-    email: subscriber.email || '',
-    // Uppercase aliases for backward compat with stored newsletters
-    FIRST_NAME: subscriber.first_name || '',
-    LAST_NAME: subscriber.last_name || '',
-    EMAIL: subscriber.email || '',
-  };
-  let resolved = await liquidEngine.parseAndRender(escaped, ctx);
-
-  // 3. Replace Resend contact property vars: {{{contact.key|fallback}}} or {{{contact.key}}}
-  resolved = resolved.replace(
-    /\{\{\{contact\.([a-zA-Z_]+)(?:\|([^}]*))?\}\}\}/g,
-    (_match: string, key: string, fallback?: string) => {
-      const val = ctx[key];
-      if (typeof val === 'string' && val) return val;
-      return fallback ?? '';
-    },
-  );
-
-  // 4. Replace Resend standard vars: {{{FIRST_NAME|fallback}}} or {{{FIRST_NAME}}}
-  resolved = resolved.replace(
-    /\{\{\{FIRST_NAME(?:\|([^}]*))?\}\}\}/g,
-    (_match: string, fallback?: string) => subscriber.first_name || fallback || '',
-  );
-  resolved = resolved.replace(
-    /\{\{\{LAST_NAME(?:\|([^}]*))?\}\}\}/g,
-    (_match: string, fallback?: string) => subscriber.last_name || fallback || '',
-  );
-  resolved = resolved.replace(
-    /\{\{\{EMAIL(?:\|([^}]*))?\}\}\}/g,
-    (_match: string, fallback?: string) => subscriber.email || fallback || '',
-  );
-
-  return resolved;
-}
 
 /** Generate postscript prefix: P.S., P.P.S., P.P.P.S., etc. */
 function getPostscriptPrefix(index: number): string {
@@ -470,8 +370,19 @@ function PreviewPane({
       try {
         const html = await editorRef.current!.getEmailHTML();
         if (cancelled) return;
-        const resolved = await resolvePreview(html, subscriber);
-        if (!cancelled) setPreviewHtml(resolved);
+        const pwd = getPassword();
+        const res = await fetch('/api/admin/newsletters/preview', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(pwd ? { Authorization: `Bearer ${pwd}` } : {}),
+          },
+          body: JSON.stringify({ html, subscriberId: subscriber.id }),
+        });
+        if (cancelled) return;
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!cancelled) setPreviewHtml(data.html);
       } catch (err) {
         console.error('Preview render error:', err);
         if (!cancelled) setPreviewHtml('<p style="color: var(--coral)">Preview error</p>');
@@ -690,6 +601,7 @@ export default function NewsletterEditorPage() {
 
   return (
     <div className={styles.pageContainer}>
+      <Toaster position="top-center" richColors />
       <div className={styles.pageHeader}>
         <div>
           <h1 className={adminStyles.title}>Newsletter #{num}</h1>
