@@ -247,25 +247,56 @@ function ConditionalBlockView({ node, editor, deleteNode, getPos }: ReactNodeVie
     const pos = getPos();
     if (pos === undefined) return;
 
+    // Collect branch info for insertion position + condition derivation
+    const branches: Array<{ branchType: string; condition: string; offset: number }> = [];
+    let offset = 1; // +1 for the block's opening token
+    node.content.forEach((child) => {
+      branches.push({
+        branchType: child.attrs.branchType as string,
+        condition: (child.attrs.condition as string) ?? '',
+        offset,
+      });
+      offset += child.nodeSize;
+    });
+
     // Find the insertion position. Elsif goes before the else (if present),
     // else goes at the end.
     let insertPos = pos + node.nodeSize - 1; // default: end of block
     if (type === 'elsif' && hasElse) {
-      // Walk children to find the else branch and insert before it
-      let offset = 1; // +1 for the block's opening token
-      node.content.forEach((child) => {
-        if (child.attrs.branchType === 'else') {
-          insertPos = pos + offset;
+      for (const b of branches) {
+        if (b.branchType === 'else') {
+          insertPos = pos + b.offset;
+          break;
         }
-        offset += child.nodeSize;
-      });
+      }
+    }
+
+    // Derive elsif condition: same field/op as the branch above, next value in the list
+    let condition = '';
+    if (type === 'elsif') {
+      let prevIdx = branches.length - 1;
+      if (hasElse) {
+        const elseIdx = branches.findIndex(b => b.branchType === 'else');
+        if (elseIdx > 0) prevIdx = elseIdx - 1;
+      }
+
+      const parsed = parseCondition(branches[prevIdx].condition);
+      if (parsed) {
+        const fieldDef = FIELD_BY_KEY.get(parsed.field);
+        if (fieldDef && fieldDef.values.length > 0) {
+          const currentIdx = fieldDef.values.indexOf(parsed.value);
+          const nextIdx = currentIdx === -1 ? 0 : (currentIdx + 1) % fieldDef.values.length;
+          condition = composeCondition(parsed.field, parsed.op, fieldDef.values[nextIdx]);
+        } else {
+          condition = composeCondition(parsed.field, parsed.op, parsed.value);
+        }
+      } else {
+        condition = composeCondition('career_type', '==', 'Builder (any)');
+      }
     }
 
     const branchNode = editor.schema.nodes.conditionalBranch.create(
-      {
-        branchType: type,
-        condition: type === 'elsif' ? composeCondition('career_type', '==', 'Builder (any)') : '',
-      },
+      { branchType: type, condition },
       editor.schema.nodes.paragraph.create(),
     );
     editor.chain().focus().insertContentAt(insertPos, branchNode.toJSON()).run();
@@ -275,6 +306,7 @@ function ConditionalBlockView({ node, editor, deleteNode, getPos }: ReactNodeVie
     <NodeViewWrapper data-type="conditional-block">
       <div
         style={{
+          position: 'relative',
           border: '2px dashed var(--line, #E6E1F4)',
           borderRadius: 8,
           margin: '12px 0',
@@ -282,9 +314,39 @@ function ConditionalBlockView({ node, editor, deleteNode, getPos }: ReactNodeVie
           background: '#FAFAFA',
         }}
       >
+        {/* Delete block button — top-right corner */}
+        <button
+          type="button"
+          contentEditable={false}
+          onClick={deleteNode}
+          onMouseDown={(e) => e.stopPropagation()}
+          title="Delete conditional block"
+          style={{
+            position: 'absolute',
+            top: 4,
+            right: 4,
+            zIndex: 1,
+            fontSize: 16,
+            lineHeight: 1,
+            width: 22,
+            height: 22,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#F5F5F5',
+            border: '1px solid var(--line, #E6E1F4)',
+            borderRadius: 4,
+            color: '#999',
+            cursor: 'pointer',
+            userSelect: 'none',
+          }}
+        >
+          &times;
+        </button>
+
         <NodeViewContent />
 
-        {/* Footer bar: add branch + delete block buttons */}
+        {/* Footer bar: add branch buttons */}
         <div
           contentEditable={false}
           style={{
@@ -330,25 +392,6 @@ function ConditionalBlockView({ node, editor, deleteNode, getPos }: ReactNodeVie
               + else
             </button>
           )}
-
-          <button
-            type="button"
-            onClick={deleteNode}
-            onMouseDown={(e) => e.stopPropagation()}
-            title="Delete conditional block"
-            style={{
-              marginLeft: 'auto',
-              fontSize: 12,
-              fontWeight: 600,
-              color: '#999',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '2px 6px',
-            }}
-          >
-            Delete block
-          </button>
         </div>
       </div>
     </NodeViewWrapper>
@@ -636,11 +679,6 @@ export const IF_THEN_ELSE: SlashCommandItem = {
           {
             type: 'conditionalBranch',
             attrs: { branchType: 'if', condition: DEFAULT_CONDITION },
-            content: [{ type: 'paragraph' }],
-          },
-          {
-            type: 'conditionalBranch',
-            attrs: { branchType: 'else', condition: '' },
             content: [{ type: 'paragraph' }],
           },
         ],
