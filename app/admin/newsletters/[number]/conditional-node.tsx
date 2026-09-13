@@ -31,6 +31,7 @@ interface ConditionField {
  * "(any)" entries use Liquid `contains` to match multiple subtypes.
  */
 const CONDITION_FIELDS: ConditionField[] = [
+  { key: 'mode', label: 'Mode', values: ['web', 'email'] },
   { key: 'career_type', label: 'Career Type', values: ['Builder (any)', 'Classic Builder', 'Express Builder', 'Initiator', 'Advisor', 'Evaluator'] },
   { key: 'type', label: 'Type', values: ['Generator (any)', 'Generator', 'Manifesting Generator', 'Manifestor', 'Projector', 'Reflector'] },
   { key: 'inner_authority', label: 'Inner Authority', values: ['Emotional', 'Sacral', 'Splenic', 'Ego', 'Self-Projected', 'Ego-Projected', 'None'] },

@@ -45,8 +45,18 @@ const LIQUID_BLOCK_RE =
  */
 const LIQUID_OUTPUT_RE = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\|\s*([^}]+?))?\s*\}\}/g;
 
-/** Default Resend fields that don't need the `contact.` prefix. */
-const RESEND_DEFAULT_FIELDS = new Set(['FIRST_NAME', 'LAST_NAME', 'EMAIL']);
+/**
+ * Resend default identity fields — maps variable names (both lowercase editor
+ * names and legacy uppercase names) to the Resend field name.
+ */
+const RESEND_IDENTITY_MAP: Record<string, string> = {
+  first_name: 'FIRST_NAME',
+  last_name: 'LAST_NAME',
+  email: 'EMAIL',
+  FIRST_NAME: 'FIRST_NAME',
+  LAST_NAME: 'LAST_NAME',
+  EMAIL: 'EMAIL',
+};
 
 /**
  * Template variables handled by replaceVars() in the rendering pipeline.
@@ -132,9 +142,10 @@ export function replaceLiquidOutputTags(
       return `{{{contact.${propertyKey}|}}}`;
     }
 
-    // Default Resend fields: {{{FIRST_NAME|}}}, {{{LAST_NAME|}}}, etc.
-    if (RESEND_DEFAULT_FIELDS.has(varName)) {
-      return `{{{${varName}|}}}`;
+    // Default Resend identity fields: {{{FIRST_NAME|}}}, {{{LAST_NAME|}}}, etc.
+    const resendField = RESEND_IDENTITY_MAP[varName];
+    if (resendField) {
+      return `{{{${resendField}|}}}`;
     }
 
     // Known contact property: {{{contact.var|}}}
@@ -241,8 +252,12 @@ export function extractDynamicSections(
  * - Boolean flags: `isBuilder`, `isAdvisor`, etc.
  * - Snake_case chart fields: `strategy`, `inner_authority`, etc.
  */
-export function buildLiquidContext(chart: EmailChartData): Record<string, string | boolean> {
+export function buildLiquidContext(
+  chart: EmailChartData,
+  mode: 'web' | 'email' = 'email',
+): Record<string, string | boolean> {
   return {
+    mode,
     // Contact property names (snake_case) — canonical names for both nodes
     career_type: chart.careerDesign,
     type: chart.type,

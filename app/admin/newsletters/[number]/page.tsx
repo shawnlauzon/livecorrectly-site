@@ -286,6 +286,7 @@ function buildPreviewContext(chart: { type: number; authority: number }): Record
       : `${strategies[typeIdx]}, and then ${innerAuthorityDescriptions[authIdx]}`;
 
   return {
+    mode: 'email' as const,
     career_type: careerDesigns[typeIdx],
     type: types[typeIdx],
     strategy: strategies[typeIdx],
@@ -313,15 +314,26 @@ async function resolvePreview(
   const chart = subscriber.chart?.chart;
   if (!chart) return html;
 
-  // 1. Escape Resend triple-brace vars so Liquid doesn't choke on them
-  const escaped = html.replace(
-    /\{\{\{([^}]+)\}\}\}/g,
-    '{% raw %}{{{$1}}}{% endraw %}',
-  );
+  // 1. Escape non-Liquid template patterns so Liquid doesn't choke on them
+  //    - Triple-brace Resend vars: {{{FIRST_NAME|there}}}
+  //    - Legacy double-brace vars with non-identifier chars: {{chart:/lunar-cycle}}
+  const escaped = html
+    .replace(
+      /\{\{\{([^}]+)\}\}\}/g,
+      '{% raw %}{{{$1}}}{% endraw %}',
+    )
+    .replace(
+      /\{\{([^}]*[^a-zA-Z0-9_ |'":,.\-}][^}]*)\}\}/g,
+      (match) => `{% raw %}${match}{% endraw %}`,
+    );
 
   // 2. Build context and run Liquid (include subscriber identity fields)
   const ctx: Record<string, string | boolean> = {
     ...buildPreviewContext(chart),
+    first_name: subscriber.first_name || '',
+    last_name: subscriber.last_name || '',
+    email: subscriber.email || '',
+    // Uppercase aliases for backward compat with stored newsletters
     FIRST_NAME: subscriber.first_name || '',
     LAST_NAME: subscriber.last_name || '',
     EMAIL: subscriber.email || '',

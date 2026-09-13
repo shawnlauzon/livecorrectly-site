@@ -112,7 +112,7 @@ async function renderForWeb(
       /\{\{\{[^}]+\}\}\}|\{\{[^%}][^}]*\}\}/g,
       (match) => `{% raw %}${match}{% endraw %}`,
     );
-    const context = chart ? buildLiquidContext(chart) : {};
+    const context = chart ? buildLiquidContext(chart, 'web') : { mode: 'web' as const };
     html = await liquidEngine.parseAndRender(escaped, context);
   }
 

@@ -6,10 +6,10 @@ import { EmailNode } from '@react-email/editor/core';
 import { useCurrentEditor, useEditorState } from '@tiptap/react';
 import type { SlashCommandItem } from '@react-email/editor/ui';
 
-const KNOWN_PROPERTIES: { label: string; value: string; fallback?: string }[] = [
-  { label: 'First Name', value: 'FIRST_NAME', fallback: 'there' },
-  { label: 'Last Name', value: 'LAST_NAME' },
-  { label: 'Email', value: 'EMAIL' },
+const KNOWN_PROPERTIES: { label: string; value: string; default?: string }[] = [
+  { label: 'First Name', value: 'first_name' },
+  { label: 'Last Name', value: 'last_name' },
+  { label: 'Email', value: 'email' },
   { label: 'Career Type', value: 'career_type' },
   { label: 'Type', value: 'type' },
   { label: 'Strategy', value: 'strategy' },
@@ -21,7 +21,7 @@ const KNOWN_PROPERTIES: { label: string; value: string; fallback?: string }[] = 
 
 /**
  * VariableEditForm — edit UI rendered inside a BubbleMenu when a
- * variableNode is selected. Shows a property dropdown and fallback input.
+ * variableNode is selected. Shows a property dropdown and default value input.
  */
 export function VariableEditForm() {
   const { editor } = useCurrentEditor();
@@ -32,14 +32,14 @@ export function VariableEditForm() {
       if (!e?.isActive('variableNode')) return null;
       return e.getAttributes('variableNode') as {
         variableId: string;
-        fallback: string;
+        default: string;
         capitalize: boolean;
       };
     },
   });
 
   const [draftId, setDraftId] = useState(attrs?.variableId ?? '');
-  const [draftFallback, setDraftFallback] = useState(attrs?.fallback ?? '');
+  const [draftDefault, setDraftDefault] = useState(attrs?.default ?? '');
   const [draftCapitalize, setDraftCapitalize] = useState(attrs?.capitalize ?? false);
 
   // Sync drafts when the selected node changes.
@@ -47,12 +47,12 @@ export function VariableEditForm() {
     if (attrs) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sync external attr → local draft
       setDraftId(attrs.variableId);
-      setDraftFallback(attrs.fallback);
+      setDraftDefault(attrs.default);
       setDraftCapitalize(attrs.capitalize);
     }
     // Only re-sync when the specific attribute values change, not the attrs object ref.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attrs?.variableId, attrs?.fallback, attrs?.capitalize]);
+  }, [attrs?.variableId, attrs?.default, attrs?.capitalize]);
 
   const apply = () => {
     if (!editor) return;
@@ -60,7 +60,7 @@ export function VariableEditForm() {
     if (trimmedId) {
       editor.commands.updateAttributes('variableNode', {
         variableId: trimmedId,
-        fallback: draftFallback.trim(),
+        default: draftDefault.trim(),
         capitalize: draftCapitalize,
       });
     }
@@ -81,8 +81,8 @@ export function VariableEditForm() {
             const selected = KNOWN_PROPERTIES.find((p) => p.value === e.target.value);
             if (selected) {
               setDraftId(selected.value);
-              if (selected.fallback !== undefined) {
-                setDraftFallback(selected.fallback);
+              if (selected.default !== undefined) {
+                setDraftDefault(selected.default);
               }
             }
           }}
@@ -95,16 +95,16 @@ export function VariableEditForm() {
         </select>
       </label>
       <label style={{ fontSize: 11, fontWeight: 600, color: '#6E688A', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', flexDirection: 'column', gap: 3 }}>
-        fallback
+        default
         <input
           type="text"
-          value={draftFallback}
-          onChange={(e) => setDraftFallback(e.target.value)}
+          value={draftDefault}
+          onChange={(e) => setDraftDefault(e.target.value)}
           onKeyDown={(e) => {
             e.stopPropagation();
             if (e.key === 'Enter') { e.preventDefault(); apply(); }
           }}
-          placeholder="there"
+          placeholder="If not set"
           style={{ fontSize: 13, padding: '5px 7px', border: '1px solid #E6E1F4', borderRadius: 4, outline: 'none', width: '100%' }}
         />
       </label>
@@ -146,8 +146,8 @@ export const VariableNode = EmailNode.create({
 
   addAttributes() {
     return {
-      variableId: { default: 'FIRST_NAME' },
-      fallback: { default: 'there' },
+      variableId: { default: 'first_name' },
+      default: { default: '' },
       capitalize: { default: false },
     };
   },
@@ -157,12 +157,12 @@ export const VariableNode = EmailNode.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const { variableId, fallback, capitalize, ...rest } = HTMLAttributes;
+    const { variableId, default: defaultVal, capitalize, ...rest } = HTMLAttributes;
     return [
       'span',
       mergeAttributes(rest, {
         'data-variable-id': variableId,
-        'data-variable-fallback': fallback,
+        'data-variable-default': defaultVal,
         'data-variable-capitalize': capitalize ? 'true' : undefined,
       }),
       capitalize ? `{{ ${variableId} | capitalize }}` : `{{ ${variableId} }}`,
@@ -170,13 +170,13 @@ export const VariableNode = EmailNode.create({
   },
 
   renderToReactEmail({ node }) {
-    const variableId = node.attrs?.variableId ?? 'FIRST_NAME';
-    const fallback = node.attrs?.fallback;
+    const variableId = node.attrs?.variableId ?? 'first_name';
+    const defaultVal = node.attrs?.default;
     const capitalize = node.attrs?.capitalize ?? false;
 
     // Build Liquid filter chain
     const filters: string[] = [];
-    if (fallback) filters.push(`default: '${fallback}'`);
+    if (defaultVal) filters.push(`default: '${defaultVal}'`);
     if (capitalize) filters.push('capitalize');
     const filterStr = filters.length ? ` | ${filters.join(' | ')}` : '';
 
@@ -200,7 +200,7 @@ export const VARIABLE: SlashCommandItem = {
       .deleteRange(range)
       .insertContent({
         type: 'variableNode',
-        attrs: { variableId: 'FIRST_NAME', fallback: 'there' },
+        attrs: { variableId: 'first_name' },
       })
       .run();
   },
