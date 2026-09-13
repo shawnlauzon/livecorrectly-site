@@ -2,21 +2,22 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
+import NextLink from 'next/link';
 import { Extension, InputRule, type Content, type Editor, type JSONContent } from '@tiptap/core';
 import { EditorProvider, useCurrentEditor } from '@tiptap/react';
 import { Placeholder } from '@tiptap/extension-placeholder';
-import { StarterKit } from '@react-email/editor/extensions';
+import { StarterKit, Link } from '@react-email/editor/extensions';
 import { EmailTheming, useEditorImage, imageSlashCommand } from '@react-email/editor/plugins';
 import { BubbleMenu, SlashCommand, defaultSlashCommands } from '@react-email/editor/ui';
 import { composeReactEmail } from '@react-email/editor/core';
 import { toast, Toaster } from 'sonner';
+import { LinkBubble } from './link-bubble';
 import '@react-email/editor/themes/default.css';
 import styles from './editor.module.css';
 import adminStyles from '../../admin.module.css';
 import { VariableNode, VariableEditForm, VARIABLE } from './variable-node';
 import { ConditionalBlockNode, ConditionalBranchNode, ConditionalKeymap, IF_THEN_ELSE, DEFAULT_CONDITION } from './conditional-node';
-import { careerDesigns } from '@/lib/hd-chart/constants';
+import { types, innerAuthorityTypes } from '@/lib/hd-chart/constants';
 import type { Subscriber } from '@/lib/types/subscriber';
 
 interface NewsletterData {
@@ -106,6 +107,45 @@ const BraceShortcuts = Extension.create({
   },
 });
 
+/** Extend the editor's Link mark to store a `data-relative` attribute. */
+const RelativeLink = Link.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      'data-relative': {
+        default: null,
+        parseHTML: (el: HTMLElement) =>
+          el.getAttribute('data-relative') === 'true' ? 'true' : null,
+        renderHTML: (attrs: Record<string, unknown>) =>
+          attrs['data-relative'] === 'true' ? { 'data-relative': 'true' } : {},
+      },
+    };
+  },
+});
+
+/**
+ * Walk a TipTap JSON tree and collect hrefs that have `data-relative: "true"`.
+ * Used at save time to re-inject the attribute into the HTML that
+ * composeReactEmail() strips.
+ */
+function collectRelativeHrefs(json: JSONContent): Set<string> {
+  const hrefs = new Set<string>();
+  function walk(node: JSONContent) {
+    for (const mark of node.marks ?? []) {
+      if (
+        mark.type === 'link' &&
+        mark.attrs?.['data-relative'] === 'true' &&
+        mark.attrs?.href
+      ) {
+        hrefs.add(mark.attrs.href as string);
+      }
+    }
+    for (const child of node.content ?? []) walk(child);
+  }
+  walk(json);
+  return hrefs;
+}
+
 const SLASH_CATEGORY_ORDER = ['Text', 'Media', 'Layout', 'Conditionals', 'Utility'];
 const slashCommandItems = [...defaultSlashCommands, imageSlashCommand, VARIABLE, IF_THEN_ELSE]
   .sort((a, b) => {
@@ -170,7 +210,8 @@ function EditorPanel({
   const imageExtension = useEditorImage({ uploadImage: handleUploadImage });
 
   const extensions = useMemo(() => [
-    StarterKit.configure({ CodeBlockPrism: false }),
+    StarterKit.configure({ CodeBlockPrism: false, Link: false }),
+    RelativeLink,
     Placeholder.configure({
       placeholder: ({ node }: { node: { type: { name: string }; attrs: { level?: number } } }) => {
         if (node.type.name === 'heading') return `Heading ${node.attrs.level}`;
@@ -199,6 +240,19 @@ function EditorPanel({
       const html = await editorRef.current.getEmailHTML();
       const json = editorRef.current.getJSON();
 
+      // Post-process: composeReactEmail() drops custom data-* attributes from
+      // link marks. Re-inject `data-relative="true"` on the matching <a> tags
+      // by cross-referencing the TipTap JSON.
+      const relativeHrefs = collectRelativeHrefs(json);
+      let processedHtml = html;
+      for (const href of relativeHrefs) {
+        const escaped = href.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        processedHtml = processedHtml.replace(
+          new RegExp(`(<a\\b[^>]*?href="${escaped}"[^>]*?)(/?>)`, 'g'),
+          '$1 data-relative="true"$2',
+        );
+      }
+
       const res = await fetch(`/api/admin/newsletters/${num}`, {
         method: 'PUT',
         headers: {
@@ -207,7 +261,7 @@ function EditorPanel({
         },
         body: JSON.stringify({
           bodyJson: json,
-          bodyHtml: html,
+          bodyHtml: processedHtml,
           subject: subject || undefined,
           preview: preview || undefined,
           slug: slug || null,
@@ -283,7 +337,7 @@ function EditorPanel({
         >
           <RefBridge editorRef={editorRef} onUpdate={() => { setDirty(true); onEditorUpdate(); }} />
           <BubbleMenu hideWhenActiveNodes={['button', 'horizontalRule', 'variableNode']} hideWhenActiveMarks={['link']} />
-          <BubbleMenu.LinkDefault />
+          <LinkBubble />
           <BubbleMenu.ButtonDefault />
           <BubbleMenu.ImageDefault />
           <BubbleMenu
@@ -320,10 +374,12 @@ function PreviewPane({
   editorRef,
   previewTrigger,
   postscripts,
+  num,
 }: {
   editorRef: React.RefObject<EditorHandle | null>;
   previewTrigger: number;
   postscripts: string[];
+  num: number;
 }) {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
@@ -377,7 +433,7 @@ function PreviewPane({
             'Content-Type': 'application/json',
             ...(pwd ? { Authorization: `Bearer ${pwd}` } : {}),
           },
-          body: JSON.stringify({ html, subscriberId: subscriber.id }),
+          body: JSON.stringify({ html, subscriberId: subscriber.id, newsletterNumber: num }),
         });
         if (cancelled) return;
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -396,9 +452,14 @@ function PreviewPane({
     const chart = s.chart?.chart;
     const name = [s.first_name, s.last_name].filter(Boolean).join(' ');
     if (!chart) return name || s.email;
-    const career = careerDesigns[chart.type] ?? '';
     const profile = chart.profile != null ? formatProfile(chart.profile) : '';
-    return `${name} — ${career} (${profile})`;
+    const hdType = types[chart.type] ?? '';
+    let authority = innerAuthorityTypes[chart.authority] ?? '';
+    if (authority === 'None') {
+      // Reflector has no authority qualifier; Projector with no authority is "Mental"
+      authority = hdType === 'Reflector' ? '' : 'Mental';
+    }
+    return `${name} — ${[profile, authority, hdType].filter(Boolean).join(' ')}`;
   }, []);
 
   return (
@@ -606,9 +667,9 @@ export default function NewsletterEditorPage() {
         <div>
           <h1 className={adminStyles.title}>Newsletter #{num}</h1>
           <p className={adminStyles.subtitle}>
-            <Link href="/admin/newsletters" style={{ color: 'var(--grape)' }}>
+            <NextLink href="/admin/newsletters" style={{ color: 'var(--grape)' }}>
               Back to newsletters
-            </Link>
+            </NextLink>
             {data?.bodyJson != null && (
               <span className={styles.badge}>Saved</span>
             )}
@@ -716,6 +777,7 @@ export default function NewsletterEditorPage() {
             editorRef={editorRef}
             previewTrigger={previewTrigger}
             postscripts={postscripts}
+            num={num}
           />
         )}
       </div>
