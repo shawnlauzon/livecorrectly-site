@@ -13,6 +13,7 @@ import { composeReactEmail } from '@react-email/editor/core';
 import '@react-email/editor/themes/default.css';
 import styles from './editor.module.css';
 import adminStyles from '../../admin.module.css';
+import { VariableNode, VariableEditForm, VARIABLE } from './variable-node';
 
 interface NewsletterData {
   number: number;
@@ -66,7 +67,16 @@ function RefBridge({
   return null;
 }
 
-const slashCommandItems = [...defaultSlashCommands, imageSlashCommand];
+// Sort by category to match the visual grouping in the SlashCommand menu.
+// The library's CommandList groups items by category but uses array indices
+// for selection, so the array order must match the grouped display order.
+const SLASH_CATEGORY_ORDER = ['Text', 'Media', 'Layout', 'Utility'];
+const slashCommandItems = [...defaultSlashCommands, imageSlashCommand, VARIABLE]
+  .sort((a, b) => {
+    const ai = SLASH_CATEGORY_ORDER.indexOf(a.category);
+    const bi = SLASH_CATEGORY_ORDER.indexOf(b.category);
+    return (ai === -1 ? SLASH_CATEGORY_ORDER.length : ai) - (bi === -1 ? SLASH_CATEGORY_ORDER.length : bi);
+  });
 
 function EditorPanel({
   content,
@@ -130,6 +140,7 @@ function EditorPanel({
     }),
     EmailTheming.configure({ theme: 'basic' }),
     imageExtension,
+    VariableNode,
   ], [imageExtension]);
 
   const handleSave = async () => {
@@ -211,10 +222,16 @@ function EditorPanel({
           immediatelyRender={false}
         >
           <RefBridge editorRef={editorRef} onUpdate={() => setDirty(true)} />
-          <BubbleMenu hideWhenActiveNodes={['button', 'horizontalRule']} hideWhenActiveMarks={['link']} />
+          <BubbleMenu hideWhenActiveNodes={['button', 'horizontalRule', 'variableNode']} hideWhenActiveMarks={['link']} />
           <BubbleMenu.LinkDefault />
           <BubbleMenu.ButtonDefault />
           <BubbleMenu.ImageDefault />
+          <BubbleMenu
+            trigger={({ editor: e }: { editor: Editor }) => e.isActive('variableNode')}
+            placement="bottom"
+          >
+            <VariableEditForm />
+          </BubbleMenu>
           <SlashCommand items={slashCommandItems} />
         </EditorProvider>
       </div>

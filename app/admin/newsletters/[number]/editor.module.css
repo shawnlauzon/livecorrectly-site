@@ -151,6 +151,23 @@
   padding: 1.5rem 3rem;
 }
 
+/* Variable chip — inline atom rendered via renderHTML */
+.editorWrap :global(span[data-variable-id]) {
+  background: #f0edf7;
+  color: var(--ink);
+  border-radius: 3px;
+  padding: 1px 3px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+.editorWrap :global(.ProseMirror-selectednode span[data-variable-id]),
+.editorWrap :global(span[data-variable-id].ProseMirror-selectednode) {
+  outline: 2px solid var(--grape);
+  outline-offset: 1px;
+}
+
 /* Postscripts section */
 .postscriptsSection {
   background: var(--card);
@@ -291,3 +308,4 @@
 .cancelButton:hover {
   background: var(--paper);
 }
+
