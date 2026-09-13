@@ -151,6 +151,11 @@
   padding: 1.5rem 3rem;
 }
 
+.editorWrap :global(.tiptap img) {
+  max-width: 100%;
+  height: auto;
+}
+
 /* Variable chip — inline atom rendered via renderHTML */
 .editorWrap :global(span[data-variable-id]) {
   background: #f0edf7;
