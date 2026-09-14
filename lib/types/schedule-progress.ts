@@ -9,6 +9,7 @@ export type ScheduleStepId =
   | 'load'
   | 'subscribers'
   | 'templates'
+  | 'render-broadcast'
   | 'contact-properties'
   | 'segment'
   | 'segment-contacts'

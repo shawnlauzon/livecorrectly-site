@@ -55,6 +55,7 @@ async function cleanupEphemeralSegments(): Promise<void> {
  */
 export async function syncContactProperties(
   subscribers: Subscriber[],
+  onProgress?: (current: number, total: number) => void,
 ): Promise<void> {
   const client = getResendClient();
 
@@ -66,7 +67,10 @@ export async function syncContactProperties(
   }
 
   // Compute and sync property values for each subscriber
-  for (const subscriber of subscribers) {
+  for (let i = 0; i < subscribers.length; i++) {
+    const subscriber = subscribers[i];
+    onProgress?.(i + 1, subscribers.length);
+
     const properties: Record<string, string> = {};
     // Add chart-derived properties from the contact-properties registry
     if (subscriber.chart?.chart) {

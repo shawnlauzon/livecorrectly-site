@@ -218,10 +218,14 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          // Save updated section map to DB
+          emit({ step: 'templates', status: 'done', label: 'Rendering personalized templates', detail: `${subscribers.length} rendered` });
+
+          // Step 3b: Save liquid map + render broadcast HTML
+          currentStep = 'render-broadcast';
+          emit({ step: 'render-broadcast', status: 'start', label: 'Rendering broadcast' });
+
           await updateNewsletterIssueLiquidMap(newsletterNumber, newMap);
 
-          // Render broadcast HTML
           const rendered = await renderNewsletterForBroadcastWithHtml(
             newsletterNumber,
             broadcastTemplate,
@@ -229,19 +233,31 @@ export async function POST(request: NextRequest) {
           html = rendered.html;
           subject = rendered.subject;
 
-          emit({ step: 'templates', status: 'done', label: 'Rendering personalized templates', detail: `${subscribers.length} rendered` });
+          emit({ step: 'render-broadcast', status: 'done', label: 'Rendering broadcast' });
         } else {
           emit({ step: 'templates', status: 'start', label: 'Rendering template' });
+          emit({ step: 'templates', status: 'done', label: 'Rendering template', detail: 'No personalization needed' });
+
+          currentStep = 'render-broadcast';
+          emit({ step: 'render-broadcast', status: 'start', label: 'Rendering broadcast' });
           const rendered = await renderNewsletterForBroadcast(newsletterNumber);
           html = rendered.html;
           subject = rendered.subject;
-          emit({ step: 'templates', status: 'done', label: 'Rendering template', detail: 'No personalization needed' });
+          emit({ step: 'render-broadcast', status: 'done', label: 'Rendering broadcast' });
         }
 
         // Step 4: Sync contact properties
         currentStep = 'contact-properties';
         emit({ step: 'contact-properties', status: 'start', label: 'Syncing contact properties' });
-        await syncContactProperties(subscribers);
+        await syncContactProperties(subscribers, (current, total) => {
+          emit({
+            step: 'contact-properties',
+            status: 'progress',
+            label: 'Syncing contact properties',
+            current,
+            total,
+          });
+        });
         emit({ step: 'contact-properties', status: 'done', label: 'Syncing contact properties' });
 
         // Step 5: Create segment (clean up stale ones first)
