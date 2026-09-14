@@ -78,8 +78,11 @@ export async function syncContactProperties(
       Object.assign(properties, buildContactPropertyValues(chart));
     }
 
-    const { error } = await client.contacts.update({
+    // Use create (upsert) instead of update so the contact is created if missing
+    const { error } = await client.contacts.create({
       email: subscriber.email,
+      firstName: subscriber.first_name,
+      ...(subscriber.last_name && { lastName: subscriber.last_name }),
       properties,
     });
     if (error) {
