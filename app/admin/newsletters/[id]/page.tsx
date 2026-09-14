@@ -1186,30 +1186,28 @@ export default function AdminNewsletterDetailPage() {
                   style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', alignItems: 'center' }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {/* Test button — available when not sent */}
-                  {nl.schedule?.status !== 'sent' && (
-                    <button
-                      onClick={() => handleSchedule(nl.number, undefined, { test: true })}
-                      disabled={actionLoading}
-                      style={{
-                        fontFamily: 'var(--body)',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        padding: '4px 12px',
-                        background: 'none',
-                        color: 'var(--grape)',
-                        border: '1px solid var(--grape)',
-                        borderRadius: '4px',
-                        cursor: actionLoading ? 'wait' : 'pointer',
-                        opacity: actionLoading ? 0.6 : 1,
-                      }}
-                    >
-                      Test
-                    </button>
-                  )}
+                  {/* Test button — always available */}
+                  <button
+                    onClick={() => handleSchedule(nl.number, undefined, { test: true })}
+                    disabled={actionLoading}
+                    style={{
+                      fontFamily: 'var(--body)',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      padding: '4px 12px',
+                      background: 'none',
+                      color: 'var(--grape)',
+                      border: '1px solid var(--grape)',
+                      borderRadius: '4px',
+                      cursor: actionLoading ? 'wait' : 'pointer',
+                      opacity: actionLoading ? 0.6 : 1,
+                    }}
+                  >
+                    Test
+                  </button>
 
-                  {/* Schedule button — show if not currently scheduled and has next-week subscribers */}
-                  {nl.schedule?.status !== 'scheduled' && nl.nextWeekCount > 0 && (
+                  {/* Schedule button — show if not currently scheduled; disabled when no subscribers ready */}
+                  {nl.schedule?.status !== 'scheduled' && (
                     <>
                       {confirmSchedule === nl.number ? (
                         <div
@@ -1368,16 +1366,18 @@ export default function AdminNewsletterDetailPage() {
                             setScheduleMode('choose');
                             setActionMessage(null);
                           }}
+                          disabled={nl.nextWeekCount === 0}
+                          title={nl.nextWeekCount === 0 ? 'No subscribers ready for this issue' : undefined}
                           style={{
                             fontFamily: 'var(--body)',
                             fontSize: '0.75rem',
                             fontWeight: 600,
                             padding: '4px 12px',
-                            background: 'var(--grape)',
-                            color: '#fff',
+                            background: nl.nextWeekCount === 0 ? 'var(--line)' : 'var(--grape)',
+                            color: nl.nextWeekCount === 0 ? 'var(--muted)' : '#fff',
                             border: 'none',
                             borderRadius: '4px',
-                            cursor: 'pointer',
+                            cursor: nl.nextWeekCount === 0 ? 'default' : 'pointer',
                           }}
                         >
                           Schedule
