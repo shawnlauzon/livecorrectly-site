@@ -24,5 +24,6 @@ export const EMAIL_FIELDS: EmailField[] = [
   { key: 'inner_authority_description', label: 'Inner Authority Description', values: ['wait for emotional clarity', 'follow your gut', 'follow your instincts', 'follow your willful determination', 'listen to what you say'] },
   { key: 'signature_theme', label: 'Signature Theme', values: ['satisfaction', 'peace', 'success', 'surprise'] },
   { key: 'not_self_theme', label: 'Not-Self Theme', values: ['frustration', 'anger', 'bitterness', 'disappointment'] },
+  { key: 'not_self_theme_adjective', label: 'Not-Self Theme (Adjective)', values: ['frustrated', 'angry', 'bitter', 'disappointed'] },
   { key: 'decision_making_strategy', label: 'Decision-making Strategy' },
 ];

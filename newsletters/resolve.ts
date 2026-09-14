@@ -22,6 +22,7 @@ const contactProperties: Record<string, (chart: EmailChartData) => string> = {
   inner_authority_description: chart => chart.innerAuthorityDescription,
   signature_theme:             chart => chart.signatureTheme,
   not_self_theme:              chart => chart.notSelfTheme,
+  not_self_theme_adjective:    chart => chart.notSelfThemeAdjective,
   decision_making_strategy:    chart => chart.decisionMakingStrategy,
 };
 
@@ -356,6 +357,7 @@ export function buildLiquidContext(
     inner_authority_description: chart.innerAuthorityDescription,
     signature_theme: chart.signatureTheme,
     not_self_theme: chart.notSelfTheme,
+    not_self_theme_adjective: chart.notSelfThemeAdjective,
     decision_making_strategy: chart.decisionMakingStrategy,
 
     // Boolean flags
