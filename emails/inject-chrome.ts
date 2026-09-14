@@ -59,8 +59,10 @@ export function injectEmailChrome(
   const ps = postscriptFragments(options.postscripts);
   const footer = footerFragment(options.unsubscribeUrl);
 
-  // Assemble the suffix: signature, then postscripts (if any), then footer
-  const suffix = [signature, ps, footer].filter(Boolean).join('\n');
+  // Assemble the suffix: signature, then postscripts (if any), then footer.
+  // Wrap in a centered max-width table to match the content area width.
+  const suffixContent = [signature, ps, footer].filter(Boolean).join('\n');
+  const suffix = `<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;"><tr><td style="font-family:'Hanken Grotesk',Helvetica,Arial,sans-serif;font-size:16px;">${suffixContent}</td></tr></table>`;
 
   // Inject logo right after <body...> and suffix right before </body>.
   // Both sit outside the table structure for correct ordering.
