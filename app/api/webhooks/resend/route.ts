@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSubscriberByEmailForWebhook, updateEmailStatus, rollBackEmailSeries, recordEmailEvent, lookupEmailSendByResendId, lookupEmailTypeByBroadcastId, getMostRecentEmailSend, getScheduleByBroadcastId, advanceEmailSeries, countPendingBroadcastSubscribers, updateScheduleStatus } from '@/lib/db';
+import { getSubscriberByEmailForWebhook, updateEmailStatus, rollBackEmailSeries, recordEmailEvent, lookupEmailSendByResendId, lookupEmailTypeByBroadcastId, getMostRecentEmailSend, getScheduleByBroadcastId, advanceEmailSeries, countPendingBroadcastSubscribers, updateScheduleStatus, getNewsletterSegmentsForIssue, advanceNewsletterSegments } from '@/lib/db';
 import { extractEmail } from '@/emails/send';
 import { unsubscribeContactInResend } from '@/lib/resend-contacts';
 
@@ -218,6 +218,15 @@ export async function POST(request: NextRequest) {
                 console.log(
                   `[webhook] All subscribers delivered for broadcast ${event.data.broadcast_id}, schedule ${schedule.id} → sent`
                 );
+
+                // Advance persistent segments now that all subscribers have been delivered
+                const segments = await getNewsletterSegmentsForIssue(1, schedule.newsletter_num);
+                if (segments.length > 0) {
+                  await advanceNewsletterSegments(segments.map(s => s.id));
+                  console.log(
+                    `[webhook] Advanced ${segments.length} segment(s): ${segments.map(s => s.name).join(', ')}`
+                  );
+                }
               }
             }
           }
