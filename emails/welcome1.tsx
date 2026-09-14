@@ -247,6 +247,7 @@ Welcome1.PreviewProps = {
     topShadow: 'Willpower',
     topShadowName: 'Overcompensating',
     topShadowDescription: 'trying to prove yourself through willpower and commitments',
+    topShadowVerb: 'overcompensate',
     hasChannelBridge: false,
     bridgeDescriptions: [],
   },

@@ -239,6 +239,24 @@ export const functionNames = [
 ] as const;
 
 /**
+ * Shadow verbs — infinitive verb form of each shadow, for use mid-sentence.
+ * e.g. "Your mind wants to convince you to [verb]..."
+ * Keyed by function name.
+ */
+export const shadowVerbs: Record<string, string> = {
+  'Bringing Traits/Strengths': 'blame yourself',
+  'Willpower': 'overcompensate',
+  'Emotional Intelligence': 'avoid confrontation',
+  'Identity & Direction': 'act like someone else',
+  'Survival Instinct': 'hold on',
+  'Conceptualization': 'be certain',
+  'Inspiration': 'chase answers',
+  'Drive & Stamina': 'rush',
+  'Energy Resource': 'keep going',
+  'Communication & Action': 'seek attention',
+};
+
+/**
  * BG5 shadow names — the conditioning pattern for each undefined function.
  * Keyed by function name.
  */

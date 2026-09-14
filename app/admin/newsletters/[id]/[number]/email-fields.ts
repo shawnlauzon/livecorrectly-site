@@ -16,6 +16,7 @@ import {
   notSelfThemeAdjectives,
   shadowNames,
   shadowDescriptions,
+  shadowVerbs,
 } from '@/lib/hd-chart/constants';
 
 /** Deduplicate an indexed array into unique values (preserving order). */
@@ -43,5 +44,6 @@ export const EMAIL_FIELDS: EmailField[] = [
   { key: 'not_self_theme_adjective', label: 'Not-Self Theme (Adjective)', values: unique(notSelfThemeAdjectives) },
   { key: 'top_shadow', label: 'Top Shadow', values: unique(Object.values(shadowNames)) },
   { key: 'top_shadow_description', label: 'Top Shadow Description', values: unique(Object.values(shadowDescriptions)) },
+  { key: 'top_shadow_verb', label: 'Top Shadow (verb)', values: unique(Object.values(shadowVerbs)) },
   { key: 'decision_making_strategy', label: 'Decision-making Strategy' },
 ];

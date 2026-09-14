@@ -27,6 +27,7 @@ const contactProperties: Record<string, (chart: EmailChartData) => string> = {
   authority_short:             chart => chart.innerAuthorityShortName,
   top_shadow:                  chart => chart.topShadowName ?? '',
   top_shadow_description:      chart => chart.topShadowDescription ?? '',
+  top_shadow_verb:             chart => chart.topShadowVerb ?? '',
 };
 
 export default contactProperties;
@@ -365,6 +366,7 @@ export function buildLiquidContext(
     authority_short: chart.innerAuthorityShortName,
     top_shadow: chart.topShadowName ?? '',
     top_shadow_description: chart.topShadowDescription ?? '',
+    top_shadow_verb: chart.topShadowVerb ?? '',
 
     // Boolean flags
     isBuilder: chart.isGenerator,

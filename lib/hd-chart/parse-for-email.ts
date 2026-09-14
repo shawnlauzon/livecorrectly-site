@@ -16,6 +16,7 @@ import {
   innerAuthorityVideos,
   signatureVideos,
   shadowNames,
+  shadowVerbs,
   shadowDescriptions
 } from './constants';
 import hdChart from './index';
@@ -55,6 +56,8 @@ export interface EmailChartData {
   topShadowName: string | null;
   /** Shadow description for the top shadow, null if no shadows */
   topShadowDescription: string | null;
+  /** Shadow verb for the top shadow (e.g. "overcompensate"), null if no shadows */
+  topShadowVerb: string | null;
   /** True when the #1 bridge is a channel+gate far bridge (not a simple hanging gate) */
   hasChannelBridge: boolean;
   bridgeDescriptions: Array<{
@@ -126,6 +129,7 @@ export function parseChartForEmail(chart: Chart): EmailChartData {
     topShadowDescription: topShadow
       ? (shadowDescriptions[topShadow]?.replace(/^./, c => c.toLowerCase()) ?? null)
       : null,
+    topShadowVerb: topShadow ? (shadowVerbs[topShadow] ?? null) : null,
     hasChannelBridge: !chart.bridges?.bridgingGates?.length
       && !!chart.bridges?.bridgingChannels?.length,
     bridgeDescriptions
