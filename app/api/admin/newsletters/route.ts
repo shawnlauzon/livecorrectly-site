@@ -7,7 +7,7 @@ import {
 import { getNewsletterNumbers } from '@/emails/newsletter-loader';
 import { loadNewsletter } from '@/newsletters/loader';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
-import { hasLiquidConditionals } from '@/newsletters/liquid-properties';
+import { hasLiquidConditionals } from '@/newsletters/resolve';
 import { getNextCadenceDates } from '@/newsletters/cadence';
 
 /**

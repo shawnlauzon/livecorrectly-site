@@ -1721,6 +1721,9 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
   const [newsletterNumbers, setNewsletterNumbers] = useState<number[] | null>(
     null,
   );
+  const [newsletterMeta, setNewsletterMeta] = useState<
+    { number: number; subject: string }[]
+  >([]);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const isActive = subscriber.email_status === 'active';
@@ -1785,39 +1788,34 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
     [subscriber.id, selectedStep],
   );
 
-  // Load first newsletter on mount to populate the dropdown and discover available numbers
+  // Load newsletter metadata on mount to populate the dropdown (no rendering)
   useEffect(() => {
     const password = sessionStorage.getItem('adminPassword');
     if (!password) return;
 
-    // Fetch preview for the first available newsletter to discover the full list
-    fetch(`/api/admin/subscribers/${subscriber.id}/preview-newsletter?step=4`, {
+    fetch(`/api/admin/subscribers/${subscriber.id}/preview-newsletter`, {
       headers: { Authorization: `Bearer ${password}` },
     })
       .then(async (res) => {
         if (!res.ok) {
           const data = await res.json();
-          throw new Error(data.error || 'Failed to load preview');
+          throw new Error(data.error || 'Failed to load newsletter metadata');
         }
         return res.json();
       })
       .then(
         (data: {
-          subject: string;
-          preview: string;
-          html: string;
           newsletterNumbers: number[];
+          newsletterMeta: { number: number; subject: string }[];
         }) => {
-          setSubject(data.subject);
-          setPreview(data.preview);
-          setHtml(data.html);
           setNewsletterNumbers(data.newsletterNumbers);
+          setNewsletterMeta(data.newsletterMeta);
           setSelectedStep(data.newsletterNumbers[0] ?? 4);
         },
       )
       .catch((err: Error) => {
         setError(err.message);
-        console.error('[admin] Error loading initial newsletter preview:', err);
+        console.error('[admin] Error loading newsletter metadata:', err);
       });
   }, [subscriber.id]);
 
@@ -1874,9 +1872,13 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
       const step = parseInt(e.target.value, 10);
       setSelectedStep(step);
       setFeedback(null);
-      loadPreview(step);
+      // Clear stale preview — user clicks "Preview" to load the new one
+      setHtml(null);
+      setSubject(null);
+      setPreview(null);
+      setError(null);
     },
-    [loadPreview],
+    [],
   );
 
   // Resize iframe to match content height
@@ -1927,11 +1929,14 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
                 value={selectedStep ?? ''}
                 onChange={handleStepChange}
               >
-                {stepOptions.map((n) => (
-                  <option key={n} value={n}>
-                    Newsletter #{n}
-                  </option>
-                ))}
+                {stepOptions.map((n) => {
+                  const meta = newsletterMeta.find((m) => m.number === n);
+                  return (
+                    <option key={n} value={n}>
+                      #{n}{meta ? ` — ${meta.subject}` : ''}
+                    </option>
+                  );
+                })}
               </select>
               <button
                 className={styles.nextEmailSave}

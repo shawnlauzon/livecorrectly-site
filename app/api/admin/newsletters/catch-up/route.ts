@@ -9,7 +9,7 @@ import {
 } from '@/lib/db';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getNewsletterWithChart } from '@/emails/newsletter-loader';
+import { getNewsletter } from '@/emails/newsletter-loader';
 import { NewsletterTemplate } from '@/emails/newsletter-template';
 import { renderEmail, buildUnsubscribeUrl } from '@/emails/send';
 import { sendPrerenderedBroadcast } from '@/lib/resend-broadcasts';
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
 
         // Render with subscriber's chart data (resolves Liquid conditionals)
-        const newsletter = await getNewsletterWithChart(
+        const newsletter = await getNewsletter(
           newsletterNumber,
           subscriber.first_name,
           chart,

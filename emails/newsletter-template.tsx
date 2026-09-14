@@ -3,7 +3,7 @@ import { Section } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import type { EmailChartData } from '../lib/hd-chart/parse-for-email';
 import { loadNewsletter } from '@/newsletters/loader';
-import { hasLiquidConditionals, hasLiquidOutputTags } from '@/newsletters/liquid-properties';
+import { hasLiquidConditionals, hasLiquidOutputTags } from '@/newsletters/resolve';
 
 interface NewsletterTemplateProps {
   preview: string;

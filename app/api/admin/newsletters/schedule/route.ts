@@ -15,7 +15,7 @@ import {
   hasLiquidOutputTags,
   extractDynamicSections,
   buildDynamicContactProperties,
-} from '@/newsletters/liquid-properties';
+} from '@/newsletters/resolve';
 import {
   renderNewsletterForBroadcast,
   renderNewsletterForBroadcastWithHtml,

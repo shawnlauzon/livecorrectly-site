@@ -11,7 +11,7 @@ import {
 import { buildUnsubscribeUrl, renderEmail } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getMaxNewsletterNumber } from '@/emails/newsletter';
-import { getNewsletterWithChart } from '@/emails/newsletter-loader';
+import { getNewsletter } from '@/emails/newsletter-loader';
 import { NewsletterTemplate, requiresPerSubscriberRendering } from '@/emails/newsletter-template';
 import {
   sendNewsletterBroadcast,
@@ -19,7 +19,7 @@ import {
   sendPrerenderedBroadcast,
 } from '@/lib/resend-broadcasts';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
-import { hasLiquidConditionals } from '@/newsletters/liquid-properties';
+import { hasLiquidConditionals } from '@/newsletters/resolve';
 import { loadNewsletter } from '@/newsletters/loader';
 import type { Subscriber } from '@/lib/types/subscriber';
 
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
           const emailLabel = `newsletter_${newsletterNumber}`;
           const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
 
-          const newsletter = await getNewsletterWithChart(
+          const newsletter = await getNewsletter(
             newsletterNumber,
             subscriber.first_name,
             chart,

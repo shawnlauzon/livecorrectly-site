@@ -5,14 +5,19 @@ import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { renderEmail, buildUnsubscribeUrl } from '@/emails/send';
 import { getNewsletterEmail, getNewsletterSubject, getNewsletterNumbers } from '@/emails/newsletter';
 import { getNewsletter } from '@/emails/newsletter-loader';
-import { resolveContactVars } from '@/newsletters/resolve-contact-vars';
+import { resolveContactVars } from '@/newsletters/resolve';
 import { replaceResendContactVars } from '@/emails/markdown-renderer';
+import { loadAllNewsletters } from '@/newsletters/loader';
 
 /**
  * GET /api/admin/subscribers/[id]/preview-newsletter?step=1
  *
- * Renders a newsletter email as HTML for admin preview.
+ * When `step` is provided: renders a newsletter email as HTML for admin preview.
  * Returns the full rendered HTML along with the subject line and preview text.
+ *
+ * When `step` is omitted: returns newsletter metadata (numbers + subjects) from DB
+ * without rendering any preview. Used to populate the dropdown on mount.
+ *
  * Auth: Bearer <ADMIN_PASSWORD>
  */
 export async function GET(
@@ -31,10 +36,17 @@ export async function GET(
     }
 
     const { id } = await params;
-
     const stepParam = request.nextUrl.searchParams.get('step');
+
+    // When step is omitted, return metadata only (no rendering)
     if (stepParam === null) {
-      return NextResponse.json({ error: 'step query param is required' }, { status: 400 });
+      const allNewsletters = await loadAllNewsletters();
+      const newsletterNumbers = [...allNewsletters.keys()].sort((a, b) => a - b);
+      const newsletterMeta = newsletterNumbers.map((n) => {
+        const nl = allNewsletters.get(n)!;
+        return { number: n, subject: nl.subject };
+      });
+      return NextResponse.json({ newsletterNumbers, newsletterMeta });
     }
 
     const step = parseInt(stepParam, 10);
@@ -61,7 +73,7 @@ export async function GET(
       return NextResponse.json({ error: `No newsletter template for step ${step}` }, { status: 400 });
     }
 
-    const newsletter = await getNewsletter(step, subscriber.first_name, subscriber.id);
+    const newsletter = await getNewsletter(step, subscriber.first_name, null, subscriber.id);
     const preview = newsletter?.preview ?? '';
     let html = await renderEmail(emailComponent);
 

@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { resolveLiquid } from '@/newsletters/liquid-properties';
-import { resolveContactVars } from '@/newsletters/resolve-contact-vars';
-import { resolveRelativeLinks } from '@/emails/markdown-renderer';
+import { resolveNewsletterHtml } from '@/newsletters/resolve';
 
 /**
  * POST /api/admin/newsletters/preview
@@ -47,31 +45,17 @@ export async function POST(request: NextRequest) {
   }
 
   const chartRecord = subscriber.chart?.chart;
-  if (!chartRecord) {
-    // No chart data — return HTML with Liquid defaults applied (no chart context)
-    let resolved = await resolveLiquid(html, {
-      mode: 'email',
-      firstName: subscriber.first_name,
-      lastName: subscriber.last_name ?? '',
-      email: subscriber.email,
-    });
-    resolved = resolveRelativeLinks(resolved, subscriberId, newsletterNumber ?? 0);
-    return NextResponse.json({ html: resolved });
-  }
+  const chart = chartRecord ? parseChartForEmail(chartRecord) : null;
 
-  const chart = parseChartForEmail(chartRecord);
-  let resolved = await resolveLiquid(html, {
+  const resolved = await resolveNewsletterHtml(html, {
     chart,
     mode: 'email',
     firstName: subscriber.first_name,
     lastName: subscriber.last_name ?? '',
     email: subscriber.email,
+    subscriberId,
+    newsletterNumber: newsletterNumber ?? 0,
   });
-
-  // Resolve any {{{contact.key}}} patterns remaining in the HTML
-  resolved = resolveContactVars(resolved, chart);
-
-  resolved = resolveRelativeLinks(resolved, subscriberId, newsletterNumber ?? 0);
 
   return NextResponse.json({ html: resolved });
 }

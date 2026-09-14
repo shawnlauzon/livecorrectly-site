@@ -4,7 +4,7 @@ import { getSubscriberById } from '@/lib/db';
 import { renderEmail, buildUnsubscribeUrl } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getNewsletterNumbers } from '@/emails/newsletter';
-import { getNewsletterWithChart } from '@/emails/newsletter-loader';
+import { getNewsletter } from '@/emails/newsletter-loader';
 import { NewsletterTemplate } from '@/emails/newsletter-template';
 import { sendPrerenderedBroadcast } from '@/lib/resend-broadcasts';
 import React from 'react';
@@ -66,8 +66,8 @@ export async function POST(
     const emailLabel = `newsletter_${step}`;
     const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
 
-    // Use getNewsletterWithChart to resolve Liquid conditionals with subscriber's chart data
-    const newsletter = await getNewsletterWithChart(step, subscriber.first_name, chart, subscriber.id);
+    // Resolve Liquid conditionals with subscriber's chart data
+    const newsletter = await getNewsletter(step, subscriber.first_name, chart, subscriber.id);
     if (!newsletter) {
       return NextResponse.json(
         { error: `Failed to build newsletter for step ${step}` },

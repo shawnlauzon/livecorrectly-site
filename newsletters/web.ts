@@ -1,8 +1,6 @@
 import { getNewsletterSendDates } from '@/lib/db';
 import { loadAllNewsletters, type RawNewsletter } from './loader';
-import { resolveContactVars } from './resolve-contact-vars';
-import { resolveLiquid } from './liquid-properties';
-import { resolveRelativeLinks } from '@/emails/markdown-renderer';
+import { resolveNewsletterHtml } from './resolve';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 
 export interface WebNewsletter {
@@ -88,11 +86,12 @@ async function renderForWeb(
   let html = stripInlineStyles(raw.bodyHtml);
   html = addHeadingIds(html);
 
-  html = await resolveLiquid(html, { chart, mode: 'web' });
-
-  html = resolveContactVars(html, chart ?? null);
-
-  html = resolveRelativeLinks(html, subscriberId, raw.number);
+  html = await resolveNewsletterHtml(html, {
+    chart,
+    mode: 'web',
+    subscriberId,
+    newsletterNumber: raw.number,
+  });
 
   return {
     slug: raw.slug,

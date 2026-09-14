@@ -2,8 +2,8 @@ import {
   loadNewsletter,
   type RawNewsletter,
 } from '@/newsletters/loader';
-import { emailMarked, replaceVariables as replaceVars, replaceChartSubpaths, replaceDesignedCta, resolveRelativeLinks } from './markdown-renderer';
-import { resolveLiquid } from '@/newsletters/liquid-properties';
+import { emailMarked, replaceVariables as replaceVars, replaceChartSubpaths, replaceDesignedCta } from './markdown-renderer';
+import { resolveLiquid, resolveRelativeLinks } from '@/newsletters/resolve';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 
 export {
@@ -79,44 +79,36 @@ function replaceNewsletterVariables(newsletter: Newsletter, firstName: string, s
  * Get a newsletter by its step number (matches subscriber.next_step).
  * Returns null if the newsletter doesn't exist.
  * Replaces {{firstName}}, {{appUrl}}, and {{chartUrl}} template variables.
- */
-export async function getNewsletter(step: number, firstName: string, subscriberId?: string): Promise<Newsletter | null> {
-  const raw = await loadNewsletter(step);
-  if (!raw) return null;
-  return replaceNewsletterVariables(renderForEmail(raw), firstName, subscriberId);
-}
-
-/**
- * Get a newsletter with Liquid conditionals resolved for a specific subscriber.
  *
- * Used by admin manual sends where we have the subscriber's chart data and need
- * per-type content rendered. Liquid blocks are resolved before the newsletter
- * is returned.
- *
- * Falls back to getNewsletter() for newsletters without Liquid blocks.
+ * When `chart` is provided, Liquid conditionals and output tags are resolved
+ * for the subscriber's chart data before variable replacement.
  */
-export async function getNewsletterWithChart(
+export async function getNewsletter(
   step: number,
   firstName: string,
-  chart: EmailChartData,
+  chart?: EmailChartData | null,
   subscriberId?: string,
 ): Promise<Newsletter | null> {
   const raw = await loadNewsletter(step);
   if (!raw) return null;
 
-  const resolvedHtml = await resolveLiquid(raw.bodyHtml, { chart, firstName });
-  const ps = raw.rawPs.map(p => emailMarked.parseInline(p.trim()) as string);
+  if (chart) {
+    const resolvedHtml = await resolveLiquid(raw.bodyHtml, { chart, firstName });
+    const ps = raw.rawPs.map(p => emailMarked.parseInline(p.trim()) as string);
 
-  const newsletter: Newsletter = {
-    number: raw.number,
-    subject: raw.subject,
-    preview: raw.preview,
-    slug: raw.slug,
-    bodyHtml: resolvedHtml,
-    ps,
-  };
+    const newsletter: Newsletter = {
+      number: raw.number,
+      subject: raw.subject,
+      preview: raw.preview,
+      slug: raw.slug,
+      bodyHtml: resolvedHtml,
+      ps,
+    };
 
-  return replaceNewsletterVariables(newsletter, firstName, subscriberId);
+    return replaceNewsletterVariables(newsletter, firstName, subscriberId);
+  }
+
+  return replaceNewsletterVariables(renderForEmail(raw), firstName, subscriberId);
 }
 
 /**

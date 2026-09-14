@@ -3,7 +3,7 @@ import { checkAdminPassword } from '@/lib/admin-auth';
 import { getAllSubscribers, getAllContactSyncStates, upsertContactSyncState } from '@/lib/db';
 import { getResendClient } from '@/lib/resend-contacts';
 import { computeExpectedContactValues } from '@/lib/contact-sync';
-import contactProperties from '@/newsletters/contact-properties';
+import contactProperties from '@/newsletters/resolve';
 import { BROADCAST_CONTACT_PROPERTIES } from '@/lib/resend-broadcasts';
 
 interface Diff {

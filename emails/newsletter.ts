@@ -1,7 +1,7 @@
 import React from 'react';
 import { Subscriber } from '@/lib/types/subscriber';
 import { parseChartForEmail, type EmailChartData } from '@/lib/hd-chart/parse-for-email';
-import { getNewsletter, getNewsletterWithChart } from './newsletter-loader';
+import { getNewsletter } from './newsletter-loader';
 import { NewsletterTemplate } from './newsletter-template';
 
 export { getNewsletterCount, getMaxNewsletterNumber, getNewsletterNumbers } from './newsletter-loader';
@@ -18,10 +18,12 @@ export async function getNewsletterEmail(
   chart: ReturnType<typeof parseChartForEmail> | null,
   unsubscribeUrl: string
 ): Promise<React.ReactElement | null> {
-  // Use chart-aware loader to resolve Liquid conditionals + output tags
-  const newsletter = chart
-    ? await getNewsletterWithChart(step, subscriber.first_name, chart as EmailChartData, subscriber.id)
-    : await getNewsletter(step, subscriber.first_name, subscriber.id);
+  const newsletter = await getNewsletter(
+    step,
+    subscriber.first_name,
+    chart as EmailChartData | null,
+    subscriber.id,
+  );
   if (!newsletter) return null;
 
   return React.createElement(NewsletterTemplate, {
@@ -38,6 +40,6 @@ export async function getNewsletterEmail(
  * Get the subject line for a newsletter step, with firstName replacement.
  */
 export async function getNewsletterSubject(step: number, firstName: string, subscriberId?: string): Promise<string> {
-  const newsletter = await getNewsletter(step, firstName, subscriberId);
+  const newsletter = await getNewsletter(step, firstName, null, subscriberId);
   return newsletter?.subject ?? '';
 }

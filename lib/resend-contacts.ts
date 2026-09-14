@@ -1,7 +1,6 @@
 import { Resend } from 'resend';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
-import contactProperties from '@/newsletters/contact-properties';
-import { buildContactPropertyValues } from '@/newsletters/resolve-contact-vars';
+import contactProperties, { buildContactPropertyValues } from '@/newsletters/resolve';
 import { upsertContactSyncState } from '@/lib/db';
 
 /**

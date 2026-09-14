@@ -15,7 +15,7 @@ import {
 } from '@/emails/broadcast-config';
 import { getBroadcastFileConfig } from '@/emails/broadcast-loader';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { buildContactPropertyValues } from '@/newsletters/resolve-contact-vars';
+import { buildContactPropertyValues } from '@/newsletters/resolve';
 import { upsertContactSyncState } from '@/lib/db';
 import type { Subscriber } from '@/lib/types/subscriber';
 
@@ -253,6 +253,7 @@ export async function renderNewsletterForBroadcast(
   const newsletter = await getNewsletter(
     newsletterNumber,
     resendFirstName,
+    null,
     resendSubscriberId,
   );
   if (!newsletter) {

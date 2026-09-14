@@ -1,7 +1,94 @@
 import { Liquid } from 'liquidjs';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 import type { LiquidSectionMap } from './loader';
-import contactProperties from './contact-properties';
+
+// =============================================================================
+// Contact property registry
+// =============================================================================
+
+/**
+ * Contact property registry for {{{contact.key}}} template variables in newsletter markdown.
+ *
+ * Each key becomes a Resend contact property (synced just-in-time before broadcasts)
+ * and a web-resolvable template variable. To add a new property, just add a new entry here.
+ *
+ * Values are extracted from the subscriber's parsed chart data.
+ */
+const contactProperties: Record<string, (chart: EmailChartData) => string> = {
+  career_type:                 chart => chart.careerDesign,
+  type:                        chart => chart.type,
+  strategy:                    chart => chart.strategy,
+  inner_authority:             chart => chart.innerAuthority,
+  inner_authority_description: chart => chart.innerAuthorityDescription,
+  signature_theme:             chart => chart.signatureTheme,
+  not_self_theme:              chart => chart.notSelfTheme,
+  decision_making_strategy:    chart => chart.decisionMakingStrategy,
+};
+
+export default contactProperties;
+
+// =============================================================================
+// Contact property value extraction
+// =============================================================================
+
+/**
+ * Run all contact property extractors against a chart, returning a flat
+ * key→value map. Used for both Resend contact sync and web preview rendering.
+ */
+export function buildContactPropertyValues(
+  chart: EmailChartData,
+): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const [key, extract] of Object.entries(contactProperties)) {
+    values[key] = extract(chart);
+  }
+  return values;
+}
+
+// =============================================================================
+// Contact variable resolution ({{{contact.key}}})
+// =============================================================================
+
+/**
+ * Regex matching {{{contact.key}}} and {{{contact.key|fallback}}}.
+ *
+ * Triple braces are Resend's native contact property syntax. In email broadcasts,
+ * Resend resolves them at send time. For web rendering and admin preview, we
+ * resolve them here from chart data.
+ */
+const CONTACT_VAR_RE = /\{\{\{contact\.([a-z_]+)(?:\|([^}]*))?\}\}\}/g;
+
+export { CONTACT_VAR_RE };
+
+/**
+ * Replace {{{contact.key}}} and {{{contact.key|fallback}}} in text.
+ *
+ * - When `chart` is provided: resolves known registry properties from the chart,
+ *   leaves unknown patterns as-is (for Resend to handle at send time).
+ * - When `chart` is null: uses the fallback value if present, otherwise empty string.
+ */
+export function resolveContactVars(
+  text: string,
+  chart: EmailChartData | null,
+): string {
+  return text.replace(CONTACT_VAR_RE, (match, key: string, fallback?: string) => {
+    if (chart === null) {
+      return fallback ?? '';
+    }
+
+    const extract = contactProperties[key];
+    if (!extract) {
+      // Unknown property — leave as-is for Resend to resolve
+      return match;
+    }
+
+    return extract(chart);
+  });
+}
+
+// =============================================================================
+// Liquid template engine
+// =============================================================================
 
 /**
  * Liquid template engine for newsletter conditional blocks and output tags.
@@ -245,8 +332,8 @@ export function extractDynamicSections(
 /**
  * Build a Liquid context object from EmailChartData.
  *
- * Variable names match the contact property registry (newsletters/contact-properties.ts)
- * so both Variable nodes and Conditional nodes reference the same names:
+ * Variable names match the contact property registry so both Variable nodes
+ * and Conditional nodes reference the same names:
  * - `career_type` = "Builder", "Advisor", etc. (BG5 career design)
  * - `type` = "Generator", "Projector", etc. (traditional HD type)
  * - Boolean flags: `isBuilder`, `isAdvisor`, etc.
@@ -277,6 +364,36 @@ export function buildLiquidContext(
     isEvaluator: chart.isReflector,
     isEmotional: chart.isEmotionalAuthority,
   };
+}
+
+/**
+ * Decode HTML entities inside Liquid delimiters ({{ }} and {% %}).
+ *
+ * The TipTap editor encodes characters like `'` as `&#x27;` in its HTML output.
+ * This is correct for HTML content but breaks Liquid parsing — e.g.
+ * `{{ name | default: &#x27;there&#x27; }}` is invalid Liquid syntax.
+ *
+ * Only decodes within Liquid tags to avoid altering surrounding HTML.
+ */
+const HTML_ENTITY_MAP: Record<string, string> = {
+  '&#x27;': "'",
+  '&#39;': "'",
+  '&apos;': "'",
+  '&#x22;': '"',
+  '&#34;': '"',
+  '&quot;': '"',
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+};
+const HTML_ENTITY_RE = /&#x27;|&#39;|&apos;|&#x22;|&#34;|&quot;|&amp;|&lt;|&gt;/g;
+
+function decodeLiquidEntities(html: string): string {
+  // Match both {{ ... }} output tags and {% ... %} control tags
+  return html.replace(
+    /(\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\})/g,
+    (tag) => tag.replace(HTML_ENTITY_RE, (entity) => HTML_ENTITY_MAP[entity] ?? entity),
+  );
 }
 
 /**
@@ -321,7 +438,13 @@ export async function resolveLiquid(
     ctx.EMAIL = options.email;
   }
 
-  return engine.parseAndRender(html, ctx);
+  // The TipTap editor encodes quotes as &#x27; when serializing to HTML.
+  // Liquid can't parse HTML entities inside its tags, so decode them first.
+  // Only decode inside Liquid delimiters ({{ }}, {% %}) to avoid altering
+  // the surrounding HTML.
+  const decoded = decodeLiquidEntities(html);
+
+  return engine.parseAndRender(decoded, ctx);
 }
 
 /**
@@ -337,7 +460,8 @@ export async function renderDynamicSection(
   chart: EmailChartData,
 ): Promise<string> {
   const context = buildLiquidContext(chart);
-  const resolved = await engine.parseAndRender(sectionHtml, context);
+  const decoded = decodeLiquidEntities(sectionHtml);
+  const resolved = await engine.parseAndRender(decoded, context);
 
   // If all conditionals resolved to empty, skip rendering
   return resolved.trim();
@@ -369,4 +493,89 @@ export async function buildDynamicContactProperties(
   }
 
   return properties;
+}
+
+// =============================================================================
+// Relative link resolution
+// =============================================================================
+
+/**
+ * Resolve `<a>` tags marked with `data-relative="true"` into full subscriber
+ * chart-page URLs. If no subscriberId is available the `<a>` tag is stripped,
+ * leaving just the link text.
+ *
+ * Attribute order in HTML is unpredictable, so we match any `<a>` containing
+ * the data-relative attribute regardless of where it appears relative to href.
+ */
+export function resolveRelativeLinks(
+  html: string,
+  subscriberId: string | undefined,
+  newsletterNumber: number,
+): string {
+  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
+
+  // Match <a ...data-relative="true"...>text</a> — attribute order varies
+  return html.replace(
+    /<a\b([^>]*?\bdata-relative="true"[^>]*)>([\s\S]*?)<\/a>/gi,
+    (_match, attrs: string, text: string) => {
+      if (!subscriberId) return text;
+
+      // Extract href value
+      const hrefMatch = attrs.match(/\bhref="([^"]*)"/);
+      if (!hrefMatch) return text;
+      const path = hrefMatch[1];
+
+      const url = `${appUrl}/see-your-design/${subscriberId}${path}?utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletterNumber}`;
+
+      // Rebuild attrs: replace href with resolved URL and strip data-relative
+      const newAttrs = attrs
+        .replace(/\bhref="[^"]*"/, `href="${url}"`)
+        .replace(/\s*\bdata-relative="true"/, '');
+
+      return `<a${newAttrs}>${text}</a>`;
+    },
+  );
+}
+
+// =============================================================================
+// Orchestrator — single entry point for the resolution pipeline
+// =============================================================================
+
+/**
+ * Resolve newsletter HTML through the full pipeline:
+ * 1. Resolve Liquid conditionals and output tags
+ * 2. Resolve {{{contact.key}}} variables
+ * 3. Resolve data-relative links
+ *
+ * This replaces the duplicated 3-step pipeline in web.ts and preview/route.ts.
+ */
+export async function resolveNewsletterHtml(
+  html: string,
+  options: {
+    chart?: EmailChartData | null;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    subscriberId?: string;
+    newsletterNumber?: number;
+    mode?: 'web' | 'email';
+  },
+): Promise<string> {
+  let result = await resolveLiquid(html, {
+    chart: options.chart,
+    mode: options.mode,
+    firstName: options.firstName,
+    lastName: options.lastName,
+    email: options.email,
+  });
+
+  result = resolveContactVars(result, options.chart ?? null);
+
+  result = resolveRelativeLinks(
+    result,
+    options.subscriberId,
+    options.newsletterNumber ?? 0,
+  );
+
+  return result;
 }
