@@ -30,6 +30,7 @@ interface ProgressStepState {
 
 interface ScheduleProgress {
   newsletterNumber: number;
+  isTest?: boolean;
   steps: ProgressStepState[];
   result?: {
     scheduleId: number;
@@ -271,9 +272,11 @@ export default function AdminNewsletterDetailPage() {
     void (async () => { await fetchNewsletters(); })();
   }, [fetchNewsletters]);
 
-  const handleSchedule = async (newsletterNumber: number, sendAt?: string | null) => {
+  const handleSchedule = async (newsletterNumber: number, sendAt?: string | null, options?: { test?: boolean }) => {
     const pwd = getPassword();
     if (!pwd) return;
+
+    const isTest = !!options?.test;
 
     setActionLoading(true);
     setActionMessage(null);
@@ -282,6 +285,7 @@ export default function AdminNewsletterDetailPage() {
     // Initialize progress modal with all steps pending
     const initialProgress: ScheduleProgress = {
       newsletterNumber,
+      isTest,
       steps: SCHEDULE_STEPS.map(s => ({ ...s, status: 'pending' as const })),
       done: false,
     };
@@ -294,7 +298,7 @@ export default function AdminNewsletterDetailPage() {
           Authorization: `Bearer ${pwd}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ newsletterNumber, ...(sendAt && { sendAt }) }),
+        body: JSON.stringify({ newsletterNumber, ...(sendAt && { sendAt }), ...(isTest && { test: true }) }),
       });
 
       const contentType = res.headers.get('content-type') ?? '';
@@ -1019,7 +1023,7 @@ export default function AdminNewsletterDetailPage() {
             <th style={{ width: '5.5rem', textAlign: 'center' }}>Future</th>
             <th style={{ width: '6rem', textAlign: 'center' }}>Status</th>
             <th style={{ width: '10rem' }}>Send date</th>
-            <th style={{ width: '10rem' }}>Actions</th>
+            <th style={{ width: '13rem' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -1171,6 +1175,28 @@ export default function AdminNewsletterDetailPage() {
                   style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', alignItems: 'center' }}
                   onClick={(e) => e.stopPropagation()}
                 >
+                  {/* Test button — available when not sent */}
+                  {nl.schedule?.status !== 'sent' && (
+                    <button
+                      onClick={() => handleSchedule(nl.number, undefined, { test: true })}
+                      disabled={actionLoading}
+                      style={{
+                        fontFamily: 'var(--body)',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        padding: '4px 12px',
+                        background: 'none',
+                        color: 'var(--grape)',
+                        border: '1px solid var(--grape)',
+                        borderRadius: '4px',
+                        cursor: actionLoading ? 'wait' : 'pointer',
+                        opacity: actionLoading ? 0.6 : 1,
+                      }}
+                    >
+                      Test
+                    </button>
+                  )}
+
                   {/* Schedule button — show if not currently scheduled and has next-week subscribers */}
                   {nl.schedule?.status !== 'scheduled' && nl.nextWeekCount > 0 && (
                     <>
@@ -1431,7 +1457,7 @@ export default function AdminNewsletterDetailPage() {
                 margin: '0 0 1.25rem 0',
               }}
             >
-              Scheduling Newsletter #{scheduleProgress.newsletterNumber}
+              {scheduleProgress.isTest ? 'Testing' : 'Scheduling'} Newsletter #{scheduleProgress.newsletterNumber}
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -1519,10 +1545,16 @@ export default function AdminNewsletterDetailPage() {
                   fontSize: '0.875rem',
                 }}
               >
-                Broadcast {scheduleProgress.result.broadcastId} scheduled for{' '}
-                {formatDateTime(scheduleProgress.result.scheduledAt, timezone)} with{' '}
-                {scheduleProgress.result.contactCount} contact
-                {scheduleProgress.result.contactCount === 1 ? '' : 's'}.
+                {scheduleProgress.isTest ? (
+                  <>Test broadcast {scheduleProgress.result.broadcastId} sent to admin. Check your inbox.</>
+                ) : (
+                  <>
+                    Broadcast {scheduleProgress.result.broadcastId} scheduled for{' '}
+                    {formatDateTime(scheduleProgress.result.scheduledAt, timezone)} with{' '}
+                    {scheduleProgress.result.contactCount} contact
+                    {scheduleProgress.result.contactCount === 1 ? '' : 's'}.
+                  </>
+                )}
               </div>
             )}
 

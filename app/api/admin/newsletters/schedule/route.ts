@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import {
   getNewsletterDueSubscribers,
+  getSubscriberByEmail,
   recordEmailSend,
   insertNewsletterSchedule,
   getScheduleForNewsletter,
@@ -36,7 +37,11 @@ import type { ScheduleEvent, ScheduleStepId } from '@/lib/types/schedule-progres
  * Schedule a newsletter for broadcast delivery at the next cadence date.
  * Returns an NDJSON stream with real-time progress events.
  *
- * Body: { newsletterNumber: number, sendAt?: string }
+ * Body: { newsletterNumber: number, sendAt?: string, test?: boolean }
+ *
+ * When `test: true`, the broadcast is sent immediately to the admin
+ * subscriber only (via ADMIN_EMAIL env var). No DB side-effects occur
+ * (no recordEmailSend, insertNewsletterSchedule, or advanceNewsletterSegments).
  *
  * Pre-stream validation errors (auth, input, already-scheduled) return
  * standard JSON responses. Once validation passes, the response switches
@@ -52,7 +57,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  let body: { newsletterNumber?: number; sendAt?: string };
+  let body: { newsletterNumber?: number; sendAt?: string; test?: boolean };
   try {
     body = await request.json();
   } catch {
@@ -60,34 +65,48 @@ export async function POST(request: NextRequest) {
   }
 
   const { newsletterNumber, sendAt } = body;
+  const isTest = !!body.test;
 
   if (typeof newsletterNumber !== 'number' || newsletterNumber < 1) {
     return NextResponse.json({ error: 'Invalid newsletterNumber' }, { status: 400 });
   }
 
-  // Use provided sendAt if present, otherwise fall back to the publication's next_send_at
-  let scheduledDate: Date;
-  if (sendAt) {
-    scheduledDate = new Date(sendAt);
-  } else {
-    const publication = await getNewsletterPublication(1);
-    if (publication?.nextSendAt) {
-      scheduledDate = new Date(publication.nextSendAt);
-    } else {
+  // Test mode: validate ADMIN_EMAIL is configured
+  if (isTest) {
+    if (!process.env.ADMIN_EMAIL) {
       return NextResponse.json(
-        { error: 'No sendAt provided and no next_send_at configured in publication settings' },
+        { error: 'ADMIN_EMAIL environment variable is not configured' },
         { status: 400 },
       );
     }
   }
 
-  // Check if already scheduled
-  const existingSchedule = await getScheduleForNewsletter(newsletterNumber);
-  if (existingSchedule && existingSchedule.status === 'scheduled') {
-    return NextResponse.json(
-      { error: `Newsletter #${newsletterNumber} is already scheduled (broadcast ${existingSchedule.broadcast_id})` },
-      { status: 409 },
-    );
+  // Use provided sendAt if present, otherwise fall back to the publication's next_send_at
+  // Test mode skips scheduling entirely (sends immediately)
+  let scheduledDate: Date | null = null;
+  if (!isTest) {
+    if (sendAt) {
+      scheduledDate = new Date(sendAt);
+    } else {
+      const publication = await getNewsletterPublication(1);
+      if (publication?.nextSendAt) {
+        scheduledDate = new Date(publication.nextSendAt);
+      } else {
+        return NextResponse.json(
+          { error: 'No sendAt provided and no next_send_at configured in publication settings' },
+          { status: 400 },
+        );
+      }
+    }
+
+    // Check if already scheduled
+    const existingSchedule = await getScheduleForNewsletter(newsletterNumber);
+    if (existingSchedule && existingSchedule.status === 'scheduled') {
+      return NextResponse.json(
+        { error: `Newsletter #${newsletterNumber} is already scheduled (broadcast ${existingSchedule.broadcast_id})` },
+        { status: 409 },
+      );
+    }
   }
 
   // --- Validation passed — switch to streaming NDJSON ---
@@ -111,15 +130,29 @@ export async function POST(request: NextRequest) {
         }
         emit({ step: 'load', status: 'done', label: 'Loading newsletter content', detail: `#${newsletterNumber}` });
 
-        // Step 2: Get due subscribers
+        // Step 2: Get due subscribers (test mode: admin subscriber only)
         currentStep = 'subscribers';
-        emit({ step: 'subscribers', status: 'start', label: 'Finding subscribers' });
-        const allDue = await getNewsletterDueSubscribers(WELCOME_SERIES_LENGTH);
-        const subscribers = allDue.filter(s => s.next_step === newsletterNumber);
-        if (subscribers.length === 0) {
-          throw new Error('No subscribers are due for this newsletter');
+        emit({ step: 'subscribers', status: 'start', label: isTest ? 'Finding admin subscriber' : 'Finding subscribers' });
+
+        let subscribers: Awaited<ReturnType<typeof getNewsletterDueSubscribers>>;
+        if (isTest) {
+          const adminSub = await getSubscriberByEmail(process.env.ADMIN_EMAIL!);
+          if (!adminSub) {
+            throw new Error(`Admin subscriber not found: ${process.env.ADMIN_EMAIL}`);
+          }
+          if (!adminSub.chart) {
+            throw new Error(`Admin subscriber has no chart data: ${process.env.ADMIN_EMAIL}`);
+          }
+          subscribers = [adminSub];
+          emit({ step: 'subscribers', status: 'done', label: 'Finding admin subscriber', detail: adminSub.email });
+        } else {
+          const allDue = await getNewsletterDueSubscribers(WELCOME_SERIES_LENGTH);
+          subscribers = allDue.filter(s => s.next_step === newsletterNumber);
+          if (subscribers.length === 0) {
+            throw new Error('No subscribers are due for this newsletter');
+          }
+          emit({ step: 'subscribers', status: 'done', label: 'Finding subscribers', detail: `Found ${subscribers.length}` });
         }
-        emit({ step: 'subscribers', status: 'done', label: 'Finding subscribers', detail: `Found ${subscribers.length}` });
 
         // Step 3: Template rendering (Liquid path or standard)
         currentStep = 'templates';
@@ -384,14 +417,14 @@ export async function POST(request: NextRequest) {
           : process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
 
         const { data: broadcastData, error: broadcastError } = await client.broadcasts.create({
-          name: `Newsletter #${newsletterNumber}`,
+          name: isTest ? `[TEST] Newsletter #${newsletterNumber}` : `Newsletter #${newsletterNumber}`,
           segmentId,
           from,
           replyTo,
           subject,
           html,
           send: true,
-          scheduledAt: scheduledDate.toISOString(),
+          ...(scheduledDate && { scheduledAt: scheduledDate.toISOString() }),
         });
 
         if (broadcastError || !broadcastData) {
@@ -401,52 +434,71 @@ export async function POST(request: NextRequest) {
         const broadcastId = broadcastData.id;
         emit({ step: 'broadcast', status: 'done', label: 'Creating broadcast', detail: broadcastId });
 
-        // Step 8: Record in DB
+        // Step 8: Record in DB (skipped in test mode)
         currentStep = 'records';
-        emit({ step: 'records', status: 'start', label: 'Recording schedule' });
+        if (isTest) {
+          emit({ step: 'records', status: 'start', label: 'Recording schedule' });
+          emit({ step: 'records', status: 'done', label: 'Recording schedule', detail: 'Skipped (test)' });
 
-        for (const subscriber of subscribers) {
-          await recordEmailSend({
-            subscriberId: subscriber.id,
-            emailType: `newsletter_${newsletterNumber}`,
-            category: 'newsletter',
-            resendBroadcastId: broadcastId,
-          });
-        }
-
-        const schedule = await insertNewsletterSchedule({
-          newsletterNum: newsletterNumber,
-          broadcastId,
-          segmentId,
-          scheduledAt: scheduledDate,
-          subscriberCount: contactCount,
-        });
-
-        // Advance persistent segments that were used for this issue
-        if (matchingSegments.length > 0) {
-          await advanceNewsletterSegments(matchingSegments.map(s => s.id));
           console.log(
-            `[schedule] Advanced ${matchingSegments.length} segment(s): ${matchingSegments.map(s => s.name).join(', ')}`,
+            `[schedule] TEST: Newsletter #${newsletterNumber} sent as broadcast ${broadcastId} to ${process.env.ADMIN_EMAIL}, ${contactCount} contacts`,
           );
-        }
 
-        emit({ step: 'records', status: 'done', label: 'Recording schedule' });
+          emit({
+            step: 'complete',
+            result: {
+              scheduleId: 0,
+              broadcastId,
+              segmentId,
+              contactCount,
+              scheduledAt: new Date().toISOString(),
+            },
+          });
+        } else {
+          emit({ step: 'records', status: 'start', label: 'Recording schedule' });
 
-        console.log(
-          `[schedule] Newsletter #${newsletterNumber} scheduled as broadcast ${broadcastId} for ${scheduledDate.toISOString()}, ${contactCount} contacts`,
-        );
+          for (const subscriber of subscribers) {
+            await recordEmailSend({
+              subscriberId: subscriber.id,
+              emailType: `newsletter_${newsletterNumber}`,
+              category: 'newsletter',
+              resendBroadcastId: broadcastId,
+            });
+          }
 
-        // Final complete event
-        emit({
-          step: 'complete',
-          result: {
-            scheduleId: schedule.id,
+          const schedule = await insertNewsletterSchedule({
+            newsletterNum: newsletterNumber,
             broadcastId,
             segmentId,
-            contactCount,
-            scheduledAt: scheduledDate.toISOString(),
-          },
-        });
+            scheduledAt: scheduledDate!,
+            subscriberCount: contactCount,
+          });
+
+          // Advance persistent segments that were used for this issue
+          if (matchingSegments.length > 0) {
+            await advanceNewsletterSegments(matchingSegments.map(s => s.id));
+            console.log(
+              `[schedule] Advanced ${matchingSegments.length} segment(s): ${matchingSegments.map(s => s.name).join(', ')}`,
+            );
+          }
+
+          emit({ step: 'records', status: 'done', label: 'Recording schedule' });
+
+          console.log(
+            `[schedule] Newsletter #${newsletterNumber} scheduled as broadcast ${broadcastId} for ${scheduledDate!.toISOString()}, ${contactCount} contacts`,
+          );
+
+          emit({
+            step: 'complete',
+            result: {
+              scheduleId: schedule.id,
+              broadcastId,
+              segmentId,
+              contactCount,
+              scheduledAt: scheduledDate!.toISOString(),
+            },
+          });
+        }
       } catch (error) {
         console.error('[admin/newsletters/schedule] Error:', error);
         emit({
