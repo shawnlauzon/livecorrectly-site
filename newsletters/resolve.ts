@@ -25,6 +25,8 @@ const contactProperties: Record<string, (chart: EmailChartData) => string> = {
   not_self_theme_adjective:    chart => chart.notSelfThemeAdjective,
   decision_making_strategy:    chart => chart.decisionMakingStrategy,
   authority_short:             chart => chart.innerAuthorityShortName,
+  top_shadow:                  chart => chart.topShadowName ?? '',
+  top_shadow_description:      chart => chart.topShadowDescription ?? '',
 };
 
 export default contactProperties;
@@ -361,6 +363,8 @@ export function buildLiquidContext(
     not_self_theme_adjective: chart.notSelfThemeAdjective,
     decision_making_strategy: chart.decisionMakingStrategy,
     authority_short: chart.innerAuthorityShortName,
+    top_shadow: chart.topShadowName ?? '',
+    top_shadow_description: chart.topShadowDescription ?? '',
 
     // Boolean flags
     isBuilder: chart.isGenerator,

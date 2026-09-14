@@ -245,6 +245,8 @@ Welcome1.PreviewProps = {
     innerAuthorityVideo: 'https://youtu.be/e9g6q1pKJeo',
     signatureVideo: 'https://youtu.be/fHGRdJSyE34',
     topShadow: 'Willpower',
+    topShadowName: 'Overcompensating',
+    topShadowDescription: 'trying to prove yourself through willpower and commitments',
     hasChannelBridge: false,
     bridgeDescriptions: [],
   },

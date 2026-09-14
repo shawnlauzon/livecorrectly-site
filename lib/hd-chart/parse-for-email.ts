@@ -14,7 +14,9 @@ import {
   typeButtonGifs,
   strategyVideos,
   innerAuthorityVideos,
-  signatureVideos
+  signatureVideos,
+  shadowNames,
+  shadowDescriptions
 } from './constants';
 import hdChart from './index';
 import { hangingGateDescriptions } from '../../emails/content';
@@ -49,6 +51,10 @@ export interface EmailChartData {
   innerAuthorityVideo: string;
   signatureVideo: string;
   topShadow: string | null;
+  /** Shadow name for the top shadow (e.g. "Overcompensating"), null if no shadows */
+  topShadowName: string | null;
+  /** Shadow description for the top shadow, null if no shadows */
+  topShadowDescription: string | null;
   /** True when the #1 bridge is a channel+gate far bridge (not a simple hanging gate) */
   hasChannelBridge: boolean;
   bridgeDescriptions: Array<{
@@ -116,6 +122,10 @@ export function parseChartForEmail(chart: Chart): EmailChartData {
     innerAuthorityVideo: innerAuthorityVideos[authorityIndex],
     signatureVideo: signatureVideos[typeIndex],
     topShadow,
+    topShadowName: topShadow ? (shadowNames[topShadow] ?? null) : null,
+    topShadowDescription: topShadow
+      ? (shadowDescriptions[topShadow]?.replace(/^./, c => c.toLowerCase()) ?? null)
+      : null,
     hasChannelBridge: !chart.bridges?.bridgingGates?.length
       && !!chart.bridges?.bridgingChannels?.length,
     bridgeDescriptions

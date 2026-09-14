@@ -14,6 +14,8 @@ import {
   signatureThemes,
   notSelfThemes,
   notSelfThemeAdjectives,
+  shadowNames,
+  shadowDescriptions,
 } from '@/lib/hd-chart/constants';
 
 /** Deduplicate an indexed array into unique values (preserving order). */
@@ -39,5 +41,7 @@ export const EMAIL_FIELDS: EmailField[] = [
   { key: 'signature_theme', label: 'Signature Theme', values: unique(signatureThemes) },
   { key: 'not_self_theme', label: 'Not-Self Theme', values: unique(notSelfThemes) },
   { key: 'not_self_theme_adjective', label: 'Not-Self Theme (Adjective)', values: unique(notSelfThemeAdjectives) },
+  { key: 'top_shadow', label: 'Top Shadow', values: unique(Object.values(shadowNames)) },
+  { key: 'top_shadow_description', label: 'Top Shadow Description', values: unique(Object.values(shadowDescriptions)) },
   { key: 'decision_making_strategy', label: 'Decision-making Strategy' },
 ];
