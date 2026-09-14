@@ -1,6 +1,40 @@
 import { Liquid } from 'liquidjs';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 import type { LiquidSectionMap } from './loader';
+import type { NewsletterEngagementFlags } from '@/lib/db';
+
+// =============================================================================
+// Engagement data for Liquid template conditionals
+// =============================================================================
+
+/**
+ * Per-subscriber email engagement data passed into the Liquid rendering pipeline.
+ * Used to populate `newsletter_N.delivered`, `newsletter_N.opened`, `newsletter_N.clicked`
+ * boolean flags in the template context.
+ */
+export interface EngagementData {
+  newsletters: Map<number, NewsletterEngagementFlags>;
+}
+
+/**
+ * Build Liquid context entries from engagement data.
+ *
+ * For each newsletter the subscriber has interacted with, creates a nested object:
+ *   newsletter_7: { delivered: true, opened: true, clicked: false }
+ *
+ * Missing newsletters are absent from the context — Liquid treats undefined
+ * property access as falsy, so `{% if newsletter_99.opened %}` correctly
+ * evaluates to false for newsletters that were never sent.
+ */
+function buildEngagementContext(
+  engagement: EngagementData,
+): Record<string, { delivered: boolean; opened: boolean; clicked: boolean }> {
+  const ctx: Record<string, { delivered: boolean; opened: boolean; clicked: boolean }> = {};
+  for (const [num, flags] of engagement.newsletters) {
+    ctx[`newsletter_${num}`] = { ...flags };
+  }
+  return ctx;
+}
 
 // =============================================================================
 // Contact property registry
@@ -350,8 +384,9 @@ export function extractDynamicSections(
 export function buildLiquidContext(
   chart: EmailChartData,
   mode: 'web' | 'email' = 'email',
-): Record<string, string | boolean> {
-  return {
+  engagement?: EngagementData | null,
+): Record<string, unknown> {
+  const ctx: Record<string, unknown> = {
     mode,
     // Contact property names (snake_case) — canonical names for both nodes
     career_type: chart.careerDesign,
@@ -377,6 +412,13 @@ export function buildLiquidContext(
     isEvaluator: chart.isReflector,
     isEmotional: chart.isEmotionalAuthority,
   };
+
+  // Newsletter engagement flags (newsletter_7.opened, newsletter_7.delivered, etc.)
+  if (engagement) {
+    Object.assign(ctx, buildEngagementContext(engagement));
+  }
+
+  return ctx;
 }
 
 /**
@@ -427,15 +469,21 @@ export async function resolveLiquid(
     firstName?: string;
     lastName?: string;
     email?: string;
+    engagement?: EngagementData | null;
   },
 ): Promise<string> {
   if (!hasLiquidConditionals(html) && !hasLiquidOutputTags(html)) {
     return html;
   }
 
-  const ctx: Record<string, string | boolean> = options?.chart
-    ? buildLiquidContext(options.chart, options?.mode ?? 'email')
+  const ctx: Record<string, unknown> = options?.chart
+    ? buildLiquidContext(options.chart, options?.mode ?? 'email', options?.engagement)
     : { mode: (options?.mode ?? 'email') as string };
+
+  // If no chart but engagement is provided, still add engagement flags
+  if (!options?.chart && options?.engagement) {
+    Object.assign(ctx, buildEngagementContext(options.engagement));
+  }
 
   // Identity fields for Variable node output tags (e.g. {{ first_name | default: 'there' }})
   if (options?.firstName !== undefined) {
@@ -471,8 +519,9 @@ export async function resolveLiquid(
 export async function renderDynamicSection(
   sectionHtml: string,
   chart: EmailChartData,
+  engagement?: EngagementData | null,
 ): Promise<string> {
-  const context = buildLiquidContext(chart);
+  const context = buildLiquidContext(chart, 'email', engagement);
   const decoded = decodeLiquidEntities(sectionHtml);
   const resolved = await engine.parseAndRender(decoded, context);
 
@@ -495,6 +544,7 @@ export async function buildDynamicContactProperties(
   newsletterNumber: number,
   newsletterId: number,
   existingMap?: LiquidSectionMap | null,
+  engagement?: EngagementData | null,
 ): Promise<Record<string, string>> {
   const { sections } = extractDynamicSections(html, newsletterNumber, newsletterId, existingMap);
   const properties: Record<string, string> = {};
@@ -503,6 +553,7 @@ export async function buildDynamicContactProperties(
     properties[section.propertyKey] = await renderDynamicSection(
       section.source,
       chart,
+      engagement,
     );
   }
 
@@ -573,6 +624,7 @@ export async function resolveNewsletterHtml(
     subscriberId?: string;
     newsletterNumber?: number;
     mode?: 'web' | 'email';
+    engagement?: EngagementData | null;
   },
 ): Promise<string> {
   let result = await resolveLiquid(html, {
@@ -581,6 +633,7 @@ export async function resolveNewsletterHtml(
     firstName: options.firstName,
     lastName: options.lastName,
     email: options.email,
+    engagement: options.engagement,
   });
 
   result = resolveContactVars(result, options.chart ?? null);

@@ -730,6 +730,129 @@ export async function getSubscribersForEmailType(emailType: string): Promise<Ema
   }));
 }
 
+// --- Newsletter engagement (for Liquid template conditionals) ---
+
+/** Per-newsletter engagement flags for a subscriber (cumulative: clicked → opened → delivered). */
+export interface NewsletterEngagementFlags {
+  delivered: boolean;
+  opened: boolean;
+  clicked: boolean;
+}
+
+/**
+ * Get newsletter engagement data for a single subscriber.
+ * Returns a Map from newsletter number to cumulative engagement flags.
+ * Used by transactional sends, previews, and web rendering.
+ */
+export async function getNewsletterEngagement(
+  subscriberId: string,
+): Promise<Map<number, NewsletterEngagementFlags>> {
+  const db = getDb();
+
+  // Get all newsletter sends for this subscriber
+  const sendRows = await db`
+    SELECT email_type FROM email_sends
+    WHERE subscriber_id = ${subscriberId}
+      AND email_type LIKE 'newsletter_%'
+  `;
+
+  // Get all newsletter open/click events for this subscriber
+  const eventRows = await db`
+    SELECT DISTINCT email_type, event_type FROM email_events
+    WHERE subscriber_id = ${subscriberId}
+      AND email_type LIKE 'newsletter_%'
+      AND event_type IN ('open', 'click')
+  `;
+
+  const map = new Map<number, NewsletterEngagementFlags>();
+
+  for (const row of sendRows) {
+    const num = parseInt((row.email_type as string).replace('newsletter_', ''), 10);
+    if (!isNaN(num)) {
+      map.set(num, { delivered: true, opened: false, clicked: false });
+    }
+  }
+
+  for (const row of eventRows) {
+    const num = parseInt((row.email_type as string).replace('newsletter_', ''), 10);
+    if (isNaN(num)) continue;
+    if (!map.has(num)) {
+      // Event exists without a send record — treat as delivered
+      map.set(num, { delivered: true, opened: false, clicked: false });
+    }
+    const flags = map.get(num)!;
+    if (row.event_type === 'open') {
+      flags.opened = true;
+    } else if (row.event_type === 'click') {
+      flags.clicked = true;
+      flags.opened = true; // clicked implies opened
+    }
+  }
+
+  return map;
+}
+
+/**
+ * Get newsletter engagement data for multiple subscribers in batch.
+ * Returns a Map from subscriber ID to their per-newsletter engagement map.
+ * Used by the broadcast schedule path to avoid N+1 queries.
+ */
+export async function getNewsletterEngagementBatch(
+  subscriberIds: string[],
+): Promise<Map<string, Map<number, NewsletterEngagementFlags>>> {
+  if (subscriberIds.length === 0) return new Map();
+  const db = getDb();
+
+  const sendRows = await db`
+    SELECT subscriber_id, email_type FROM email_sends
+    WHERE subscriber_id = ANY(${subscriberIds})
+      AND email_type LIKE 'newsletter_%'
+  `;
+
+  const eventRows = await db`
+    SELECT DISTINCT subscriber_id, email_type, event_type FROM email_events
+    WHERE subscriber_id = ANY(${subscriberIds})
+      AND email_type LIKE 'newsletter_%'
+      AND event_type IN ('open', 'click')
+  `;
+
+  const result = new Map<string, Map<number, NewsletterEngagementFlags>>();
+
+  const getOrCreate = (sid: string): Map<number, NewsletterEngagementFlags> => {
+    if (!result.has(sid)) result.set(sid, new Map());
+    return result.get(sid)!;
+  };
+
+  for (const row of sendRows) {
+    const sid = row.subscriber_id as string;
+    const num = parseInt((row.email_type as string).replace('newsletter_', ''), 10);
+    if (isNaN(num)) continue;
+    const subMap = getOrCreate(sid);
+    if (!subMap.has(num)) {
+      subMap.set(num, { delivered: true, opened: false, clicked: false });
+    }
+  }
+
+  for (const row of eventRows) {
+    const sid = row.subscriber_id as string;
+    const num = parseInt((row.email_type as string).replace('newsletter_', ''), 10);
+    if (isNaN(num)) continue;
+    const subMap = getOrCreate(sid);
+    if (!subMap.has(num)) {
+      subMap.set(num, { delivered: true, opened: false, clicked: false });
+    }
+    const flags = subMap.get(num)!;
+    if (row.event_type === 'open') {
+      flags.opened = true;
+    } else if (row.event_type === 'click') {
+      flags.clicked = true;
+      flags.opened = true; // clicked implies opened
+    }
+  }
+
+  return result;
+}
+
 // --- Newsletter schedules ---
 
 /** A scheduled newsletter broadcast tracked in newsletter_schedules. */

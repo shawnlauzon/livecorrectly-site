@@ -4,6 +4,7 @@ import {
 } from '@/newsletters/loader';
 import { replaceVariables as replaceVars, replaceChartSubpaths, replaceDesignedCta } from './template-variables';
 import { resolveLiquid, resolveRelativeLinks } from '@/newsletters/resolve';
+import type { EngagementData } from '@/newsletters/resolve';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 
 export {
@@ -84,12 +85,13 @@ export async function getNewsletterIssue(
   firstName: string,
   chart?: EmailChartData | null,
   subscriberId?: string,
+  engagement?: EngagementData | null,
 ): Promise<NewsletterIssue | null> {
   const raw = await loadNewsletterIssue(step);
   if (!raw) return null;
 
   if (chart) {
-    const resolvedHtml = await resolveLiquid(raw.bodyHtml, { chart, firstName });
+    const resolvedHtml = await resolveLiquid(raw.bodyHtml, { chart, firstName, engagement });
     const ps = raw.rawPs.map(p => p.trim());
 
     const newsletter: NewsletterIssue = {

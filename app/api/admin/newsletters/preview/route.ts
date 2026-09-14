@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
-import { getSubscriberById } from '@/lib/db';
+import { getSubscriberById, getNewsletterEngagement } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { resolveNewsletterHtml } from '@/newsletters/resolve';
+import type { EngagementData } from '@/newsletters/resolve';
 import { renderNewsletterEmail } from '@/emails/newsletter-template';
 
 /**
@@ -49,6 +50,10 @@ export async function POST(request: NextRequest) {
   const chartRecord = subscriber.chart?.chart;
   const chart = chartRecord ? parseChartForEmail(chartRecord) : null;
 
+  // Load engagement data for newsletter conditionals (opened/sent checks)
+  const engagementMap = await getNewsletterEngagement(subscriberId);
+  const engagement: EngagementData = { newsletters: engagementMap };
+
   const resolved = await resolveNewsletterHtml(html, {
     chart,
     mode: 'email',
@@ -57,6 +62,7 @@ export async function POST(request: NextRequest) {
     email: subscriber.email,
     subscriberId,
     newsletterNumber: newsletterNumber ?? 0,
+    engagement,
   });
 
   const chromed = renderNewsletterEmail({

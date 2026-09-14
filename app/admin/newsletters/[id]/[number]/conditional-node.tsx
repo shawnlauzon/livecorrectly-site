@@ -50,22 +50,71 @@ const ANY_VALUES: Record<string, { field: string; members: string[] }> = {
   'Generator (any)': { field: 'type', members: ['Generator', 'Manifesting Generator'] },
 };
 
-/** Parse a Liquid condition string into structured field/op/value parts. */
-function parseCondition(condition: string): { field: string; op: string; value: string } | null {
+// ---------------------------------------------------------------------------
+// Newsletter engagement condition support
+// ---------------------------------------------------------------------------
+
+/** Engagement properties available for newsletter conditionals. */
+const NEWSLETTER_ENGAGEMENT_PROPERTIES = ['delivered', 'opened', 'clicked'] as const;
+type NewsletterEngagementProperty = typeof NEWSLETTER_ENGAGEMENT_PROPERTIES[number];
+
+/** Newsletter engagement fields available in the "field" dropdown (extensible). */
+const NEWSLETTER_FIELDS = [
+  { key: 'engagement', label: 'Engagement', properties: NEWSLETTER_ENGAGEMENT_PROPERTIES },
+] as const;
+
+/** Parsed newsletter condition: newsletter_7.opened or newsletter_7.opened == false */
+interface ParsedNewsletterCondition {
+  type: 'newsletter';
+  number: number;
+  field: string;    // e.g. 'engagement'
+  property: string; // e.g. 'opened'
+  negated: boolean; // true → "IS NOT" (== false in Liquid)
+}
+
+/** Parsed chart field condition: career_type == "Builder" */
+interface ParsedChartCondition {
+  type: 'chart';
+  field: string;
+  op: string;
+  value: string;
+}
+
+type ParsedCondition = ParsedChartCondition | ParsedNewsletterCondition;
+
+/**
+ * Parse a Liquid condition string into structured parts.
+ * Handles both chart field conditions and newsletter engagement conditions.
+ */
+function parseCondition(condition: string): ParsedCondition | null {
+  // Try newsletter engagement format:
+  //   newsletter_7.opened          → IS (truthy)
+  //   newsletter_7.opened == false → IS NOT (negated)
+  const nlMatch = condition.match(/^newsletter_(\d+)\.(delivered|opened|clicked)(\s*==\s*false)?$/);
+  if (nlMatch) {
+    return {
+      type: 'newsletter',
+      number: parseInt(nlMatch[1], 10),
+      field: 'engagement',
+      property: nlMatch[2],
+      negated: !!nlMatch[3],
+    };
+  }
+
   // Compound "any" with `or`: `field == "A" or field == "B"`
   for (const [anyLabel, def] of Object.entries(ANY_VALUES)) {
     const eqParts = def.members.map(m => `${def.field} == "${m}"`).join(' or ');
     const neqParts = def.members.map(m => `${def.field} != "${m}"`).join(' and ');
-    if (condition === eqParts) return { field: def.field, op: '==', value: anyLabel };
-    if (condition === neqParts) return { field: def.field, op: '!=', value: anyLabel };
+    if (condition === eqParts) return { type: 'chart', field: def.field, op: '==', value: anyLabel };
+    if (condition === neqParts) return { type: 'chart', field: def.field, op: '!=', value: anyLabel };
   }
   // Standard: `field == "value"` or `field != "value"` (value may be empty for free-text fields)
   const match = condition.match(/^(\w+)\s*(==|!=)\s*"(.*)"$/);
   if (!match) return null;
-  return { field: match[1], op: match[2], value: match[3] };
+  return { type: 'chart', field: match[1], op: match[2], value: match[3] };
 }
 
-/** Compose structured parts into a Liquid condition string. */
+/** Compose structured parts into a Liquid condition string (chart field). */
 function composeCondition(field: string, op: string, value: string): string {
   const any = ANY_VALUES[value];
   if (any) {
@@ -77,6 +126,12 @@ function composeCondition(field: string, op: string, value: string): string {
     return any.members.map(m => `${any.field} == "${m}"`).join(' or ');
   }
   return `${field} ${op} "${value}"`;
+}
+
+/** Compose a newsletter engagement condition: newsletter_7.opened or newsletter_7.opened == false */
+function composeNewsletterCondition(num: number, property: string, negated = false): string {
+  const base = `newsletter_${num}.${property}`;
+  return negated ? `${base} == false` : base;
 }
 
 const BRANCH_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -95,8 +150,207 @@ const selectStyle = (borderColor: string): React.CSSProperties => ({
 });
 
 // ---------------------------------------------------------------------------
+// Newsletter issue cache — shared across all branch views, fetched on demand
+// ---------------------------------------------------------------------------
+
+/** Cached newsletter issues fetched from the API. */
+let nlIssueCache: { number: number; subject: string }[] | null = null;
+let nlIssueFetchPromise: Promise<{ number: number; subject: string }[]> | null = null;
+
+/** Lazily fetch newsletter issues (cached for the page lifetime). */
+function fetchNewsletterIssues(): Promise<{ number: number; subject: string }[]> {
+  if (nlIssueCache) return Promise.resolve(nlIssueCache);
+  if (nlIssueFetchPromise) return nlIssueFetchPromise;
+
+  nlIssueFetchPromise = (async () => {
+    try {
+      const pwd = typeof sessionStorage !== 'undefined'
+        ? sessionStorage.getItem('adminPassword')
+        : null;
+      if (!pwd) return [];
+      const res = await fetch('/api/admin/newsletters/issues', {
+        headers: { Authorization: `Bearer ${pwd}` },
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      nlIssueCache = data.issues ?? [];
+      return nlIssueCache!;
+    } catch {
+      // Non-critical — dropdown will be empty
+      return [];
+    } finally {
+      nlIssueFetchPromise = null;
+    }
+  })();
+
+  return nlIssueFetchPromise;
+}
+
+// ---------------------------------------------------------------------------
 // ConditionalBranchView — React NodeView for a single branch
 // ---------------------------------------------------------------------------
+
+/** Chart field condition selectors (existing behavior). */
+function ChartConditionSelectors({
+  field,
+  op,
+  value,
+  colors,
+  onUpdate,
+}: {
+  field: string;
+  op: string;
+  value: string;
+  colors: { border: string };
+  onUpdate: (f: string, o: string, v: string) => void;
+}) {
+  const fieldDef = FIELD_BY_KEY.get(field);
+
+  return (
+    <>
+      <select
+        value={field}
+        onChange={(e) => {
+          const newField = e.target.value;
+          const newFieldDef = FIELD_BY_KEY.get(newField);
+          const newValue = newFieldDef?.values?.[0] ?? '';
+          onUpdate(newField, op, newValue);
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        style={selectStyle(colors.border)}
+      >
+        {CONDITION_FIELDS.map((f) => (
+          <option key={f.key} value={f.key}>{f.label}</option>
+        ))}
+      </select>
+
+      <select
+        value={op}
+        onChange={(e) => onUpdate(field, e.target.value, value)}
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{ ...selectStyle(colors.border), width: 44 }}
+      >
+        {OPERATORS.map((o) => (
+          <option key={o} value={o}>{o}</option>
+        ))}
+      </select>
+
+      {fieldDef?.values ? (
+        <select
+          value={fieldDef.values.includes(value) ? value : ''}
+          onChange={(e) => onUpdate(field, op, e.target.value)}
+          onMouseDown={(e) => e.stopPropagation()}
+          style={selectStyle(colors.border)}
+        >
+          {!fieldDef.values.includes(value) && value && (
+            <option value="">{value}</option>
+          )}
+          {fieldDef.values.map((v) => (
+            <option key={v} value={v}>{v}</option>
+          ))}
+        </select>
+      ) : (
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onUpdate(field, op, e.target.value)}
+          onMouseDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+          placeholder="Value…"
+          style={{ ...selectStyle(colors.border), minWidth: 100 }}
+        />
+      )}
+    </>
+  );
+}
+
+/** Newsletter engagement condition selectors (lazy-loaded issue list). */
+function NewsletterConditionSelectors({
+  issueNumber,
+  field,
+  property,
+  negated,
+  colors,
+  onUpdate,
+}: {
+  issueNumber: number;
+  field: string;
+  property: string;
+  negated: boolean;
+  colors: { border: string };
+  onUpdate: (num: number, field: string, prop: string, neg: boolean) => void;
+}) {
+  const [issues, setIssues] = React.useState<{ number: number; subject: string }[]>(
+    nlIssueCache ?? [],
+  );
+  const [loading, setLoading] = React.useState(!nlIssueCache);
+
+  React.useEffect(() => {
+    if (nlIssueCache) return;
+    let cancelled = false;
+    setLoading(true);
+    fetchNewsletterIssues().then((result) => {
+      if (!cancelled) {
+        setIssues(result);
+        setLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const fieldDef = NEWSLETTER_FIELDS.find(f => f.key === field) ?? NEWSLETTER_FIELDS[0];
+
+  /** Truncate a subject line for the dropdown. */
+  const truncate = (text: string, max: number) =>
+    text.length > max ? text.slice(0, max) + '…' : text;
+
+  return (
+    <>
+      {/* Issue picker */}
+      <select
+        value={issueNumber || ''}
+        onChange={(e) => onUpdate(parseInt(e.target.value, 10), field, property, negated)}
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{ ...selectStyle(colors.border), maxWidth: 200 }}
+      >
+        {loading && issues.length === 0 && (
+          <option value="">Loading…</option>
+        )}
+        {!issueNumber && !loading && (
+          <option value="">Select issue…</option>
+        )}
+        {issues.map((iss) => (
+          <option key={iss.number} value={iss.number}>
+            #{iss.number} {iss.subject ? `— ${truncate(iss.subject, 30)}` : ''}
+          </option>
+        ))}
+      </select>
+
+      {/* IS / IS NOT */}
+      <select
+        value={negated ? 'is_not' : 'is'}
+        onChange={(e) => onUpdate(issueNumber, field, property, e.target.value === 'is_not')}
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{ ...selectStyle(colors.border), fontWeight: 600 }}
+      >
+        <option value="is">IS</option>
+        <option value="is_not">IS NOT</option>
+      </select>
+
+      {/* Property picker (delivered / opened / clicked) */}
+      <select
+        value={property}
+        onChange={(e) => onUpdate(issueNumber, field, e.target.value, negated)}
+        onMouseDown={(e) => e.stopPropagation()}
+        style={selectStyle(colors.border)}
+      >
+        {fieldDef.properties.map((p) => (
+          <option key={p} value={p}>{p}</option>
+        ))}
+      </select>
+    </>
+  );
+}
 
 function ConditionalBranchView({ node, updateAttributes, deleteNode }: ReactNodeViewProps) {
   const branchType: string = node.attrs.branchType ?? 'if';
@@ -106,13 +360,18 @@ function ConditionalBranchView({ node, updateAttributes, deleteNode }: ReactNode
   const canDelete = branchType !== 'if';
 
   const parsed = showCondition ? parseCondition(condition) : null;
-  const field = parsed?.field ?? CONDITION_FIELDS[0].key;
-  const op = parsed?.op ?? '==';
-  const value = parsed?.value ?? '';
-  const fieldDef = FIELD_BY_KEY.get(field);
-  const update = (f: string, o: string, v: string) => {
-    updateAttributes({ condition: composeCondition(f, o, v) });
-  };
+  const conditionType = parsed?.type === 'newsletter' ? 'newsletter' : 'chart';
+
+  // Chart condition state
+  const chartField = parsed?.type === 'chart' ? parsed.field : CONDITION_FIELDS[0].key;
+  const chartOp = parsed?.type === 'chart' ? parsed.op : '==';
+  const chartValue = parsed?.type === 'chart' ? parsed.value : '';
+
+  // Newsletter condition state
+  const nlNumber = parsed?.type === 'newsletter' ? parsed.number : 0;
+  const nlField = parsed?.type === 'newsletter' ? parsed.field : NEWSLETTER_FIELDS[0].key;
+  const nlProperty = parsed?.type === 'newsletter' ? parsed.property : NEWSLETTER_ENGAGEMENT_PROPERTIES[0];
+  const nlNegated = parsed?.type === 'newsletter' ? parsed.negated : false;
 
   return (
     <NodeViewWrapper data-branch-type={branchType}>
@@ -145,59 +404,44 @@ function ConditionalBranchView({ node, updateAttributes, deleteNode }: ReactNode
 
         {showCondition && (
           <>
-            {/* Field picklist */}
+            {/* Condition type selector */}
             <select
-              value={field}
+              value={conditionType}
               onChange={(e) => {
-                const newField = e.target.value;
-                const newFieldDef = FIELD_BY_KEY.get(newField);
-                const newValue = newFieldDef?.values?.[0] ?? '';
-                update(newField, op, newValue);
+                if (e.target.value === 'newsletter') {
+                  // Switch to newsletter — trigger lazy load and set default condition
+                  void fetchNewsletterIssues();
+                  updateAttributes({ condition: composeNewsletterCondition(0, NEWSLETTER_ENGAGEMENT_PROPERTIES[0], false) });
+                } else {
+                  // Switch to chart field
+                  const firstField = CONDITION_FIELDS[0];
+                  const firstValue = firstField.values?.[0] ?? '';
+                  updateAttributes({ condition: composeCondition(firstField.key, '==', firstValue) });
+                }
               }}
               onMouseDown={(e) => e.stopPropagation()}
-              style={selectStyle(colors.border)}
+              style={{ ...selectStyle(colors.border), fontWeight: 600 }}
             >
-              {CONDITION_FIELDS.map((f) => (
-                <option key={f.key} value={f.key}>{f.label}</option>
-              ))}
+              <option value="chart">Chart</option>
+              <option value="newsletter">Newsletter</option>
             </select>
 
-            {/* Operator picklist */}
-            <select
-              value={op}
-              onChange={(e) => update(field, e.target.value, value)}
-              onMouseDown={(e) => e.stopPropagation()}
-              style={{ ...selectStyle(colors.border), width: 44 }}
-            >
-              {OPERATORS.map((o) => (
-                <option key={o} value={o}>{o}</option>
-              ))}
-            </select>
-
-            {/* Value picker: dropdown for fields with predefined values, text input otherwise */}
-            {fieldDef?.values ? (
-              <select
-                value={fieldDef.values.includes(value) ? value : ''}
-                onChange={(e) => update(field, op, e.target.value)}
-                onMouseDown={(e) => e.stopPropagation()}
-                style={selectStyle(colors.border)}
-              >
-                {!fieldDef.values.includes(value) && value && (
-                  <option value="">{value}</option>
-                )}
-                {fieldDef.values.map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
+            {conditionType === 'chart' ? (
+              <ChartConditionSelectors
+                field={chartField}
+                op={chartOp}
+                value={chartValue}
+                colors={colors}
+                onUpdate={(f, o, v) => updateAttributes({ condition: composeCondition(f, o, v) })}
+              />
             ) : (
-              <input
-                type="text"
-                value={value}
-                onChange={(e) => update(field, op, e.target.value)}
-                onMouseDown={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-                placeholder="Value…"
-                style={{ ...selectStyle(colors.border), minWidth: 100 }}
+              <NewsletterConditionSelectors
+                issueNumber={nlNumber}
+                field={nlField}
+                property={nlProperty}
+                negated={nlNegated}
+                colors={colors}
+                onUpdate={(num, f, p, neg) => updateAttributes({ condition: composeNewsletterCondition(num, p, neg) })}
               />
             )}
           </>
@@ -290,7 +534,13 @@ function ConditionalBlockView({ node, editor, deleteNode, getPos }: ReactNodeVie
       }
 
       const parsed = parseCondition(branches[prevIdx].condition);
-      if (parsed) {
+      if (parsed?.type === 'newsletter') {
+        // Same newsletter, cycle to the next engagement property
+        const props = NEWSLETTER_ENGAGEMENT_PROPERTIES;
+        const currentIdx = props.indexOf(parsed.property as NewsletterEngagementProperty);
+        const nextIdx = currentIdx === -1 ? 0 : (currentIdx + 1) % props.length;
+        condition = composeNewsletterCondition(parsed.number, props[nextIdx], parsed.negated);
+      } else if (parsed?.type === 'chart') {
         const fieldDef = FIELD_BY_KEY.get(parsed.field);
         if (fieldDef?.values && fieldDef.values.length > 0) {
           const currentIdx = fieldDef.values.indexOf(parsed.value);

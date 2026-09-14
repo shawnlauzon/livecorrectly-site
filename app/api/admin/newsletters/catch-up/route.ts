@@ -5,6 +5,7 @@ import {
   getNewsletterSendDates,
   advanceEmailSeries,
   recordEmailSend,
+  getNewsletterEngagement,
 } from '@/lib/db';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
@@ -12,6 +13,7 @@ import { getNewsletterIssue } from '@/emails/newsletter-loader';
 import { renderNewsletterEmail } from '@/emails/newsletter-template';
 import { buildUnsubscribeUrl } from '@/emails/send';
 import { sendPrerenderedBroadcast } from '@/lib/resend-broadcasts';
+import type { EngagementData } from '@/newsletters/resolve';
 
 /**
  * POST /api/admin/newsletters/catch-up
@@ -73,12 +75,17 @@ export async function POST(request: NextRequest) {
         const emailLabel = `newsletter_${newsletterNumber}`;
         const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
 
+        // Load engagement data for newsletter conditionals (opened/sent checks)
+        const engagementMap = await getNewsletterEngagement(subscriber.id);
+        const engagement: EngagementData = { newsletters: engagementMap };
+
         // Render with subscriber's chart data (resolves Liquid conditionals)
         const newsletter = await getNewsletterIssue(
           newsletterNumber,
           subscriber.first_name,
           chart,
           subscriber.id,
+          engagement,
         );
         if (!newsletter) {
           errors.push(`${subscriber.email}: failed to render newsletter`);

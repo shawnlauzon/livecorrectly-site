@@ -1,6 +1,7 @@
-import { getNewsletterSendDates } from '@/lib/db';
+import { getNewsletterSendDates, getNewsletterEngagement } from '@/lib/db';
 import { loadAllNewsletterIssues, type RawNewsletterIssue } from './loader';
 import { resolveNewsletterHtml } from './resolve';
+import type { EngagementData } from './resolve';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 
 export interface WebNewsletter {
@@ -83,6 +84,13 @@ async function renderForWeb(
   // Extract thumbnail from original editor HTML (before style stripping)
   const thumbnailUrl = extractFirstImageUrl(raw.bodyHtml);
 
+  // Load engagement data if we have a subscriber (for opened/sent conditionals)
+  let engagement: EngagementData | null = null;
+  if (subscriberId) {
+    const engagementMap = await getNewsletterEngagement(subscriberId);
+    engagement = { newsletters: engagementMap };
+  }
+
   let html = stripInlineStyles(raw.bodyHtml);
   html = addHeadingIds(html);
 
@@ -91,6 +99,7 @@ async function renderForWeb(
     mode: 'web',
     subscriberId,
     newsletterNumber: raw.number,
+    engagement,
   });
 
   return {
