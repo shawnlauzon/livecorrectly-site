@@ -19,9 +19,9 @@
  *     </body>
  *   </html>
  *
- * This module finds the innermost content <td> and:
- * - Prepends the logo after the opening <td> tag
- * - Appends signature + postscripts + footer before the closing </td> tag
+ * This module:
+ * - Injects the logo right after <body> (above the table structure)
+ * - Injects signature + postscripts + footer right before </body> (below the table structure)
  * - Fixes font-size:1em → font-size:16px so relative units resolve correctly
  */
 
@@ -41,8 +41,8 @@ export interface InjectChromeOptions {
 /**
  * Inject email chrome into composeReactEmail() HTML output.
  *
- * Finds the innermost content <td> (inside the nested table structure) and
- * injects logo, signature, postscripts, and footer at the right positions.
+ * Injects logo after <body> and suffix (signature, postscripts, footer) before
+ * </body>, so chrome sits outside the table structure.
  *
  * Also normalizes font-size:1em → font-size:16px on the outer content <td>
  * so that the editor's relative em units resolve to a readable base size.
@@ -62,51 +62,32 @@ export function injectEmailChrome(
   // Assemble the suffix: signature, then postscripts (if any), then footer
   const suffix = [signature, ps, footer].filter(Boolean).join('\n');
 
-  // Strategy: find the innermost <td> that contains the actual editor content.
-  //
-  // The composeReactEmail output has exactly two nested tables:
-  // 1. Outer table > tr > td (sets font-family/size on the whole email)
-  // 2. Inner table (max-width:600px) > tr > td (contains actual content)
-  //
-  // We find the inner table's <td> by looking for the second <td in the body,
-  // which is the one inside the max-width content table.
-
-  // Find all <td ...> opening tags and their positions
-  const tdOpenPattern = /<td\b[^>]*>/gi;
-  const tdMatches: { index: number; length: number; match: string }[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = tdOpenPattern.exec(html)) !== null) {
-    tdMatches.push({ index: m.index, length: m[0].length, match: m[0] });
-  }
-
-  if (tdMatches.length < 2) {
-    // Fallback: can't find expected structure, return html as-is
-    console.warn('[inject-chrome] Could not find expected <td> structure in composeReactEmail output');
+  // Inject logo right after <body...> and suffix right before </body>.
+  // Both sit outside the table structure for correct ordering.
+  const bodyOpenPattern = /<body\b[^>]*>/i;
+  const bodyMatch = bodyOpenPattern.exec(html);
+  if (!bodyMatch) {
+    console.warn('[inject-chrome] Could not find <body> tag in composeReactEmail output');
     return html;
   }
 
-  // The innermost content cell is the last <td> in the document
-  const innerTd = tdMatches[tdMatches.length - 1];
-
-  // Find the matching </td> for this innermost <td>
-  // Since it's the innermost, its </td> is the first one after it
-  const closingTdIndex = html.indexOf('</td>', innerTd.index + innerTd.length);
-  if (closingTdIndex === -1) {
-    console.warn('[inject-chrome] Could not find closing </td> for innermost content cell');
+  const bodyCloseIndex = html.indexOf('</body>');
+  if (bodyCloseIndex === -1) {
+    console.warn('[inject-chrome] Could not find </body> tag in composeReactEmail output');
     return html;
   }
 
-  // Inject logo after the opening <td> tag, and suffix before the closing </td>
+  const bodyInsertPos = bodyMatch.index + bodyMatch[0].length;
+
   let result =
-    html.slice(0, innerTd.index + innerTd.length) +
+    html.slice(0, bodyInsertPos) +
     '\n' + logo + '\n' +
-    html.slice(innerTd.index + innerTd.length, closingTdIndex) +
+    html.slice(bodyInsertPos, bodyCloseIndex) +
     '\n' + suffix + '\n' +
-    html.slice(closingTdIndex);
+    html.slice(bodyCloseIndex);
 
   // Fix font-size: 1em → 16px on the outer content <td> so relative em units
   // in the editor content resolve to a readable base size.
-  // The outer <td> is the first one (tdMatches[0]).
   result = result.replace(
     /font-size:\s*1em/,
     'font-size:16px',
