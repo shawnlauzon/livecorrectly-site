@@ -10,7 +10,6 @@ import {
 } from '@tiptap/react';
 import type { ReactNodeViewProps } from '@tiptap/react';
 import type { SlashCommandItem } from '@react-email/editor/ui';
-import { canJoin } from '@tiptap/pm/transform';
 import { TextSelection } from '@tiptap/pm/state';
 import { EMAIL_FIELDS } from './email-fields';
 
@@ -288,7 +287,6 @@ function NewsletterConditionSelectors({
   React.useEffect(() => {
     if (nlIssueCache) return;
     let cancelled = false;
-    setLoading(true);
     fetchNewsletterIssues().then((result) => {
       if (!cancelled) {
         setIssues(result);

@@ -24,14 +24,22 @@ function LinkFormWithRelative() {
   const formRef = useRef<HTMLFormElement>(null);
 
   // Sync form state from the active link mark when entering edit mode
+  // Uses the derive-during-render pattern to avoid synchronous setState in effects
+  const [prevIsEditing, setPrevIsEditing] = useState(false);
+  if (isEditing !== prevIsEditing) {
+    setPrevIsEditing(isEditing);
+    if (isEditing && editor) {
+      const attrs = editor.getAttributes('link');
+      setInputValue(attrs.href ?? '');
+      setIsRelative(attrs['data-relative'] === 'true');
+    }
+  }
+
+  // Focus the input after a tick so the bubble menu has rendered
   useEffect(() => {
-    if (!isEditing || !editor) return;
-    const attrs = editor.getAttributes('link');
-    setInputValue(attrs.href ?? '');
-    setIsRelative(attrs['data-relative'] === 'true');
-    // Focus the input after a tick so the bubble menu has rendered
+    if (!isEditing) return;
     requestAnimationFrame(() => inputRef.current?.focus());
-  }, [isEditing, editor]);
+  }, [isEditing]);
 
   const applyLink = useCallback(() => {
     if (!editor) return;
@@ -176,8 +184,10 @@ export function TextBubbleMenu() {
   // Refs to break stale closures in BubbleMenu.LinkSelector callbacks
   const isRelativeRef = useRef(false);
   const editorRef = useRef(editor);
-  isRelativeRef.current = isRelative;
-  editorRef.current = editor;
+  useEffect(() => {
+    isRelativeRef.current = isRelative;
+    editorRef.current = editor;
+  });
 
   const validateUrl = useCallback((value: string): string | null => {
     const trimmed = value.trim();
@@ -193,7 +203,7 @@ export function TextBubbleMenu() {
     return null;
   }, []);
 
-  const handleLinkApply = useCallback((href: string) => {
+  const handleLinkApply = useCallback((_href: string) => {
     const ed = editorRef.current;
     if (!ed) return;
     if (isRelativeRef.current) {

@@ -2,8 +2,6 @@ import { Subscriber } from '@/lib/types/subscriber';
 import { parseChartForEmail, type EmailChartData } from '@/lib/hd-chart/parse-for-email';
 import { getNewsletterIssue } from './newsletter-loader';
 import { renderNewsletterEmail } from './newsletter-template';
-import { buildUnsubscribeUrl } from './send';
-
 export { getNewsletterIssueCount, getMaxNewsletterIssueNumber, getNewsletterIssueNumbers } from './newsletter-loader';
 
 /**

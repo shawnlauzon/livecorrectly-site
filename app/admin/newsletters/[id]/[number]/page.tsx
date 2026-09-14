@@ -588,7 +588,7 @@ export default function NewsletterEditorPage() {
   const params = useParams();
   const num = Number(params.number);
 
-  const [data, setData] = useState<NewsletterData | null>(null);
+  const [_data, setData] = useState<NewsletterData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -604,7 +604,7 @@ export default function NewsletterEditorPage() {
 
   // Editor content — set once after load
   const [editorContent, setEditorContent] = useState<Content | null>(null);
-  const [editorKey, setEditorKey] = useState(0);
+  const [editorKey, _setEditorKey] = useState(0);
 
   // Lifted editor ref + preview trigger
   const editorRef = useRef<EditorHandle | null>(null);
