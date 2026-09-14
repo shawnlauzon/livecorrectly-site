@@ -14,6 +14,7 @@ const KNOWN_PROPERTIES: { label: string; value: string; default?: string }[] = [
   { label: 'Type', value: 'type' },
   { label: 'Strategy', value: 'strategy' },
   { label: 'Inner Authority', value: 'inner_authority' },
+  { label: 'Inner Authority Description', value: 'inner_authority_description' },
   { label: 'Signature Theme', value: 'signature_theme' },
   { label: 'Not-Self Theme', value: 'not_self_theme' },
   { label: 'Decision-making Strategy', value: 'decision_making_strategy' },
