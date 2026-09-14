@@ -4,6 +4,42 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import styles from '../../admin.module.css';
+import type { ScheduleStepId, ScheduleEvent } from '@/lib/types/schedule-progress';
+
+/** All pipeline steps in display order. */
+const SCHEDULE_STEPS: { id: ScheduleStepId; label: string }[] = [
+  { id: 'load', label: 'Loading newsletter content' },
+  { id: 'subscribers', label: 'Finding subscribers' },
+  { id: 'templates', label: 'Rendering templates' },
+  { id: 'contact-properties', label: 'Syncing contact properties' },
+  { id: 'segment', label: 'Creating segment' },
+  { id: 'segment-contacts', label: 'Adding contacts to segment' },
+  { id: 'broadcast', label: 'Creating broadcast' },
+  { id: 'records', label: 'Recording schedule' },
+];
+
+interface ProgressStepState {
+  id: ScheduleStepId;
+  label: string;
+  status: 'pending' | 'in-progress' | 'done' | 'error';
+  detail?: string;
+  current?: number;
+  total?: number;
+}
+
+interface ScheduleProgress {
+  newsletterNumber: number;
+  steps: ProgressStepState[];
+  result?: {
+    scheduleId: number;
+    broadcastId: string;
+    segmentId: string;
+    contactCount: number;
+    scheduledAt: string;
+  };
+  error?: string;
+  done: boolean;
+}
 
 interface NewsletterSchedule {
   id: number;
@@ -164,6 +200,7 @@ export default function AdminNewsletterDetailPage() {
   const [expandedReady, setExpandedReady] = useState<number | null>(null);
   const [expandedLater, setExpandedLater] = useState<number | null>(null);
   const [confirmSchedule, setConfirmSchedule] = useState<number | null>(null);
+  const [scheduleProgress, setScheduleProgress] = useState<ScheduleProgress | null>(null);
 
   // Cadence controls (initialized from server settings)
   const [nextSendAt, setNextSendAt] = useState<string>('');
@@ -223,6 +260,15 @@ export default function AdminNewsletterDetailPage() {
 
     setActionLoading(true);
     setActionMessage(null);
+    setConfirmSchedule(null);
+
+    // Initialize progress modal with all steps pending
+    const initialProgress: ScheduleProgress = {
+      newsletterNumber,
+      steps: SCHEDULE_STEPS.map(s => ({ ...s, status: 'pending' as const })),
+      done: false,
+    };
+    setScheduleProgress(initialProgress);
 
     try {
       const res = await fetch('/api/admin/newsletters/schedule', {
@@ -234,25 +280,125 @@ export default function AdminNewsletterDetailPage() {
         body: JSON.stringify({ newsletterNumber, ...(sendAt && { sendAt }) }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        setActionMessage(`Error: ${data.error}`);
+      const contentType = res.headers.get('content-type') ?? '';
+
+      if (contentType.includes('application/json')) {
+        // Pre-stream validation error — standard JSON response
+        const data = await res.json();
+        setScheduleProgress(prev => prev ? {
+          ...prev,
+          error: data.error ?? 'Unknown error',
+          done: true,
+        } : null);
         return;
       }
 
-      setActionMessage(
-        `Scheduled! Broadcast ${data.broadcastId}, ${data.contactCount} contacts for ${formatDateTime(data.scheduledAt, timezone)}`,
-      );
-      setConfirmSchedule(null);
+      // NDJSON stream
+      const reader = res.body?.getReader();
+      if (!reader) {
+        setScheduleProgress(prev => prev ? {
+          ...prev,
+          error: 'No response body',
+          done: true,
+        } : null);
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        // Keep the last (possibly incomplete) line in the buffer
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let event: ScheduleEvent;
+          try {
+            event = JSON.parse(line);
+          } catch {
+            console.warn('[schedule] Failed to parse NDJSON line:', line);
+            continue;
+          }
+          handleProgressEvent(event);
+        }
+      }
+
+      // Process any remaining data in buffer
+      if (buffer.trim()) {
+        try {
+          handleProgressEvent(JSON.parse(buffer));
+        } catch {
+          // Incomplete trailing data — ignore
+        }
+      }
+
+      // Refresh the newsletter table
       await fetchNewsletters();
     } catch (err) {
-      setActionMessage(
-        `Error: ${err instanceof Error ? err.message : 'Unknown'}`,
-      );
+      setScheduleProgress(prev => prev ? {
+        ...prev,
+        error: err instanceof Error ? err.message : 'Unknown error',
+        done: true,
+      } : null);
     } finally {
       setActionLoading(false);
     }
   };
+
+  /** Map each incoming NDJSON event to a progress state update. */
+  function handleProgressEvent(event: ScheduleEvent) {
+    setScheduleProgress(prev => {
+      if (!prev) return null;
+
+      if (event.step === 'complete') {
+        return { ...prev, result: event.result, done: true };
+      }
+
+      if (event.step === 'error') {
+        const steps = prev.steps.map(s =>
+          s.id === event.failedStep
+            ? { ...s, status: 'error' as const }
+            : s
+        );
+        return { ...prev, steps, error: event.error, done: true };
+      }
+
+      // Progress event for a pipeline step
+      const steps = prev.steps.map(s => {
+        if (s.id !== event.step) return s;
+        switch (event.status) {
+          case 'start':
+            return { ...s, label: event.label, status: 'in-progress' as const };
+          case 'progress':
+            return {
+              ...s,
+              label: event.label,
+              status: 'in-progress' as const,
+              current: event.current,
+              total: event.total,
+            };
+          case 'done':
+            return {
+              ...s,
+              label: event.label,
+              status: 'done' as const,
+              detail: event.detail,
+              current: undefined,
+              total: undefined,
+            };
+          default:
+            return s;
+        }
+      });
+      return { ...prev, steps };
+    });
+  }
 
   const handleCancel = async (newsletterNumber: number) => {
     const pwd = getPassword();
@@ -921,6 +1067,175 @@ export default function AdminNewsletterDetailPage() {
 
       {newsletters.length === 0 && (
         <div className={styles.empty}>No newsletters found</div>
+      )}
+
+      {/* Schedule progress modal */}
+      {scheduleProgress && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(34, 27, 61, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: 'var(--card)',
+              borderRadius: '12px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+              padding: '1.5rem',
+              width: '100%',
+              maxWidth: '480px',
+              fontFamily: 'var(--body)',
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: 'var(--display)',
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                color: 'var(--ink)',
+                margin: '0 0 1.25rem 0',
+              }}
+            >
+              Scheduling Newsletter #{scheduleProgress.newsletterNumber}
+            </h2>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {scheduleProgress.steps.map((step) => (
+                <div
+                  key={step.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.625rem',
+                    opacity: step.status === 'pending' ? 0.4 : 1,
+                    transition: 'opacity 0.2s',
+                  }}
+                >
+                  {/* Status icon */}
+                  <span
+                    style={{
+                      width: '1.25rem',
+                      textAlign: 'center',
+                      fontSize: step.status === 'in-progress' ? '0.875rem' : '1rem',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {step.status === 'pending' && (
+                      <span style={{ color: 'var(--muted)' }}>&#9675;</span>
+                    )}
+                    {step.status === 'in-progress' && (
+                      <span className={styles.spinIcon} style={{ color: 'var(--grape)' }}>&#9697;</span>
+                    )}
+                    {step.status === 'done' && (
+                      <span style={{ color: '#1a7a3a' }}>&#10003;</span>
+                    )}
+                    {step.status === 'error' && (
+                      <span style={{ color: 'var(--coral)' }}>&#10007;</span>
+                    )}
+                  </span>
+
+                  {/* Label + detail */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span
+                      style={{
+                        fontSize: '0.875rem',
+                        color: 'var(--ink)',
+                        fontWeight: step.status === 'in-progress' ? 600 : 400,
+                      }}
+                    >
+                      {step.label}
+                    </span>
+                    {step.status === 'in-progress' && step.current != null && step.total != null && (
+                      <span
+                        style={{
+                          marginLeft: '0.5rem',
+                          fontSize: '0.75rem',
+                          color: 'var(--muted)',
+                        }}
+                      >
+                        {step.current}/{step.total}
+                      </span>
+                    )}
+                    {step.status === 'done' && step.detail && (
+                      <span
+                        style={{
+                          marginLeft: '0.5rem',
+                          fontSize: '0.75rem',
+                          color: 'var(--muted)',
+                        }}
+                      >
+                        {step.detail}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Success summary */}
+            {scheduleProgress.result && (
+              <div
+                style={{
+                  marginTop: '1rem',
+                  padding: '0.75rem',
+                  borderRadius: '6px',
+                  background: '#F0FFF4',
+                  color: '#1a7a3a',
+                  fontSize: '0.875rem',
+                }}
+              >
+                Broadcast {scheduleProgress.result.broadcastId} scheduled for{' '}
+                {formatDateTime(scheduleProgress.result.scheduledAt, timezone)} with{' '}
+                {scheduleProgress.result.contactCount} contact
+                {scheduleProgress.result.contactCount === 1 ? '' : 's'}.
+              </div>
+            )}
+
+            {/* Error summary */}
+            {scheduleProgress.error && (
+              <div
+                style={{
+                  marginTop: '1rem',
+                  padding: '0.75rem',
+                  borderRadius: '6px',
+                  background: '#FFF5F5',
+                  color: 'var(--coral)',
+                  fontSize: '0.875rem',
+                }}
+              >
+                {scheduleProgress.error}
+              </div>
+            )}
+
+            {/* Close button — only when done or error */}
+            {scheduleProgress.done && (
+              <div style={{ marginTop: '1rem', textAlign: 'right' }}>
+                <button
+                  onClick={() => setScheduleProgress(null)}
+                  style={{
+                    fontFamily: 'var(--body)',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    padding: '6px 20px',
+                    background: scheduleProgress.result ? 'var(--grape)' : 'none',
+                    color: scheduleProgress.result ? '#fff' : 'var(--ink)',
+                    border: scheduleProgress.result ? 'none' : '1px solid var(--line)',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {scheduleProgress.result ? 'Done' : 'Close'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
