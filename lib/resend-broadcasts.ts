@@ -78,19 +78,35 @@ export async function syncContactProperties(
       Object.assign(properties, buildContactPropertyValues(chart));
     }
 
-    // Use create (upsert) instead of update so the contact is created if missing
-    const { error } = await client.contacts.create({
+    // Try update first (merges properties, preserving any dynamic section
+    // values already on the contact). Fall back to create only if the
+    // contact doesn't exist yet.
+    const { error: updateError } = await client.contacts.update({
       email: subscriber.email,
       firstName: subscriber.first_name,
       ...(subscriber.last_name && { lastName: subscriber.last_name }),
       properties,
     });
-    if (error) {
-      console.warn(
-        `[broadcast] Failed to sync properties for ${subscriber.email}:`,
-        error,
-      );
-    } else {
+
+    let failed = false;
+    if (updateError) {
+      // Contact doesn't exist — create it
+      const { error: createError } = await client.contacts.create({
+        email: subscriber.email,
+        firstName: subscriber.first_name,
+        ...(subscriber.last_name && { lastName: subscriber.last_name }),
+        properties,
+      });
+      if (createError) {
+        console.warn(
+          `[broadcast] Failed to sync properties for ${subscriber.email}:`,
+          createError,
+        );
+        failed = true;
+      }
+    }
+
+    if (!failed) {
       // Record sync state with the chart properties just sent
       try {
         await upsertContactSyncState(subscriber.id, properties);

@@ -159,9 +159,25 @@ export async function POST(request: NextRequest) {
           emit({ step: 'subscribers', status: 'done', label: 'Finding subscribers', detail: `Found ${subscribers.length}` });
         }
 
-        // Step 3: Template rendering (Liquid path or standard)
-        currentStep = 'templates';
+        // Step 3: Sync contact properties — runs before template rendering
+        // so that contacts exist before the Liquid step merges per-subscriber
+        // dynamic section values via contacts.update()
+        currentStep = 'contact-properties';
         const client = getResendClient();
+        emit({ step: 'contact-properties', status: 'start', label: 'Syncing contact properties' });
+        await syncContactProperties(subscribers, (current, total) => {
+          emit({
+            step: 'contact-properties',
+            status: 'progress',
+            label: 'Syncing contact properties',
+            current,
+            total,
+          });
+        });
+        emit({ step: 'contact-properties', status: 'done', label: 'Syncing contact properties' });
+
+        // Step 4: Template rendering (Liquid path or standard)
+        currentStep = 'templates';
         const hasLiquid = hasLiquidConditionals(raw.bodyHtml) || hasLiquidOutputTags(raw.bodyHtml);
 
         let html: string;
@@ -285,20 +301,6 @@ export async function POST(request: NextRequest) {
           subject = rendered.subject;
           emit({ step: 'render-broadcast', status: 'done', label: 'Rendering broadcast' });
         }
-
-        // Step 4: Sync contact properties
-        currentStep = 'contact-properties';
-        emit({ step: 'contact-properties', status: 'start', label: 'Syncing contact properties' });
-        await syncContactProperties(subscribers, (current, total) => {
-          emit({
-            step: 'contact-properties',
-            status: 'progress',
-            label: 'Syncing contact properties',
-            current,
-            total,
-          });
-        });
-        emit({ step: 'contact-properties', status: 'done', label: 'Syncing contact properties' });
 
         // Step 5: Check for persistent audience segments, or create ephemeral one
         currentStep = 'segment';
