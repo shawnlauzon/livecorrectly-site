@@ -145,12 +145,33 @@ export function resolveContactVars(
  * Pipeline:
  * 1. extractDynamicSections() splits HTML into static + dynamic segments
  *    (handles both {% if %} blocks and {{ var | filter }} output tags)
- * 2. replaceLiquidOutputTags() converts simple {{ var }} to {{{contact.var|}}}
+ * 2. replaceLiquidOutputTags() converts {{ var }} to {{{contact.var}}} or derived properties
  * 3. renderDynamicSection() runs Liquid on extracted HTML for one subscriber
  * 4. buildDynamicContactProperties() returns all properties for one subscriber
  */
 
 const engine = new Liquid();
+
+/**
+ * Strip plain `<span>` wrappers from Liquid tags.
+ *
+ * The TipTap editor's `renderToReactEmail()` wraps each Liquid tag in a
+ * `<span>` element (no attributes). This prevents regex-based extraction
+ * because `{% if %}...{% endif %}` blocks span multiple `<span>` wrappers.
+ *
+ * Only unwraps plain `<span>` elements (no class, style, or other attributes)
+ * — these are exclusively produced by the editor serializer.
+ *
+ * Handles both `{% %}` control tags and `{{ }}` output tags.
+ */
+function unwrapLiquidSpans(html: string): string {
+  // Match <span> wrapping a Liquid tag: <span>{% ... %}</span> or <span>{{ ... }}</span>
+  // The span must have no attributes (just <span>, not <span class="...">)
+  return html.replace(
+    /<span>(\s*(?:\{%[\s\S]*?%\}|\{\{[\s\S]*?\}\})\s*)<\/span>/g,
+    '$1',
+  );
+}
 
 /**
  * Regex that matches a contiguous block of Liquid conditional logic.
@@ -159,10 +180,13 @@ const engine = new Liquid();
  * including any {% elsif %} or {% else %} branches in between.
  * Handles the common pattern of multiple {% elsif %} blocks.
  *
+ * No line-boundary anchors — after span unwrapping, Liquid blocks may
+ * appear inline rather than on their own lines.
+ *
  * Does NOT handle nested {% if %} — not needed for our newsletter templates.
  */
 const LIQUID_BLOCK_RE =
-  /^[ \t]*\{%[-\s]if\b[\s\S]*?\{%[-\s]endif\s*[-]?%\}\s*$/gm;
+  /\{%[-\s]*if\b[\s\S]*?\{%[-\s]*endif\s*[-]?%\}/g;
 
 /**
  * Regex matching Liquid output tags: {{ var }}, {{ var | filter }}, {{ var | filter: arg }}.
@@ -212,6 +236,22 @@ export function hasLiquidOutputTags(content: string): boolean {
   return false;
 }
 
+/**
+ * A derived contact property created from a Liquid filter chain.
+ *
+ * When a Liquid output tag has filters (e.g. `{{ career_type | capitalize }}`),
+ * the filter can't be evaluated by Resend at send time. Instead, the value is
+ * pre-computed per subscriber and stored as a named contact property.
+ */
+export interface DerivedProperty {
+  /** Resend contact property key, e.g. "career_type_capitalized" */
+  propertyKey: string;
+  /** Base variable name from the Liquid tag, e.g. "career_type" */
+  baseVar: string;
+  /** Liquid filter name (minus default:), e.g. "capitalize" */
+  filter: string;
+}
+
 /** A dynamic section extracted from newsletter HTML. */
 export interface DynamicSection {
   /** 0-indexed position in the split result */
@@ -223,61 +263,127 @@ export interface DynamicSection {
 }
 
 export interface ExtractionResult {
-  /** The Resend Broadcast API template with dynamic sections replaced by {{{contact.key|}}} */
+  /** The Resend Broadcast API template with dynamic sections replaced by {{{contact.key}}} */
   broadcastTemplate: string;
   /** The dynamic sections that need per-subscriber rendering */
   sections: DynamicSection[];
+  /** Derived properties that need per-subscriber pre-computation */
+  derivedProperties: DerivedProperty[];
   /** Updated section map (for persistence) */
   sectionMap: LiquidSectionMap;
 }
 
 /**
+ * Parse a Liquid filter chain string into its components.
+ *
+ * Examples:
+ *   "default: 'there'"           → { defaultValue: "there", otherFilter: undefined }
+ *   "capitalize"                 → { defaultValue: undefined, otherFilter: "capitalize" }
+ *   "default: 'there' | capitalize" → { defaultValue: "there", otherFilter: "capitalize" }
+ */
+function parseFilterChain(filterStr: string): {
+  defaultValue: string | undefined;
+  otherFilter: string | undefined;
+} {
+  // Split on pipe to get individual filters
+  const parts = filterStr.split('|').map(p => p.trim()).filter(Boolean);
+
+  let defaultValue: string | undefined;
+  let otherFilter: string | undefined;
+
+  for (const part of parts) {
+    const defaultMatch = part.match(/^default:\s*['"]([^'"]*)['"]\s*$/);
+    if (defaultMatch) {
+      defaultValue = defaultMatch[1];
+    } else {
+      otherFilter = part;
+    }
+  }
+
+  return { defaultValue, otherFilter };
+}
+
+/**
  * Replace Liquid output tags with Resend contact property syntax.
  *
- * - `{{ var }}` where var is a known contact property → `{{{contact.var|}}}`
- * - `{{ VAR }}` where VAR is a default Resend field → `{{{VAR|}}}`
- * - `{{ var | filter }}` → extracted as a dynamic section (filter requires per-subscriber rendering)
- * - Template vars (firstName, appUrl, chartUrl) are left untouched
+ * Filter handling:
+ * - No filter: `{{ career_type }}` → `{{{contact.career_type}}}` (no pipe — no default)
+ * - `default:` only: `{{ first_name | default: 'there' }}` → `{{{FIRST_NAME|there}}}`
+ * - Non-default filter: `{{ career_type | capitalize }}` → `{{{contact.career_type_capitalized}}}`
+ *   (value pre-computed per subscriber as a derived contact property)
+ * - `default:` + filter: `{{ first_name | default: 'there' | capitalize }}` →
+ *   `{{{contact.first_name_capitalized|There}}}` (derived property with capitalized default)
  *
- * @returns Updated template, any new dynamic sections, and updated section map
+ * Template vars (firstName, appUrl, chartUrl) are left untouched.
+ *
+ * @returns Updated template, any new dynamic sections, derived properties, and updated section map
  */
 export function replaceLiquidOutputTags(
   template: string,
-  newsletterNumber: number,
-  newsletterId: number,
   existingMap: LiquidSectionMap,
-): { template: string; sections: DynamicSection[]; sectionMap: LiquidSectionMap } {
-  const nlPrefix = `n${newsletterId}_${String(newsletterNumber).padStart(2, '0')}`;
+): { template: string; sections: DynamicSection[]; derivedProperties: DerivedProperty[]; sectionMap: LiquidSectionMap } {
   const sections: DynamicSection[] = [];
-  let { keys, nextIndex } = existingMap;
-  keys = [...keys]; // clone to avoid mutating input
+  const derivedProperties: DerivedProperty[] = [];
+  const { nextIndex } = existingMap;
+  const keys = [...existingMap.keys]; // clone to avoid mutating input
 
-  const replaced = template.replace(LIQUID_OUTPUT_RE, (match, varName: string, filter?: string) => {
+  // Track derived property keys already created to avoid duplicates
+  const derivedKeysSeen = new Set<string>();
+
+  const replaced = template.replace(LIQUID_OUTPUT_RE, (match, varName: string, filterStr?: string) => {
     // Skip template variables — handled by replaceVars()
     if (TEMPLATE_VARS.has(varName)) return match;
 
-    // If the tag has a filter, it needs per-subscriber rendering (extract as dynamic section)
-    if (filter && filter.trim()) {
-      const propertyKey = `${nlPrefix}_s${nextIndex}`;
-      nextIndex++;
-      keys.push(propertyKey);
-      sections.push({
-        index: nextIndex - 1,
-        source: match,
-        propertyKey,
-      });
-      return `{{{contact.${propertyKey}|}}}`;
-    }
-
-    // Default Resend identity fields: {{{FIRST_NAME|}}}, {{{LAST_NAME|}}}, etc.
     const resendField = RESEND_IDENTITY_MAP[varName];
-    if (resendField) {
-      return `{{{${resendField}|}}}`;
+    const isContactProp = KNOWN_CONTACT_KEYS.has(varName);
+
+    if (filterStr && filterStr.trim()) {
+      const { defaultValue, otherFilter } = parseFilterChain(filterStr);
+
+      if (otherFilter && !defaultValue) {
+        // Non-default filter only: derive a contact property
+        // e.g. {{ career_type | capitalize }} → {{{contact.career_type_capitalized}}}
+        const derivedKey = `${varName}_${otherFilter}d`;
+        const baseVar = varName;
+        if (!derivedKeysSeen.has(derivedKey)) {
+          derivedKeysSeen.add(derivedKey);
+          derivedProperties.push({ propertyKey: derivedKey, baseVar, filter: otherFilter });
+        }
+        return `{{{contact.${derivedKey}}}}`;
+      }
+
+      if (otherFilter && defaultValue) {
+        // default + filter: derive a contact property with transformed default as fallback
+        // e.g. {{ first_name | default: 'there' | capitalize }} →
+        //   {{{contact.first_name_capitalized|There}}}
+        const derivedKey = `${varName}_${otherFilter}d`;
+        const baseVar = varName;
+        if (!derivedKeysSeen.has(derivedKey)) {
+          derivedKeysSeen.add(derivedKey);
+          derivedProperties.push({ propertyKey: derivedKey, baseVar, filter: otherFilter });
+        }
+        // Apply the filter to the default value for the fallback
+        const transformedDefault = otherFilter === 'capitalize'
+          ? defaultValue.charAt(0).toUpperCase() + defaultValue.slice(1)
+          : defaultValue;
+        return `{{{contact.${derivedKey}|${transformedDefault}}}}`;
+      }
+
+      // default: only — use Resend's native fallback syntax
+      if (resendField) {
+        return `{{{${resendField}|${defaultValue}}}}`;
+      }
+      if (isContactProp) {
+        return `{{{contact.${varName}|${defaultValue}}}}`;
+      }
     }
 
-    // Known contact property: {{{contact.var|}}}
-    if (KNOWN_CONTACT_KEYS.has(varName)) {
-      return `{{{contact.${varName}|}}}`;
+    // No filter — no pipe character in output
+    if (resendField) {
+      return `{{{${resendField}}}}`;
+    }
+    if (isContactProp) {
+      return `{{{contact.${varName}}}}`;
     }
 
     // Unknown variable — leave as-is (will be empty after Liquid rendering)
@@ -287,6 +393,7 @@ export function replaceLiquidOutputTags(
   return {
     template: replaced,
     sections,
+    derivedProperties,
     sectionMap: { keys, nextIndex },
   };
 }
@@ -311,6 +418,9 @@ export function extractDynamicSections(
   newsletterId: number,
   existingMap?: LiquidSectionMap | null,
 ): ExtractionResult {
+  // Unwrap <span> wrappers added by TipTap before regex matching
+  const unwrapped = unwrapLiquidSpans(html);
+
   const nlPrefix = `n${newsletterId}_${String(newsletterNumber).padStart(2, '0')}`;
   const sections: DynamicSection[] = [];
 
@@ -320,7 +430,7 @@ export function extractDynamicSections(
   let conditionalIndex = 0;
 
   // Pass 1: Extract {% if %} conditional blocks
-  const afterConditionals = html.replace(LIQUID_BLOCK_RE, (match) => {
+  const afterConditionals = unwrapped.replace(LIQUID_BLOCK_RE, (match) => {
     let propertyKey: string;
 
     if (conditionalIndex < oldKeys.length) {
@@ -339,7 +449,7 @@ export function extractDynamicSections(
       propertyKey,
     });
 
-    return `{{{contact.${propertyKey}|}}}`;
+    return `{{{contact.${propertyKey}}}}`;
   });
 
   // Build initial map from conditional sections
@@ -352,8 +462,6 @@ export function extractDynamicSections(
   };
   const outputResult = replaceLiquidOutputTags(
     afterConditionals,
-    newsletterNumber,
-    newsletterId,
     currentMap,
   );
 
@@ -364,6 +472,7 @@ export function extractDynamicSections(
   return {
     broadcastTemplate: outputResult.template,
     sections: allSections,
+    derivedProperties: outputResult.derivedProperties,
     sectionMap: {
       keys: allKeys,
       nextIndex: outputResult.sectionMap.nextIndex,
@@ -558,6 +667,52 @@ export async function buildDynamicContactProperties(
   }
 
   return properties;
+}
+
+/**
+ * Compute derived contact property values for one subscriber.
+ *
+ * For each derived property (created from Liquid filters like `capitalize`),
+ * runs the filter against the subscriber's actual data using the Liquid engine.
+ *
+ * Example: `{{ career_type | capitalize }}` with career_type="advisor" produces
+ * `{ career_type_capitalized: "Advisor" }`.
+ */
+export async function computeDerivedPropertyValues(
+  derivedProperties: DerivedProperty[],
+  chart: EmailChartData,
+  firstName?: string,
+  lastName?: string,
+  email?: string,
+): Promise<Record<string, string>> {
+  if (derivedProperties.length === 0) return {};
+
+  const ctx = buildLiquidContext(chart, 'email');
+
+  // Add identity fields
+  if (firstName !== undefined) {
+    ctx.first_name = firstName;
+    ctx.FIRST_NAME = firstName;
+  }
+  if (lastName !== undefined) {
+    ctx.last_name = lastName;
+    ctx.LAST_NAME = lastName;
+  }
+  if (email !== undefined) {
+    ctx.email = email;
+    ctx.EMAIL = email;
+  }
+
+  const result: Record<string, string> = {};
+
+  for (const dp of derivedProperties) {
+    // Build a Liquid template that applies the filter to the base variable
+    const liquidTemplate = `{{ ${dp.baseVar} | ${dp.filter} }}`;
+    const value = await engine.parseAndRender(liquidTemplate, ctx);
+    result[dp.propertyKey] = value.trim();
+  }
+
+  return result;
 }
 
 // =============================================================================

@@ -246,6 +246,7 @@ export async function renderNewsletterForBroadcastWithHtml(
   subject: string;
 }> {
   const resendFirstName = '{{{FIRST_NAME|there}}}';
+  const resendSubscriberId = '{{{contact.neon_id}}}';
 
   // Load the newsletter for metadata (subject, preview, ps)
   const raw = await loadNewsletterIssue(newsletterNumber);
@@ -253,16 +254,23 @@ export async function renderNewsletterForBroadcastWithHtml(
     throw new Error(`Newsletter ${newsletterNumber} not found`);
   }
 
-  // Build the subject with variables
+  // Build the variable map — matches the non-Liquid path in renderNewsletterForBroadcast
+  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
+  const chartUrl = `${appUrl}/see-your-design/${resendSubscriberId}?utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletterNumber}`;
   const vars: Record<string, string> = {
     firstName: resendFirstName,
+    appUrl,
+    chartUrl,
   };
+
   const subject = replaceVars(raw.subject, vars);
+  const bodyHtml = replaceVars(customHtml, vars);
+  const ps = raw.rawPs.map(p => replaceVars(p.trim(), vars));
 
   const html = renderNewsletterEmail({
-    bodyHtml: customHtml,
+    bodyHtml,
     unsubscribeUrl: '{{{RESEND_UNSUBSCRIBE_URL}}}',
-    ps: raw.rawPs,
+    ps,
   });
 
   return { html, subject };

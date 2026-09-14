@@ -16,6 +16,7 @@ import {
   hasLiquidOutputTags,
   extractDynamicSections,
   buildDynamicContactProperties,
+  computeDerivedPropertyValues,
 } from '@/newsletters/resolve';
 import {
   renderNewsletterForBroadcast,
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
           emit({ step: 'templates', status: 'start', label: 'Rendering personalized templates' });
 
           const storedMap = raw.liquidSectionMap;
-          const { broadcastTemplate, sections, sectionMap: newMap } = extractDynamicSections(
+          const { broadcastTemplate, sections, derivedProperties, sectionMap: newMap } = extractDynamicSections(
             raw.bodyHtml,
             newsletterNumber,
             raw.newsletterId,
@@ -152,12 +153,17 @@ export async function POST(request: NextRequest) {
             await createPropertyIfMissing(section.propertyKey);
           }
 
+          // Ensure derived property keys exist in Resend
+          for (const dp of derivedProperties) {
+            await createPropertyIfMissing(dp.propertyKey);
+          }
+
           // Batch-load newsletter engagement for all subscribers
           const engagementBySubscriber = await getNewsletterEngagementBatch(
             subscribers.map(s => s.id),
           );
 
-          // Render dynamic sections for each subscriber
+          // Render dynamic sections and compute derived properties for each subscriber
           for (let i = 0; i < subscribers.length; i++) {
             const subscriber = subscribers[i];
             emit({
@@ -187,10 +193,21 @@ export async function POST(request: NextRequest) {
               engagement,
             );
 
-            if (Object.keys(dynamicProps).length > 0) {
+            // Compute derived property values (from Liquid filters like capitalize)
+            const derivedProps = await computeDerivedPropertyValues(
+              derivedProperties,
+              chart,
+              subscriber.first_name,
+              subscriber.last_name ?? undefined,
+              subscriber.email,
+            );
+
+            const allProps = { ...dynamicProps, ...derivedProps };
+
+            if (Object.keys(allProps).length > 0) {
               const { error } = await client.contacts.update({
                 email: subscriber.email,
-                properties: dynamicProps,
+                properties: allProps,
               });
               if (error) {
                 console.warn(
