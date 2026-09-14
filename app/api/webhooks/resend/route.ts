@@ -272,6 +272,24 @@ export async function POST(request: NextRequest) {
             );
           }
         }
+      } else if (event.data.unsubscribed === false && event.data.email) {
+        // When a contact is resubscribed in the Resend UI, reactivate them in Neon.
+        // This is a deliberate admin action, so it reactivates from any inactive status.
+        const contactEmail = extractEmail(event.data.email);
+        const subscriber = await getSubscriberByEmailForWebhook(contactEmail);
+        if (subscriber) {
+          if (subscriber.email_status !== 'active') {
+            const previousStatus = subscriber.email_status;
+            await updateEmailStatus(subscriber.id, 'active');
+            console.log(
+              `[webhook] contact.updated: resubscribed ${contactEmail} (subscriber ${subscriber.id}, was ${previousStatus})`
+            );
+          } else {
+            console.log(
+              `[webhook] contact.updated: resubscribed ${contactEmail} (subscriber ${subscriber.id}, already active)`
+            );
+          }
+        }
       }
       break;
     }
