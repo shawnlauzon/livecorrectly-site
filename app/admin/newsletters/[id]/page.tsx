@@ -200,6 +200,9 @@ export default function AdminNewsletterDetailPage() {
   const [expandedReady, setExpandedReady] = useState<number | null>(null);
   const [expandedLater, setExpandedLater] = useState<number | null>(null);
   const [confirmSchedule, setConfirmSchedule] = useState<number | null>(null);
+  const [scheduleMode, setScheduleMode] = useState<'choose' | 'custom'>('choose');
+  const [customSendAt, setCustomSendAt] = useState<string>('');
+  const [customTimezone, setCustomTimezone] = useState<string>('America/Chicago');
   const [scheduleProgress, setScheduleProgress] = useState<ScheduleProgress | null>(null);
 
   // Cadence controls (initialized from server settings)
@@ -961,46 +964,149 @@ export default function AdminNewsletterDetailPage() {
                           >
                             {nl.nextWeekCount} subscriber{nl.nextWeekCount === 1 ? '' : 's'}
                           </div>
-                          <div style={{ display: 'flex', gap: '0.375rem' }}>
-                            <button
-                              onClick={() => handleSchedule(nl.number, getSendDate(nl))}
-                              disabled={actionLoading}
-                              style={{
-                                fontFamily: 'var(--body)',
-                                fontSize: '0.75rem',
-                                fontWeight: 600,
-                                padding: '4px 10px',
-                                background: 'var(--grape)',
-                                color: '#fff',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: actionLoading ? 'wait' : 'pointer',
-                                opacity: actionLoading ? 0.6 : 1,
-                              }}
-                            >
-                              {actionLoading ? 'Scheduling...' : 'Confirm'}
-                            </button>
-                            <button
-                              onClick={() => setConfirmSchedule(null)}
-                              style={{
-                                fontFamily: 'var(--body)',
-                                fontSize: '0.75rem',
-                                padding: '4px 10px',
-                                background: 'none',
-                                color: 'var(--muted)',
-                                border: '1px solid var(--line)',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              Cancel
-                            </button>
-                          </div>
+
+                          {scheduleMode === 'choose' ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                              <div style={{ display: 'flex', gap: '0.375rem' }}>
+                                <button
+                                  onClick={() => handleSchedule(nl.number, getSendDate(nl))}
+                                  disabled={actionLoading}
+                                  style={{
+                                    fontFamily: 'var(--body)',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    padding: '4px 10px',
+                                    background: 'var(--grape)',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: actionLoading ? 'wait' : 'pointer',
+                                    opacity: actionLoading ? 0.6 : 1,
+                                  }}
+                                  title={getSendDate(nl) ? formatDateTime(getSendDate(nl)!, timezone) : undefined}
+                                >
+                                  {actionLoading ? 'Scheduling...' : `Regular time${getSendDate(nl) ? ` \u2014 ${formatDateTime(getSendDate(nl)!, timezone)}` : ''}`}
+                                </button>
+                              </div>
+                              <div style={{ display: 'flex', gap: '0.375rem' }}>
+                                <button
+                                  onClick={() => {
+                                    const projected = getSendDate(nl);
+                                    setCustomTimezone(timezone);
+                                    setCustomSendAt(
+                                      projected
+                                        ? toDatetimeLocal(projected, timezone)
+                                        : ''
+                                    );
+                                    setScheduleMode('custom');
+                                  }}
+                                  style={{
+                                    fontFamily: 'var(--body)',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    padding: '4px 10px',
+                                    background: 'none',
+                                    color: 'var(--grape)',
+                                    border: '1px solid var(--grape)',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Custom time
+                                </button>
+                                <button
+                                  onClick={() => setConfirmSchedule(null)}
+                                  style={{
+                                    fontFamily: 'var(--body)',
+                                    fontSize: '0.75rem',
+                                    padding: '4px 10px',
+                                    background: 'none',
+                                    color: 'var(--muted)',
+                                    border: '1px solid var(--line)',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                              <input
+                                type="datetime-local"
+                                value={customSendAt}
+                                onChange={(e) => setCustomSendAt(e.target.value)}
+                                style={{
+                                  fontFamily: 'var(--body)',
+                                  fontSize: '0.75rem',
+                                  color: 'var(--ink)',
+                                  padding: '3px 6px',
+                                  border: '1px solid var(--line)',
+                                  borderRadius: '4px',
+                                  background: '#fff',
+                                }}
+                              />
+                              <select
+                                value={customTimezone}
+                                onChange={(e) => setCustomTimezone(e.target.value)}
+                                style={{
+                                  fontFamily: 'var(--body)',
+                                  fontSize: '0.75rem',
+                                  color: 'var(--ink)',
+                                  padding: '3px 6px',
+                                  border: '1px solid var(--line)',
+                                  borderRadius: '4px',
+                                  background: '#fff',
+                                }}
+                              >
+                                {TIMEZONE_OPTIONS.map(tz => (
+                                  <option key={tz} value={tz}>{formatTimezone(tz)}</option>
+                                ))}
+                              </select>
+                              <div style={{ display: 'flex', gap: '0.375rem' }}>
+                                <button
+                                  onClick={() => handleSchedule(nl.number, localToUtcIso(customSendAt, customTimezone))}
+                                  disabled={actionLoading || !customSendAt}
+                                  style={{
+                                    fontFamily: 'var(--body)',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    padding: '4px 10px',
+                                    background: customSendAt ? 'var(--grape)' : 'var(--line)',
+                                    color: customSendAt ? '#fff' : 'var(--muted)',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: actionLoading || !customSendAt ? 'default' : 'pointer',
+                                    opacity: actionLoading ? 0.6 : 1,
+                                  }}
+                                >
+                                  {actionLoading ? 'Scheduling...' : 'Schedule'}
+                                </button>
+                                <button
+                                  onClick={() => setScheduleMode('choose')}
+                                  style={{
+                                    fontFamily: 'var(--body)',
+                                    fontSize: '0.75rem',
+                                    padding: '4px 10px',
+                                    background: 'none',
+                                    color: 'var(--muted)',
+                                    border: '1px solid var(--line)',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Back
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <button
                           onClick={() => {
                             setConfirmSchedule(nl.number);
+                            setScheduleMode('choose');
                             setActionMessage(null);
                           }}
                           style={{
