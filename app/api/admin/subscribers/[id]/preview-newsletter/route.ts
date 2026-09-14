@@ -6,7 +6,7 @@ import { buildUnsubscribeUrl } from '@/emails/send';
 import { getNewsletterHtml, getNewsletterSubject, getNewsletterIssueNumbers } from '@/emails/newsletter';
 import { getNewsletterIssue } from '@/emails/newsletter-loader';
 import { resolveContactVars } from '@/newsletters/resolve';
-import { replaceResendContactVars } from '@/emails/markdown-renderer';
+import { replaceResendContactVars } from '@/emails/template-variables';
 import { loadAllNewsletterIssues } from '@/newsletters/loader';
 
 /**

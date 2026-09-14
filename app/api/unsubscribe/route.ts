@@ -51,7 +51,7 @@ async function handleUnsubscribe(token: string | null, from: string | null): Pro
 
     console.log(`[unsubscribe] Unsubscribed subscriber ${subscriber.id} (from=${from ?? 'unknown'})`);
 
-    // Sync to Resend so they're excluded from future broadcasts
+    // Sync to Resend so they're excluded from future sends
     try {
       await unsubscribeContactInResend(subscriber.email);
     } catch (err) {

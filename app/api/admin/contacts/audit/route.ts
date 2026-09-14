@@ -4,7 +4,6 @@ import { getAllSubscribers, getAllContactSyncStates, upsertContactSyncState } fr
 import { getResendClient } from '@/lib/resend-contacts';
 import { computeExpectedContactValues } from '@/lib/contact-sync';
 import contactProperties from '@/newsletters/resolve';
-import { BROADCAST_CONTACT_PROPERTIES } from '@/lib/resend-broadcasts';
 
 interface Diff {
   field: string;
@@ -29,7 +28,6 @@ const ALL_PROPERTY_KEYS = [
   'last_name',
   'neon_id',
   ...Object.keys(contactProperties),
-  ...Object.values(BROADCAST_CONTACT_PROPERTIES).map(e => e.key),
 ];
 
 /**

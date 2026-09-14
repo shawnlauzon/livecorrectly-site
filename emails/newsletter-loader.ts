@@ -2,7 +2,7 @@ import {
   loadNewsletterIssue,
   type RawNewsletterIssue,
 } from '@/newsletters/loader';
-import { emailMarked, replaceVariables as replaceVars, replaceChartSubpaths, replaceDesignedCta } from './markdown-renderer';
+import { replaceVariables as replaceVars, replaceChartSubpaths, replaceDesignedCta } from './template-variables';
 import { resolveLiquid, resolveRelativeLinks } from '@/newsletters/resolve';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 
@@ -22,26 +22,22 @@ export interface NewsletterIssue {
   slug: string | null;
   /** Email-styled HTML from the visual editor */
   bodyHtml: string;
-  /** Postscripts rendered after the signature (markdown → inline-styled HTML) */
+  /** Postscripts rendered after the signature (plain text) */
   ps: string[];
 }
 
 /**
- * Render a RawNewsletterIssue into email-ready HTML.
- * Uses the editor's pre-rendered HTML directly.
+ * Render a RawNewsletterIssue into email-ready format.
+ * Uses the editor's pre-rendered HTML directly; postscripts are plain text.
  */
 function renderForEmail(raw: RawNewsletterIssue): NewsletterIssue {
-  const ps = raw.rawPs.map(p =>
-    emailMarked.parseInline(p.trim()) as string,
-  );
-
   return {
     number: raw.number,
     subject: raw.subject,
     preview: raw.preview,
     slug: raw.slug,
     bodyHtml: raw.bodyHtml,
-    ps,
+    ps: raw.rawPs.map(p => p.trim()),
   };
 }
 
@@ -94,7 +90,7 @@ export async function getNewsletterIssue(
 
   if (chart) {
     const resolvedHtml = await resolveLiquid(raw.bodyHtml, { chart, firstName });
-    const ps = raw.rawPs.map(p => emailMarked.parseInline(p.trim()) as string);
+    const ps = raw.rawPs.map(p => p.trim());
 
     const newsletter: NewsletterIssue = {
       number: raw.number,

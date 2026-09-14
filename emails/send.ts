@@ -16,11 +16,10 @@ export async function renderEmail(component: React.ReactElement): Promise<string
   return html.replace(/<\/(em|strong|a)>\s*(\w)/g, '</$1>&nbsp;$2');
 }
 
-// Domain-level overrides: when set, these construct the from address using
+// Domain-level override: when set, constructs the from address using
 // the specified domain. When unset, the existing EMAIL_FROM_* → hardcoded
 // default chain is unchanged.
 const TRANSACTIONAL_DOMAIN = process.env.EMAIL_DOMAIN_TRANSACTIONAL;
-const BROADCAST_DOMAIN = process.env.EMAIL_DOMAIN_BROADCAST;
 
 let resend: Resend | null = null;
 
@@ -100,7 +99,7 @@ interface _SendEmailOptions {
  * RESEND_API_KEY is set. Omit RESEND_API_KEY in .env.local to prevent
  * sends during local development.
  *
- * @internal Use sendWelcomeEmail(), sendMarketingEmail(), or sendTransactionalEmail() instead.
+ * @internal Use sendWelcomeEmail() or sendTransactionalEmail() instead.
  */
 export async function _sendEmail({
   to,
@@ -172,22 +171,6 @@ export async function sendWelcomeEmail(options: SendEmailOptions) {
     ? `Shawn Lauzon <shawn@${TRANSACTIONAL_DOMAIN}>`
     : process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
   return _sendEmail({ ...options, from });
-}
-
-/**
- * Send a broadcast/marketing email. Marketing campaigns with reply-to Shawn.
- * From: Shawn Lauzon <updates@livecorrectly.com>
- * Reply-To: Shawn Lauzon <shawn@livecorrectly.com>
- */
-export async function sendMarketingEmail(options: SendEmailOptions) {
-  const from = BROADCAST_DOMAIN
-    ? `Shawn Lauzon <shawn@${BROADCAST_DOMAIN}>`
-    : process.env.EMAIL_FROM_MARKETING ?? 'Shawn Lauzon <updates@livecorrectly.com>';
-  // When using domain override, from is already shawn@ so no replyTo needed
-  const replyTo = BROADCAST_DOMAIN
-    ? undefined
-    : process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
-  return _sendEmail({ ...options, from, replyTo });
 }
 
 /**

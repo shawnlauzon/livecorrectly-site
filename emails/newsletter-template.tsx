@@ -13,7 +13,7 @@ interface RenderNewsletterEmailOptions {
  * True if the newsletter has Liquid conditional blocks in the HTML.
  *
  * Used by the cron to decide between transactional (per-subscriber) and
- * broadcast (single API call) sending paths.
+ * Resend Broadcast API (single API call) sending paths.
  */
 export async function requiresPerSubscriberRendering(number: number): Promise<boolean> {
   const raw = await loadNewsletterIssue(number);

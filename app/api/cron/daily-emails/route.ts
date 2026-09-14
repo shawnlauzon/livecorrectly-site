@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // --- Future: birthday emails, one-off broadcasts via broadcast_sends, etc. ---
+  // --- Future: birthday emails, etc. ---
 
   console.log(`[cron] Done: sent=${sent} skipped=${skipped}`);
   return NextResponse.json({ ok: true, sent, skipped });

@@ -6,7 +6,7 @@ import { upsertContactSyncState } from '@/lib/db';
 /**
  * Resend contact management — separate from emails/send.ts (the sole
  * resend.emails.send() call site). This module handles contacts,
- * segments, and broadcasts through its own Resend instance.
+ * segments, and newsletter broadcasts through its own Resend instance.
  */
 
 let resend: Resend | null = null;
@@ -173,8 +173,8 @@ export async function ensureChartContactProperties(): Promise<void> {
 
 /**
  * Create or update a contact in Resend with their Neon subscriber ID as a property.
- * Broadcast-specific properties (signup_month, etc.) are synced just-in-time by
- * the broadcast send flow — not here at signup time.
+ * Chart-derived contact properties are synced just-in-time before newsletter
+ * sends — not here at signup time.
  * On 409 conflict (contact already exists), falls back to update.
  */
 export async function syncContactToResend({

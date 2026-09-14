@@ -20,7 +20,7 @@ import {
 import {
   renderNewsletterForBroadcast,
   renderNewsletterForBroadcastWithHtml,
-  syncBroadcastContactProperties,
+  syncContactProperties,
 } from '@/lib/resend-broadcasts';
 import { getResendClient, createPropertyIfMissing, deleteNewsletterProperties } from '@/lib/resend-contacts';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
@@ -200,8 +200,8 @@ export async function POST(request: NextRequest) {
       subject = rendered.subject;
     }
 
-    // Sync standard broadcast contact properties (chart type, strategy, etc.)
-    await syncBroadcastContactProperties(subscribers);
+    // Sync contact properties (chart type, strategy, etc.)
+    await syncContactProperties(subscribers);
 
     // Clean up stale ephemeral segments
     const { data: segListData } = await client.segments.list();

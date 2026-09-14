@@ -356,29 +356,6 @@ export async function getNewsletterDueSubscribers(
 }
 
 /**
- * Get active subscribers who haven't received this broadcast yet.
- * Returns newest registrations first. Filtering (by created_at, next_step, etc.)
- * is done in the caller via a predicate from the broadcast's frontmatter config.
- */
-export async function getBroadcastCandidates(
-  broadcastSlug: string,
-): Promise<Subscriber[]> {
-  const db = getDb();
-  const emailType = `broadcast_${broadcastSlug}`;
-  const result = await db`
-    SELECT s.* FROM subscribers s
-    WHERE s.email_status IN ('active', 'failed')
-      AND NOT EXISTS (
-        SELECT 1 FROM email_sends es
-        WHERE es.subscriber_id = s.id
-          AND es.email_type = ${emailType}
-      )
-    ORDER BY s.created_at DESC
-  `;
-  return (result as Subscriber[]).map(normalizeSubscriber);
-}
-
-/**
  * Get send dates for all newsletters that have been sent.
  * Returns a Map from newsletter number to ISO timestamp string.
  * Queries email_sends grouped by email_type to find the earliest send per newsletter.

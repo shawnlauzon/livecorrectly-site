@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getAllSubscribers, getSubscriberById } from '@/lib/db';
 import { syncContactToResend } from '@/lib/resend-contacts';
-import { syncBroadcastContactProperties } from '@/lib/resend-broadcasts';
+import { syncContactProperties } from '@/lib/resend-broadcasts';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 
 /**
@@ -14,7 +14,7 @@ import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
  *
  * For each subscriber:
  * 1. syncContactToResend() — creates/updates the contact with firstName, lastName, neon_id, chart properties
- * 2. syncBroadcastContactProperties() — syncs broadcast-specific properties (signup_month, etc.)
+ * 2. syncContactProperties() — syncs chart-derived properties
  */
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -81,13 +81,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Sync broadcast-specific properties in bulk
+    // Sync chart-derived contact properties in bulk
     if (subscribers.length > 0) {
       try {
-        await syncBroadcastContactProperties(subscribers);
+        await syncContactProperties(subscribers);
       } catch (err) {
-        console.error('[contacts/sync] Failed to sync broadcast properties:', err);
-        errors.push(`Broadcast properties: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        console.error('[contacts/sync] Failed to sync contact properties:', err);
+        errors.push(`Contact properties: ${err instanceof Error ? err.message : 'Unknown error'}`);
       }
     }
 

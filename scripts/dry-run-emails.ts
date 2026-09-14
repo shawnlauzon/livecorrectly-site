@@ -1,7 +1,7 @@
 /**
  * Dry-run script for email crons.
  *
- * Simulates the welcome series, newsletter, and broadcast crons against the
+ * Simulates the welcome series and newsletter crons against the
  * real DB and real templates, showing exactly who would get what — without
  * sending anything or writing to the DB.
  *
@@ -9,20 +9,17 @@
  *   pnpm dry-run
  *   pnpm dry-run -- --welcome-only
  *   pnpm dry-run -- --newsletter-only
- *   pnpm dry-run -- --broadcast-only
  *   pnpm dry-run -- --subscriber=jane@example.com
  *   pnpm dry-run -- --render-html
  *   pnpm dry-run -- --json
  */
 
-import { getWelcomeDueSubscribers, getNewsletterDueSubscribers, getBroadcastCandidates } from '../lib/db';
+import { getWelcomeDueSubscribers, getNewsletterDueSubscribers } from '../lib/db';
 import { parseChartForEmail } from '../lib/hd-chart/parse-for-email';
 import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '../emails/welcome';
 import { getWelcomeSubject } from '../emails/subjects';
 import { getNewsletterHtml, getNewsletterSubject, getMaxNewsletterIssueNumber } from '../emails/newsletter';
 import { renderEmail, formatEmailRecipient, canSendTo, buildUnsubscribeUrl } from '../emails/send';
-import { buildBroadcastEmail } from '../emails/broadcast-config';
-import { getEnabledBroadcastConfigs } from '../emails/broadcast-loader';
 import type { Subscriber } from '../lib/types/subscriber';
 import fs from 'fs';
 import path from 'path';
@@ -43,15 +40,13 @@ function getFlagValue(name: string): string | undefined {
 
 const welcomeOnly = hasFlag('welcome-only');
 const newsletterOnly = hasFlag('newsletter-only');
-const broadcastOnly = hasFlag('broadcast-only');
 const subscriberFilter = getFlagValue('subscriber');
 const renderHtml = hasFlag('render-html');
 const jsonOutput = hasFlag('json');
 
 // Determine which sections to run
-const runWelcome = !newsletterOnly && !broadcastOnly;
-const runNewsletter = !welcomeOnly && !broadcastOnly;
-const runBroadcast = !welcomeOnly && !newsletterOnly;
+const runWelcome = !newsletterOnly;
+const runNewsletter = !welcomeOnly;
 
 // --- Cron schedule helpers ---
 
@@ -139,12 +134,9 @@ function formatCronDate(date: Date): string {
   return `${dayPart} at ${timePart}`;
 }
 
-// Cron schedules read from vercel.json (single source of truth)
-const welcomeSchedule    = getCronScheduleForPath('/api/cron/daily-emails');
-const broadcastSchedule  = getCronScheduleForPath('/api/cron/broadcast');
-
-const nextWelcomeDate    = getNextCronDate(welcomeSchedule.hour, welcomeSchedule.minute, welcomeSchedule.dayOfWeek);
-const nextBroadcastDate  = getNextCronDate(broadcastSchedule.hour, broadcastSchedule.minute, broadcastSchedule.dayOfWeek);
+// Cron schedule read from vercel.json (single source of truth)
+const welcomeSchedule = getCronScheduleForPath('/api/cron/daily-emails');
+const nextWelcomeDate = getNextCronDate(welcomeSchedule.hour, welcomeSchedule.minute, welcomeSchedule.dayOfWeek);
 
 // --- Safety checks ---
 
@@ -183,40 +175,18 @@ interface NewsletterResult {
   htmlBytes: number;
 }
 
-interface BroadcastResult {
-  slug: string;
-  email: string;
-  name: string;
-  subject: string;
-  canSend: boolean;
-  renderOk: boolean;
-  renderError?: string;
-  htmlBytes: number;
-}
-
-interface BroadcastGroupResult {
-  slug: string;
-  candidates: number;
-  eligible: number;
-  recipients: BroadcastResult[];
-}
-
 interface DryRunReport {
   nextSendDates: {
     welcome?: string;
-    broadcast?: string;
   };
   welcome: WelcomeResult[];
   newsletter: NewsletterResult[];
-  broadcast: BroadcastGroupResult[];
   maxNewsletterNumber: number;
   summary: {
     welcomeWouldSend: number;
     welcomeBlocked: number;
     newsletterWouldSend: number;
     newsletterSkipped: number;
-    broadcastWouldSend: number;
-    broadcastBlocked: number;
   };
 }
 
@@ -245,20 +215,16 @@ function writeHtmlFile(dir: string, filename: string, html: string): void {
 async function run(): Promise<void> {
   const report: DryRunReport = {
     nextSendDates: {
-      ...(runWelcome  && { welcome:    nextWelcomeDate.toISOString() }),
-      ...(runBroadcast && { broadcast:  nextBroadcastDate.toISOString() }),
+      ...(runWelcome && { welcome: nextWelcomeDate.toISOString() }),
     },
     welcome: [],
     newsletter: [],
-    broadcast: [],
     maxNewsletterNumber: 0,
     summary: {
       welcomeWouldSend: 0,
       welcomeBlocked: 0,
       newsletterWouldSend: 0,
       newsletterSkipped: 0,
-      broadcastWouldSend: 0,
-      broadcastBlocked: 0,
     },
   };
 
@@ -438,98 +404,6 @@ async function run(): Promise<void> {
     }
   }
 
-  // --- Broadcasts ---
-
-  if (runBroadcast) {
-    const enabledBroadcasts = getEnabledBroadcastConfigs();
-
-    if (!jsonOutput) {
-      console.log('--- Broadcasts ---');
-      console.log(`${enabledBroadcasts.length} enabled broadcast(s)`);
-      console.log(`Next send: ${formatCronDate(nextBroadcastDate)}\n`);
-    }
-
-    for (const config of enabledBroadcasts) {
-      const candidates = await getBroadcastCandidates(config.slug);
-      const filterFn = config.filter ?? (() => true);
-      const eligible = candidates.filter(filterFn);
-      const recipients = filterSubscribers(eligible);
-
-      const group: BroadcastGroupResult = {
-        slug: config.slug,
-        candidates: candidates.length,
-        eligible: eligible.length,
-        recipients: [],
-      };
-
-      for (const subscriber of recipients) {
-        const chart = parseChartForEmail(subscriber.chart.chart);
-        const recipient = formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email);
-        const sendable = await canSendTo(recipient);
-
-        const result: BroadcastResult = {
-          slug: config.slug,
-          email: subscriber.email,
-          name: subscriber.last_name
-            ? `${subscriber.first_name} ${subscriber.last_name}`
-            : subscriber.first_name,
-          subject: '',
-          canSend: sendable,
-          renderOk: false,
-          htmlBytes: 0,
-        };
-
-        try {
-          const { element, subject } = buildBroadcastEmail(
-            config.slug,
-            subscriber.id,
-            subscriber.first_name,
-            subscriber.created_at,
-            subscriber.unsub_token,
-            chart
-          );
-          result.subject = subject;
-
-          const html = await renderEmail(element);
-          result.renderOk = true;
-          result.htmlBytes = Buffer.byteLength(html, 'utf-8');
-
-          if (outputDir) {
-            const safeEmail = subscriber.email.replace(/[^a-zA-Z0-9@._-]/g, '_');
-            writeHtmlFile(outputDir, `broadcast-${config.slug}-${safeEmail}.html`, html);
-          }
-        } catch (err) {
-          result.renderError = err instanceof Error ? err.message : String(err);
-        }
-
-        group.recipients.push(result);
-
-        if (sendable && result.renderOk) {
-          report.summary.broadcastWouldSend++;
-        } else {
-          report.summary.broadcastBlocked++;
-        }
-      }
-
-      report.broadcast.push(group);
-
-      if (!jsonOutput) {
-        console.log(`  "${group.slug}" (${group.eligible} eligible of ${group.candidates} candidates)\n`);
-
-        for (let i = 0; i < group.recipients.length; i++) {
-          const r = group.recipients[i];
-          const canSendLabel = r.canSend ? 'yes' : 'NO';
-          const renderLabel = r.renderOk
-            ? `ok (${r.htmlBytes.toLocaleString()} bytes)`
-            : `FAILED: ${r.renderError}`;
-          console.log(`    ${i + 1}. ${r.email} (${r.name})`);
-          console.log(`       "${r.subject}"`);
-          console.log(`       Can send: ${canSendLabel} · Render: ${renderLabel}\n`);
-        }
-      }
-    }
-  }
-
   // --- Output ---
 
   if (jsonOutput) {
@@ -540,7 +414,6 @@ async function run(): Promise<void> {
   console.log('--- Summary ---');
   console.log(`Welcome: ${report.summary.welcomeWouldSend} would send, ${report.summary.welcomeBlocked} blocked`);
   console.log(`Newsletter: ${report.summary.newsletterWouldSend} would send, ${report.summary.newsletterSkipped} skipped (caught up)`);
-  console.log(`Broadcast: ${report.summary.broadcastWouldSend} would send, ${report.summary.broadcastBlocked} blocked`);
 
   if (outputDir) {
     console.log(`\nHTML files written to: ${outputDir}`);

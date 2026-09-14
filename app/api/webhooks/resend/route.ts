@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
       if (recipientEmail) {
         const subscriber = await getSubscriberByEmailForWebhook(recipientEmail);
         if (subscriber) {
-          // Determine email_type from tags (transactional) or broadcast_id (broadcast)
+          // Determine email_type from tags (transactional) or broadcast_id (newsletters via Resend Broadcast API)
           let emailType: string | null = null;
           let emailSendId: string | undefined;
 

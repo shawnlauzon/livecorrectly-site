@@ -1,54 +1,15 @@
-import React from 'react';
-import { getResendClient, ensureNeonIdProperty, ensureChartContactProperties, createPropertyIfMissing } from './resend-contacts';
+import { getResendClient, ensureNeonIdProperty, ensureChartContactProperties } from './resend-contacts';
 import { getNewsletterIssue } from '@/emails/newsletter-loader';
 import { loadNewsletterIssue } from '@/newsletters/loader';
-import { replaceVariables as replaceVars } from '@/emails/markdown-renderer';
+import { replaceVariables as replaceVars } from '@/emails/template-variables';
 import { renderNewsletterEmail } from '@/emails/newsletter-template';
 import { getNewsletterSubject } from '@/emails/newsletter';
-import { renderEmail } from '@/emails/send';
-import { getBroadcast } from '@/emails/broadcast-loader';
-import { BroadcastTemplate } from '@/emails/broadcast-template';
-import {
-  formatMonth,
-  formatMonthYear,
-  monthsSince,
-} from '@/emails/broadcast-config';
-import { getBroadcastFileConfig } from '@/emails/broadcast-loader';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { buildContactPropertyValues } from '@/newsletters/resolve';
 import { upsertContactSyncState } from '@/lib/db';
 import type { Subscriber } from '@/lib/types/subscriber';
 
-/**
- * Broadcast template variables that require Resend contact properties.
- *
- * This is the single source of truth: to add a new template variable that
- * needs a per-contact property, add one entry here. The broadcast send flow
- * will ensure the property exists and sync computed values to each recipient
- * just before sending — no signup-flow changes or backfill scripts needed.
- */
-export const BROADCAST_CONTACT_PROPERTIES: Record<
-  string,
-  {
-    key: string;
-    compute: (subscriber: Subscriber) => string;
-  }
-> = {
-  signupMonth: {
-    key: 'signup_month',
-    compute: (s) => formatMonth(s.created_at),
-  },
-  monthYear: {
-    key: 'signup_month_year',
-    compute: (s) => formatMonthYear(s.created_at),
-  },
-  monthsSinceSignup: {
-    key: 'months_since_signup',
-    compute: (s) => String(monthsSince(s.created_at)),
-  },
-};
-
-let broadcastPropertiesEnsured = false;
+let contactPropertiesEnsured = false;
 
 /**
  * Delete all ephemeral segments (newsletter_* and broadcast_*) from Resend.
@@ -88,34 +49,25 @@ async function cleanupEphemeralSegments(): Promise<void> {
 }
 
 /**
- * Sync broadcast-specific contact properties to Resend for each subscriber.
- * Called just before sending a broadcast — ensures properties exist, then
- * computes and updates each subscriber's values.
+ * Sync contact properties to Resend for each subscriber.
+ * Ensures neon_id and chart-derived properties exist, then computes and
+ * updates each subscriber's values.
  */
-export async function syncBroadcastContactProperties(
+export async function syncContactProperties(
   subscribers: Subscriber[],
 ): Promise<void> {
   const client = getResendClient();
 
   // Ensure all property keys exist in Resend (once per process)
-  if (!broadcastPropertiesEnsured) {
-    // Also ensure neon_id exists (may have been created at signup, but be safe)
+  if (!contactPropertiesEnsured) {
     await ensureNeonIdProperty();
-    // Ensure chart-derived contact properties exist
     await ensureChartContactProperties();
-
-    for (const entry of Object.values(BROADCAST_CONTACT_PROPERTIES)) {
-      await createPropertyIfMissing(entry.key);
-    }
-    broadcastPropertiesEnsured = true;
+    contactPropertiesEnsured = true;
   }
 
   // Compute and sync property values for each subscriber
   for (const subscriber of subscribers) {
     const properties: Record<string, string> = {};
-    for (const entry of Object.values(BROADCAST_CONTACT_PROPERTIES)) {
-      properties[entry.key] = entry.compute(subscriber);
-    }
     // Add chart-derived properties from the contact-properties registry
     if (subscriber.chart?.chart) {
       const chart = parseChartForEmail(subscriber.chart.chart);
@@ -132,11 +84,11 @@ export async function syncBroadcastContactProperties(
         error,
       );
     } else {
-      // Record sync state with the broadcast + chart properties just sent
+      // Record sync state with the chart properties just sent
       try {
         await upsertContactSyncState(subscriber.id, properties);
       } catch (syncErr) {
-        // Don't let sync state recording failure block the broadcast
+        // Don't let sync state recording failure block the send
         console.warn(
           `[broadcast] Failed to record sync state for ${subscriber.email}:`,
           syncErr instanceof Error ? syncErr.message : syncErr,
@@ -162,7 +114,7 @@ export async function sendPrerenderedBroadcast(opts: {
   const { name, html, subject, subscriber } = opts;
 
   // Sync contact properties for this subscriber
-  await syncBroadcastContactProperties([subscriber]);
+  await syncContactProperties([subscriber]);
 
   const client = getResendClient();
 
@@ -294,7 +246,6 @@ export async function renderNewsletterForBroadcastWithHtml(
   subject: string;
 }> {
   const resendFirstName = '{{{FIRST_NAME|there}}}';
-  const resendSubscriberId = '{{{contact.neon_id}}}';
 
   // Load the newsletter for metadata (subject, preview, ps)
   const raw = await loadNewsletterIssue(newsletterNumber);
@@ -407,160 +358,6 @@ export async function sendNewsletterBroadcast(
 
   console.log(
     `[broadcast] Sent newsletter #${newsletterNumber} as broadcast ${broadcastData.id} to ${contactCount} contacts via segment ${segmentId}`,
-  );
-
-  return {
-    segmentId,
-    broadcastId: broadcastData.id,
-    contactCount,
-  };
-}
-
-/**
- * Render a broadcast markdown template for Resend Broadcast API delivery.
- *
- * The markdown files contain Resend contact property syntax directly
- * (e.g. {{{contact.first_name|there}}}), so this function only replaces
- * the {{appUrl}} variable. Resend substitutes contact properties at send time.
- */
-export async function renderBroadcastForBroadcastApi(slug: string): Promise<{
-  html: string;
-  subject: string;
-  preview: string;
-}> {
-  const broadcastConfig = getBroadcastFileConfig(slug);
-  if (!broadcastConfig) {
-    throw new Error(`Unknown broadcast slug: ${slug}`);
-  }
-
-  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
-
-  // Only appUrl needs replacing — contact properties use Resend syntax
-  // directly in the markdown and are interpolated by Resend at send time.
-  const variables: Record<string, string> = {
-    appUrl,
-  };
-
-  const broadcast = getBroadcast(slug, variables);
-  if (!broadcast) {
-    throw new Error(`Broadcast markdown file not found: broadcasts/${slug}.md`);
-  }
-
-  const component = React.createElement(BroadcastTemplate, {
-    preview: broadcast.preview,
-    bodyHtml: broadcast.bodyHtml,
-    unsubscribeUrl: '{{{RESEND_UNSUBSCRIBE_URL}}}',
-    postscripts: broadcast.postscripts,
-  });
-
-  const html = await renderEmail(component);
-
-  return { html, subject: broadcast.subject, preview: broadcast.preview };
-}
-
-/**
- * Send a broadcast campaign email via the Resend Broadcast API.
- *
- * 1. Sync broadcast-specific contact properties (just-in-time)
- * 2. Create an ephemeral segment
- * 3. Add subscriber emails to it
- * 4. Render HTML with Resend template vars
- * 5. Create + send the broadcast
- * 6. Return identifiers; caller handles recordEmailSend()
- */
-export async function sendBroadcastViaBroadcastApi(
-  slug: string,
-  subscribers: Subscriber[],
-  options?: { from?: string; replyTo?: string },
-): Promise<{ segmentId: string; broadcastId: string; contactCount: number }> {
-  // 1. Sync computed properties to each recipient before sending
-  await syncBroadcastContactProperties(subscribers);
-
-  const client = getResendClient();
-
-  // Clean up stale ephemeral segments to stay within Resend's segment limit
-  await cleanupEphemeralSegments();
-
-  const segmentName = `broadcast_${slug}_${Date.now()}`;
-
-  // 2. Create ephemeral segment
-  const { data: segmentData, error: segmentError } =
-    await client.segments.create({
-      name: segmentName,
-    });
-  if (segmentError || !segmentData) {
-    throw new Error(
-      `Failed to create segment "${segmentName}": ${JSON.stringify(segmentError)}`,
-    );
-  }
-  const segmentId = segmentData.id;
-
-  // 3. Add contacts to segment
-  let contactCount = 0;
-  for (const subscriber of subscribers) {
-    const { error } = await client.contacts.segments.add({
-      email: subscriber.email,
-      segmentId,
-    });
-    if (error) {
-      // Contact may not exist in Resend yet — log and skip
-      console.warn(
-        `[broadcast] Failed to add ${subscriber.email} to segment ${segmentId}:`,
-        error,
-      );
-      continue;
-    }
-    contactCount++;
-  }
-
-  if (contactCount === 0) {
-    throw new Error(
-      `No contacts could be added to segment for broadcast ${slug}`,
-    );
-  }
-
-  // 4. Render HTML
-  const { html, subject } = await renderBroadcastForBroadcastApi(slug);
-
-  // 5. Create + send broadcast
-  // Caller overrides (options.from/replyTo) and per-broadcast config take priority.
-  // When the domain override is used (and no caller/config from override),
-  // from is already shawn@ so no separate replyTo is needed.
-  const sendConfig = getBroadcastFileConfig(slug);
-  const broadcastDomainForApi = process.env.EMAIL_DOMAIN_BROADCAST;
-  const hasCallerFrom = !!(options?.from ?? sendConfig?.from);
-  const from =
-    options?.from ??
-    sendConfig?.from ??
-    (broadcastDomainForApi
-      ? `Shawn Lauzon <shawn@${broadcastDomainForApi}>`
-      : process.env.EMAIL_FROM_MARKETING ??
-        'Shawn Lauzon <updates@livecorrectly.com>');
-  const replyTo =
-    options?.replyTo ??
-    (hasCallerFrom || !broadcastDomainForApi
-      ? process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>'
-      : undefined);
-
-  const { data: broadcastData, error: broadcastError } =
-    await client.broadcasts.create({
-      name: `Broadcast: ${slug}`,
-      segmentId,
-      from,
-      replyTo,
-      subject,
-      html,
-      send: true,
-    });
-
-  if (broadcastError || !broadcastData) {
-    throw new Error(
-      `Failed to create broadcast for ${slug}: ${JSON.stringify(broadcastError)}`,
-    );
-  }
-
-  console.log(
-    `[broadcast] Sent broadcast "${slug}" as ${broadcastData.id} to ${contactCount} contacts via segment ${segmentId}`,
   );
 
   return {

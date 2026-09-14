@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     // Parse chart once — used for both Resend contact sync and welcome email
     const chartData = parseChartForEmail(subscriber.chart.chart);
 
-    // Sync contact to Resend for broadcast targeting — fire-and-forget, must not block signup
+    // Sync contact to Resend for newsletter targeting — fire-and-forget, must not block signup
     if (process.env.RESEND_API_KEY) {
       syncContactToResend({
         email: subscriber.email,

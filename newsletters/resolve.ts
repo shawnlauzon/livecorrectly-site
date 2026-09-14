@@ -9,7 +9,7 @@ import type { LiquidSectionMap } from './loader';
 /**
  * Contact property registry for {{{contact.key}}} template variables in newsletter markdown.
  *
- * Each key becomes a Resend contact property (synced just-in-time before broadcasts)
+ * Each key becomes a Resend contact property (synced before newsletter sends)
  * and a web-resolvable template variable. To add a new property, just add a new entry here.
  *
  * Values are extracted from the subscriber's parsed chart data.
@@ -52,9 +52,9 @@ export function buildContactPropertyValues(
 /**
  * Regex matching {{{contact.key}}} and {{{contact.key|fallback}}}.
  *
- * Triple braces are Resend's native contact property syntax. In email broadcasts,
- * Resend resolves them at send time. For web rendering and admin preview, we
- * resolve them here from chart data.
+ * Triple braces are Resend's native contact property syntax. In newsletter
+ * sends via the Resend Broadcast API, Resend resolves them at send time.
+ * For web rendering and admin preview, we resolve them here from chart data.
  */
 const CONTACT_VAR_RE = /\{\{\{contact\.([a-z_]+)(?:\|([^}]*))?\}\}\}/g;
 
@@ -98,10 +98,10 @@ export function resolveContactVars(
  * - Liquid output tags: {{ strategy }}, {{ inner_authority }} etc.
  * - Resend contact vars: {{{contact.strategy}}}, {{{FIRST_NAME|there}}} etc.
  *
- * For broadcast delivery, conditionals must be pre-rendered into Resend contact
- * properties (since broadcasts can't run per-subscriber logic at send time).
- * Output tags are converted to Resend contact property syntax so Resend
- * resolves them at send time.
+ * For Resend Broadcast API delivery, conditionals must be pre-rendered into
+ * contact properties (since the Broadcast API can't run per-subscriber logic
+ * at send time). Output tags are converted to Resend contact property syntax
+ * so Resend resolves them at send time.
  *
  * Pipeline:
  * 1. extractDynamicSections() splits HTML into static + dynamic segments
@@ -184,7 +184,7 @@ export interface DynamicSection {
 }
 
 export interface ExtractionResult {
-  /** The broadcast template with dynamic sections replaced by {{{contact.key|}}} */
+  /** The Resend Broadcast API template with dynamic sections replaced by {{{contact.key|}}} */
   broadcastTemplate: string;
   /** The dynamic sections that need per-subscriber rendering */
   sections: DynamicSection[];
@@ -255,7 +255,7 @@ export function replaceLiquidOutputTags(
 /**
  * Split newsletter HTML into static template + dynamic sections.
  *
- * Static parts stay in the broadcast template as-is. Each dynamic section
+ * Static parts stay in the template as-is. Each dynamic section
  * (containing Liquid conditionals or filtered output tags) is extracted
  * and replaced with a Resend contact property placeholder.
  *
