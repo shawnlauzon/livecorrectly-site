@@ -331,7 +331,7 @@ export async function POST(request: NextRequest) {
 
             // Add all contacts from each audience segment
             const addedEmails = new Set<string>();
-            for (const seg of matchingSegments) {
+            for (const _seg of matchingSegments) {
               for (const subscriber of subscribers) {
                 if (addedEmails.has(subscriber.email)) continue;
                 const { error } = await client.contacts.segments.add({
@@ -424,7 +424,7 @@ export async function POST(request: NextRequest) {
           : process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
 
         const { data: broadcastData, error: broadcastError } = await client.broadcasts.create({
-          name: isTest ? `[TEST] Newsletter #${newsletterNumber}` : `Newsletter #${newsletterNumber}`,
+          name: `${isTest ? '[TEST] ' : ''}Newsletter #${newsletterNumber} — ${(scheduledDate ?? new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
           segmentId,
           from,
           replyTo,

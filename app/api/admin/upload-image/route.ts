@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
   const ext = file.name.split('.').pop() ?? 'png';
   const blobPath = `${BLOB_PREFIX}/${Date.now()}.${ext}`;
 
-  const blob = await put(blobPath, file, {
+  const _blob = await put(blobPath, file, {
     access: 'public',
     contentType: file.type,
   });

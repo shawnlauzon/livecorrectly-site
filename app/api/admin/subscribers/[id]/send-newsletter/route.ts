@@ -83,7 +83,7 @@ export async function POST(
     });
 
     const { broadcastId } = await sendPrerenderedBroadcast({
-      name: `Admin: Newsletter #${step} → ${subscriber.email}`,
+      name: `Admin: Newsletter #${step} — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} → ${subscriber.email}`,
       html,
       subject,
       subscriber,

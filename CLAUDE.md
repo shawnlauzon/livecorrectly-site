@@ -35,6 +35,8 @@ pnpm lint         # ESLint
 pnpm start        # Serve production build locally
 ```
 
+**Always run `pnpm lint` after `pnpm build`** — both must pass before considering a change complete.
+
 No test framework is configured. TypeScript strict mode is on; type-check with `npx tsc --noEmit`.
 
 Environment variables — copy `.env.example` to `.env.local` and fill in:

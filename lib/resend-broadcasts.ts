@@ -372,7 +372,7 @@ export async function sendNewsletterBroadcast(
 
   const { data: broadcastData, error: broadcastError } =
     await client.broadcasts.create({
-      name: `Newsletter #${newsletterNumber}`,
+      name: `Newsletter #${newsletterNumber} — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
       segmentId,
       from,
       replyTo,
