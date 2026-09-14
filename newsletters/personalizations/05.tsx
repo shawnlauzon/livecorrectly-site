@@ -138,33 +138,5 @@ export function Newsletter05Personalization({
     );
   }
 
-  if (chart.isReflector) {
-    return (
-      <Section>
-        <P>
-          Congratulations, you win the award for the longest time to wait: a
-          full moon cycle!
-        </P>
-        <P>
-          I have to be straight with you: although I know a surprising number of
-          Evaluators, I haven&apos;t had enough clients to really give advice
-          grounded in what I&apos;ve seen. And so I won&apos;t go into detail
-          here.
-        </P>
-        <P>
-          But this is good news for you! If you resonate with what I have
-          written, I am looking for a single person to work with and explore how
-          waiting through the entire lunar cycle works in practice. It will be a
-          great experience, and I&apos;ll be able to create software which will
-          help you be able to live correctly.
-        </P>
-        <P>
-          If you&apos;re interested, please reply to this email and we can
-          discuss further.
-        </P>
-      </Section>
-    );
-  }
-
   return null;
 }
