@@ -516,7 +516,7 @@ export function resolveRelativeLinks(
 
   // Match <a ...data-relative="true"...>text</a> — attribute order varies
   return html.replace(
-    /<a\b([^>]*?\bdata-relative="true"[^>]*)>([\s\S]*?)<\/a>/gi,
+    /<a\b([^>]*?\bdata-relative="true"[^>]*)>([\s\S]*?)<\/a\s*>/gi,
     (_match, attrs: string, text: string) => {
       if (!subscriberId) return text;
 
