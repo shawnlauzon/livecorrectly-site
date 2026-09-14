@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import {
   getNewsletterDueSubscribers,
-  advanceEmailSeries,
   recordEmailSend,
   insertNewsletterSchedule,
   getScheduleForNewsletter,
@@ -317,7 +316,6 @@ export async function POST(request: NextRequest) {
         emit({ step: 'records', status: 'start', label: 'Recording schedule' });
 
         for (const subscriber of subscribers) {
-          await advanceEmailSeries(subscriber.id, subscriber.next_step + 1);
           await recordEmailSend({
             subscriberId: subscriber.id,
             emailType: `newsletter_${newsletterNumber}`,

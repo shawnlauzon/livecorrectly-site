@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSubscriberByEmailForWebhook, updateEmailStatus, rollBackEmailSeries, recordEmailEvent, lookupEmailSendByResendId, lookupEmailTypeByBroadcastId, getMostRecentEmailSend } from '@/lib/db';
+import { getSubscriberByEmailForWebhook, updateEmailStatus, rollBackEmailSeries, recordEmailEvent, lookupEmailSendByResendId, lookupEmailTypeByBroadcastId, getMostRecentEmailSend, getScheduleByBroadcastId, advanceEmailSeries, countPendingBroadcastSubscribers, updateScheduleStatus } from '@/lib/db';
 import { extractEmail } from '@/emails/send';
 import { unsubscribeContactInResend } from '@/lib/resend-contacts';
 
@@ -187,6 +187,40 @@ export async function POST(request: NextRequest) {
           console.log(
             `[webhook] Suppression removed, reactivated: ${removedEmail} (subscriber ${subscriber.id})`
           );
+        }
+      }
+      break;
+    }
+
+    case 'email.sent': {
+      // Advance next_step for broadcast emails when Resend confirms delivery.
+      // Transactional emails (welcome series) are already advanced by the cron/send code,
+      // so we only act when broadcast_id is present.
+      if (event.data.broadcast_id && recipientEmail) {
+        const schedule = await getScheduleByBroadcastId(event.data.broadcast_id);
+        if (schedule) {
+          const subscriber = await getSubscriberByEmailForWebhook(recipientEmail);
+          if (subscriber) {
+            // Idempotency: only advance if next_step still equals the newsletter number
+            if (subscriber.next_step === schedule.newsletter_num) {
+              await advanceEmailSeries(subscriber.id, schedule.newsletter_num + 1);
+              console.log(
+                `[webhook] email.sent: advanced ${recipientEmail} next_step ${schedule.newsletter_num} → ${schedule.newsletter_num + 1} (broadcast ${event.data.broadcast_id})`
+              );
+
+              // Check if all subscribers in this broadcast have been advanced
+              const pending = await countPendingBroadcastSubscribers(
+                event.data.broadcast_id,
+                schedule.newsletter_num,
+              );
+              if (pending === 0 && schedule.status === 'scheduled') {
+                await updateScheduleStatus(schedule.id, 'sent');
+                console.log(
+                  `[webhook] All subscribers delivered for broadcast ${event.data.broadcast_id}, schedule ${schedule.id} → sent`
+                );
+              }
+            }
+          }
         }
       }
       break;

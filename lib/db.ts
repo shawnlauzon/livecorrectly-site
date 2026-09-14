@@ -967,6 +967,39 @@ export async function rollBackNewsletterAdvancement(
 }
 
 /**
+ * Look up a newsletter schedule by its Resend broadcast ID.
+ * Used by the webhook handler to map email.sent events back to a schedule.
+ */
+export async function getScheduleByBroadcastId(broadcastId: string): Promise<NewsletterSchedule | null> {
+  const db = getDb();
+  const rows = await db`
+    SELECT * FROM newsletter_schedules
+    WHERE broadcast_id = ${broadcastId}
+    LIMIT 1
+  `;
+  return rows.length > 0 ? (rows[0] as NewsletterSchedule) : null;
+}
+
+/**
+ * Count subscribers in a broadcast whose next_step hasn't been advanced yet.
+ * A count of 0 means all recipients have been delivered (email.sent received for all).
+ */
+export async function countPendingBroadcastSubscribers(
+  broadcastId: string,
+  newsletterNum: number,
+): Promise<number> {
+  const db = getDb();
+  const rows = await db`
+    SELECT COUNT(*) AS pending
+    FROM email_sends es
+    JOIN subscribers s ON s.id = es.subscriber_id
+    WHERE es.resend_broadcast_id = ${broadcastId}
+      AND s.next_step = ${newsletterNum}
+  `;
+  return Number(rows[0].pending);
+}
+
+/**
  * Delete email_sends records for a cancelled broadcast.
  */
 export async function deleteEmailSendsForBroadcast(
