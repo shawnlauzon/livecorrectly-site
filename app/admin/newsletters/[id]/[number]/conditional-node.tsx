@@ -12,32 +12,29 @@ import type { ReactNodeViewProps } from '@tiptap/react';
 import type { SlashCommandItem } from '@react-email/editor/ui';
 import { canJoin } from '@tiptap/pm/transform';
 import { TextSelection } from '@tiptap/pm/state';
+import { EMAIL_FIELDS } from './email-fields';
 
 // ---------------------------------------------------------------------------
-// Condition field definitions — same contact property names as the Variable node
+// Condition field definitions — shared EMAIL_FIELDS + conditional-only `mode`
 // ---------------------------------------------------------------------------
 
 interface ConditionField {
   key: string;
   label: string;
-  values: string[];
+  values?: string[];
 }
 
 /**
- * Fields available for conditions. Each maps to a contact property
- * (same names used by the Variable node and buildLiquidContext).
+ * Fields available for conditions. Combines the shared EMAIL_FIELDS list
+ * (same names used by the Variable node and buildLiquidContext) with
+ * `mode` which is conditional-only (web vs email rendering context).
  *
  * `career_type` = BG5 career design, `type` = traditional HD type.
  * "(any)" entries use Liquid `contains` to match multiple subtypes.
  */
 const CONDITION_FIELDS: ConditionField[] = [
   { key: 'mode', label: 'Mode', values: ['web', 'email'] },
-  { key: 'career_type', label: 'Career Type', values: ['Builder (any)', 'Classic Builder', 'Express Builder', 'Initiator', 'Advisor', 'Evaluator'] },
-  { key: 'type', label: 'Type', values: ['Generator (any)', 'Generator', 'Manifesting Generator', 'Manifestor', 'Projector', 'Reflector'] },
-  { key: 'inner_authority', label: 'Inner Authority', values: ['Emotional', 'Sacral', 'Splenic', 'Ego', 'Self-Projected', 'Ego-Projected', 'None'] },
-  { key: 'strategy', label: 'Strategy', values: ['wait to respond before engaging', 'inform before taking action', 'wait for recognition and invitation', 'wait a 28 day cycle to reflect and assess'] },
-  { key: 'signature_theme', label: 'Signature Theme', values: ['satisfaction', 'peace', 'success', 'surprise'] },
-  { key: 'not_self_theme', label: 'Not-Self Theme', values: ['frustration', 'anger', 'bitterness', 'disappointment'] },
+  ...EMAIL_FIELDS.map(f => ({ key: f.key, label: f.label, values: f.values })),
 ];
 
 const OPERATORS = ['==', '!='] as const;
@@ -62,8 +59,8 @@ function parseCondition(condition: string): { field: string; op: string; value: 
     if (condition === eqParts) return { field: def.field, op: '==', value: anyLabel };
     if (condition === neqParts) return { field: def.field, op: '!=', value: anyLabel };
   }
-  // Standard: `field == "value"` or `field != "value"`
-  const match = condition.match(/^(\w+)\s*(==|!=)\s*"(.+)"$/);
+  // Standard: `field == "value"` or `field != "value"` (value may be empty for free-text fields)
+  const match = condition.match(/^(\w+)\s*(==|!=)\s*"(.*)"$/);
   if (!match) return null;
   return { field: match[1], op: match[2], value: match[3] };
 }
@@ -154,7 +151,7 @@ function ConditionalBranchView({ node, updateAttributes, deleteNode }: ReactNode
               onChange={(e) => {
                 const newField = e.target.value;
                 const newFieldDef = FIELD_BY_KEY.get(newField);
-                const newValue = newFieldDef?.values[0] ?? '';
+                const newValue = newFieldDef?.values?.[0] ?? '';
                 update(newField, op, newValue);
               }}
               onMouseDown={(e) => e.stopPropagation()}
@@ -177,20 +174,32 @@ function ConditionalBranchView({ node, updateAttributes, deleteNode }: ReactNode
               ))}
             </select>
 
-            {/* Value picklist */}
-            <select
-              value={fieldDef?.values.includes(value) ? value : ''}
-              onChange={(e) => update(field, op, e.target.value)}
-              onMouseDown={(e) => e.stopPropagation()}
-              style={selectStyle(colors.border)}
-            >
-              {!fieldDef?.values.includes(value) && value && (
-                <option value="">{value}</option>
-              )}
-              {(fieldDef?.values ?? []).map((v) => (
-                <option key={v} value={v}>{v}</option>
-              ))}
-            </select>
+            {/* Value picker: dropdown for fields with predefined values, text input otherwise */}
+            {fieldDef?.values ? (
+              <select
+                value={fieldDef.values.includes(value) ? value : ''}
+                onChange={(e) => update(field, op, e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()}
+                style={selectStyle(colors.border)}
+              >
+                {!fieldDef.values.includes(value) && value && (
+                  <option value="">{value}</option>
+                )}
+                {fieldDef.values.map((v) => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => update(field, op, e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+                placeholder="Value…"
+                style={{ ...selectStyle(colors.border), minWidth: 100 }}
+              />
+            )}
           </>
         )}
 
@@ -283,7 +292,7 @@ function ConditionalBlockView({ node, editor, deleteNode, getPos }: ReactNodeVie
       const parsed = parseCondition(branches[prevIdx].condition);
       if (parsed) {
         const fieldDef = FIELD_BY_KEY.get(parsed.field);
-        if (fieldDef && fieldDef.values.length > 0) {
+        if (fieldDef?.values && fieldDef.values.length > 0) {
           const currentIdx = fieldDef.values.indexOf(parsed.value);
           const nextIdx = currentIdx === -1 ? 0 : (currentIdx + 1) % fieldDef.values.length;
           condition = composeCondition(parsed.field, parsed.op, fieldDef.values[nextIdx]);

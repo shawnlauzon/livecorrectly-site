@@ -5,20 +5,9 @@ import { mergeAttributes } from '@tiptap/core';
 import { EmailNode } from '@react-email/editor/core';
 import { useCurrentEditor, useEditorState } from '@tiptap/react';
 import type { SlashCommandItem } from '@react-email/editor/ui';
+import { EMAIL_FIELDS } from './email-fields';
 
-const KNOWN_PROPERTIES: { label: string; value: string; default?: string }[] = [
-  { label: 'First Name', value: 'first_name' },
-  { label: 'Last Name', value: 'last_name' },
-  { label: 'Email', value: 'email' },
-  { label: 'Career Type', value: 'career_type' },
-  { label: 'Type', value: 'type' },
-  { label: 'Strategy', value: 'strategy' },
-  { label: 'Inner Authority', value: 'inner_authority' },
-  { label: 'Inner Authority Description', value: 'inner_authority_description' },
-  { label: 'Signature Theme', value: 'signature_theme' },
-  { label: 'Not-Self Theme', value: 'not_self_theme' },
-  { label: 'Decision-making Strategy', value: 'decision_making_strategy' },
-];
+const KNOWN_PROPERTIES = EMAIL_FIELDS.map(f => ({ label: f.label, value: f.key }));
 
 /**
  * VariableEditForm — edit UI rendered inside a BubbleMenu when a
@@ -86,13 +75,7 @@ export function VariableEditForm() {
             const selected = KNOWN_PROPERTIES.find((p) => p.value === e.target.value);
             if (selected) {
               setDraftId(selected.value);
-              if (selected.default !== undefined) {
-                setDraftDefault(selected.default);
-              }
-              updateNode({
-                variableId: selected.value,
-                ...(selected.default !== undefined ? { default: selected.default } : {}),
-              });
+              updateNode({ variableId: selected.value });
             }
           }}
           style={{ fontSize: 13, padding: '5px 7px', border: '1px solid #E6E1F4', borderRadius: 4, outline: 'none', width: '100%', background: '#fff' }}
