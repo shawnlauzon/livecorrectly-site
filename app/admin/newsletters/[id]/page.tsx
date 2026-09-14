@@ -425,7 +425,7 @@ export default function AdminNewsletterDetailPage() {
     const pwd = getPassword();
     if (!pwd) return;
 
-    if (!confirm(`Cancel newsletter #${newsletterNumber}? This will roll back subscriber progress.`)) {
+    if (!confirm(`Cancel newsletter #${newsletterNumber}?`)) {
       return;
     }
 
@@ -448,9 +448,7 @@ export default function AdminNewsletterDetailPage() {
         return;
       }
 
-      setActionMessage(
-        `Cancelled. Rolled back ${data.rolledBack}/${data.totalAffected} subscribers.`,
-      );
+      setActionMessage('Newsletter cancelled.');
       await fetchNewsletters();
     } catch (err) {
       setActionMessage(

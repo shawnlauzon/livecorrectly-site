@@ -3,8 +3,6 @@ import { checkAdminPassword } from '@/lib/admin-auth';
 import {
   getScheduleForNewsletter,
   updateScheduleStatus,
-  getSubscribersForNewsletterSchedule,
-  rollBackNewsletterAdvancement,
   deleteEmailSendsForBroadcast,
 } from '@/lib/db';
 import { getResendClient } from '@/lib/resend-contacts';
@@ -19,9 +17,8 @@ import { getResendClient } from '@/lib/resend-contacts';
  * Pipeline:
  * 1. Find the active schedule for this newsletter
  * 2. Cancel the broadcast in Resend
- * 3. Roll back next_step for affected subscribers
- * 4. Delete email_sends records for the broadcast
- * 5. Update schedule status to 'cancelled'
+ * 3. Delete email_sends records for the broadcast
+ * 4. Update schedule status to 'cancelled'
  */
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -62,18 +59,6 @@ export async function POST(request: NextRequest) {
       // the broadcast may have already been sent or may not exist
     }
 
-    // Find subscribers whose next_step was advanced
-    const subscriberIds = await getSubscribersForNewsletterSchedule(
-      newsletterNumber,
-      schedule.broadcast_id,
-    );
-
-    // Roll back next_step
-    const rolledBack = await rollBackNewsletterAdvancement(
-      subscriberIds,
-      newsletterNumber,
-    );
-
     // Delete email_sends records
     await deleteEmailSendsForBroadcast(schedule.broadcast_id);
 
@@ -81,14 +66,10 @@ export async function POST(request: NextRequest) {
     await updateScheduleStatus(schedule.id, 'cancelled');
 
     console.log(
-      `[cancel] Newsletter #${newsletterNumber} cancelled. Broadcast ${schedule.broadcast_id}, rolled back ${rolledBack}/${subscriberIds.length} subscribers`,
+      `[cancel] Newsletter #${newsletterNumber} cancelled. Broadcast ${schedule.broadcast_id}`,
     );
 
-    return NextResponse.json({
-      ok: true,
-      rolledBack,
-      totalAffected: subscriberIds.length,
-    });
+    return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('[admin/newsletters/cancel] Error:', error);
     return NextResponse.json(

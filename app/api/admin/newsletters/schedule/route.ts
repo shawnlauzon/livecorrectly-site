@@ -71,14 +71,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid newsletterNumber' }, { status: 400 });
   }
 
-  // Test mode: validate ADMIN_EMAIL is configured
+  // Test mode: validate ADMIN_EMAIL is configured and extract bare email
+  let adminEmail: string | undefined;
   if (isTest) {
-    if (!process.env.ADMIN_EMAIL) {
+    const rawAdminEmail = process.env.ADMIN_EMAIL;
+    if (!rawAdminEmail) {
       return NextResponse.json(
         { error: 'ADMIN_EMAIL environment variable is not configured' },
         { status: 400 },
       );
     }
+    // Handle both "Name <email>" and bare "email" formats
+    const match = rawAdminEmail.match(/<([^>]+)>/);
+    adminEmail = match ? match[1] : rawAdminEmail.trim();
   }
 
   // Use provided sendAt if present, otherwise fall back to the publication's next_send_at
@@ -136,12 +141,12 @@ export async function POST(request: NextRequest) {
 
         let subscribers: Awaited<ReturnType<typeof getNewsletterDueSubscribers>>;
         if (isTest) {
-          const adminSub = await getSubscriberByEmail(process.env.ADMIN_EMAIL!);
+          const adminSub = await getSubscriberByEmail(adminEmail!);
           if (!adminSub) {
-            throw new Error(`Admin subscriber not found: ${process.env.ADMIN_EMAIL}`);
+            throw new Error(`Admin subscriber not found: ${adminEmail}`);
           }
           if (!adminSub.chart) {
-            throw new Error(`Admin subscriber has no chart data: ${process.env.ADMIN_EMAIL}`);
+            throw new Error(`Admin subscriber has no chart data: ${adminEmail}`);
           }
           subscribers = [adminSub];
           emit({ step: 'subscribers', status: 'done', label: 'Finding admin subscriber', detail: adminSub.email });
@@ -441,7 +446,7 @@ export async function POST(request: NextRequest) {
           emit({ step: 'records', status: 'done', label: 'Recording schedule', detail: 'Skipped (test)' });
 
           console.log(
-            `[schedule] TEST: Newsletter #${newsletterNumber} sent as broadcast ${broadcastId} to ${process.env.ADMIN_EMAIL}, ${contactCount} contacts`,
+            `[schedule] TEST: Newsletter #${newsletterNumber} sent as broadcast ${broadcastId} to ${adminEmail}, ${contactCount} contacts`,
           );
 
           emit({
