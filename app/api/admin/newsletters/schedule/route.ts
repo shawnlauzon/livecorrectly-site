@@ -10,7 +10,6 @@ import {
   getNewsletterPublication,
   getNewsletterEngagementBatch,
   getNewsletterSegmentsForIssue,
-  advanceNewsletterSegments,
 } from '@/lib/db';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import { loadNewsletterIssue } from '@/newsletters/loader';
@@ -303,8 +302,11 @@ export async function POST(request: NextRequest) {
         }
 
         // Step 5: Check for persistent audience segments, or create ephemeral one
+        // In test mode, always create an ephemeral segment with only the admin subscriber.
+        // Using a persistent segment would send the broadcast to ALL contacts in that segment,
+        // not just the admin — the `subscribers` array filtering is meaningless to Resend.
         currentStep = 'segment';
-        const matchingSegments = await getNewsletterSegmentsForIssue(1, newsletterNumber);
+        const matchingSegments = isTest ? [] : await getNewsletterSegmentsForIssue(1, newsletterNumber);
 
         let segmentId: string;
         let contactCount: number;
@@ -480,14 +482,6 @@ export async function POST(request: NextRequest) {
             scheduledAt: scheduledDate!,
             subscriberCount: contactCount,
           });
-
-          // Advance persistent segments that were used for this issue
-          if (matchingSegments.length > 0) {
-            await advanceNewsletterSegments(matchingSegments.map(s => s.id));
-            console.log(
-              `[schedule] Advanced ${matchingSegments.length} segment(s): ${matchingSegments.map(s => s.name).join(', ')}`,
-            );
-          }
 
           emit({ step: 'records', status: 'done', label: 'Recording schedule' });
 
