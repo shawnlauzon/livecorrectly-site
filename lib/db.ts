@@ -1343,3 +1343,100 @@ export async function updateNewsletterPublication(
   return rowToNewsletterPublication(rows[0]);
 }
 
+// --- Newsletter audience segments ---
+
+/** A persistent audience segment for newsletter broadcasts. */
+export interface NewsletterSegment {
+  id: number;
+  newsletterId: number;
+  name: string;
+  resendSegmentId: string;
+  nextIssue: number;
+  createdAt: string;
+}
+
+function rowToNewsletterSegment(row: Record<string, unknown>): NewsletterSegment {
+  return {
+    id: row.id as number,
+    newsletterId: row.newsletter_id as number,
+    name: row.name as string,
+    resendSegmentId: row.resend_segment_id as string,
+    nextIssue: row.next_issue as number,
+    createdAt: (row.created_at as Date).toISOString(),
+  };
+}
+
+/**
+ * Get all segments for a newsletter publication.
+ */
+export async function getNewsletterSegments(newsletterId: number): Promise<NewsletterSegment[]> {
+  const db = getDb();
+  const rows = await db`
+    SELECT * FROM newsletter_segments
+    WHERE newsletter_id = ${newsletterId}
+    ORDER BY created_at
+  `;
+  return rows.map(row => rowToNewsletterSegment(row));
+}
+
+/**
+ * Get segments due for a specific issue number (next_issue matches).
+ */
+export async function getNewsletterSegmentsForIssue(
+  newsletterId: number,
+  issueNumber: number,
+): Promise<NewsletterSegment[]> {
+  const db = getDb();
+  const rows = await db`
+    SELECT * FROM newsletter_segments
+    WHERE newsletter_id = ${newsletterId}
+      AND next_issue = ${issueNumber}
+    ORDER BY created_at
+  `;
+  return rows.map(row => rowToNewsletterSegment(row));
+}
+
+/**
+ * Create a new audience segment.
+ */
+export async function insertNewsletterSegment(data: {
+  newsletterId: number;
+  name: string;
+  resendSegmentId: string;
+  nextIssue: number;
+}): Promise<NewsletterSegment> {
+  const db = getDb();
+  const rows = await db`
+    INSERT INTO newsletter_segments (newsletter_id, name, resend_segment_id, next_issue)
+    VALUES (${data.newsletterId}, ${data.name}, ${data.resendSegmentId}, ${data.nextIssue})
+    RETURNING *
+  `;
+  return rowToNewsletterSegment(rows[0]);
+}
+
+/**
+ * Delete a segment by ID.
+ */
+export async function deleteNewsletterSegment(segmentId: number): Promise<NewsletterSegment | null> {
+  const db = getDb();
+  const rows = await db`
+    DELETE FROM newsletter_segments
+    WHERE id = ${segmentId}
+    RETURNING *
+  `;
+  return rows.length > 0 ? rowToNewsletterSegment(rows[0]) : null;
+}
+
+/**
+ * Advance next_issue by 1 for the given segment IDs.
+ */
+export async function advanceNewsletterSegments(segmentIds: number[]): Promise<void> {
+  if (segmentIds.length === 0) return;
+  const db = getDb();
+  await db`
+    UPDATE newsletter_segments
+    SET next_issue = next_issue + 1
+    WHERE id = ANY(${segmentIds})
+  `;
+}
+

@@ -8,6 +8,8 @@ import {
   updateNewsletterIssueLiquidMap,
   getNewsletterPublication,
   getNewsletterEngagementBatch,
+  getNewsletterSegmentsForIssue,
+  advanceNewsletterSegments,
 } from '@/lib/db';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import { loadNewsletterIssue } from '@/newsletters/loader';
@@ -260,59 +262,114 @@ export async function POST(request: NextRequest) {
         });
         emit({ step: 'contact-properties', status: 'done', label: 'Syncing contact properties' });
 
-        // Step 5: Create segment (clean up stale ones first)
+        // Step 5: Check for persistent audience segments, or create ephemeral one
         currentStep = 'segment';
-        emit({ step: 'segment', status: 'start', label: 'Creating segment' });
+        const matchingSegments = await getNewsletterSegmentsForIssue(1, newsletterNumber);
 
-        const { data: segListData } = await client.segments.list();
-        if (segListData?.data) {
-          for (const seg of segListData.data) {
-            if (seg.name.startsWith('newsletter_') || seg.name.startsWith('broadcast_')) {
-              await client.segments.remove(seg.id).catch(() => {
-                // Don't let cleanup failures block the send
-              });
+        let segmentId: string;
+        let contactCount: number;
+
+        if (matchingSegments.length > 0) {
+          // Use existing persistent segment(s)
+          if (matchingSegments.length === 1) {
+            // Single segment — use it directly
+            segmentId = matchingSegments[0].resendSegmentId;
+            contactCount = subscribers.length;
+            emit({ step: 'segment', status: 'start', label: 'Using segment' });
+            emit({ step: 'segment', status: 'done', label: 'Using segment', detail: matchingSegments[0].name });
+          } else {
+            // Multiple segments — create ephemeral merged segment
+            emit({ step: 'segment', status: 'start', label: 'Merging segments' });
+            const mergedName = `newsletter_${newsletterNumber}_merged_${Date.now()}`;
+            const { data: mergedData, error: mergedError } = await client.segments.create({
+              name: mergedName,
+            });
+            if (mergedError || !mergedData) {
+              throw new Error(`Failed to create merged segment: ${JSON.stringify(mergedError)}`);
+            }
+            segmentId = mergedData.id;
+
+            // Add all contacts from each audience segment
+            const addedEmails = new Set<string>();
+            for (const seg of matchingSegments) {
+              for (const subscriber of subscribers) {
+                if (addedEmails.has(subscriber.email)) continue;
+                const { error } = await client.contacts.segments.add({
+                  email: subscriber.email,
+                  segmentId,
+                });
+                if (!error) {
+                  addedEmails.add(subscriber.email);
+                }
+              }
+            }
+            contactCount = addedEmails.size;
+            emit({
+              step: 'segment',
+              status: 'done',
+              label: 'Merging segments',
+              detail: `${matchingSegments.length} segments, ${contactCount} contacts`,
+            });
+          }
+
+          // Skip individual contact adding — already in segment
+          currentStep = 'segment-contacts';
+          emit({ step: 'segment-contacts', status: 'start', label: 'Contacts already in segment' });
+          emit({ step: 'segment-contacts', status: 'done', label: 'Contacts already in segment', detail: `${contactCount} contacts` });
+        } else {
+          // No persistent segments — ephemeral flow
+          emit({ step: 'segment', status: 'start', label: 'Creating segment' });
+
+          const { data: segListData } = await client.segments.list();
+          if (segListData?.data) {
+            for (const seg of segListData.data) {
+              if (seg.name.startsWith('newsletter_') || seg.name.startsWith('broadcast_')) {
+                await client.segments.remove(seg.id).catch(() => {
+                  // Don't let cleanup failures block the send
+                });
+              }
             }
           }
-        }
 
-        const segmentName = `newsletter_${newsletterNumber}_scheduled_${Date.now()}`;
-        const { data: segmentData, error: segmentError } = await client.segments.create({
-          name: segmentName,
-        });
-        if (segmentError || !segmentData) {
-          throw new Error(`Failed to create segment: ${JSON.stringify(segmentError)}`);
-        }
-        const segmentId = segmentData.id;
-        emit({ step: 'segment', status: 'done', label: 'Creating segment', detail: segmentName });
-
-        // Step 6: Add subscribers to segment
-        currentStep = 'segment-contacts';
-        emit({ step: 'segment-contacts', status: 'start', label: 'Adding contacts to segment' });
-        let contactCount = 0;
-        for (let i = 0; i < subscribers.length; i++) {
-          const subscriber = subscribers[i];
-          emit({
-            step: 'segment-contacts',
-            status: 'progress',
-            label: 'Adding contacts to segment',
-            current: i + 1,
-            total: subscribers.length,
+          const segmentName = `newsletter_${newsletterNumber}_scheduled_${Date.now()}`;
+          const { data: segmentData, error: segmentError } = await client.segments.create({
+            name: segmentName,
           });
-          const { error } = await client.contacts.segments.add({
-            email: subscriber.email,
-            segmentId,
-          });
-          if (error) {
-            console.warn(`[schedule] Failed to add ${subscriber.email} to segment:`, error);
-            continue;
+          if (segmentError || !segmentData) {
+            throw new Error(`Failed to create segment: ${JSON.stringify(segmentError)}`);
           }
-          contactCount++;
-        }
+          segmentId = segmentData.id;
+          emit({ step: 'segment', status: 'done', label: 'Creating segment', detail: segmentName });
 
-        if (contactCount === 0) {
-          throw new Error('No contacts could be added to segment');
+          // Step 6: Add subscribers to segment
+          currentStep = 'segment-contacts';
+          emit({ step: 'segment-contacts', status: 'start', label: 'Adding contacts to segment' });
+          contactCount = 0;
+          for (let i = 0; i < subscribers.length; i++) {
+            const subscriber = subscribers[i];
+            emit({
+              step: 'segment-contacts',
+              status: 'progress',
+              label: 'Adding contacts to segment',
+              current: i + 1,
+              total: subscribers.length,
+            });
+            const { error } = await client.contacts.segments.add({
+              email: subscriber.email,
+              segmentId,
+            });
+            if (error) {
+              console.warn(`[schedule] Failed to add ${subscriber.email} to segment:`, error);
+              continue;
+            }
+            contactCount++;
+          }
+
+          if (contactCount === 0) {
+            throw new Error('No contacts could be added to segment');
+          }
+          emit({ step: 'segment-contacts', status: 'done', label: 'Adding contacts to segment', detail: `${contactCount} added` });
         }
-        emit({ step: 'segment-contacts', status: 'done', label: 'Adding contacts to segment', detail: `${contactCount} added` });
 
         // Step 7: Create broadcast
         currentStep = 'broadcast';
@@ -364,6 +421,14 @@ export async function POST(request: NextRequest) {
           scheduledAt: scheduledDate,
           subscriberCount: contactCount,
         });
+
+        // Advance persistent segments that were used for this issue
+        if (matchingSegments.length > 0) {
+          await advanceNewsletterSegments(matchingSegments.map(s => s.id));
+          console.log(
+            `[schedule] Advanced ${matchingSegments.length} segment(s): ${matchingSegments.map(s => s.name).join(', ')}`,
+          );
+        }
 
         emit({ step: 'records', status: 'done', label: 'Recording schedule' });
 

@@ -58,6 +58,12 @@ interface ReadySubscriber {
   email: string;
 }
 
+interface SegmentInfo {
+  id: number;
+  name: string;
+  nextIssue: number;
+}
+
 interface NewsletterInfo {
   number: number;
   subject: string;
@@ -69,6 +75,7 @@ interface NewsletterInfo {
   projectedSendAt: string | null;
   nextWeekSubscribers: ReadySubscriber[];
   laterSubscribers: ReadySubscriber[];
+  segments: SegmentInfo[];
   schedule: NewsletterSchedule | null;
 }
 
@@ -80,6 +87,7 @@ interface NewsletterSettings {
 
 interface NewslettersResponse {
   newsletters: NewsletterInfo[];
+  segments: SegmentInfo[];
   settings: NewsletterSettings | null;
 }
 
@@ -205,6 +213,11 @@ export default function AdminNewsletterDetailPage() {
   const [customSendAt, setCustomSendAt] = useState<string>('');
   const [customTimezone, setCustomTimezone] = useState<string>('America/Chicago');
   const [scheduleProgress, setScheduleProgress] = useState<ScheduleProgress | null>(null);
+
+  // Segment management
+  const [segmentName, setSegmentName] = useState<string>('');
+  const [creatingSegment, setCreatingSegment] = useState<number | null>(null);
+  const [deletingSegment, setDeletingSegment] = useState<number | null>(null);
 
   // Cadence controls (initialized from server settings)
   const [nextSendAt, setNextSendAt] = useState<string>('');
@@ -519,11 +532,90 @@ export default function AdminNewsletterDetailPage() {
     );
   }
 
+  const handleCreateSegment = async (newsletterNumber: number) => {
+    const pwd = getPassword();
+    if (!pwd || !segmentName.trim()) return;
+
+    setCreatingSegment(newsletterNumber);
+    setActionMessage(null);
+
+    try {
+      const res = await fetch('/api/admin/newsletters/segment', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${pwd}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          newsletterNumber,
+          segmentName: segmentName.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setActionMessage(`Error: ${data.error}`);
+        return;
+      }
+
+      setActionMessage(
+        `Segment "${data.segmentName}" created with ${data.contactCount} contacts.`,
+      );
+      setSegmentName('');
+      await fetchNewsletters();
+    } catch (err) {
+      setActionMessage(
+        `Error: ${err instanceof Error ? err.message : 'Unknown'}`,
+      );
+    } finally {
+      setCreatingSegment(null);
+    }
+  };
+
+  const handleDeleteSegment = async (segId: number) => {
+    const pwd = getPassword();
+    if (!pwd) return;
+
+    if (!confirm('Remove this segment? The Resend segment will also be deleted.')) {
+      return;
+    }
+
+    setDeletingSegment(segId);
+    setActionMessage(null);
+
+    try {
+      const res = await fetch('/api/admin/newsletters/segment', {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${pwd}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ segmentId: segId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setActionMessage(`Error: ${data.error}`);
+        return;
+      }
+
+      setActionMessage('Segment removed.');
+      await fetchNewsletters();
+    } catch (err) {
+      setActionMessage(
+        `Error: ${err instanceof Error ? err.message : 'Unknown'}`,
+      );
+    } finally {
+      setDeletingSegment(null);
+    }
+  };
+
   /** Render an expanded subscriber list row. */
   function renderSubscriberList(
     label: string,
     subscribers: ReadySubscriber[],
     onClose: () => void,
+    nl?: NewsletterInfo,
   ) {
     return (
       <tr>
@@ -612,6 +704,118 @@ export default function AdminNewsletterDetailPage() {
                 ))}
               </tbody>
             </table>
+
+            {/* Segment management — only for "Next" subscriber list */}
+            {nl && (
+              <div
+                style={{
+                  marginTop: '0.5rem',
+                  paddingTop: '0.5rem',
+                  borderTop: '1px solid var(--line)',
+                }}
+              >
+                {/* Existing segments for this issue */}
+                {nl.segments.length > 0 && (
+                  <div style={{ marginBottom: '0.5rem' }}>
+                    <span
+                      style={{
+                        fontFamily: 'var(--body)',
+                        fontSize: '0.6875rem',
+                        fontWeight: 600,
+                        color: 'var(--muted)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      Segments
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                      {nl.segments.map(seg => (
+                        <span
+                          key={seg.id}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            fontSize: '0.6875rem',
+                            fontWeight: 600,
+                            padding: '2px 8px',
+                            borderRadius: '3px',
+                            background: '#EDE9FE',
+                            color: 'var(--grape)',
+                          }}
+                        >
+                          {seg.name}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteSegment(seg.id);
+                            }}
+                            disabled={deletingSegment === seg.id}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: deletingSegment === seg.id ? 'wait' : 'pointer',
+                              color: 'var(--muted)',
+                              fontSize: '0.75rem',
+                              padding: '0 2px',
+                              lineHeight: 1,
+                              opacity: deletingSegment === seg.id ? 0.5 : 1,
+                            }}
+                            title="Remove segment"
+                          >
+                            &times;
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Create new segment */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <input
+                    type="text"
+                    value={segmentName}
+                    onChange={(e) => setSegmentName(e.target.value)}
+                    placeholder="Segment name"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      fontFamily: 'var(--body)',
+                      fontSize: '0.75rem',
+                      color: 'var(--ink)',
+                      padding: '3px 8px',
+                      border: '1px solid var(--line)',
+                      borderRadius: '4px',
+                      background: '#fff',
+                      width: '10rem',
+                    }}
+                  />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCreateSegment(nl.number);
+                    }}
+                    disabled={creatingSegment === nl.number || !segmentName.trim()}
+                    style={{
+                      fontFamily: 'var(--body)',
+                      fontSize: '0.6875rem',
+                      fontWeight: 600,
+                      padding: '3px 10px',
+                      background: segmentName.trim() ? 'var(--grape-deep)' : 'var(--line)',
+                      color: segmentName.trim() ? '#fff' : 'var(--muted)',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: creatingSegment === nl.number || !segmentName.trim() ? 'default' : 'pointer',
+                      opacity: creatingSegment === nl.number ? 0.6 : 1,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {creatingSegment === nl.number ? 'Creating...' : 'Create Segment'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </td>
       </tr>
@@ -811,8 +1015,8 @@ export default function AdminNewsletterDetailPage() {
             <th style={{ width: '3rem', textAlign: 'center' }}>#</th>
             <th>Subject</th>
             <th style={{ width: '4.5rem', textAlign: 'center' }}>Sent</th>
-            <th style={{ width: '6rem', textAlign: 'center' }}>Next week</th>
-            <th style={{ width: '5.5rem', textAlign: 'center' }}>2+ weeks</th>
+            <th style={{ width: '6rem', textAlign: 'center' }}>Next</th>
+            <th style={{ width: '5.5rem', textAlign: 'center' }}>Future</th>
             <th style={{ width: '6rem', textAlign: 'center' }}>Status</th>
             <th style={{ width: '10rem' }}>Send date</th>
             <th style={{ width: '10rem' }}>Actions</th>
@@ -855,6 +1059,28 @@ export default function AdminNewsletterDetailPage() {
                 >
                   {nl.subject}
                 </Link>
+                {nl.segments.length > 0 && (
+                  <span style={{ marginLeft: '0.5rem' }}>
+                    {nl.segments.map(seg => (
+                      <span
+                        key={seg.id}
+                        style={{
+                          display: 'inline-block',
+                          fontSize: '0.625rem',
+                          fontWeight: 600,
+                          padding: '1px 6px',
+                          borderRadius: '3px',
+                          background: '#EDE9FE',
+                          color: 'var(--grape)',
+                          marginRight: '0.25rem',
+                          verticalAlign: 'middle',
+                        }}
+                      >
+                        {seg.name}
+                      </span>
+                    ))}
+                  </span>
+                )}
               </td>
               <td style={{ textAlign: 'center' }}>
                 {nl.sentCount > 0 ? (
@@ -1150,14 +1376,15 @@ export default function AdminNewsletterDetailPage() {
             </tr>
             {expandedReady === nl.number && nl.nextWeekSubscribers.length > 0 &&
               renderSubscriberList(
-                'Next week subscribers',
+                'Next subscribers',
                 nl.nextWeekSubscribers,
                 () => setExpandedReady(null),
+                nl,
               )
             }
             {expandedLater === nl.number && nl.laterSubscribers.length > 0 &&
               renderSubscriberList(
-                '2+ weeks subscribers',
+                'Future subscribers',
                 nl.laterSubscribers,
                 () => setExpandedLater(null),
               )

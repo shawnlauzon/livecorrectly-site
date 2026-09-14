@@ -4,6 +4,7 @@ import {
   getAllSubscribers,
   getNewsletterSchedules,
   getNewsletterPublication,
+  getNewsletterSegments,
 } from '@/lib/db';
 import { getNewsletterIssueNumbers } from '@/emails/newsletter-loader';
 import { loadNewsletterIssue } from '@/newsletters/loader';
@@ -48,10 +49,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [allSubscribers, schedules, publication] = await Promise.all([
+    const [allSubscribers, schedules, publication, allSegments] = await Promise.all([
       getAllSubscribers(),
       getNewsletterSchedules(),
       getNewsletterPublication(1),
+      getNewsletterSegments(1),
     ]);
 
     const activeSubscribers = allSubscribers.filter(
@@ -136,6 +138,9 @@ export async function GET(request: NextRequest) {
           lastName: s.last_name,
           email: s.email,
         })),
+        segments: allSegments
+          .filter(s => s.nextIssue === num)
+          .map(s => ({ id: s.id, name: s.name, nextIssue: s.nextIssue })),
         schedule: schedule
           ? {
               id: schedule.id,
@@ -151,6 +156,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       newsletters,
+      segments: allSegments.map(s => ({
+        id: s.id,
+        name: s.name,
+        nextIssue: s.nextIssue,
+      })),
       settings: publication
         ? {
             nextSendAt: publication.nextSendAt,
