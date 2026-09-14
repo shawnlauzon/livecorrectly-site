@@ -54,6 +54,17 @@ export const innerAuthorityDescriptions = [
   'listen to what you say',
 ];
 
+/** Noun-form short names for each authority, e.g. "So if your **gut** is telling you..." */
+export const innerAuthorityShortNames = [
+  'emotional clarity', // Emotional
+  'gut',            // Sacral
+  'instinct',       // Splenic
+  'will',           // Ego
+  'inner voice',    // Self-Projected
+  'will',           // Ego-Projected
+  'sounding board', // None
+];
+
 export const signatureThemes = [
   'satisfaction',
   'satisfaction',

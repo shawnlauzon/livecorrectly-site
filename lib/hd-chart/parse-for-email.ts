@@ -5,6 +5,7 @@ import {
   careerDesigns,
   innerAuthorityTypes,
   innerAuthorityDescriptions,
+  innerAuthorityShortNames,
   signatureThemes,
   notSelfThemes,
   signatureThemeAdjectives,
@@ -35,6 +36,7 @@ export interface EmailChartData {
   strategy: string;
   innerAuthority: string;
   innerAuthorityDescription: string;
+  innerAuthorityShortName: string;
   signatureTheme: string;
   notSelfTheme: string;
   signatureThemeAdjective: string;
@@ -101,6 +103,7 @@ export function parseChartForEmail(chart: Chart): EmailChartData {
     strategy: strategies[typeIndex],
     innerAuthority: innerAuthorityTypes[authorityIndex],
     innerAuthorityDescription: innerAuthorityDescriptions[authorityIndex],
+    innerAuthorityShortName: innerAuthorityShortNames[authorityIndex],
     signatureTheme: signatureThemes[typeIndex],
     notSelfTheme: notSelfThemes[typeIndex],
     signatureThemeAdjective: signatureThemeAdjectives[typeIndex],

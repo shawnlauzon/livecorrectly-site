@@ -25,6 +25,8 @@ When querying the Neon MCP, use these IDs directly — do not call `list_project
 - **Org ID**: `org-bitter-haze-78473064`
 - **Database**: `neondb`
 
+The Neon MCP is configured **read-only**. You cannot run migrations or any DDL/DML yourself. Create the migration file, then ask Shawn to run it (via Neon Console SQL Editor or `psql`).
+
 ## Development
 ```bash
 pnpm dev          # Start dev server (Turbopack)

@@ -6,6 +6,19 @@
  * fields without `values` get a free-text input.
  */
 
+import {
+  innerAuthorityTypes,
+  innerAuthorityDescriptions,
+  innerAuthorityShortNames,
+  strategies,
+  signatureThemes,
+  notSelfThemes,
+  notSelfThemeAdjectives,
+} from '@/lib/hd-chart/constants';
+
+/** Deduplicate an indexed array into unique values (preserving order). */
+const unique = (arr: readonly string[]) => [...new Set(arr)];
+
 export interface EmailField {
   key: string;
   label: string;
@@ -19,11 +32,12 @@ export const EMAIL_FIELDS: EmailField[] = [
   { key: 'email', label: 'Email' },
   { key: 'career_type', label: 'Career Type', values: ['Builder (any)', 'Classic Builder', 'Express Builder', 'Initiator', 'Advisor', 'Evaluator'] },
   { key: 'type', label: 'Type', values: ['Generator (any)', 'Generator', 'Manifesting Generator', 'Manifestor', 'Projector', 'Reflector'] },
-  { key: 'strategy', label: 'Strategy', values: ['wait to respond before engaging', 'inform before taking action', 'wait for recognition and invitation', 'wait a 28 day cycle to reflect and assess'] },
-  { key: 'inner_authority', label: 'Inner Authority', values: ['Emotional', 'Sacral', 'Splenic', 'Ego', 'Self-Projected', 'Ego-Projected', 'None'] },
-  { key: 'inner_authority_description', label: 'Inner Authority Description', values: ['wait for emotional clarity', 'follow your gut', 'follow your instincts', 'follow your willful determination', 'listen to what you say'] },
-  { key: 'signature_theme', label: 'Signature Theme', values: ['satisfaction', 'peace', 'success', 'surprise'] },
-  { key: 'not_self_theme', label: 'Not-Self Theme', values: ['frustration', 'anger', 'bitterness', 'disappointment'] },
-  { key: 'not_self_theme_adjective', label: 'Not-Self Theme (Adjective)', values: ['frustrated', 'angry', 'bitter', 'disappointed'] },
+  { key: 'strategy', label: 'Strategy', values: unique(strategies) },
+  { key: 'inner_authority', label: 'Inner Authority', values: unique(innerAuthorityTypes) },
+  { key: 'inner_authority_description', label: 'Inner Authority Description', values: unique(innerAuthorityDescriptions) },
+  { key: 'authority_short', label: 'Authority (short)', values: unique(innerAuthorityShortNames) },
+  { key: 'signature_theme', label: 'Signature Theme', values: unique(signatureThemes) },
+  { key: 'not_self_theme', label: 'Not-Self Theme', values: unique(notSelfThemes) },
+  { key: 'not_self_theme_adjective', label: 'Not-Self Theme (Adjective)', values: unique(notSelfThemeAdjectives) },
   { key: 'decision_making_strategy', label: 'Decision-making Strategy' },
 ];

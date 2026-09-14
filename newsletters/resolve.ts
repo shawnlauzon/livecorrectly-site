@@ -24,6 +24,7 @@ const contactProperties: Record<string, (chart: EmailChartData) => string> = {
   not_self_theme:              chart => chart.notSelfTheme,
   not_self_theme_adjective:    chart => chart.notSelfThemeAdjective,
   decision_making_strategy:    chart => chart.decisionMakingStrategy,
+  authority_short:             chart => chart.innerAuthorityShortName,
 };
 
 export default contactProperties;
@@ -359,6 +360,7 @@ export function buildLiquidContext(
     not_self_theme: chart.notSelfTheme,
     not_self_theme_adjective: chart.notSelfThemeAdjective,
     decision_making_strategy: chart.decisionMakingStrategy,
+    authority_short: chart.innerAuthorityShortName,
 
     // Boolean flags
     isBuilder: chart.isGenerator,

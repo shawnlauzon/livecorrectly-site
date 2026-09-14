@@ -108,6 +108,7 @@ Welcome3.PreviewProps = {
     strategy: 'wait to respond before engaging',
     innerAuthority: 'Emotional',
     innerAuthorityDescription: 'wait for emotional clarity',
+    innerAuthorityShortName: 'emotional clarity',
     signatureTheme: 'satisfaction',
     notSelfTheme: 'frustration',
     signatureThemeAdjective: 'satisfied',
