@@ -10,7 +10,7 @@
  * Permission Slip logo block — centered at the top of the email.
  */
 export function logoFragment(appUrl: string): string {
-  return `<img src="${appUrl}/newsletter/permission-slip-logo.png" alt="Permission Slip" width="381" height="167" style="display:block;margin:0 auto 24px;outline:none;border:none;text-decoration:none;" />`;
+  return `<img src="${appUrl}/newsletter/permission-slip.png" alt="Permission Slip" style="display:block;margin:0 auto 24px;outline:none;border:none;text-decoration:none;" />`;
 }
 
 /**

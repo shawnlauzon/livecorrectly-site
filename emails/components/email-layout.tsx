@@ -10,7 +10,7 @@ import {
   Hr,
   Text,
   Link,
-  Tailwind
+  Tailwind,
 } from 'react-email';
 import { Signature } from './signature';
 
@@ -52,10 +52,8 @@ export function EmailLayout({
         <Body className="bg-[#FAF8F4] font-sans">
           <Container className="mx-auto max-w-[660px] bg-white px-[24px] py-[32px]">
             <Img
-              src={`${appUrl}/newsletter/permission-slip-logo.png`}
+              src={`${appUrl}/newsletter/permission-slip.png`}
               alt="Permission Slip"
-              width={381}
-              height={167}
               className="mx-auto mb-[24px]"
             />
             {children}
