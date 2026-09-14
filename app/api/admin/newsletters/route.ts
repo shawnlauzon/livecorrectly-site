@@ -8,7 +8,7 @@ import {
 import { getNewsletterIssueNumbers } from '@/emails/newsletter-loader';
 import { loadNewsletterIssue } from '@/newsletters/loader';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
-import { hasLiquidConditionals } from '@/newsletters/resolve';
+
 
 /**
  * Project how many weeks until a subscriber at `currentStep` reaches newsletter `targetNum`.
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
         number: num,
         subject: raw?.subject ?? '',
         slug: raw?.slug ?? null,
-        hasLiquid: raw ? hasLiquidConditionals(raw.bodyHtml) : false,
+
         sentCount,
         nextWeekCount,
         laterCount,

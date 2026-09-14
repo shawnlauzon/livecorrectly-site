@@ -25,7 +25,7 @@ interface NewsletterInfo {
   number: number;
   subject: string;
   slug: string | null;
-  hasLiquid: boolean;
+
   sentCount: number;
   nextWeekCount: number;
   laterCount: number;
@@ -705,21 +705,6 @@ export default function AdminNewsletterDetailPage() {
                 >
                   {nl.subject}
                 </Link>
-                {nl.hasLiquid && (
-                  <span
-                    style={{
-                      marginLeft: '0.5rem',
-                      fontSize: '0.6875rem',
-                      padding: '1px 6px',
-                      borderRadius: '3px',
-                      background: 'var(--paper)',
-                      color: 'var(--grape)',
-                      fontWeight: 600,
-                    }}
-                  >
-                    LIQUID
-                  </span>
-                )}
               </td>
               <td style={{ textAlign: 'center' }}>
                 {nl.sentCount > 0 ? (
