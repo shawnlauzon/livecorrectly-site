@@ -60,5 +60,6 @@ export async function POST(request: NextRequest) {
     contentType: file.type,
   });
 
-  return NextResponse.json({ url: blob.url });
+  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
+  return NextResponse.json({ url: `${appUrl}/i/${blobPath}` });
 }

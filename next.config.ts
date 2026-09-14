@@ -14,6 +14,16 @@ const nextConfig: NextConfig = {
   },
   // Allow access from local network IP addresses during development
   allowedDevOrigins: ['192.168.1.247'],
+  async rewrites() {
+    const blobUrl = process.env.BLOB_BASE_URL;
+    if (!blobUrl) return [];
+    return [
+      {
+        source: '/i/:path*',
+        destination: `${blobUrl}/:path*`,
+      },
+    ];
+  },
   async redirects() {
     return [
       {

@@ -35,12 +35,25 @@ export async function requiresPerSubscriberRendering(number: number): Promise<bo
  *
  * Returns a ready-to-send HTML string.
  */
+/**
+ * Replace raw Vercel Blob URLs with proxied URLs through the sending domain.
+ * Gmail and other providers flag emails where image hosts don't match the
+ * sender domain — this rewrites them to go through www.livecorrectly.com/i/.
+ */
+function rewriteBlobUrls(html: string): string {
+  const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
+  return html.replace(
+    /https:\/\/[a-z0-9]+\.public\.blob\.vercel-storage\.com\//g,
+    `${appUrl}/i/`,
+  );
+}
+
 export function renderNewsletterEmail({
   bodyHtml,
   unsubscribeUrl,
   ps,
 }: RenderNewsletterEmailOptions): string {
-  return injectEmailChrome(bodyHtml, {
+  return injectEmailChrome(rewriteBlobUrls(bodyHtml), {
     unsubscribeUrl,
     postscripts: ps,
   });
