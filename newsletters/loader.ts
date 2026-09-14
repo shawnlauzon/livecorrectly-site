@@ -6,6 +6,8 @@ import { getDbNewsletterIssues } from '@/lib/db';
  */
 export interface RawNewsletterIssue {
   number: number;
+  /** Publication (newsletter) this issue belongs to */
+  newsletterId: number;
   /** Subject line — template variables ({{firstName}}, etc.) still intact */
   subject: string;
   preview: string;
@@ -33,7 +35,7 @@ export interface RawNewsletterIssue {
  * but the index is never reused (monotonically increasing).
  */
 export interface LiquidSectionMap {
-  /** Current section property keys in order, e.g. ["nl_08_s1", "nl_08_s2"] */
+  /** Current section property keys in order, e.g. ["n1_08_s1", "n1_08_s2"] */
   keys: string[];
   /** Next index to assign (only increments), e.g. 3 */
   nextIndex: number;

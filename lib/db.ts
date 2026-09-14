@@ -1023,6 +1023,7 @@ export async function getAllContactSyncStates(): Promise<Map<string, ContactSync
 function rowToRawNewsletterIssue(row: Record<string, unknown>): RawNewsletterIssue {
   return {
     number: row.number as number,
+    newsletterId: row.newsletter_id as number,
     subject: row.subject as string,
     preview: (row.preview as string) ?? '',
     slug: (row.slug as string | null) ?? null,

@@ -179,7 +179,7 @@ export interface DynamicSection {
   index: number;
   /** The raw Liquid+HTML source for this section */
   source: string;
-  /** Contact property key: nl_NN_sN */
+  /** Contact property key: n{id}_NN_sN */
   propertyKey: string;
 }
 
@@ -205,9 +205,10 @@ export interface ExtractionResult {
 export function replaceLiquidOutputTags(
   template: string,
   newsletterNumber: number,
+  newsletterId: number,
   existingMap: LiquidSectionMap,
 ): { template: string; sections: DynamicSection[]; sectionMap: LiquidSectionMap } {
-  const nlPrefix = `nl_${String(newsletterNumber).padStart(2, '0')}`;
+  const nlPrefix = `n${newsletterId}_${String(newsletterNumber).padStart(2, '0')}`;
   const sections: DynamicSection[] = [];
   let { keys, nextIndex } = existingMap;
   keys = [...keys]; // clone to avoid mutating input
@@ -268,9 +269,10 @@ export function replaceLiquidOutputTags(
 export function extractDynamicSections(
   html: string,
   newsletterNumber: number,
+  newsletterId: number,
   existingMap?: LiquidSectionMap | null,
 ): ExtractionResult {
-  const nlPrefix = `nl_${String(newsletterNumber).padStart(2, '0')}`;
+  const nlPrefix = `n${newsletterId}_${String(newsletterNumber).padStart(2, '0')}`;
   const sections: DynamicSection[] = [];
 
   // Start from existing map state or fresh
@@ -312,6 +314,7 @@ export function extractDynamicSections(
   const outputResult = replaceLiquidOutputTags(
     afterConditionals,
     newsletterNumber,
+    newsletterId,
     currentMap,
   );
 
@@ -473,16 +476,17 @@ export async function renderDynamicSection(
  * For each dynamic section in the newsletter, runs Liquid and returns
  * a map of property keys to rendered HTML values.
  *
- * @returns Record<string, string> — keys are property names (e.g. "nl_07_s1"),
+ * @returns Record<string, string> — keys are property names (e.g. "n1_07_s1"),
  *          values are rendered HTML. Empty sections produce empty string values.
  */
 export async function buildDynamicContactProperties(
   html: string,
   chart: EmailChartData,
   newsletterNumber: number,
+  newsletterId: number,
   existingMap?: LiquidSectionMap | null,
 ): Promise<Record<string, string>> {
-  const { sections } = extractDynamicSections(html, newsletterNumber, existingMap);
+  const { sections } = extractDynamicSections(html, newsletterNumber, newsletterId, existingMap);
   const properties: Record<string, string> = {};
 
   for (const section of sections) {

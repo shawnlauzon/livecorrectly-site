@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
       const { broadcastTemplate, sections, sectionMap: newMap } = extractDynamicSections(
         raw.bodyHtml,
         newsletterNumber,
+        raw.newsletterId,
         storedMap,
       );
 
@@ -164,6 +165,7 @@ export async function POST(request: NextRequest) {
           raw.bodyHtml,
           chart,
           newsletterNumber,
+          raw.newsletterId,
           storedMap,
         );
 
