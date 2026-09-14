@@ -95,5 +95,17 @@ export function injectEmailChrome(
     'font-size:16px',
   );
 
+  // Inject Google Fonts <link> for Fraunces into <head>.
+  // Apple Mail / iOS Mail will load the web font; other clients fall back to Georgia.
+  const fontLink = `<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;600&display=swap" rel="stylesheet" />`;
+  result = result.replace('</head>', `${fontLink}\n</head>`);
+
+  // Add font-family to h1-h3 headings that don't already have it.
+  // Covers newsletters saved before the extendTheme fix was added.
+  result = result.replace(
+    /<(h[1-3])\b([^>]*?)style="(?![^"]*font-family)([^"]*)"/gi,
+    `<$1$2style="font-family:'Fraunces',Georgia,serif;$3"`,
+  );
+
   return result;
 }

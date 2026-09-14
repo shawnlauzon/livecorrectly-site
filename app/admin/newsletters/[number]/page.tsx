@@ -8,7 +8,7 @@ import { PluginKey } from '@tiptap/pm/state';
 import { EditorProvider, useCurrentEditor } from '@tiptap/react';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { StarterKit, Link } from '@react-email/editor/extensions';
-import { EmailTheming, useEditorImage, imageSlashCommand } from '@react-email/editor/plugins';
+import { EmailTheming, extendTheme, useEditorImage, imageSlashCommand } from '@react-email/editor/plugins';
 import { BubbleMenu, SlashCommand, defaultSlashCommands } from '@react-email/editor/ui';
 import { composeReactEmail } from '@react-email/editor/core';
 import { toast, Toaster } from 'sonner';
@@ -241,7 +241,13 @@ function EditorPanel({
       },
       includeChildren: true,
     }),
-    EmailTheming.configure({ theme: 'basic' }),
+    EmailTheming.configure({
+      theme: extendTheme('basic', {
+        h1: { fontFamily: "'Fraunces', Georgia, serif" },
+        h2: { fontFamily: "'Fraunces', Georgia, serif" },
+        h3: { fontFamily: "'Fraunces', Georgia, serif" },
+      }),
+    }),
     imageExtension,
     VariableNode,
     ConditionalBlockNode,
