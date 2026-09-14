@@ -618,6 +618,7 @@ export default function AdminNewsletterDetailPage() {
     subscribers: ReadySubscriber[],
     onClose: () => void,
     nl?: NewsletterInfo,
+    options?: { hideCreateForm?: boolean },
   ) {
     return (
       <tr>
@@ -731,23 +732,28 @@ export default function AdminNewsletterDetailPage() {
                     >
                       Segments
                     </span>
-                    <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', marginTop: '0.25rem' }}>
                       {nl.segments.map(seg => (
-                        <span
+                        <div
                           key={seg.id}
                           style={{
-                            display: 'inline-flex',
+                            display: 'flex',
                             alignItems: 'center',
-                            gap: '0.25rem',
-                            fontSize: '0.6875rem',
-                            fontWeight: 600,
-                            padding: '2px 8px',
-                            borderRadius: '3px',
-                            background: '#EDE9FE',
-                            color: 'var(--grape)',
+                            gap: '0.5rem',
                           }}
                         >
-                          {seg.name}
+                          <span
+                            style={{
+                              fontSize: '0.6875rem',
+                              fontWeight: 600,
+                              padding: '2px 8px',
+                              borderRadius: '3px',
+                              background: '#EDE9FE',
+                              color: 'var(--grape)',
+                            }}
+                          >
+                            {seg.name}
+                          </span>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -755,67 +761,70 @@ export default function AdminNewsletterDetailPage() {
                             }}
                             disabled={deletingSegment === seg.id}
                             style={{
+                              fontFamily: 'var(--body)',
+                              fontSize: '0.6875rem',
+                              fontWeight: 600,
+                              padding: '2px 8px',
                               background: 'none',
-                              border: 'none',
+                              border: '1px solid var(--coral)',
+                              borderRadius: '4px',
                               cursor: deletingSegment === seg.id ? 'wait' : 'pointer',
-                              color: 'var(--muted)',
-                              fontSize: '0.75rem',
-                              padding: '0 2px',
-                              lineHeight: 1,
+                              color: 'var(--coral)',
                               opacity: deletingSegment === seg.id ? 0.5 : 1,
                             }}
-                            title="Remove segment"
                           >
-                            &times;
+                            {deletingSegment === seg.id ? 'Deleting...' : 'Delete segment'}
                           </button>
-                        </span>
+                        </div>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Create new segment */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                  <input
-                    type="text"
-                    value={segmentName}
-                    onChange={(e) => setSegmentName(e.target.value)}
-                    placeholder="Segment name"
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                      fontFamily: 'var(--body)',
-                      fontSize: '0.75rem',
-                      color: 'var(--ink)',
-                      padding: '3px 8px',
-                      border: '1px solid var(--line)',
-                      borderRadius: '4px',
-                      background: '#fff',
-                      width: '10rem',
-                    }}
-                  />
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCreateSegment(nl.number);
-                    }}
-                    disabled={creatingSegment === nl.number || !segmentName.trim()}
-                    style={{
-                      fontFamily: 'var(--body)',
-                      fontSize: '0.6875rem',
-                      fontWeight: 600,
-                      padding: '3px 10px',
-                      background: segmentName.trim() ? 'var(--grape-deep)' : 'var(--line)',
-                      color: segmentName.trim() ? '#fff' : 'var(--muted)',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: creatingSegment === nl.number || !segmentName.trim() ? 'default' : 'pointer',
-                      opacity: creatingSegment === nl.number ? 0.6 : 1,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {creatingSegment === nl.number ? 'Creating...' : 'Create Segment'}
-                  </button>
-                </div>
+                {/* Create new segment — hidden when one already exists */}
+                {!options?.hideCreateForm && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <input
+                      type="text"
+                      value={segmentName}
+                      onChange={(e) => setSegmentName(e.target.value)}
+                      placeholder="Segment name"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        fontFamily: 'var(--body)',
+                        fontSize: '0.75rem',
+                        color: 'var(--ink)',
+                        padding: '3px 8px',
+                        border: '1px solid var(--line)',
+                        borderRadius: '4px',
+                        background: '#fff',
+                        width: '10rem',
+                      }}
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCreateSegment(nl.number);
+                      }}
+                      disabled={creatingSegment === nl.number || !segmentName.trim()}
+                      style={{
+                        fontFamily: 'var(--body)',
+                        fontSize: '0.6875rem',
+                        fontWeight: 600,
+                        padding: '3px 10px',
+                        background: segmentName.trim() ? 'var(--grape-deep)' : 'var(--line)',
+                        color: segmentName.trim() ? '#fff' : 'var(--muted)',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: creatingSegment === nl.number || !segmentName.trim() ? 'default' : 'pointer',
+                        opacity: creatingSegment === nl.number ? 0.6 : 1,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {creatingSegment === nl.number ? 'Creating...' : 'Create Segment'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1017,7 +1026,7 @@ export default function AdminNewsletterDetailPage() {
             <th style={{ width: '3rem', textAlign: 'center' }}>#</th>
             <th>Subject</th>
             <th style={{ width: '4.5rem', textAlign: 'center' }}>Sent</th>
-            <th style={{ width: '6rem', textAlign: 'center' }}>Next</th>
+            <th style={{ textAlign: 'center' }}>Next</th>
             <th style={{ width: '5.5rem', textAlign: 'center' }}>Future</th>
             <th style={{ width: '6rem', textAlign: 'center' }}>Status</th>
             <th style={{ width: '10rem' }}>Send date</th>
@@ -1061,28 +1070,6 @@ export default function AdminNewsletterDetailPage() {
                 >
                   {nl.subject}
                 </Link>
-                {nl.segments.length > 0 && (
-                  <span style={{ marginLeft: '0.5rem' }}>
-                    {nl.segments.map(seg => (
-                      <span
-                        key={seg.id}
-                        style={{
-                          display: 'inline-block',
-                          fontSize: '0.625rem',
-                          fontWeight: 600,
-                          padding: '1px 6px',
-                          borderRadius: '3px',
-                          background: '#EDE9FE',
-                          color: 'var(--grape)',
-                          marginRight: '0.25rem',
-                          verticalAlign: 'middle',
-                        }}
-                      >
-                        {seg.name}
-                      </span>
-                    ))}
-                  </span>
-                )}
               </td>
               <td style={{ textAlign: 'center' }}>
                 {nl.sentCount > 0 ? (
@@ -1094,13 +1081,39 @@ export default function AdminNewsletterDetailPage() {
                 )}
               </td>
               <td style={{ textAlign: 'center' }}>
-                {renderSubscriberCount(
-                  nl.nextWeekCount,
-                  expandedReady === nl.number,
-                  () => {
-                    setExpandedReady(expandedReady === nl.number ? null : nl.number);
-                    setExpandedLater(null);
-                  },
+                {nl.segments.length > 0 ? (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedReady(expandedReady === nl.number ? null : nl.number);
+                      setExpandedLater(null);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--body)',
+                      fontSize: '0.75rem',
+                      color: 'var(--grape)',
+                      fontWeight: 600,
+                      textDecoration: 'underline',
+                      textUnderlineOffset: '2px',
+                      padding: 0,
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={`${nl.segments[0].name} (${nl.nextWeekCount})`}
+                  >
+                    {nl.segments[0].name}
+                  </button>
+                ) : (
+                  renderSubscriberCount(
+                    nl.nextWeekCount,
+                    expandedReady === nl.number,
+                    () => {
+                      setExpandedReady(expandedReady === nl.number ? null : nl.number);
+                      setExpandedLater(null);
+                    },
+                  )
                 )}
               </td>
               <td style={{ textAlign: 'center' }}>
@@ -1398,12 +1411,13 @@ export default function AdminNewsletterDetailPage() {
                 </div>
               </td>
             </tr>
-            {expandedReady === nl.number && nl.nextWeekSubscribers.length > 0 &&
+            {expandedReady === nl.number && (nl.nextWeekSubscribers.length > 0 || nl.segments.length > 0) &&
               renderSubscriberList(
                 'Next subscribers',
                 nl.nextWeekSubscribers,
                 () => setExpandedReady(null),
                 nl,
+                { hideCreateForm: nl.segments.length > 0 },
               )
             }
             {expandedLater === nl.number && nl.laterSubscribers.length > 0 &&

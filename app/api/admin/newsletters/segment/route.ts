@@ -16,7 +16,7 @@ import { getResendClient } from '@/lib/resend-contacts';
  *
  * Body: { newsletterNumber: number, segmentName: string }
  *
- * Creates a Resend segment with prefix "audience_", adds all due subscribers,
+ * Creates a Resend segment with prefix "segment_", adds all due subscribers,
  * and stores a row in newsletter_segments tracking the next_issue.
  */
 export async function POST(request: NextRequest) {
@@ -60,8 +60,8 @@ export async function POST(request: NextRequest) {
 
     const client = getResendClient();
 
-    // Create Resend segment with audience_ prefix (survives ephemeral cleanup)
-    const resendName = `audience_${segmentName.trim()}`;
+    // Create Resend segment with segment_ prefix (survives ephemeral cleanup)
+    const resendName = `segment_${segmentName.trim()}`;
     const { data: segmentData, error: segmentError } = await client.segments.create({
       name: resendName,
     });
