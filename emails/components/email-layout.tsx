@@ -54,6 +54,7 @@ export function EmailLayout({
             <Img
               src={`${appUrl}/newsletter/permission-slip.png`}
               alt="Permission Slip"
+              width={600}
               className="mx-auto mb-[24px]"
             />
             {children}
