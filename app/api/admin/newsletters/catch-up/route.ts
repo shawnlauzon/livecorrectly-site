@@ -1,4 +1,3 @@
-import React from 'react';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import {
@@ -10,8 +9,8 @@ import {
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getNewsletter } from '@/emails/newsletter-loader';
-import { NewsletterTemplate } from '@/emails/newsletter-template';
-import { renderEmail, buildUnsubscribeUrl } from '@/emails/send';
+import { renderNewsletterEmail } from '@/emails/newsletter-template';
+import { buildUnsubscribeUrl } from '@/emails/send';
 import { sendPrerenderedBroadcast } from '@/lib/resend-broadcasts';
 
 /**
@@ -86,16 +85,11 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        const emailComponent = React.createElement(NewsletterTemplate, {
-          preview: newsletter.preview,
+        const html = renderNewsletterEmail({
           bodyHtml: newsletter.bodyHtml,
-          chart,
           unsubscribeUrl,
-          number: newsletter.number,
           ps: newsletter.ps,
         });
-
-        const html = await renderEmail(emailComponent);
 
         const { broadcastId } = await sendPrerenderedBroadcast({
           name: `Catch-up: Newsletter #${newsletterNumber} → ${subscriber.email}`,

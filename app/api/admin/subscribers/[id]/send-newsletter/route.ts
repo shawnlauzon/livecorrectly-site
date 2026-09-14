@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
-import { renderEmail, buildUnsubscribeUrl } from '@/emails/send';
+import { buildUnsubscribeUrl } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getNewsletterNumbers } from '@/emails/newsletter';
 import { getNewsletter } from '@/emails/newsletter-loader';
-import { NewsletterTemplate } from '@/emails/newsletter-template';
+import { renderNewsletterEmail } from '@/emails/newsletter-template';
 import { sendPrerenderedBroadcast } from '@/lib/resend-broadcasts';
-import React from 'react';
 
 /**
  * POST /api/admin/subscribers/[id]/send-newsletter
@@ -77,16 +76,11 @@ export async function POST(
 
     const subject = newsletter.subject;
 
-    const emailComponent = React.createElement(NewsletterTemplate, {
-      preview: newsletter.preview,
+    const html = renderNewsletterEmail({
       bodyHtml: newsletter.bodyHtml,
-      chart,
       unsubscribeUrl,
-      number: newsletter.number,
       ps: newsletter.ps,
     });
-
-    const html = await renderEmail(emailComponent);
 
     const { broadcastId } = await sendPrerenderedBroadcast({
       name: `Admin: Newsletter #${step} → ${subscriber.email}`,

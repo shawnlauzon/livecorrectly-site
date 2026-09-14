@@ -19,7 +19,7 @@ import { getWelcomeDueSubscribers, getNewsletterDueSubscribers, getBroadcastCand
 import { parseChartForEmail } from '../lib/hd-chart/parse-for-email';
 import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '../emails/welcome';
 import { getWelcomeSubject } from '../emails/subjects';
-import { getNewsletterEmail, getNewsletterSubject, getMaxNewsletterNumber } from '../emails/newsletter';
+import { getNewsletterHtml, getNewsletterSubject, getMaxNewsletterNumber } from '../emails/newsletter';
 import { renderEmail, formatEmailRecipient, canSendTo, buildUnsubscribeUrl } from '../emails/send';
 import { buildBroadcastEmail } from '../emails/broadcast-config';
 import { getEnabledBroadcastConfigs } from '../emails/broadcast-loader';
@@ -376,7 +376,7 @@ async function run(): Promise<void> {
       const chart = parseChartForEmail(subscriber.chart.chart);
       const subject = await getNewsletterSubject(step, subscriber.first_name, subscriber.id);
       const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, `newsletter_${step}`);
-      const emailComponent = await getNewsletterEmail(step, subscriber, chart, unsubscribeUrl);
+      const html = await getNewsletterHtml(step, subscriber, chart, unsubscribeUrl);
 
       const recipient = formatEmailRecipient(subscriber.first_name, subscriber.last_name, subscriber.email);
       const sendable = await canSendTo(recipient);
@@ -394,9 +394,8 @@ async function run(): Promise<void> {
         htmlBytes: 0,
       };
 
-      if (emailComponent) {
+      if (html) {
         try {
-          const html = await renderEmail(emailComponent);
           result.renderOk = true;
           result.htmlBytes = Buffer.byteLength(html, 'utf-8');
 
@@ -408,7 +407,7 @@ async function run(): Promise<void> {
           result.renderError = err instanceof Error ? err.message : String(err);
         }
       } else {
-        result.renderError = `getNewsletterEmail returned null for step ${step}`;
+        result.renderError = `getNewsletterHtml returned null for step ${step}`;
       }
 
       report.newsletter.push(result);

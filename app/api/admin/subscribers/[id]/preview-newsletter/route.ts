@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { renderEmail, buildUnsubscribeUrl } from '@/emails/send';
-import { getNewsletterEmail, getNewsletterSubject, getNewsletterNumbers } from '@/emails/newsletter';
+import { buildUnsubscribeUrl } from '@/emails/send';
+import { getNewsletterHtml, getNewsletterSubject, getNewsletterNumbers } from '@/emails/newsletter';
 import { getNewsletter } from '@/emails/newsletter-loader';
 import { resolveContactVars } from '@/newsletters/resolve';
 import { replaceResendContactVars } from '@/emails/markdown-renderer';
@@ -68,14 +68,13 @@ export async function GET(
     const subject = await getNewsletterSubject(step, subscriber.first_name, subscriber.id);
     const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, `newsletter_${step}`);
 
-    const emailComponent = await getNewsletterEmail(step, subscriber, chart, unsubscribeUrl);
-    if (!emailComponent) {
+    let html = await getNewsletterHtml(step, subscriber, chart, unsubscribeUrl);
+    if (!html) {
       return NextResponse.json({ error: `No newsletter template for step ${step}` }, { status: 400 });
     }
 
     const newsletter = await getNewsletter(step, subscriber.first_name, null, subscriber.id);
     const preview = newsletter?.preview ?? '';
-    let html = await renderEmail(emailComponent);
 
     // Resolve remaining Resend contact property placeholders for preview.
     // After Liquid resolution, the HTML may still contain {{{contact.key|}}} and

@@ -1,4 +1,3 @@
-import React from 'react';
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import {
@@ -8,11 +7,11 @@ import {
   recordEmailSend,
   getPublishedNewsletterNumbers,
 } from '@/lib/db';
-import { buildUnsubscribeUrl, renderEmail } from '@/emails/send';
+import { buildUnsubscribeUrl } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getMaxNewsletterNumber } from '@/emails/newsletter';
 import { getNewsletter } from '@/emails/newsletter-loader';
-import { NewsletterTemplate, requiresPerSubscriberRendering } from '@/emails/newsletter-template';
+import { renderNewsletterEmail, requiresPerSubscriberRendering } from '@/emails/newsletter-template';
 import {
   sendNewsletterBroadcast,
   syncBroadcastContactProperties,
@@ -126,15 +125,11 @@ export async function GET(request: NextRequest) {
             continue;
           }
 
-          const emailComponent = React.createElement(NewsletterTemplate, {
-            preview: newsletter.preview,
+          const html = renderNewsletterEmail({
             bodyHtml: newsletter.bodyHtml,
-            chart,
             unsubscribeUrl,
-            number: newsletter.number,
             ps: newsletter.ps,
           });
-          const html = await renderEmail(emailComponent);
 
           const { broadcastId } = await sendPrerenderedBroadcast({
             name: `Cron: Newsletter #${newsletterNumber} → ${subscriber.email}`,

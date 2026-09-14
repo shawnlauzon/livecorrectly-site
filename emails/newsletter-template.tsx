@@ -1,16 +1,10 @@
-import * as React from 'react';
-import { Section } from 'react-email';
-import { EmailLayout } from './components/email-layout';
-import type { EmailChartData } from '../lib/hd-chart/parse-for-email';
 import { loadNewsletter } from '@/newsletters/loader';
 import { hasLiquidConditionals, hasLiquidOutputTags } from '@/newsletters/resolve';
+import { injectEmailChrome } from './inject-chrome';
 
-interface NewsletterTemplateProps {
-  preview: string;
+interface RenderNewsletterEmailOptions {
   bodyHtml: string;
-  chart: EmailChartData | null;
   unsubscribeUrl: string;
-  number: number;
   ps: string[];
 }
 
@@ -31,31 +25,23 @@ export async function requiresPerSubscriberRendering(number: number): Promise<bo
 }
 
 /**
- * React Email component for newsletter emails.
- * Renders pre-converted markdown HTML inside EmailLayout.
- * Per-type content is handled via Liquid conditionals in the newsletter body.
+ * Render a newsletter email by injecting chrome (logo, signature, footer)
+ * into the composeReactEmail() HTML output.
+ *
+ * The bodyHtml from composeReactEmail() is already a complete HTML document.
+ * This function injects shared email chrome directly into that document,
+ * avoiding the double-nested <html> problem that occurred when wrapping
+ * bodyHtml inside EmailLayout (another complete HTML document).
+ *
+ * Returns a ready-to-send HTML string.
  */
-export function NewsletterTemplate({
-  preview,
+export function renderNewsletterEmail({
   bodyHtml,
-  chart: _chart,
   unsubscribeUrl,
-  number: _number,
   ps,
-}: NewsletterTemplateProps) {
-  const postscripts = ps.map((p, i) => (
-    <span key={i} dangerouslySetInnerHTML={{ __html: p }} />
-  ));
-
-  return (
-    <EmailLayout
-      preview={preview}
-      unsubscribeUrl={unsubscribeUrl}
-      postscripts={postscripts}
-    >
-      <Section>
-        <div dangerouslySetInnerHTML={{ __html: bodyHtml }} />
-      </Section>
-    </EmailLayout>
-  );
+}: RenderNewsletterEmailOptions): string {
+  return injectEmailChrome(bodyHtml, {
+    unsubscribeUrl,
+    postscripts: ps,
+  });
 }

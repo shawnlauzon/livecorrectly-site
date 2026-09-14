@@ -3,7 +3,7 @@ import { getResendClient, ensureNeonIdProperty, ensureChartContactProperties, cr
 import { getNewsletter } from '@/emails/newsletter-loader';
 import { loadNewsletter } from '@/newsletters/loader';
 import { replaceVariables as replaceVars } from '@/emails/markdown-renderer';
-import { NewsletterTemplate } from '@/emails/newsletter-template';
+import { renderNewsletterEmail } from '@/emails/newsletter-template';
 import { getNewsletterSubject } from '@/emails/newsletter';
 import { renderEmail } from '@/emails/send';
 import { getBroadcast } from '@/emails/broadcast-loader';
@@ -260,16 +260,11 @@ export async function renderNewsletterForBroadcast(
     throw new Error(`Newsletter ${newsletterNumber} not found`);
   }
 
-  const component = React.createElement(NewsletterTemplate, {
-    preview: newsletter.preview,
+  const html = renderNewsletterEmail({
     bodyHtml: newsletter.bodyHtml,
-    chart: null,
     unsubscribeUrl: '{{{RESEND_UNSUBSCRIBE_URL}}}',
-    number: newsletter.number,
     ps: newsletter.ps,
   });
-
-  const html = await renderEmail(component);
 
   // Subject also needs Resend template vars for firstName
   const subject = await getNewsletterSubject(
@@ -313,16 +308,12 @@ export async function renderNewsletterForBroadcastWithHtml(
   };
   const subject = replaceVars(raw.subject, vars);
 
-  const component = React.createElement(NewsletterTemplate, {
-    preview: replaceVars(raw.preview, vars),
+  const html = renderNewsletterEmail({
     bodyHtml: customHtml,
-    chart: null,
     unsubscribeUrl: '{{{RESEND_UNSUBSCRIBE_URL}}}',
-    number: newsletterNumber,
     ps: raw.rawPs,
   });
 
-  const html = await renderEmail(component);
   return { html, subject };
 }
 
