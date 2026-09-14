@@ -95,17 +95,26 @@ export async function GET(request: NextRequest) {
       // Sent: all subscribers (any status) who have progressed past this newsletter
       const sentCount = allSubscribers.filter(s => s.next_step > num).length;
 
-      // Project readiness: welcome-series subscribers finish within the first week,
-      // then newsletters go out once per week.
-      const nextWeekSubs = activeSubscribers.filter(
-        s => s.next_step <= num && weeksUntilReady(s.next_step, num) === 1,
-      );
-      const nextWeekCount = nextWeekSubs.length;
+      // Project readiness based on whether persistent segments exist.
+      // When segments exist, they define the audience — next_step projection
+      // doesn't apply. The segment name (attached via the `segments` array) is
+      // the meaningful indicator, not a subscriber count projection.
+      let nextWeekSubs: typeof activeSubscribers = [];
+      let nextWeekCount = 0;
+      let laterSubs: typeof activeSubscribers = [];
+      let laterCount = 0;
 
-      const laterSubs = activeSubscribers.filter(
-        s => s.next_step <= num && weeksUntilReady(s.next_step, num) > 1,
-      );
-      const laterCount = laterSubs.length;
+      if (allSegments.length === 0) {
+        // No persistent segments — fall back to next_step projection
+        nextWeekSubs = activeSubscribers.filter(
+          s => s.next_step <= num && weeksUntilReady(s.next_step, num) === 1,
+        );
+        nextWeekCount = nextWeekSubs.length;
+        laterSubs = activeSubscribers.filter(
+          s => s.next_step <= num && weeksUntilReady(s.next_step, num) > 1,
+        );
+        laterCount = laterSubs.length;
+      }
 
       // Determine the send date to display:
       // - Scheduled/sent → use the schedule's actual date

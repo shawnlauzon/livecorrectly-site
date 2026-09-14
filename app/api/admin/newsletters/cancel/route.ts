@@ -49,10 +49,10 @@ export async function POST(request: NextRequest) {
 
     // Cancel the broadcast in Resend
     const client = getResendClient();
-    const { error: cancelError } = await client.broadcasts.cancel(schedule.broadcast_id);
+    const { error: cancelError } = await client.broadcasts.remove(schedule.broadcast_id);
     if (cancelError) {
       console.warn(
-        `[cancel] Failed to cancel broadcast ${schedule.broadcast_id} in Resend:`,
+        `[cancel] Failed to remove/delete broadcast ${schedule.broadcast_id} in Resend:`,
         cancelError,
       );
       // Continue with DB rollback even if Resend cancel fails —
