@@ -969,7 +969,7 @@ export default function AdminNewsletterDetailPage() {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                               <div style={{ display: 'flex', gap: '0.375rem' }}>
                                 <button
-                                  onClick={() => handleSchedule(nl.number, getSendDate(nl))}
+                                  onClick={() => handleSchedule(nl.number, nextSendAt ? localToUtcIso(nextSendAt, timezone) : undefined)}
                                   disabled={actionLoading}
                                   style={{
                                     fontFamily: 'var(--body)',
@@ -983,21 +983,16 @@ export default function AdminNewsletterDetailPage() {
                                     cursor: actionLoading ? 'wait' : 'pointer',
                                     opacity: actionLoading ? 0.6 : 1,
                                   }}
-                                  title={getSendDate(nl) ? formatDateTime(getSendDate(nl)!, timezone) : undefined}
+                                  title={nextSendAt ? formatDateTime(localToUtcIso(nextSendAt, timezone), timezone) : undefined}
                                 >
-                                  {actionLoading ? 'Scheduling...' : `Regular time${getSendDate(nl) ? ` \u2014 ${formatDateTime(getSendDate(nl)!, timezone)}` : ''}`}
+                                  {actionLoading ? 'Scheduling...' : `Regular time${nextSendAt ? ` \u2014 ${formatDateTime(localToUtcIso(nextSendAt, timezone), timezone)}` : ''}`}
                                 </button>
                               </div>
                               <div style={{ display: 'flex', gap: '0.375rem' }}>
                                 <button
                                   onClick={() => {
-                                    const projected = getSendDate(nl);
                                     setCustomTimezone(timezone);
-                                    setCustomSendAt(
-                                      projected
-                                        ? toDatetimeLocal(projected, timezone)
-                                        : ''
-                                    );
+                                    setCustomSendAt(nextSendAt || '');
                                     setScheduleMode('custom');
                                   }}
                                   style={{
