@@ -16,7 +16,7 @@ import { EmailNewsletter } from '@/components/admin/email-newsletter';
 import { LinkBubble, TextBubbleMenu } from './link-bubble';
 import '@react-email/editor/themes/default.css';
 import styles from './editor.module.css';
-import adminStyles from '../../admin.module.css';
+import adminStyles from '../../../admin.module.css';
 import { VariableNode, VariableEditForm, VARIABLE } from './variable-node';
 import { ConditionalBlockNode, ConditionalBranchNode, ConditionalKeymap, IF_THEN_ELSE, DEFAULT_CONDITION } from './conditional-node';
 import { types, innerAuthorityTypes } from '@/lib/hd-chart/constants';
@@ -625,7 +625,7 @@ export default function NewsletterEditorPage() {
         <div>
           <h1 className={adminStyles.title}>Newsletter #{num}</h1>
           <p className={adminStyles.subtitle}>
-            <NextLink href="/admin/newsletters" style={{ color: 'var(--grape)' }}>
+            <NextLink href={`/admin/newsletters/${params.id}`} style={{ color: 'var(--grape)' }}>
               Back to newsletters
             </NextLink>
             {data?.bodyJson != null && (

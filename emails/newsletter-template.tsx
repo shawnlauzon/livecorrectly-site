@@ -1,4 +1,4 @@
-import { loadNewsletter } from '@/newsletters/loader';
+import { loadNewsletterIssue } from '@/newsletters/loader';
 import { hasLiquidConditionals, hasLiquidOutputTags } from '@/newsletters/resolve';
 import { injectEmailChrome } from './inject-chrome';
 
@@ -16,7 +16,7 @@ interface RenderNewsletterEmailOptions {
  * broadcast (single API call) sending paths.
  */
 export async function requiresPerSubscriberRendering(number: number): Promise<boolean> {
-  const raw = await loadNewsletter(number);
+  const raw = await loadNewsletterIssue(number);
   if (!raw) return false;
   if (hasLiquidConditionals(raw.bodyHtml)) return true;
   if (hasLiquidOutputTags(raw.bodyHtml)) return true;

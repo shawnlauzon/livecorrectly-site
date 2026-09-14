@@ -19,7 +19,7 @@ import { getWelcomeDueSubscribers, getNewsletterDueSubscribers, getBroadcastCand
 import { parseChartForEmail } from '../lib/hd-chart/parse-for-email';
 import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '../emails/welcome';
 import { getWelcomeSubject } from '../emails/subjects';
-import { getNewsletterHtml, getNewsletterSubject, getMaxNewsletterNumber } from '../emails/newsletter';
+import { getNewsletterHtml, getNewsletterSubject, getMaxNewsletterIssueNumber } from '../emails/newsletter';
 import { renderEmail, formatEmailRecipient, canSendTo, buildUnsubscribeUrl } from '../emails/send';
 import { buildBroadcastEmail } from '../emails/broadcast-config';
 import { getEnabledBroadcastConfigs } from '../emails/broadcast-loader';
@@ -142,11 +142,9 @@ function formatCronDate(date: Date): string {
 // Cron schedules read from vercel.json (single source of truth)
 const welcomeSchedule    = getCronScheduleForPath('/api/cron/daily-emails');
 const broadcastSchedule  = getCronScheduleForPath('/api/cron/broadcast');
-const newsletterSchedule = getCronScheduleForPath('/api/cron/newsletter');
 
 const nextWelcomeDate    = getNextCronDate(welcomeSchedule.hour, welcomeSchedule.minute, welcomeSchedule.dayOfWeek);
 const nextBroadcastDate  = getNextCronDate(broadcastSchedule.hour, broadcastSchedule.minute, broadcastSchedule.dayOfWeek);
-const nextNewsletterDate = getNextCronDate(newsletterSchedule.hour, newsletterSchedule.minute, newsletterSchedule.dayOfWeek);
 
 // --- Safety checks ---
 
@@ -206,7 +204,6 @@ interface BroadcastGroupResult {
 interface DryRunReport {
   nextSendDates: {
     welcome?: string;
-    newsletter?: string;
     broadcast?: string;
   };
   welcome: WelcomeResult[];
@@ -249,7 +246,6 @@ async function run(): Promise<void> {
   const report: DryRunReport = {
     nextSendDates: {
       ...(runWelcome  && { welcome:    nextWelcomeDate.toISOString() }),
-      ...(runNewsletter && { newsletter: nextNewsletterDate.toISOString() }),
       ...(runBroadcast && { broadcast:  nextBroadcastDate.toISOString() }),
     },
     welcome: [],
@@ -346,7 +342,7 @@ async function run(): Promise<void> {
   // --- Newsletters ---
 
   if (runNewsletter) {
-    const maxNum = await getMaxNewsletterNumber();
+    const maxNum = await getMaxNewsletterIssueNumber();
     report.maxNewsletterNumber = maxNum;
 
     const allNewsletterDue = await getNewsletterDueSubscribers(WELCOME_SERIES_LENGTH);
@@ -422,7 +418,7 @@ async function run(): Promise<void> {
     if (!jsonOutput) {
       console.log('--- Newsletters ---');
       console.log(`${report.newsletter.length} subscriber(s) due (max available: #${report.maxNewsletterNumber})`);
-      console.log(`Next send: ${formatCronDate(nextNewsletterDate)}\n`);
+      console.log('(Newsletter sends are scheduled manually via the admin UI)\n');
 
       for (let i = 0; i < report.newsletter.length; i++) {
         const r = report.newsletter[i];

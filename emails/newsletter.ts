@@ -1,10 +1,10 @@
 import { Subscriber } from '@/lib/types/subscriber';
 import { parseChartForEmail, type EmailChartData } from '@/lib/hd-chart/parse-for-email';
-import { getNewsletter } from './newsletter-loader';
+import { getNewsletterIssue } from './newsletter-loader';
 import { renderNewsletterEmail } from './newsletter-template';
 import { buildUnsubscribeUrl } from './send';
 
-export { getNewsletterCount, getMaxNewsletterNumber, getNewsletterNumbers } from './newsletter-loader';
+export { getNewsletterIssueCount, getMaxNewsletterIssueNumber, getNewsletterIssueNumbers } from './newsletter-loader';
 
 /**
  * Build the rendered HTML for a newsletter step.
@@ -18,7 +18,7 @@ export async function getNewsletterHtml(
   chart: ReturnType<typeof parseChartForEmail> | null,
   unsubscribeUrl: string
 ): Promise<string | null> {
-  const newsletter = await getNewsletter(
+  const newsletter = await getNewsletterIssue(
     step,
     subscriber.first_name,
     chart as EmailChartData | null,
@@ -37,6 +37,6 @@ export async function getNewsletterHtml(
  * Get the subject line for a newsletter step, with firstName replacement.
  */
 export async function getNewsletterSubject(step: number, firstName: string, subscriberId?: string): Promise<string> {
-  const newsletter = await getNewsletter(step, firstName, null, subscriberId);
+  const newsletter = await getNewsletterIssue(step, firstName, null, subscriberId);
   return newsletter?.subject ?? '';
 }

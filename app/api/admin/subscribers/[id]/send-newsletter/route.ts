@@ -3,8 +3,8 @@ import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
 import { buildUnsubscribeUrl } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getNewsletterNumbers } from '@/emails/newsletter';
-import { getNewsletter } from '@/emails/newsletter-loader';
+import { getNewsletterIssueNumbers } from '@/emails/newsletter';
+import { getNewsletterIssue } from '@/emails/newsletter-loader';
 import { renderNewsletterEmail } from '@/emails/newsletter-template';
 import { sendPrerenderedBroadcast } from '@/lib/resend-broadcasts';
 
@@ -37,7 +37,7 @@ export async function POST(
 
     const body = await request.json();
     const step = body.step;
-    const newsletterNumbers = await getNewsletterNumbers();
+    const newsletterNumbers = await getNewsletterIssueNumbers();
 
     if (typeof step !== 'number' || !newsletterNumbers.includes(step)) {
       return NextResponse.json(
@@ -66,7 +66,7 @@ export async function POST(
     const unsubscribeUrl = buildUnsubscribeUrl(subscriber.unsub_token, emailLabel);
 
     // Resolve Liquid conditionals with subscriber's chart data
-    const newsletter = await getNewsletter(step, subscriber.first_name, chart, subscriber.id);
+    const newsletter = await getNewsletterIssue(step, subscriber.first_name, chart, subscriber.id);
     if (!newsletter) {
       return NextResponse.json(
         { error: `Failed to build newsletter for step ${step}` },

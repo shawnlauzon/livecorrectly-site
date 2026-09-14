@@ -1,19 +1,19 @@
 import {
-  loadNewsletter,
-  type RawNewsletter,
+  loadNewsletterIssue,
+  type RawNewsletterIssue,
 } from '@/newsletters/loader';
 import { emailMarked, replaceVariables as replaceVars, replaceChartSubpaths, replaceDesignedCta } from './markdown-renderer';
 import { resolveLiquid, resolveRelativeLinks } from '@/newsletters/resolve';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 
 export {
-  getNewsletterCount,
-  getMaxNewsletterNumber,
-  getNewsletterNumbers,
-  clearNewsletterCache,
+  getNewsletterIssueCount,
+  getMaxNewsletterIssueNumber,
+  getNewsletterIssueNumbers,
+  clearNewsletterIssueCache,
 } from '@/newsletters/loader';
 
-export interface Newsletter {
+export interface NewsletterIssue {
   /** Newsletter number (from filename, matches next_step) */
   number: number;
   subject: string;
@@ -27,10 +27,10 @@ export interface Newsletter {
 }
 
 /**
- * Render a RawNewsletter into email-ready HTML.
+ * Render a RawNewsletterIssue into email-ready HTML.
  * Uses the editor's pre-rendered HTML directly.
  */
-function renderForEmail(raw: RawNewsletter): Newsletter {
+function renderForEmail(raw: RawNewsletterIssue): NewsletterIssue {
   const ps = raw.rawPs.map(p =>
     emailMarked.parseInline(p.trim()) as string,
   );
@@ -46,10 +46,10 @@ function renderForEmail(raw: RawNewsletter): Newsletter {
 }
 
 /**
- * Replace template variables in a rendered newsletter.
+ * Replace template variables in a rendered newsletter issue.
  * Builds a variable map from firstName/subscriberId and delegates to the shared replaceVariables().
  */
-function replaceNewsletterVariables(newsletter: Newsletter, firstName: string, subscriberId?: string): Newsletter {
+function replaceNewsletterVariables(newsletter: NewsletterIssue, firstName: string, subscriberId?: string): NewsletterIssue {
   const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
   const chartUrl = subscriberId
     ? `${appUrl}/see-your-design/${subscriberId}?utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletter.number}`
@@ -76,27 +76,27 @@ function replaceNewsletterVariables(newsletter: Newsletter, firstName: string, s
 }
 
 /**
- * Get a newsletter by its step number (matches subscriber.next_step).
- * Returns null if the newsletter doesn't exist.
+ * Get a newsletter issue by its step number (matches subscriber.next_step).
+ * Returns null if the newsletter issue doesn't exist.
  * Replaces {{firstName}}, {{appUrl}}, and {{chartUrl}} template variables.
  *
  * When `chart` is provided, Liquid conditionals and output tags are resolved
  * for the subscriber's chart data before variable replacement.
  */
-export async function getNewsletter(
+export async function getNewsletterIssue(
   step: number,
   firstName: string,
   chart?: EmailChartData | null,
   subscriberId?: string,
-): Promise<Newsletter | null> {
-  const raw = await loadNewsletter(step);
+): Promise<NewsletterIssue | null> {
+  const raw = await loadNewsletterIssue(step);
   if (!raw) return null;
 
   if (chart) {
     const resolvedHtml = await resolveLiquid(raw.bodyHtml, { chart, firstName });
     const ps = raw.rawPs.map(p => emailMarked.parseInline(p.trim()) as string);
 
-    const newsletter: Newsletter = {
+    const newsletter: NewsletterIssue = {
       number: raw.number,
       subject: raw.subject,
       preview: raw.preview,
@@ -112,10 +112,10 @@ export async function getNewsletter(
 }
 
 /**
- * Get a newsletter without variable replacement (for testing / introspection).
+ * Get a newsletter issue without variable replacement (for testing / introspection).
  */
-export async function getNewsletterRaw(step: number): Promise<Newsletter | null> {
-  const raw = await loadNewsletter(step);
+export async function getNewsletterIssueRaw(step: number): Promise<NewsletterIssue | null> {
+  const raw = await loadNewsletterIssue(step);
   if (!raw) return null;
   return renderForEmail(raw);
 }

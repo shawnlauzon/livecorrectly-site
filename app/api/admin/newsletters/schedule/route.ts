@@ -6,10 +6,11 @@ import {
   recordEmailSend,
   insertNewsletterSchedule,
   getScheduleForNewsletter,
-  updateNewsletterLiquidMap,
+  updateNewsletterIssueLiquidMap,
+  getNewsletterPublication,
 } from '@/lib/db';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
-import { loadNewsletter } from '@/newsletters/loader';
+import { loadNewsletterIssue } from '@/newsletters/loader';
 import {
   hasLiquidConditionals,
   hasLiquidOutputTags,
@@ -23,7 +24,6 @@ import {
 } from '@/lib/resend-broadcasts';
 import { getResendClient, createPropertyIfMissing, deleteNewsletterProperties } from '@/lib/resend-contacts';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getNextCadenceDate } from '@/newsletters/cadence';
 
 /**
  * POST /api/admin/newsletters/schedule
@@ -70,8 +70,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid newsletterNumber' }, { status: 400 });
     }
 
-    // Use provided sendAt if present, otherwise compute from cadence
-    const scheduledDate = sendAt ? new Date(sendAt) : getNextCadenceDate();
+    // Use provided sendAt if present, otherwise fall back to the publication's next_send_at
+    let scheduledDate: Date;
+    if (sendAt) {
+      scheduledDate = new Date(sendAt);
+    } else {
+      const publication = await getNewsletterPublication(1);
+      if (publication?.nextSendAt) {
+        scheduledDate = new Date(publication.nextSendAt);
+      } else {
+        return NextResponse.json(
+          { error: 'No sendAt provided and no next_send_at configured in publication settings' },
+          { status: 400 },
+        );
+      }
+    }
 
     // Check if already scheduled
     const existingSchedule = await getScheduleForNewsletter(newsletterNumber);
@@ -82,8 +95,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Load the newsletter markdown
-    const raw = await loadNewsletter(newsletterNumber);
+    // Load the newsletter issue content
+    const raw = await loadNewsletterIssue(newsletterNumber);
     if (!raw) {
       return NextResponse.json(
         { error: `Newsletter #${newsletterNumber} not found` },
@@ -169,7 +182,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Save updated section map to DB
-      await updateNewsletterLiquidMap(newsletterNumber, newMap);
+      await updateNewsletterIssueLiquidMap(newsletterNumber, newMap);
 
       // Render broadcast HTML using the template with contact property placeholders
       const rendered = await renderNewsletterForBroadcastWithHtml(

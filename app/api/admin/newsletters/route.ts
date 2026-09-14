@@ -3,12 +3,12 @@ import { checkAdminPassword } from '@/lib/admin-auth';
 import {
   getAllSubscribers,
   getNewsletterSchedules,
+  getNewsletterPublication,
 } from '@/lib/db';
-import { getNewsletterNumbers } from '@/emails/newsletter-loader';
-import { loadNewsletter } from '@/newsletters/loader';
+import { getNewsletterIssueNumbers } from '@/emails/newsletter-loader';
+import { loadNewsletterIssue } from '@/newsletters/loader';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import { hasLiquidConditionals } from '@/newsletters/resolve';
-import { getNextCadenceDates } from '@/newsletters/cadence';
 
 /**
  * Project how many weeks until a subscriber at `currentStep` reaches newsletter `targetNum`.
@@ -48,9 +48,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [allSubscribers, schedules] = await Promise.all([
+    const [allSubscribers, schedules, publication] = await Promise.all([
       getAllSubscribers(),
       getNewsletterSchedules(),
+      getNewsletterPublication(1),
     ]);
 
     const activeSubscribers = allSubscribers.filter(
@@ -66,24 +67,27 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const newsletterNumbers = await getNewsletterNumbers();
+    const newsletterNumbers = await getNewsletterIssueNumbers();
     const postWelcomeNumbers = newsletterNumbers.filter(n => n > WELCOME_SERIES_LENGTH);
 
-    // Compute projected cadence dates for unsent/unscheduled newsletters.
-    // Sent/scheduled newsletters use their actual date; unsent ones get assigned
-    // consecutive cadence slots in sequence order.
+    // Compute projected cadence dates from persisted publication settings.
+    // Sent/scheduled newsletters keep their actual date; unsent ones get
+    // consecutive slots based on next_send_at + interval_days.
     const unsentNumbers = postWelcomeNumbers.filter(num => {
       const schedule = scheduleMap.get(num);
       return !schedule || (schedule.status !== 'scheduled' && schedule.status !== 'sent');
     });
-    const cadenceDates = getNextCadenceDates(new Date(), unsentNumbers.length);
     const projectedDateMap = new Map<number, string>();
-    unsentNumbers.forEach((num, i) => {
-      projectedDateMap.set(num, cadenceDates[i].toISOString());
-    });
+    if (publication?.nextSendAt) {
+      const startDate = new Date(publication.nextSendAt);
+      unsentNumbers.forEach((num, i) => {
+        const sendDate = new Date(startDate.getTime() + i * (publication.intervalDays ?? 7) * 24 * 60 * 60 * 1000);
+        projectedDateMap.set(num, sendDate.toISOString());
+      });
+    }
 
     const newsletters = await Promise.all(postWelcomeNumbers.map(async num => {
-      const raw = await loadNewsletter(num);
+      const raw = await loadNewsletterIssue(num);
       const schedule = scheduleMap.get(num);
 
       // Sent: all subscribers (any status) who have progressed past this newsletter
@@ -145,7 +149,16 @@ export async function GET(request: NextRequest) {
       };
     }));
 
-    return NextResponse.json({ newsletters });
+    return NextResponse.json({
+      newsletters,
+      settings: publication
+        ? {
+            nextSendAt: publication.nextSendAt,
+            intervalDays: publication.intervalDays,
+            timezone: publication.timezone,
+          }
+        : null,
+    });
   } catch (error) {
     console.error('[admin/newsletters] Error listing newsletters:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

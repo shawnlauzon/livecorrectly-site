@@ -1,10 +1,10 @@
-import { getDbNewsletters } from '@/lib/db';
+import { getDbNewsletterIssues } from '@/lib/db';
 
 /**
- * Raw newsletter content from the DB.
+ * Raw newsletter issue content from the DB.
  * No rendering has been applied — consumers render for their target (email vs web).
  */
-export interface RawNewsletter {
+export interface RawNewsletterIssue {
   number: number;
   /** Subject line — template variables ({{firstName}}, etc.) still intact */
   subject: string;
@@ -37,57 +37,57 @@ export interface LiquidSectionMap {
   nextIndex: number;
 }
 
-/** Cached raw newsletters loaded from DB, keyed by number */
-let nlCache: Map<number, RawNewsletter> | null = null;
+/** Cached raw newsletter issues loaded from DB, keyed by number */
+let nlCache: Map<number, RawNewsletterIssue> | null = null;
 
 /**
- * Load all newsletters from the DB.
+ * Load all newsletter issues from the DB.
  * In production, results are cached for the process lifetime.
  * In development, DB is re-queried on every call so edits are reflected.
  */
-async function loadAll(): Promise<Map<number, RawNewsletter>> {
+async function loadAll(): Promise<Map<number, RawNewsletterIssue>> {
   if (nlCache && process.env.NODE_ENV === 'production') return nlCache;
 
-  nlCache = await getDbNewsletters();
+  nlCache = await getDbNewsletterIssues();
   return nlCache;
 }
 
 /**
- * Load a single newsletter by its number (matches subscriber.next_step).
- * Returns null if the newsletter doesn't exist.
+ * Load a single newsletter issue by its number (matches subscriber.next_step).
+ * Returns null if the newsletter issue doesn't exist.
  */
-export async function loadNewsletter(step: number): Promise<RawNewsletter | null> {
+export async function loadNewsletterIssue(step: number): Promise<RawNewsletterIssue | null> {
   const all = await loadAll();
   return all.get(step) ?? null;
 }
 
 /**
- * Load all newsletters as a Map keyed by number.
+ * Load all newsletter issues as a Map keyed by number.
  */
-export async function loadAllNewsletters(): Promise<Map<number, RawNewsletter>> {
+export async function loadAllNewsletterIssues(): Promise<Map<number, RawNewsletterIssue>> {
   return loadAll();
 }
 
-/** How many newsletters are available in the DB. */
-export async function getNewsletterCount(): Promise<number> {
+/** How many newsletter issues are available in the DB. */
+export async function getNewsletterIssueCount(): Promise<number> {
   const all = await loadAll();
   return all.size;
 }
 
-/** The highest newsletter number in the DB, or 0 if none exist. */
-export async function getMaxNewsletterNumber(): Promise<number> {
+/** The highest newsletter issue number in the DB, or 0 if none exist. */
+export async function getMaxNewsletterIssueNumber(): Promise<number> {
   const all = await loadAll();
   const keys = [...all.keys()];
   return keys.length > 0 ? Math.max(...keys) : 0;
 }
 
-/** Sorted array of all newsletter numbers in the DB. */
-export async function getNewsletterNumbers(): Promise<number[]> {
+/** Sorted array of all newsletter issue numbers in the DB. */
+export async function getNewsletterIssueNumbers(): Promise<number[]> {
   const all = await loadAll();
   return [...all.keys()].sort((a, b) => a - b);
 }
 
 /** Clear the cache (useful for tests). */
-export function clearNewsletterCache(): void {
+export function clearNewsletterIssueCache(): void {
   nlCache = null;
 }

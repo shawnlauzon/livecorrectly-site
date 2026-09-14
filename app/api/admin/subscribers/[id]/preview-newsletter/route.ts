@@ -3,11 +3,11 @@ import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { buildUnsubscribeUrl } from '@/emails/send';
-import { getNewsletterHtml, getNewsletterSubject, getNewsletterNumbers } from '@/emails/newsletter';
-import { getNewsletter } from '@/emails/newsletter-loader';
+import { getNewsletterHtml, getNewsletterSubject, getNewsletterIssueNumbers } from '@/emails/newsletter';
+import { getNewsletterIssue } from '@/emails/newsletter-loader';
 import { resolveContactVars } from '@/newsletters/resolve';
 import { replaceResendContactVars } from '@/emails/markdown-renderer';
-import { loadAllNewsletters } from '@/newsletters/loader';
+import { loadAllNewsletterIssues } from '@/newsletters/loader';
 
 /**
  * GET /api/admin/subscribers/[id]/preview-newsletter?step=1
@@ -40,7 +40,7 @@ export async function GET(
 
     // When step is omitted, return metadata only (no rendering)
     if (stepParam === null) {
-      const allNewsletters = await loadAllNewsletters();
+      const allNewsletters = await loadAllNewsletterIssues();
       const newsletterNumbers = [...allNewsletters.keys()].sort((a, b) => a - b);
       const newsletterMeta = newsletterNumbers.map((n) => {
         const nl = allNewsletters.get(n)!;
@@ -50,7 +50,7 @@ export async function GET(
     }
 
     const step = parseInt(stepParam, 10);
-    const newsletterNumbers = await getNewsletterNumbers();
+    const newsletterNumbers = await getNewsletterIssueNumbers();
 
     if (isNaN(step) || !newsletterNumbers.includes(step)) {
       return NextResponse.json(
@@ -73,7 +73,7 @@ export async function GET(
       return NextResponse.json({ error: `No newsletter template for step ${step}` }, { status: 400 });
     }
 
-    const newsletter = await getNewsletter(step, subscriber.first_name, null, subscriber.id);
+    const newsletter = await getNewsletterIssue(step, subscriber.first_name, null, subscriber.id);
     const preview = newsletter?.preview ?? '';
 
     // Resolve remaining Resend contact property placeholders for preview.

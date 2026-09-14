@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
-import { getDbNewsletterFull, updateNewsletter } from '@/lib/db';
+import { getDbNewsletterIssueFull, updateNewsletterIssue } from '@/lib/db';
 
 /**
  * GET /api/admin/newsletters/[number]
@@ -29,7 +29,7 @@ export async function GET(
   }
 
   try {
-    const newsletter = await getDbNewsletterFull(num);
+    const newsletter = await getDbNewsletterIssueFull(num);
     if (!newsletter) {
       return NextResponse.json({ error: 'Newsletter not found' }, { status: 404 });
     }
@@ -93,7 +93,7 @@ export async function PUT(
       );
     }
 
-    await updateNewsletter(num, {
+    await updateNewsletterIssue(num, {
       bodyJson,
       bodyHtml,
       subject,

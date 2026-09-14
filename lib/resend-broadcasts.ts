@@ -1,7 +1,7 @@
 import React from 'react';
 import { getResendClient, ensureNeonIdProperty, ensureChartContactProperties, createPropertyIfMissing } from './resend-contacts';
-import { getNewsletter } from '@/emails/newsletter-loader';
-import { loadNewsletter } from '@/newsletters/loader';
+import { getNewsletterIssue } from '@/emails/newsletter-loader';
+import { loadNewsletterIssue } from '@/newsletters/loader';
 import { replaceVariables as replaceVars } from '@/emails/markdown-renderer';
 import { renderNewsletterEmail } from '@/emails/newsletter-template';
 import { getNewsletterSubject } from '@/emails/newsletter';
@@ -250,7 +250,7 @@ export async function renderNewsletterForBroadcast(
   const resendFirstName = '{{{FIRST_NAME|there}}}';
   const resendSubscriberId = '{{{contact.neon_id}}}';
 
-  const newsletter = await getNewsletter(
+  const newsletter = await getNewsletterIssue(
     newsletterNumber,
     resendFirstName,
     null,
@@ -297,7 +297,7 @@ export async function renderNewsletterForBroadcastWithHtml(
   const resendSubscriberId = '{{{contact.neon_id}}}';
 
   // Load the newsletter for metadata (subject, preview, ps)
-  const raw = await loadNewsletter(newsletterNumber);
+  const raw = await loadNewsletterIssue(newsletterNumber);
   if (!raw) {
     throw new Error(`Newsletter ${newsletterNumber} not found`);
   }

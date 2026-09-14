@@ -2,7 +2,7 @@ import { cache } from 'react';
 import { neon, NeonQueryFunction } from '@neondatabase/serverless';
 import { BirthInput, EmailStatus, Subscriber, EmailSend, EmailEvent, EmailEventType } from './types/subscriber';
 import type { ChartGroup, ChartRecord } from './types/chart';
-import type { RawNewsletter, LiquidSectionMap } from '@/newsletters/loader';
+import type { RawNewsletterIssue, LiquidSectionMap } from '@/newsletters/loader';
 
 /** A redirect rule mapping a slug + chart property to a destination URL. */
 export interface RedirectRule {
@@ -828,20 +828,6 @@ export async function updateScheduleStatus(
 }
 
 /**
- * Get newsletter numbers that have been published (scheduled or sent).
- * Used by the cron to know which newsletters are safe to send to catch-up subscribers.
- */
-export async function getPublishedNewsletterNumbers(): Promise<Set<number>> {
-  const db = getDb();
-  const rows = await db`
-    SELECT DISTINCT newsletter_num
-    FROM newsletter_schedules
-    WHERE status IN ('scheduled', 'sent')
-  `;
-  return new Set(rows.map(r => r.newsletter_num as number));
-}
-
-/**
  * Get subscriber IDs that were included in a specific newsletter broadcast.
  * Used for rollback when cancelling a scheduled newsletter.
  */
@@ -1032,9 +1018,9 @@ export async function getAllContactSyncStates(): Promise<Map<string, ContactSync
 // --- Newsletters (DB-backed content) ---
 
 /**
- * Map a newsletters table row to the RawNewsletter interface.
+ * Map a newsletter_issues table row to the RawNewsletterIssue interface.
  */
-function rowToRawNewsletter(row: Record<string, unknown>): RawNewsletter {
+function rowToRawNewsletterIssue(row: Record<string, unknown>): RawNewsletterIssue {
   return {
     number: row.number as number,
     subject: row.subject as string,
@@ -1050,66 +1036,66 @@ function rowToRawNewsletter(row: Record<string, unknown>): RawNewsletter {
 }
 
 /**
- * Get a single newsletter by number from the DB.
+ * Get a single newsletter issue by number from the DB.
  */
-export async function getDbNewsletter(num: number): Promise<RawNewsletter | null> {
+export async function getDbNewsletterIssue(num: number): Promise<RawNewsletterIssue | null> {
   const db = getDb();
   const rows = await withRetry(() => db`
-    SELECT * FROM newsletters WHERE number = ${num}
+    SELECT * FROM newsletter_issues WHERE number = ${num}
   `);
-  return rows.length > 0 ? rowToRawNewsletter(rows[0]) : null;
+  return rows.length > 0 ? rowToRawNewsletterIssue(rows[0]) : null;
 }
 
 /**
- * Get all newsletters from the DB, keyed by number.
+ * Get all newsletter issues from the DB, keyed by number.
  */
-export async function getDbNewsletters(): Promise<Map<number, RawNewsletter>> {
+export async function getDbNewsletterIssues(): Promise<Map<number, RawNewsletterIssue>> {
   const db = getDb();
   const rows = await withRetry(() => db`
-    SELECT * FROM newsletters ORDER BY number
+    SELECT * FROM newsletter_issues ORDER BY number
   `);
-  const map = new Map<number, RawNewsletter>();
+  const map = new Map<number, RawNewsletterIssue>();
   for (const row of rows) {
-    const nl = rowToRawNewsletter(row);
+    const nl = rowToRawNewsletterIssue(row);
     map.set(nl.number, nl);
   }
   return map;
 }
 
 /**
- * Get sorted array of all newsletter numbers from the DB.
+ * Get sorted array of all newsletter issue numbers from the DB.
  */
-export async function getDbNewsletterNumbers(): Promise<number[]> {
+export async function getDbNewsletterIssueNumbers(): Promise<number[]> {
   const db = getDb();
   const rows = await withRetry(() => db`
-    SELECT number FROM newsletters ORDER BY number
+    SELECT number FROM newsletter_issues ORDER BY number
   `);
   return rows.map(r => r.number as number);
 }
 
 /**
- * Get a single newsletter by number with all columns.
+ * Get a single newsletter issue by number with all columns.
  * Used by the editor API to load full content for editing.
  */
-export async function getDbNewsletterFull(num: number): Promise<RawNewsletter | null> {
+export async function getDbNewsletterIssueFull(num: number): Promise<RawNewsletterIssue | null> {
   const db = getDb();
   const rows = await withRetry(() => db`
-    SELECT * FROM newsletters WHERE number = ${num}
+    SELECT * FROM newsletter_issues WHERE number = ${num}
   `);
-  return rows.length > 0 ? rowToRawNewsletter(rows[0]) : null;
+  return rows.length > 0 ? rowToRawNewsletterIssue(rows[0]) : null;
 }
 
 /**
- * Update a newsletter's liquid_section_map column.
+ * Update a newsletter issue's liquid_section_map column.
  * Used by the schedule route to persist stable key assignments.
  */
-export async function updateNewsletterLiquidMap(
+export async function updateNewsletterIssueLiquidMap(
   num: number,
   map: LiquidSectionMap,
 ): Promise<void> {
   const db = getDb();
   await db`
-    UPDATE newsletters
+    UPDATE newsletter_issues
     SET liquid_section_map = ${JSON.stringify(map)}::jsonb,
         updated_at = now()
     WHERE number = ${num}
@@ -1117,10 +1103,10 @@ export async function updateNewsletterLiquidMap(
 }
 
 /**
- * Update a newsletter's editable fields (metadata + editor content).
+ * Update a newsletter issue's editable fields (metadata + editor content).
  * Used by the visual editor to save changes.
  */
-export async function updateNewsletter(
+export async function updateNewsletterIssue(
   num: number,
   data: {
     subject?: string;
@@ -1134,7 +1120,7 @@ export async function updateNewsletter(
 ): Promise<void> {
   const db = getDb();
   await db`
-    UPDATE newsletters SET
+    UPDATE newsletter_issues SET
       subject = COALESCE(${data.subject ?? null}, subject),
       preview = COALESCE(${data.preview ?? null}, preview),
       slug = COALESCE(${data.slug !== undefined ? data.slug : null}, slug),
@@ -1145,5 +1131,75 @@ export async function updateNewsletter(
       updated_at = now()
     WHERE number = ${num}
   `;
+}
+
+// --- Newsletter publication (schedule/cadence) ---
+
+/** A newsletter publication entity with its schedule settings. */
+export interface NewsletterPublication {
+  id: number;
+  name: string;
+  nextSendAt: string | null;
+  intervalDays: number;
+  timezone: string;
+}
+
+function rowToNewsletterPublication(row: Record<string, unknown>): NewsletterPublication {
+  return {
+    id: row.id as number,
+    name: row.name as string,
+    nextSendAt: row.next_send_at ? (row.next_send_at as Date).toISOString() : null,
+    intervalDays: row.interval_days as number,
+    timezone: row.timezone as string,
+  };
+}
+
+/**
+ * Get all newsletter publications, ordered by ID.
+ */
+export async function getAllNewsletterPublications(): Promise<NewsletterPublication[]> {
+  const db = getDb();
+  const rows = await db`
+    SELECT * FROM newsletters ORDER BY id
+  `;
+  return rows.map(row => rowToNewsletterPublication(row));
+}
+
+/**
+ * Get a newsletter publication by ID.
+ */
+export async function getNewsletterPublication(id: number): Promise<NewsletterPublication | null> {
+  const db = getDb();
+  const rows = await db`
+    SELECT * FROM newsletters WHERE id = ${id}
+  `;
+  return rows.length > 0 ? rowToNewsletterPublication(rows[0]) : null;
+}
+
+/**
+ * Update a newsletter publication's schedule settings.
+ */
+export async function updateNewsletterPublication(
+  id: number,
+  data: {
+    nextSendAt?: string | null;
+    intervalDays?: number;
+    timezone?: string;
+  },
+): Promise<NewsletterPublication> {
+  const db = getDb();
+  const rows = await db`
+    UPDATE newsletters SET
+      next_send_at = COALESCE(${data.nextSendAt !== undefined ? (data.nextSendAt ?? null) : null}::timestamptz, next_send_at),
+      interval_days = COALESCE(${data.intervalDays ?? null}, interval_days),
+      timezone = COALESCE(${data.timezone ?? null}, timezone),
+      updated_at = now()
+    WHERE id = ${id}
+    RETURNING *
+  `;
+  if (rows.length === 0) {
+    throw new Error(`Newsletter publication ${id} not found`);
+  }
+  return rowToNewsletterPublication(rows[0]);
 }
 

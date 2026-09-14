@@ -1,5 +1,5 @@
 import { getNewsletterSendDates } from '@/lib/db';
-import { loadAllNewsletters, type RawNewsletter } from './loader';
+import { loadAllNewsletterIssues, type RawNewsletterIssue } from './loader';
 import { resolveNewsletterHtml } from './resolve';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 
@@ -60,7 +60,7 @@ function addHeadingIds(html: string): string {
 }
 
 /**
- * Render a RawNewsletter for web display.
+ * Render a RawNewsletterIssue for web display.
  * Returns null if the newsletter has no slug (email-only issue).
  *
  * Processing pipeline:
@@ -72,7 +72,7 @@ function addHeadingIds(html: string): string {
  * 6. Extract thumbnail from original (unstyled-stripped) HTML
  */
 async function renderForWeb(
-  raw: RawNewsletter,
+  raw: RawNewsletterIssue,
   publishedAt: string,
   published: boolean,
   chart?: EmailChartData | null,
@@ -115,7 +115,7 @@ async function renderForWeb(
 export async function getWebNewsletters(): Promise<WebNewsletter[]> {
   const sendDates = await getNewsletterSendDates();
   const isDev = process.env.NODE_ENV === 'development';
-  const all = await loadAllNewsletters();
+  const all = await loadAllNewsletterIssues();
 
   const results: WebNewsletter[] = [];
   for (const [num, raw] of all) {
@@ -152,7 +152,7 @@ export async function getWebNewsletter(
 ): Promise<WebNewsletter | null> {
   const sendDates = await getNewsletterSendDates();
   const isDev = process.env.NODE_ENV === 'development';
-  const all = await loadAllNewsletters();
+  const all = await loadAllNewsletterIssues();
 
   for (const [num, raw] of all) {
     if (raw.slug !== slug) continue;
@@ -185,7 +185,7 @@ export async function getAllSlugs(): Promise<string[]> {
  * Used to issue permanent redirects when visitors hit a renamed URL.
  */
 export async function getSlugRedirects(): Promise<Map<string, string>> {
-  const all = await loadAllNewsletters();
+  const all = await loadAllNewsletterIssues();
   const redirects = new Map<string, string>();
   for (const [, raw] of all) {
     if (!raw.slug) continue;
