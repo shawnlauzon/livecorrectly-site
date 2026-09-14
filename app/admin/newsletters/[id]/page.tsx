@@ -10,9 +10,9 @@ import type { ScheduleStepId, ScheduleEvent } from '@/lib/types/schedule-progres
 const SCHEDULE_STEPS: { id: ScheduleStepId; label: string }[] = [
   { id: 'load', label: 'Loading newsletter content' },
   { id: 'subscribers', label: 'Finding subscribers' },
+  { id: 'contact-properties', label: 'Syncing contact properties' },
   { id: 'templates', label: 'Rendering templates' },
   { id: 'render-broadcast', label: 'Rendering broadcast' },
-  { id: 'contact-properties', label: 'Syncing contact properties' },
   { id: 'segment', label: 'Creating segment' },
   { id: 'segment-contacts', label: 'Adding contacts to segment' },
   { id: 'broadcast', label: 'Creating broadcast' },
