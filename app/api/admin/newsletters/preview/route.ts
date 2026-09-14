@@ -3,6 +3,7 @@ import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { resolveNewsletterHtml } from '@/newsletters/resolve';
+import { renderNewsletterEmail } from '@/emails/newsletter-template';
 
 /**
  * POST /api/admin/newsletters/preview
@@ -26,10 +27,11 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { html, subscriberId, newsletterNumber } = body as {
+  const { html, subscriberId, newsletterNumber, postscripts } = body as {
     html?: string;
     subscriberId?: string;
     newsletterNumber?: number;
+    postscripts?: string[];
   };
 
   if (!html || !subscriberId) {
@@ -57,5 +59,11 @@ export async function POST(request: NextRequest) {
     newsletterNumber: newsletterNumber ?? 0,
   });
 
-  return NextResponse.json({ html: resolved });
+  const chromed = renderNewsletterEmail({
+    bodyHtml: resolved,
+    unsubscribeUrl: '#',
+    ps: postscripts?.filter(Boolean) ?? [],
+  });
+
+  return NextResponse.json({ html: chromed });
 }

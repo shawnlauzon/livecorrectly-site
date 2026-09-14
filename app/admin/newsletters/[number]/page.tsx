@@ -440,7 +440,7 @@ function PreviewPane({
             'Content-Type': 'application/json',
             ...(pwd ? { Authorization: `Bearer ${pwd}` } : {}),
           },
-          body: JSON.stringify({ html, subscriberId: subscriber.id, newsletterNumber: num }),
+          body: JSON.stringify({ html, subscriberId: subscriber.id, newsletterNumber: num, postscripts }),
         });
         if (cancelled) return;
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -453,7 +453,7 @@ function PreviewPane({
     }, 500);
 
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [previewTrigger, selectedId, subscribers, editorRef]);
+  }, [previewTrigger, selectedId, subscribers, editorRef, postscripts, num]);
 
   const subscriberLabel = useCallback((s: Subscriber) => {
     const chart = s.chart?.chart;
@@ -499,7 +499,6 @@ function PreviewPane({
         {previewHtml && (
           <EmailNewsletter
             html={previewHtml}
-            postscripts={postscripts}
             className={styles.previewEmailContainer}
           />
         )}
