@@ -1032,6 +1032,7 @@ function rowToRawNewsletterIssue(row: Record<string, unknown>): RawNewsletterIss
     bodyJson: row.body_json as unknown,
     bodyHtml: row.body_html as string,
     liquidSectionMap: (row.liquid_section_map as LiquidSectionMap | null) ?? null,
+    updatedAt: row.updated_at ? (row.updated_at as Date).toISOString() : new Date().toISOString(),
   };
 }
 
@@ -1117,9 +1118,10 @@ export async function updateNewsletterIssue(
     bodyJson?: unknown;
     bodyHtml?: string;
   },
-): Promise<void> {
+  expectedUpdatedAt?: string,
+): Promise<{ updatedAt: string } | 'conflict'> {
   const db = getDb();
-  await db`
+  const rows = await db`
     UPDATE newsletter_issues SET
       subject = COALESCE(${data.subject ?? null}, subject),
       preview = COALESCE(${data.preview ?? null}, preview),
@@ -1130,7 +1132,11 @@ export async function updateNewsletterIssue(
       body_html = COALESCE(${data.bodyHtml ?? null}, body_html),
       updated_at = now()
     WHERE number = ${num}
+      ${expectedUpdatedAt ? db`AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', ${expectedUpdatedAt}::timestamptz)` : db``}
+    RETURNING updated_at
   `;
+  if (rows.length === 0) return 'conflict';
+  return { updatedAt: (rows[0].updated_at as Date).toISOString() };
 }
 
 // --- Newsletter publication (schedule/cadence) ---

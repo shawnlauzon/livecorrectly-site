@@ -43,6 +43,7 @@ export async function GET(
       postscripts: newsletter.rawPs,
       bodyJson: newsletter.bodyJson,
       bodyHtml: newsletter.bodyHtml,
+      updatedAt: newsletter.updatedAt,
     });
   } catch (error) {
     console.error(`[admin/newsletters/${num}] Error:`, error);
@@ -84,6 +85,7 @@ export async function PUT(
       slug,
       description,
       postscripts,
+      expectedUpdatedAt,
     } = body;
 
     if (!bodyJson || !bodyHtml) {
@@ -93,7 +95,7 @@ export async function PUT(
       );
     }
 
-    await updateNewsletterIssue(num, {
+    const result = await updateNewsletterIssue(num, {
       bodyJson,
       bodyHtml,
       subject,
@@ -101,9 +103,16 @@ export async function PUT(
       slug,
       description,
       postscripts,
-    });
+    }, expectedUpdatedAt);
 
-    return NextResponse.json({ ok: true });
+    if (result === 'conflict') {
+      return NextResponse.json(
+        { error: 'Conflict: newsletter was modified by another session' },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({ ok: true, updatedAt: result.updatedAt });
   } catch (error) {
     console.error(`[admin/newsletters/${num}] PUT error:`, error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

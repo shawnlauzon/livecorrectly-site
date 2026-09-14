@@ -127,6 +127,39 @@
   font-weight: 600;
 }
 
+/* Conflict warning banner */
+.conflictBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  background: var(--coral);
+  color: #fff;
+  border-radius: 6px;
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.conflictReloadButton {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 0.25rem 0.75rem;
+  background: #fff;
+  color: var(--coral);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.conflictReloadButton:hover {
+  background: #f0f0f0;
+}
+
 /* Editor section label */
 .editorLabel {
   font-family: var(--body);
@@ -142,7 +175,7 @@
 .editorWrap {
   border: 1px solid var(--line);
   border-radius: 8px;
-  overflow: clip;
+  overflow: hidden;
   margin-bottom: 1rem;
 }
 

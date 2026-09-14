@@ -31,6 +31,7 @@ interface NewsletterData {
   postscripts: string[];
   bodyJson: unknown | null;
   bodyHtml: string | null;
+  updatedAt: string;
 }
 
 interface EditorHandle {
@@ -186,9 +187,14 @@ function EditorPanel({
   slug,
   description,
   postscripts,
+  dirty,
   setDirty,
   editorRef,
   onEditorUpdate,
+  updatedAt,
+  setUpdatedAt,
+  onConflict,
+  conflicted,
 }: {
   content: Content;
   editorKey: number;
@@ -198,12 +204,20 @@ function EditorPanel({
   slug: string;
   description: string;
   postscripts: string[];
+  dirty: boolean;
   setDirty: (d: boolean) => void;
   editorRef: React.RefObject<EditorHandle | null>;
   onEditorUpdate: () => void;
+  updatedAt: string | null;
+  setUpdatedAt: (ts: string) => void;
+  onConflict: () => void;
+  conflicted: boolean;
 }) {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const savingRef = useRef(false);
+  const conflictedRef = useRef(conflicted);
+  useEffect(() => { conflictedRef.current = conflicted; }, [conflicted]);
 
   const handleUploadImage = useCallback(async (file: File) => {
     const pwd = getPassword();
@@ -256,11 +270,13 @@ function EditorPanel({
     BraceShortcuts,
   ], [imageExtension]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!editorRef.current) return;
     const pwd = getPassword();
     if (!pwd) return;
+    if (savingRef.current) return;
 
+    savingRef.current = true;
     setSaving(true);
     setSaveMessage(null);
 
@@ -283,26 +299,78 @@ function EditorPanel({
           slug: slug || null,
           description: description || undefined,
           postscripts,
+          expectedUpdatedAt: updatedAt,
         }),
       });
+
+      if (res.status === 409) {
+        onConflict();
+        return;
+      }
 
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.error || `HTTP ${res.status}`);
       }
 
-      setSaveMessage('Saved');
+      const resData = await res.json();
+      if (resData.updatedAt) {
+        setUpdatedAt(resData.updatedAt);
+      }
+
+      const time = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      setSaveMessage(`Saved at ${time}`);
       setDirty(false);
-      setTimeout(() => setSaveMessage(null), 3000);
     } catch (err) {
       setSaveMessage(`Error: ${err instanceof Error ? err.message : 'Unknown'}`);
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
-  };
+  }, [editorRef, num, subject, preview, slug, description, postscripts, setDirty, updatedAt, setUpdatedAt, onConflict]);
+
+  // Auto-save every 30 seconds when dirty
+  const dirtyRef = useRef(dirty);
+  useEffect(() => { dirtyRef.current = dirty; }, [dirty]);
+  const handleSaveRef = useRef(handleSave);
+  useEffect(() => { handleSaveRef.current = handleSave; }, [handleSave]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (dirtyRef.current && !savingRef.current && !conflictedRef.current) {
+        void handleSaveRef.current();
+      }
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Ctrl+S / Cmd+S keyboard shortcut
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        void handleSaveRef.current();
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
 
   return (
     <>
+      {/* Conflict warning banner */}
+      {conflicted && (
+        <div className={styles.conflictBanner}>
+          <span>This newsletter was saved in another window. Reload to get the latest version, or save again to overwrite.</span>
+          <button
+            onClick={() => window.location.reload()}
+            className={styles.conflictReloadButton}
+          >
+            Reload
+          </button>
+        </div>
+      )}
+
       {/* Save bar */}
       <div className={styles.saveBar}>
         {saveMessage && (
@@ -521,7 +589,9 @@ export default function NewsletterEditorPage() {
   const [data, setData] = useState<NewsletterData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [_dirty, setDirty] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  const [conflicted, setConflicted] = useState(false);
 
   // Metadata fields
   const [subject, setSubject] = useState('');
@@ -567,6 +637,7 @@ export default function NewsletterEditorPage() {
       setSlug(json.slug ?? '');
       setDescription(json.description);
       setPostscripts(json.postscripts ?? []);
+      setUpdatedAt(json.updatedAt);
 
       if (json.bodyJson) {
         setEditorContent(json.bodyJson as Content);
@@ -623,14 +694,11 @@ export default function NewsletterEditorPage() {
       <Toaster position="top-center" richColors />
       <div className={styles.pageHeader}>
         <div>
-          <h1 className={adminStyles.title}>Newsletter #{num}</h1>
+          <h1 className={adminStyles.title}>Newsletter {params.id} — Issue {num}</h1>
           <p className={adminStyles.subtitle}>
             <NextLink href={`/admin/newsletters/${params.id}`} style={{ color: 'var(--grape)' }}>
               Back to newsletters
             </NextLink>
-            {data?.bodyJson != null && (
-              <span className={styles.badge}>Saved</span>
-            )}
           </p>
         </div>
       </div>
@@ -692,9 +760,14 @@ export default function NewsletterEditorPage() {
               slug={slug}
               description={description}
               postscripts={postscripts}
+              dirty={dirty}
               setDirty={setDirty}
               editorRef={editorRef}
               onEditorUpdate={handleEditorUpdate}
+              updatedAt={updatedAt}
+              setUpdatedAt={setUpdatedAt}
+              onConflict={() => setConflicted(true)}
+              conflicted={conflicted}
             />
           )}
 

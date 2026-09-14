@@ -23,6 +23,8 @@ export interface RawNewsletterIssue {
   bodyHtml: string;
   /** Stable key assignments for Liquid dynamic sections (null if no Liquid) */
   liquidSectionMap: LiquidSectionMap | null;
+  /** Last-modified timestamp (ISO 8601) for optimistic locking */
+  updatedAt: string;
 }
 
 /**
