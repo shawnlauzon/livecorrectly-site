@@ -420,6 +420,9 @@ export function extractDynamicSections(
 ): ExtractionResult {
   // Unwrap <span> wrappers added by TipTap before regex matching
   const unwrapped = unwrapLiquidSpans(html);
+  // Decode HTML entities inside Liquid delimiters (e.g. &#x27; → ')
+  // so that parseFilterChain sees real quotes, not encoded ones.
+  const decoded = decodeLiquidEntities(unwrapped);
 
   const nlPrefix = `n${newsletterId}_${String(newsletterNumber).padStart(2, '0')}`;
   const sections: DynamicSection[] = [];
@@ -430,7 +433,7 @@ export function extractDynamicSections(
   let conditionalIndex = 0;
 
   // Pass 1: Extract {% if %} conditional blocks
-  const afterConditionals = unwrapped.replace(LIQUID_BLOCK_RE, (match) => {
+  const afterConditionals = decoded.replace(LIQUID_BLOCK_RE, (match) => {
     let propertyKey: string;
 
     if (conditionalIndex < oldKeys.length) {
