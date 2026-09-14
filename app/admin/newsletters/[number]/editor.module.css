@@ -142,7 +142,7 @@
 .editorWrap {
   border: 1px solid var(--line);
   border-radius: 8px;
-  overflow: hidden;
+  overflow: clip;
   margin-bottom: 1rem;
 }
 
