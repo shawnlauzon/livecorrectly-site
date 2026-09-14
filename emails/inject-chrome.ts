@@ -107,5 +107,20 @@ export function injectEmailChrome(
     `<$1$2style="font-family:'Fraunces',Georgia,serif;$3"`,
   );
 
+  // Tighten list spacing: override the basic theme defaults (1em after lists,
+  // 0.3em top+bottom on list items) for a more compact layout.
+  result = result.replaceAll(
+    /(<li\b[^>]*style="[^"]*?)padding-top:\s*0\.3em/gi,
+    '$1padding-top:0.1em',
+  );
+  result = result.replaceAll(
+    /(<li\b[^>]*style="[^"]*?)padding-bottom:\s*0\.3em/gi,
+    '$1padding-bottom:0.1em',
+  );
+  result = result.replaceAll(
+    /(<[uo]l\b[^>]*style="[^"]*?)padding-bottom:\s*1em/gi,
+    '$1margin-top:-0.5em;padding-bottom:0.25em',
+  );
+
   return result;
 }

@@ -260,6 +260,8 @@ function EditorPanel({
         h1: { fontFamily: "'Fraunces', Georgia, serif" },
         h2: { fontFamily: "'Fraunces', Georgia, serif" },
         h3: { fontFamily: "'Fraunces', Georgia, serif" },
+        list: { paddingBottom: '0.25em' },
+        listItem: { paddingTop: '0.1em', paddingBottom: '0.1em' },
       }),
     }),
     imageExtension,
