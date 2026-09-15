@@ -95,17 +95,22 @@ export async function GET(request: NextRequest) {
       // Sent: all subscribers (any status) who have progressed past this newsletter
       const sentCount = allSubscribers.filter(s => s.next_step > num).length;
 
-      // Project readiness based on whether persistent segments exist.
-      // When segments exist, they define the audience — next_step projection
-      // doesn't apply. The segment name (attached via the `segments` array) is
-      // the meaningful indicator, not a subscriber count projection.
+      // Project readiness per-newsletter: skip projection only when THIS
+      // newsletter is cancelled or has a segment pointing at it. All other
+      // newsletters keep their weeksUntilReady projection.
+      const isCancelled = schedule?.status === 'cancelled';
+      const hasSegment = allSegments.some(s => s.nextIssue === num);
+
       let nextWeekSubs: typeof activeSubscribers = [];
       let nextWeekCount = 0;
       let laterSubs: typeof activeSubscribers = [];
       let laterCount = 0;
 
-      if (allSegments.length === 0) {
-        // No persistent segments — fall back to next_step projection
+      if (isCancelled || hasSegment) {
+        // Cancelled — no subscribers to show.
+        // Has segment — audience is managed in Resend; the frontend fetches
+        // contacts on demand via /api/admin/newsletters/segment/contacts.
+      } else {
         nextWeekSubs = activeSubscribers.filter(
           s => s.next_step <= num && weeksUntilReady(s.next_step, num) === 1,
         );

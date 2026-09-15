@@ -220,6 +220,10 @@ export default function AdminNewsletterDetailPage() {
   const [creatingSegment, setCreatingSegment] = useState<number | null>(null);
   const [deletingSegment, setDeletingSegment] = useState<number | null>(null);
 
+  // Segment contacts (lazy-loaded from Resend)
+  const [segmentContacts, setSegmentContacts] = useState<Record<number, { email: string; firstName: string; lastName: string | null }[]>>({});
+  const [loadingSegmentContacts, setLoadingSegmentContacts] = useState<number | null>(null);
+
   // Cadence controls (initialized from server settings)
   const [nextSendAt, setNextSendAt] = useState<string>('');
   const [intervalDays, setIntervalDays] = useState<number>(7);
@@ -609,6 +613,32 @@ export default function AdminNewsletterDetailPage() {
       );
     } finally {
       setDeletingSegment(null);
+    }
+  };
+
+  const fetchSegmentContacts = async (segId: number) => {
+    const pwd = getPassword();
+    if (!pwd) return;
+
+    // Skip if already loaded
+    if (segmentContacts[segId]) return;
+
+    setLoadingSegmentContacts(segId);
+    try {
+      const res = await fetch(`/api/admin/newsletters/segment/contacts?segmentId=${segId}`, {
+        headers: { Authorization: `Bearer ${pwd}` },
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setActionMessage(`Error: ${data.error}`);
+        return;
+      }
+      const data = await res.json();
+      setSegmentContacts(prev => ({ ...prev, [segId]: data.contacts }));
+    } catch (err) {
+      setActionMessage(`Error: ${err instanceof Error ? err.message : 'Unknown'}`);
+    } finally {
+      setLoadingSegmentContacts(null);
     }
   };
 
@@ -1085,8 +1115,12 @@ export default function AdminNewsletterDetailPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setExpandedReady(expandedReady === nl.number ? null : nl.number);
+                      const expanding = expandedReady !== nl.number;
+                      setExpandedReady(expanding ? nl.number : null);
                       setExpandedLater(null);
+                      if (expanding) {
+                        fetchSegmentContacts(nl.segments[0].id);
+                      }
                     }}
                     style={{
                       background: 'none',
@@ -1366,18 +1400,18 @@ export default function AdminNewsletterDetailPage() {
                             setScheduleMode('choose');
                             setActionMessage(null);
                           }}
-                          disabled={nl.nextWeekCount === 0}
-                          title={nl.nextWeekCount === 0 ? 'No subscribers ready for this issue' : undefined}
+                          disabled={nl.nextWeekCount === 0 && nl.segments.length === 0}
+                          title={nl.nextWeekCount === 0 && nl.segments.length === 0 ? 'No subscribers ready for this issue' : undefined}
                           style={{
                             fontFamily: 'var(--body)',
                             fontSize: '0.75rem',
                             fontWeight: 600,
                             padding: '4px 12px',
-                            background: nl.nextWeekCount === 0 ? 'var(--line)' : 'var(--grape)',
-                            color: nl.nextWeekCount === 0 ? 'var(--muted)' : '#fff',
+                            background: nl.nextWeekCount === 0 && nl.segments.length === 0 ? 'var(--line)' : 'var(--grape)',
+                            color: nl.nextWeekCount === 0 && nl.segments.length === 0 ? 'var(--muted)' : '#fff',
                             border: 'none',
                             borderRadius: '4px',
-                            cursor: nl.nextWeekCount === 0 ? 'default' : 'pointer',
+                            cursor: nl.nextWeekCount === 0 && nl.segments.length === 0 ? 'default' : 'pointer',
                           }}
                         >
                           Schedule
@@ -1411,13 +1445,163 @@ export default function AdminNewsletterDetailPage() {
                 </div>
               </td>
             </tr>
-            {expandedReady === nl.number && (nl.nextWeekSubscribers.length > 0 || nl.segments.length > 0) &&
+            {expandedReady === nl.number && nl.segments.length > 0 && (
+              <tr>
+                <td colSpan={8} style={{ padding: 0 }}>
+                  <div
+                    style={{
+                      background: 'var(--paper)',
+                      padding: '0.5rem 1rem',
+                      borderBottom: '1px solid var(--line)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '0.375rem',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontFamily: 'var(--body)',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          color: 'var(--muted)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
+                        }}
+                      >
+                        Segment contacts
+                        {segmentContacts[nl.segments[0].id] && (
+                          <span style={{ textTransform: 'none', fontWeight: 400 }}>
+                            {' '}({segmentContacts[nl.segments[0].id].length})
+                          </span>
+                        )}
+                      </span>
+                      <button
+                        onClick={() => setExpandedReady(null)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--muted)',
+                          fontSize: '0.75rem',
+                          padding: '2px 4px',
+                        }}
+                      >
+                        Close
+                      </button>
+                    </div>
+                    {loadingSegmentContacts === nl.segments[0].id ? (
+                      <div style={{ fontFamily: 'var(--body)', fontSize: '0.8125rem', color: 'var(--muted)', padding: '0.25rem 0' }}>
+                        Loading contacts from Resend...
+                      </div>
+                    ) : segmentContacts[nl.segments[0].id]?.length === 0 ? (
+                      <div style={{ fontFamily: 'var(--body)', fontSize: '0.8125rem', color: 'var(--muted)', padding: '0.25rem 0' }}>
+                        No contacts in segment
+                      </div>
+                    ) : segmentContacts[nl.segments[0].id] ? (
+                      <table
+                        style={{
+                          width: '100%',
+                          borderCollapse: 'collapse',
+                          fontFamily: 'var(--body)',
+                          fontSize: '0.8125rem',
+                        }}
+                      >
+                        <tbody>
+                          {segmentContacts[nl.segments[0].id].map((contact) => (
+                            <tr key={contact.email}>
+                              <td
+                                style={{
+                                  padding: '0.25rem 0.5rem',
+                                  color: 'var(--ink)',
+                                  fontWeight: 500,
+                                }}
+                              >
+                                {contact.firstName}
+                                {contact.lastName ? ` ${contact.lastName}` : ''}
+                              </td>
+                              <td
+                                style={{
+                                  padding: '0.25rem 0.5rem',
+                                  color: 'var(--muted)',
+                                }}
+                              >
+                                {contact.email}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : null}
+
+                    {/* Existing segments for this issue */}
+                    <div
+                      style={{
+                        marginTop: '0.5rem',
+                        paddingTop: '0.5rem',
+                        borderTop: '1px solid var(--line)',
+                      }}
+                    >
+                      {nl.segments.map(seg => (
+                        <div
+                          key={seg.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            marginBottom: '0.25rem',
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: '0.6875rem',
+                              fontWeight: 600,
+                              padding: '2px 8px',
+                              borderRadius: '3px',
+                              background: '#EDE9FE',
+                              color: 'var(--grape)',
+                            }}
+                          >
+                            {seg.name}
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteSegment(seg.id);
+                            }}
+                            disabled={deletingSegment === seg.id}
+                            style={{
+                              fontFamily: 'var(--body)',
+                              fontSize: '0.6875rem',
+                              fontWeight: 600,
+                              padding: '2px 8px',
+                              background: 'none',
+                              border: '1px solid var(--coral)',
+                              borderRadius: '4px',
+                              cursor: deletingSegment === seg.id ? 'wait' : 'pointer',
+                              color: 'var(--coral)',
+                              opacity: deletingSegment === seg.id ? 0.5 : 1,
+                            }}
+                          >
+                            {deletingSegment === seg.id ? 'Deleting...' : 'Delete segment'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            )}
+            {expandedReady === nl.number && nl.segments.length === 0 && nl.nextWeekSubscribers.length > 0 &&
               renderSubscriberList(
                 'Next subscribers',
                 nl.nextWeekSubscribers,
                 () => setExpandedReady(null),
                 nl,
-                { hideCreateForm: nl.segments.length > 0 },
               )
             }
             {expandedLater === nl.number && nl.laterSubscribers.length > 0 &&
