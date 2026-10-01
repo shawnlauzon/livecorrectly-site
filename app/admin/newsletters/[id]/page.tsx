@@ -1110,7 +1110,7 @@ export default function AdminNewsletterDetailPage() {
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '0.75rem' }}>
         <button
           onClick={handleCreateIssue}
           disabled={actionLoading}
@@ -1141,7 +1141,7 @@ export default function AdminNewsletterDetailPage() {
             <th style={{ width: '5.5rem', textAlign: 'center' }}>Future</th>
             <th style={{ width: '6rem', textAlign: 'center' }}>Status</th>
             <th style={{ width: '10rem' }}>Send date</th>
-            <th style={{ width: '13rem' }}>Actions</th>
+            <th style={{ width: '18rem' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -1526,47 +1526,43 @@ export default function AdminNewsletterDetailPage() {
                   {/* Delete — only for issues never sent or scheduled */}
                   {nl.sentCount === 0 && !nl.schedule && (
                     confirmDelete === nl.number ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <span style={{ fontFamily: 'var(--body)', fontSize: '0.75rem', color: 'var(--ink)' }}>
-                          Delete #{nl.number}? Later drafts will be renumbered.
-                        </span>
-                        <div style={{ display: 'flex', gap: '0.375rem' }}>
-                          <button
-                            onClick={() => handleDeleteIssue(nl.number)}
-                            disabled={actionLoading}
-                            style={{
-                              fontFamily: 'var(--body)',
-                              fontSize: '0.75rem',
-                              fontWeight: 600,
-                              padding: '4px 12px',
-                              background: 'var(--coral)',
-                              color: '#fff',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: actionLoading ? 'wait' : 'pointer',
-                              opacity: actionLoading ? 0.6 : 1,
-                            }}
-                          >
-                            Delete
-                          </button>
-                          <button
-                            onClick={() => setConfirmDelete(null)}
-                            style={{
-                              fontFamily: 'var(--body)',
-                              fontSize: '0.75rem',
-                              fontWeight: 600,
-                              padding: '4px 12px',
-                              background: 'none',
-                              color: 'var(--muted)',
-                              border: '1px solid var(--line)',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
+                      <>
+                      <button
+                        onClick={() => handleDeleteIssue(nl.number)}
+                        title={`Delete #${nl.number}? Later drafts will be renumbered.`}
+                        disabled={actionLoading}
+                        style={{
+                          fontFamily: 'var(--body)',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          padding: '4px 12px',
+                          background: 'var(--coral)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: actionLoading ? 'wait' : 'pointer',
+                          opacity: actionLoading ? 0.6 : 1,
+                        }}
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(null)}
+                        style={{
+                          fontFamily: 'var(--body)',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          padding: '4px 12px',
+                          background: 'none',
+                          color: 'var(--muted)',
+                          border: '1px solid var(--line)',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      </>
                     ) : (
                       <button
                         onClick={() => setConfirmDelete(nl.number)}
