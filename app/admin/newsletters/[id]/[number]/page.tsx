@@ -19,6 +19,7 @@ import styles from './editor.module.css';
 import adminStyles from '../../../admin.module.css';
 import { VariableNode, VariableEditForm, VARIABLE } from './variable-node';
 import { ConditionalBlockNode, ConditionalBranchNode, ConditionalKeymap, IF_THEN_ELSE, DEFAULT_CONDITION } from './conditional-node';
+import hdChart from '@/lib/hd-chart';
 import { types, innerAuthorityTypes, definitions } from '@/lib/hd-chart/constants';
 import type { Subscriber } from '@/lib/types/subscriber';
 import { Bodygraph } from '@/components/bodygraph/bodygraph';
@@ -448,10 +449,16 @@ function EditorPanel({
 
 /** Short dropdown labels, keyed by the `definitions` constant ('none' is omitted). */
 const DEFINITION_LABELS: Record<string, string> = {
-  single: 'single def',
-  split: 'simple split',
-  'triple split': 'triple-split',
-  'quadruple split': 'quad split',
+  single: 'Single Definition',
+  split: 'Simple Split',
+  'triple split': 'Triple-Split',
+  'quadruple split': 'Quad Split',
+};
+
+/** Labels for wide splits, keyed by hdChart().splitType() codes. */
+const SPLIT_WIDTH_LABELS: Record<string, string> = {
+  '2W': 'Wide Split',
+  '2VW': 'Very Wide Split',
 };
 
 /** Format a subscriber's profile number (e.g. 46 → "4/6"). */
@@ -567,9 +574,11 @@ function PreviewPane({
       // Reflector has no authority qualifier; Projector with no authority is "Mental"
       authority = hdType === 'Reflector' ? '' : 'Mental';
     }
-    const definition = DEFINITION_LABELS[definitions[chart.definition]] ?? '';
+    const definition =
+      SPLIT_WIDTH_LABELS[hdChart(chart).splitType()]
+      ?? DEFINITION_LABELS[definitions[chart.definition]] ?? '';
     const design = [profile, authority, hdType].filter(Boolean).join(' ');
-    return `${name} — ${[design, definition].filter(Boolean).join(', ')}`;
+    return `${name} — ${design}${definition ? ` (${definition})` : ''}`;
   }, []);
 
   return (
