@@ -869,7 +869,7 @@ export interface NewsletterSchedule {
   resend_email_ids: string[] | null;
   scheduled_at: string;
   subscriber_count: number;
-  status: string; // 'scheduled' | 'sent' | 'cancelled'
+  status: 'scheduled' | 'sent';
   created_at: string;
 }
 
@@ -929,57 +929,73 @@ export async function getScheduleForNewsletter(newsletterNum: number): Promise<N
 }
 
 /**
- * Update the status of a newsletter schedule.
+ * Delete a schedule row. Unscheduling removes the schedule entirely — there is
+ * no 'cancelled' status.
  */
-export async function updateScheduleStatus(
-  id: number,
-  status: string,
-): Promise<void> {
+export async function deleteNewsletterSchedule(id: number): Promise<void> {
   const db = getDb();
   await db`
-    UPDATE newsletter_schedules
-    SET status = ${status}
+    DELETE FROM newsletter_schedules
     WHERE id = ${id}
   `;
 }
 
-/**
- * Get subscriber IDs that were included in a specific newsletter broadcast.
- * Used for rollback when cancelling a scheduled newsletter.
- */
-export async function getSubscribersForNewsletterSchedule(
-  newsletterNum: number,
-  broadcastId: string,
-): Promise<string[]> {
-  const db = getDb();
-  const rows = await db`
-    SELECT subscriber_id FROM email_sends
-    WHERE email_type = ${'newsletter_' + newsletterNum}
-      AND resend_broadcast_id = ${broadcastId}
-  `;
-  return rows.map(r => r.subscriber_id as string);
+/** Per-issue delivery stats for the admin newsletter list. */
+export interface NewsletterReceivedStats {
+  /** Distinct subscribers sent the issue (sends still pending are excluded) */
+  receivedCount: number;
+  /** Most recent completed send, ISO timestamp */
+  lastSentAt: string | null;
 }
 
 /**
- * Roll back next_step for subscribers that were advanced for a cancelled broadcast.
- * Decrements next_step by 1 for all subscribers in the list.
+ * Received count and last-sent date per newsletter issue.
+ *
+ * email_sends rows are recorded when a send is scheduled, so rows belonging to
+ * a still-'scheduled' schedule are excluded. Last sent prefers the scheduled_at
+ * of 'sent' schedules (the real send time); older sends that predate
+ * newsletter_schedules fall back to email_sends.sent_at.
  */
-export async function rollBackNewsletterAdvancement(
-  subscriberIds: string[],
-  newsletterNum: number,
-): Promise<number> {
-  if (subscriberIds.length === 0) return 0;
+export async function getNewsletterReceivedStats(): Promise<Map<number, NewsletterReceivedStats>> {
   const db = getDb();
-  // Only roll back if their current next_step is newsletterNum + 1
-  // (they haven't been advanced further by another send)
-  const result = await db`
-    UPDATE subscribers
-    SET next_step = ${newsletterNum}
-    WHERE id = ANY(${subscriberIds})
-      AND next_step = ${newsletterNum + 1}
-    RETURNING id
+  const rows = await db`
+    WITH delivered AS (
+      SELECT e.email_type, e.subscriber_id, e.sent_at
+      FROM email_sends e
+      WHERE e.category = 'newsletter'
+        AND NOT EXISTS (
+          SELECT 1 FROM newsletter_schedules s
+          WHERE s.status = 'scheduled'
+            AND (s.broadcast_id = e.resend_broadcast_id
+                 OR e.resend_email_id = ANY(s.resend_email_ids))
+        )
+    ),
+    by_issue AS (
+      SELECT substring(email_type FROM 12)::int AS num,  -- after 'newsletter_'
+             COUNT(DISTINCT subscriber_id) AS received,
+             MAX(sent_at) AS last_recorded
+      FROM delivered
+      WHERE email_type ~ '^newsletter_[0-9]+$'
+      GROUP BY 1
+    ),
+    sent_schedules AS (
+      SELECT newsletter_num AS num, MAX(scheduled_at) AS last_sent
+      FROM newsletter_schedules
+      WHERE status = 'sent'
+      GROUP BY 1
+    )
+    SELECT b.num, b.received, COALESCE(ss.last_sent, b.last_recorded) AS last_sent_at
+    FROM by_issue b
+    LEFT JOIN sent_schedules ss ON ss.num = b.num
   `;
-  return result.length;
+  const map = new Map<number, NewsletterReceivedStats>();
+  for (const row of rows) {
+    map.set(row.num as number, {
+      receivedCount: Number(row.received),
+      lastSentAt: row.last_sent_at ? (row.last_sent_at as Date).toISOString() : null,
+    });
+  }
+  return map;
 }
 
 /**
@@ -1049,7 +1065,7 @@ export async function finalizeNewsletterSchedule(
 }
 
 /**
- * Delete email_sends records for a cancelled broadcast.
+ * Delete email_sends records for an unscheduled broadcast.
  */
 export async function deleteEmailSendsForBroadcast(
   broadcastId: string,
@@ -1062,7 +1078,7 @@ export async function deleteEmailSendsForBroadcast(
 }
 
 /**
- * Delete email_sends records for cancelled direct newsletter emails.
+ * Delete email_sends records for unscheduled direct newsletter emails.
  */
 export async function deleteEmailSendsForResendEmails(
   resendEmailIds: string[],

@@ -98,15 +98,3 @@ export function nextRegularSendAt(cadence: WeeklyCadence, now: Date = new Date()
   return null;
 }
 
-/** The regular send time `weeks` weeks after the next one (same wall-clock time). */
-export function regularSendAtWeeksOut(
-  cadence: WeeklyCadence,
-  weeks: number,
-  now: Date = new Date(),
-): Date | null {
-  const first = nextRegularSendAt(cadence, now);
-  if (!first || weeks === 0) return first;
-  const p = zonedParts(new Date(first.getTime() + weeks * 7 * 24 * 60 * 60 * 1000), cadence.timezone);
-  const firstParts = zonedParts(first, cadence.timezone);
-  return zonedTimeToUtc(p.year, p.month, p.day, firstParts.hour, firstParts.minute, cadence.timezone);
-}

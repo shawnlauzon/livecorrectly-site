@@ -43,8 +43,6 @@ interface NewsletterSchedule {
   broadcastId: string | null;
   scheduledAt: string;
   subscriberCount: number;
-  status: string;
-  createdAt: string;
 }
 
 interface ReadySubscriber {
@@ -65,17 +63,15 @@ interface NewsletterInfo {
   subject: string;
   slug: string | null;
 
-  sentCount: number;
-  nextWeekCount: number;
-  /** Subscribers whose next_step is this issue right now */
-  dueNowCount: number;
-  /** True when no segment exists and too few are due for one — sent as individual emails */
-  directSend: boolean;
-  laterCount: number;
-  projectedSendAt: string | null;
-  nextWeekSubscribers: ReadySubscriber[];
-  laterSubscribers: ReadySubscriber[];
+  /** People actually sent this issue */
+  receivedCount: number;
+  /** Most recent completed send */
+  lastSentAt: string | null;
+  /** Who Schedule would send to now: active subscribers whose next_step is this issue */
+  dueCount: number;
+  dueSubscribers: ReadySubscriber[];
   segments: SegmentInfo[];
+  /** The pending send, if one is scheduled */
   schedule: NewsletterSchedule | null;
 }
 
@@ -203,7 +199,6 @@ export default function AdminNewsletterDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [expandedReady, setExpandedReady] = useState<number | null>(null);
-  const [expandedLater, setExpandedLater] = useState<number | null>(null);
   const [confirmSchedule, setConfirmSchedule] = useState<number | null>(null);
   const [scheduleMode, setScheduleMode] = useState<'choose' | 'custom'>('choose');
   const [customSendAt, setCustomSendAt] = useState<string>('');
@@ -450,7 +445,7 @@ export default function AdminNewsletterDetailPage() {
     const pwd = getPassword();
     if (!pwd) return;
 
-    if (!confirm(`Cancel newsletter #${newsletterNumber}?`)) {
+    if (!confirm(`Unschedule newsletter #${newsletterNumber}?`)) {
       return;
     }
 
@@ -473,7 +468,7 @@ export default function AdminNewsletterDetailPage() {
         return;
       }
 
-      setActionMessage('Newsletter cancelled.');
+      setActionMessage(`Newsletter #${newsletterNumber} unscheduled.`);
       await fetchNewsletters();
     } catch (err) {
       setActionMessage(
@@ -728,7 +723,7 @@ export default function AdminNewsletterDetailPage() {
   ) {
     return (
       <tr>
-        <td colSpan={8} style={{ padding: 0 }}>
+        <td colSpan={7} style={{ padding: 0 }}>
           <div
             style={{
               background: 'var(--paper)',
@@ -939,14 +934,6 @@ export default function AdminNewsletterDetailPage() {
     );
   }
 
-  /** Get the effective send date for a newsletter (actual schedule or server-projected). */
-  const getSendDate = useCallback((nl: NewsletterInfo): string | null => {
-    if (nl.schedule?.status === 'scheduled' || nl.schedule?.status === 'sent') {
-      return nl.schedule.scheduledAt;
-    }
-    return nl.projectedSendAt;
-  }, []);
-
   if (loading) {
     return (
       <div className={styles.container}>
@@ -1153,11 +1140,10 @@ export default function AdminNewsletterDetailPage() {
           <tr>
             <th style={{ width: '3rem', textAlign: 'center' }}>#</th>
             <th>Subject</th>
-            <th style={{ width: '4.5rem', textAlign: 'center' }}>Sent</th>
+            <th style={{ width: '5.5rem', textAlign: 'center' }}>Received</th>
             <th style={{ textAlign: 'center' }}>Next</th>
-            <th style={{ width: '5.5rem', textAlign: 'center' }}>Future</th>
-            <th style={{ width: '6rem', textAlign: 'center' }}>Status</th>
-            <th style={{ width: '10rem' }}>Send date</th>
+            <th style={{ width: '13rem', textAlign: 'center' }}>Status</th>
+            <th style={{ width: '10rem' }}>Last sent</th>
             <th style={{ width: '18rem' }}>Actions</th>
           </tr>
         </thead>
@@ -1166,12 +1152,11 @@ export default function AdminNewsletterDetailPage() {
             <React.Fragment key={nl.number}>
             <tr
               style={{
-                cursor: expandedReady === nl.number || expandedLater === nl.number ? 'pointer' : 'default',
+                cursor: expandedReady === nl.number ? 'pointer' : 'default',
                 verticalAlign: 'top',
               }}
               onClick={() => {
                 if (expandedReady === nl.number) setExpandedReady(null);
-                if (expandedLater === nl.number) setExpandedLater(null);
               }}
             >
               <td style={{ textAlign: 'center', fontWeight: 600 }}>
@@ -1200,9 +1185,9 @@ export default function AdminNewsletterDetailPage() {
                 </Link>
               </td>
               <td style={{ textAlign: 'center' }}>
-                {nl.sentCount > 0 ? (
+                {nl.receivedCount > 0 ? (
                   <span style={{ color: '#1a7a3a', fontWeight: 600 }}>
-                    {nl.sentCount}
+                    {nl.receivedCount}
                   </span>
                 ) : (
                   <span style={{ color: 'var(--muted)' }}>0</span>
@@ -1215,7 +1200,6 @@ export default function AdminNewsletterDetailPage() {
                       e.stopPropagation();
                       const expanding = expandedReady !== nl.number;
                       setExpandedReady(expanding ? nl.number : null);
-                      setExpandedLater(null);
                       if (expanding) {
                         fetchSegmentContacts(nl.segments[0].id);
                       }
@@ -1233,43 +1217,20 @@ export default function AdminNewsletterDetailPage() {
                       padding: 0,
                       whiteSpace: 'nowrap',
                     }}
-                    title={`${nl.segments[0].name} (${nl.nextWeekCount})`}
+                    title={`${nl.segments[0].name}: ${nl.dueCount} due for #${nl.number}`}
                   >
-                    {nl.segments[0].name}
+                    {nl.segments[0].name} ({nl.dueCount})
                   </button>
                 ) : (
-                  <>
-                    {renderSubscriberCount(
-                      nl.nextWeekCount,
-                      expandedReady === nl.number,
-                      () => {
-                        setExpandedReady(expandedReady === nl.number ? null : nl.number);
-                        setExpandedLater(null);
-                      },
-                    )}
-                    {nl.directSend && (
-                      <div
-                        style={{ fontFamily: 'var(--body)', fontSize: '0.6875rem', color: 'var(--muted)' }}
-                        title="Fewer than 10 due and no segment: scheduling sends individual emails"
-                      >
-                        direct
-                      </div>
-                    )}
-                  </>
+                  renderSubscriberCount(
+                    nl.dueCount,
+                    expandedReady === nl.number,
+                    () => setExpandedReady(expandedReady === nl.number ? null : nl.number),
+                  )
                 )}
               </td>
               <td style={{ textAlign: 'center' }}>
-                {renderSubscriberCount(
-                  nl.laterCount,
-                  expandedLater === nl.number,
-                  () => {
-                    setExpandedLater(expandedLater === nl.number ? null : nl.number);
-                    setExpandedReady(null);
-                  },
-                )}
-              </td>
-              <td style={{ textAlign: 'center' }}>
-                {nl.schedule?.status === 'scheduled' ? (
+                {nl.schedule ? (
                   <span
                     style={{
                       fontSize: '0.6875rem',
@@ -1278,11 +1239,12 @@ export default function AdminNewsletterDetailPage() {
                       borderRadius: '3px',
                       background: '#E6F9ED',
                       color: '#1a7a3a',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    Scheduled
+                    Scheduled · {formatDateTime(nl.schedule.scheduledAt, timezone)}
                   </span>
-                ) : nl.schedule?.status === 'sent' ? (
+                ) : (
                   <span
                     style={{
                       fontSize: '0.6875rem',
@@ -1293,20 +1255,7 @@ export default function AdminNewsletterDetailPage() {
                       color: 'var(--muted)',
                     }}
                   >
-                    Sent
-                  </span>
-                ) : (
-                  <span
-                    style={{
-                      fontSize: '0.6875rem',
-                      fontWeight: 600,
-                      padding: '2px 8px',
-                      borderRadius: '3px',
-                      background: '#FFF5F5',
-                      color: 'var(--coral)',
-                    }}
-                  >
-                    Unscheduled
+                    Not scheduled
                   </span>
                 )}
               </td>
@@ -1318,9 +1267,7 @@ export default function AdminNewsletterDetailPage() {
                     color: 'var(--muted)',
                   }}
                 >
-                  {(nl.schedule?.status === 'scheduled' || nl.schedule?.status === 'sent') && getSendDate(nl)
-                    ? formatDateTime(getSendDate(nl)!, timezone)
-                    : '—'}
+                  {nl.lastSentAt ? formatDateTime(nl.lastSentAt, timezone) : '—'}
                 </span>
               </td>
               <td>
@@ -1349,7 +1296,7 @@ export default function AdminNewsletterDetailPage() {
                   </button>
 
                   {/* Schedule button — show if not currently scheduled; disabled when no subscribers ready */}
-                  {nl.schedule?.status !== 'scheduled' && (
+                  {!nl.schedule && (
                     <>
                       {confirmSchedule === nl.number ? (
                         <div
@@ -1366,8 +1313,7 @@ export default function AdminNewsletterDetailPage() {
                               color: 'var(--muted)',
                             }}
                           >
-                            {nl.nextWeekCount} subscriber{nl.nextWeekCount === 1 ? '' : 's'}
-                            {nl.directSend && ' \u2014 sent as individual emails (no segment)'}
+                            {nl.dueCount} subscriber{nl.dueCount === 1 ? '' : 's'}
                             {nl.segments.length > 1 && ` \u2014 ${nl.segments.length} segments will be merged`}
                           </div>
 
@@ -1510,18 +1456,18 @@ export default function AdminNewsletterDetailPage() {
                             setScheduleMode('choose');
                             setActionMessage(null);
                           }}
-                          disabled={nl.nextWeekCount === 0 && nl.segments.length === 0}
-                          title={nl.nextWeekCount === 0 && nl.segments.length === 0 ? 'No subscribers ready for this issue' : undefined}
+                          disabled={nl.dueCount === 0}
+                          title={nl.dueCount === 0 ? 'No subscribers ready for this issue' : undefined}
                           style={{
                             fontFamily: 'var(--body)',
                             fontSize: '0.75rem',
                             fontWeight: 600,
                             padding: '4px 12px',
-                            background: nl.nextWeekCount === 0 && nl.segments.length === 0 ? 'var(--line)' : 'var(--grape)',
-                            color: nl.nextWeekCount === 0 && nl.segments.length === 0 ? 'var(--muted)' : '#fff',
+                            background: nl.dueCount === 0 ? 'var(--line)' : 'var(--grape)',
+                            color: nl.dueCount === 0 ? 'var(--muted)' : '#fff',
                             border: 'none',
                             borderRadius: '4px',
-                            cursor: nl.nextWeekCount === 0 && nl.segments.length === 0 ? 'default' : 'pointer',
+                            cursor: nl.dueCount === 0 ? 'default' : 'pointer',
                           }}
                         >
                           Schedule
@@ -1531,7 +1477,7 @@ export default function AdminNewsletterDetailPage() {
                   )}
 
                   {/* Unschedule button — only when scheduled */}
-                  {nl.schedule?.status === 'scheduled' && (
+                  {nl.schedule && (
                     <button
                       onClick={() => handleCancel(nl.number)}
                       disabled={actionLoading}
@@ -1553,7 +1499,7 @@ export default function AdminNewsletterDetailPage() {
                   )}
 
                   {/* Delete — only for issues never sent or scheduled */}
-                  {nl.sentCount === 0 && !nl.schedule && (
+                  {nl.receivedCount === 0 && !nl.schedule && (
                     confirmDelete === nl.number ? (
                       <>
                       <button
@@ -1619,7 +1565,7 @@ export default function AdminNewsletterDetailPage() {
             </tr>
             {expandedReady === nl.number && nl.segments.length > 0 && (
               <tr>
-                <td colSpan={8} style={{ padding: 0 }}>
+                <td colSpan={7} style={{ padding: 0 }}>
                   <div
                     style={{
                       background: 'var(--paper)',
@@ -1768,19 +1714,12 @@ export default function AdminNewsletterDetailPage() {
                 </td>
               </tr>
             )}
-            {expandedReady === nl.number && nl.segments.length === 0 && nl.nextWeekSubscribers.length > 0 &&
+            {expandedReady === nl.number && nl.segments.length === 0 && nl.dueSubscribers.length > 0 &&
               renderSubscriberList(
                 'Next subscribers',
-                nl.nextWeekSubscribers,
+                nl.dueSubscribers,
                 () => setExpandedReady(null),
                 nl,
-              )
-            }
-            {expandedLater === nl.number && nl.laterSubscribers.length > 0 &&
-              renderSubscriberList(
-                'Future subscribers',
-                nl.laterSubscribers,
-                () => setExpandedLater(null),
               )
             }
             </React.Fragment>

@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   nextRegularSendAt,
-  regularSendAtWeeksOut,
   zonedDateString,
 } from '../lib/newsletter-cadence';
 
@@ -58,15 +57,6 @@ describe('nextRegularSendAt', () => {
   it('accepts a seconds suffix from Postgres time values', () => {
     const next = nextRegularSendAt({ ...cadence, sendTime: '06:47:00' }, new Date('2026-10-01T18:00:00Z'));
     expect(next?.toISOString()).toBe('2026-10-06T11:47:00.000Z');
-  });
-});
-
-describe('regularSendAtWeeksOut', () => {
-  it('keeps the same wall-clock time across a DST change', () => {
-    // Next = Tue 2026-10-27 11:47Z (CDT); 1 week out = Tue 2026-11-03 06:47 CST
-    const now = new Date('2026-10-23T12:00:00Z');
-    expect(regularSendAtWeeksOut(cadence, 0, now)?.toISOString()).toBe('2026-10-27T11:47:00.000Z');
-    expect(regularSendAtWeeksOut(cadence, 1, now)?.toISOString()).toBe('2026-11-03T12:47:00.000Z');
   });
 });
 

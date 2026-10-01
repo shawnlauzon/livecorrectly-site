@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import {
   getScheduleForNewsletter,
-  updateScheduleStatus,
+  deleteNewsletterSchedule,
   deleteEmailSendsForBroadcast,
   deleteEmailSendsForResendEmails,
 } from '@/lib/db';
@@ -11,7 +11,9 @@ import { getResendClient } from '@/lib/resend-contacts';
 /**
  * POST /api/admin/newsletters/cancel
  *
- * Cancel a scheduled newsletter (broadcast, or direct per-subscriber emails).
+ * Unschedule a scheduled newsletter (broadcast, or direct per-subscriber emails).
+ * The schedule row is deleted — afterwards the issue is exactly as if it had
+ * never been scheduled.
  *
  * Body: { newsletterNumber: number }
  *
@@ -19,7 +21,7 @@ import { getResendClient } from '@/lib/resend-contacts';
  * 1. Find the active schedule for this newsletter
  * 2. Cancel the broadcast (or each scheduled email) in Resend
  * 3. Delete the email_sends records for it
- * 4. Update schedule status to 'cancelled'
+ * 4. Delete the schedule row
  */
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -70,11 +72,10 @@ export async function POST(request: NextRequest) {
       await deleteEmailSendsForBroadcast(schedule.broadcast_id);
     }
 
-    // Update schedule status
-    await updateScheduleStatus(schedule.id, 'cancelled');
+    await deleteNewsletterSchedule(schedule.id);
 
     console.log(
-      `[cancel] Newsletter #${newsletterNumber} cancelled (${schedule.kind}${schedule.broadcast_id ? ` broadcast ${schedule.broadcast_id}` : ''})`,
+      `[cancel] Newsletter #${newsletterNumber} unscheduled (${schedule.kind}${schedule.broadcast_id ? ` broadcast ${schedule.broadcast_id}` : ''})`,
     );
 
     return NextResponse.json({ ok: true });
