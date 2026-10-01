@@ -224,9 +224,11 @@ export async function sendPrerenderedBroadcast(opts: {
  * HTML-special characters — they appear as-is in the output HTML.
  *
  * chart is null because broadcast newsletters have no inline personalization.
+ * `note` (the publication's shared note) is shown above the body when non-empty.
  */
 export async function renderNewsletterForBroadcast(
   newsletterNumber: number,
+  options?: { note?: string },
 ): Promise<{
   html: string;
   subject: string;
@@ -250,6 +252,8 @@ export async function renderNewsletterForBroadcast(
     bodyHtml: newsletter.bodyHtml,
     unsubscribeUrl: '{{{RESEND_UNSUBSCRIBE_URL}}}',
     ps: newsletter.ps,
+    preview: newsletter.preview,
+    note: options?.note,
   });
 
   // Subject also needs Resend template vars for firstName
@@ -275,6 +279,7 @@ export async function renderNewsletterForBroadcast(
 export async function renderNewsletterForBroadcastWithHtml(
   newsletterNumber: number,
   customHtml: string,
+  options?: { note?: string },
 ): Promise<{
   html: string;
   subject: string;
@@ -298,6 +303,7 @@ export async function renderNewsletterForBroadcastWithHtml(
   };
 
   const subject = replaceVars(raw.subject, vars);
+  const preview = replaceVars(raw.preview, vars);
   const bodyHtml = replaceVars(customHtml, vars);
   const ps = raw.rawPs.map(p => replaceVars(p.trim(), vars));
 
@@ -305,6 +311,8 @@ export async function renderNewsletterForBroadcastWithHtml(
     bodyHtml,
     unsubscribeUrl: '{{{RESEND_UNSUBSCRIBE_URL}}}',
     ps,
+    preview,
+    note: options?.note,
   });
 
   return { html, subject };

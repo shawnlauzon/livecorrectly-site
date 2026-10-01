@@ -31,6 +31,7 @@ import {
 import { getResendClient, createPropertyIfMissing, deleteNewsletterProperties } from '@/lib/resend-contacts';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { nextRegularSendAt, zonedDateString } from '@/lib/newsletter-cadence';
+import { getNoteForSend } from '@/lib/newsletter-notes';
 import { planAudience, autoSegmentName } from '@/lib/newsletter-audience';
 import type { AudiencePlan } from '@/lib/newsletter-audience';
 import { addEmailsToSegment, removeNewsletterSegment } from '@/lib/newsletter-segments';
@@ -47,6 +48,10 @@ import type { ScheduleEvent, ScheduleStepId } from '@/lib/types/schedule-progres
  * Returns an NDJSON stream with real-time progress events.
  *
  * Body: { newsletterNumber: number, sendAt?: string, test?: boolean, confirmMerge?: boolean }
+ *
+ * If a note is dated on the send day (publication timezone), it's rendered
+ * above the issue body. Test sends use the next regular send day's note, so
+ * they show what the real send would look like.
  *
  * The audience is the active subscribers whose next_step is this issue, reached
  * per planAudience(): an existing segment (stragglers are added to it), several
@@ -74,7 +79,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  let body: { newsletterNumber?: number; sendAt?: string; test?: boolean; confirmMerge?: boolean };
+  let body: {
+    newsletterNumber?: number;
+    sendAt?: string;
+    test?: boolean;
+    confirmMerge?: boolean;
+  };
   try {
     body = await request.json();
   } catch {
@@ -103,6 +113,8 @@ export async function POST(request: NextRequest) {
     adminEmail = match ? match[1] : rawAdminEmail.trim();
   }
 
+  const publication = await getNewsletterPublication(1);
+
   // Use provided sendAt if present, otherwise the next regular cadence time
   // Test mode skips scheduling entirely (sends immediately)
   let scheduledDate: Date | null = null;
@@ -110,7 +122,6 @@ export async function POST(request: NextRequest) {
   let dueSubscribers: Subscriber[] = [];
   let plan: AudiencePlan | null = null;
   if (!isTest) {
-    const publication = await getNewsletterPublication(1);
     if (publication) timezone = publication.timezone;
     if (sendAt) {
       scheduledDate = new Date(sendAt);
@@ -159,6 +170,15 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // The note for the send day is rendered into the HTML now, so the send keeps
+  // the note as it was at schedule time
+  const noteDay = isTest
+    ? (publication ? nextRegularSendAt(publication) : null)
+    : scheduledDate;
+  const note = noteDay
+    ? (await getNoteForSend(1, noteDay, publication?.timezone ?? timezone))?.body
+    : undefined;
+
   // --- Validation passed — switch to streaming NDJSON ---
 
   const encoder = new TextEncoder();
@@ -205,6 +225,7 @@ export async function POST(request: NextRequest) {
             newsletterNumber,
             subscribers,
             scheduledDate: scheduledDate!,
+            note,
           });
           return;
         }
@@ -335,21 +356,22 @@ export async function POST(request: NextRequest) {
           const rendered = await renderNewsletterForBroadcastWithHtml(
             newsletterNumber,
             broadcastTemplate,
+            { note },
           );
           html = rendered.html;
           subject = rendered.subject;
 
-          emit({ step: 'render-broadcast', status: 'done', label: 'Rendering broadcast' });
+          emit({ step: 'render-broadcast', status: 'done', label: 'Rendering broadcast', ...(note && { detail: 'Note included' }) });
         } else {
           emit({ step: 'templates', status: 'start', label: 'Rendering template' });
           emit({ step: 'templates', status: 'done', label: 'Rendering template', detail: 'No personalization needed' });
 
           currentStep = 'render-broadcast';
           emit({ step: 'render-broadcast', status: 'start', label: 'Rendering broadcast' });
-          const rendered = await renderNewsletterForBroadcast(newsletterNumber);
+          const rendered = await renderNewsletterForBroadcast(newsletterNumber, { note });
           html = rendered.html;
           subject = rendered.subject;
-          emit({ step: 'render-broadcast', status: 'done', label: 'Rendering broadcast' });
+          emit({ step: 'render-broadcast', status: 'done', label: 'Rendering broadcast', ...(note && { detail: 'Note included' }) });
         }
 
         // Step 5: Resolve the audience segment.
@@ -570,9 +592,9 @@ async function removeEphemeralSegments(): Promise<void> {
 async function scheduleDirectSends(
   emit: (event: ScheduleEvent) => void,
   setStep: (step: ScheduleStepId) => void,
-  opts: { newsletterNumber: number; subscribers: Subscriber[]; scheduledDate: Date },
+  opts: { newsletterNumber: number; subscribers: Subscriber[]; scheduledDate: Date; note?: string },
 ): Promise<void> {
-  const { newsletterNumber, subscribers, scheduledDate } = opts;
+  const { newsletterNumber, subscribers, scheduledDate, note } = opts;
   const emailLabel = `newsletter_${newsletterNumber}`;
 
   for (const [step, label] of [
@@ -602,10 +624,17 @@ async function scheduleDirectSends(
         bodyHtml: issue.bodyHtml,
         unsubscribeUrl: buildUnsubscribeUrl(subscriber.unsub_token, emailLabel),
         ps: issue.ps,
+        preview: issue.preview,
+        note,
       }),
     });
   }
-  emit({ step: 'templates', status: 'done', label: 'Rendering personalized emails', detail: `${rendered.length} rendered` });
+  emit({
+    step: 'templates',
+    status: 'done',
+    label: 'Rendering personalized emails',
+    detail: `${rendered.length} rendered${note ? ', note included' : ''}`,
+  });
 
   setStep('broadcast');
   emit({ step: 'broadcast', status: 'start', label: 'Scheduling individual emails' });

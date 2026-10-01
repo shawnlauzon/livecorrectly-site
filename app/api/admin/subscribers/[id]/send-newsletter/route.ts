@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
-import { getSubscriberById } from '@/lib/db';
+import { getSubscriberById, getNewsletterPublication } from '@/lib/db';
 import { buildUnsubscribeUrl } from '@/emails/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getNewsletterIssueNumbers } from '@/emails/newsletter';
 import { getNewsletterIssue } from '@/emails/newsletter-loader';
 import { renderNewsletterEmail } from '@/emails/newsletter-template';
 import { sendPrerenderedBroadcast } from '@/lib/resend-broadcasts';
+import { getNoteForSend } from '@/lib/newsletter-notes';
 
 /**
  * POST /api/admin/subscribers/[id]/send-newsletter
@@ -14,6 +15,7 @@ import { sendPrerenderedBroadcast } from '@/lib/resend-broadcasts';
  * Manually send a specific newsletter email to a subscriber.
  * Does NOT advance next_step — manual sends
  * are independent of the automated series.
+ * Includes today's note (publication timezone), if there is one.
  *
  * Body: { step: N } (newsletter number, matches next_step)
  * Auth: Bearer <ADMIN_PASSWORD>
@@ -76,10 +78,17 @@ export async function POST(
 
     const subject = newsletter.subject;
 
+    const publication = await getNewsletterPublication(1);
+    const note = publication
+      ? (await getNoteForSend(1, new Date(), publication.timezone))?.body
+      : undefined;
+
     const html = renderNewsletterEmail({
       bodyHtml: newsletter.bodyHtml,
       unsubscribeUrl,
       ps: newsletter.ps,
+      preview: newsletter.preview,
+      note,
     });
 
     const { broadcastId } = await sendPrerenderedBroadcast({

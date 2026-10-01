@@ -28,6 +28,7 @@ export async function getNewsletterHtml(
     bodyHtml: newsletter.bodyHtml,
     unsubscribeUrl,
     ps: newsletter.ps,
+    preview: newsletter.preview,
   });
 }
 

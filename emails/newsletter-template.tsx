@@ -6,6 +6,10 @@ interface RenderNewsletterEmailOptions {
   bodyHtml: string;
   unsubscribeUrl: string;
   ps: string[];
+  /** Issue preview text, rendered as the hidden inbox preheader */
+  preview?: string;
+  /** Shared note shown above the issue body */
+  note?: string;
 }
 
 /**
@@ -52,9 +56,13 @@ export function renderNewsletterEmail({
   bodyHtml,
   unsubscribeUrl,
   ps,
+  preview,
+  note,
 }: RenderNewsletterEmailOptions): string {
   return injectEmailChrome(rewriteBlobUrls(bodyHtml), {
     unsubscribeUrl,
     postscripts: ps,
+    preheader: preview,
+    note,
   });
 }

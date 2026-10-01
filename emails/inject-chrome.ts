@@ -27,6 +27,8 @@
 
 import {
   logoFragment,
+  preheaderFragment,
+  noteFragment,
   signatureFragment,
   postscriptFragments,
   footerFragment,
@@ -36,13 +38,18 @@ export interface InjectChromeOptions {
   appUrl?: string;
   unsubscribeUrl: string;
   postscripts: string[];
+  /** Hidden inbox preview text, injected first inside <body> */
+  preheader?: string;
+  /** Shared note shown between the logo and the issue body */
+  note?: string;
 }
 
 /**
  * Inject email chrome into composeReactEmail() HTML output.
  *
- * Injects logo after <body> and suffix (signature, postscripts, footer) before
- * </body>, so chrome sits outside the table structure.
+ * Injects the hidden preheader, logo and optional note after <body> and the
+ * suffix (signature, postscripts, footer) before </body>, so chrome sits
+ * outside the table structure.
  *
  * Also normalizes font-size:1em → font-size:16px on the outer content <td>
  * so that the editor's relative em units resolve to a readable base size.
@@ -54,7 +61,11 @@ export function injectEmailChrome(
   const appUrl = options.appUrl ?? process.env.APP_URL ?? 'https://www.livecorrectly.com';
 
   // Build fragment strings
-  const logo = logoFragment(appUrl);
+  const prefix = [
+    preheaderFragment(options.preheader ?? ''),
+    logoFragment(appUrl),
+    noteFragment(options.note ?? ''),
+  ].filter(Boolean).join('\n');
   const signature = signatureFragment(appUrl);
   const ps = postscriptFragments(options.postscripts);
   const footer = footerFragment(options.unsubscribeUrl);
@@ -64,7 +75,7 @@ export function injectEmailChrome(
   const suffixContent = [signature, ps, footer].filter(Boolean).join('\n');
   const suffix = `<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;"><tr><td style="font-family:'Hanken Grotesk',Helvetica,Arial,sans-serif;font-size:16px;">${suffixContent}</td></tr></table>`;
 
-  // Inject logo right after <body...> and suffix right before </body>.
+  // Inject prefix (preheader, logo, note) right after <body...> and suffix right before </body>.
   // Both sit outside the table structure for correct ordering.
   const bodyOpenPattern = /<body\b[^>]*>/i;
   const bodyMatch = bodyOpenPattern.exec(html);
@@ -83,7 +94,7 @@ export function injectEmailChrome(
 
   let result =
     html.slice(0, bodyInsertPos) +
-    '\n' + logo + '\n' +
+    '\n' + prefix + '\n' +
     html.slice(bodyInsertPos, bodyCloseIndex) +
     '\n' + suffix + '\n' +
     html.slice(bodyCloseIndex);

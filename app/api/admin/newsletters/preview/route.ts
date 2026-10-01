@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
-import { getSubscriberById, getNewsletterEngagement } from '@/lib/db';
+import { getSubscriberById, getNewsletterEngagement, getNewsletterPublication } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { resolveNewsletterHtml } from '@/newsletters/resolve';
 import type { EngagementData } from '@/newsletters/resolve';
 import { renderNewsletterEmail } from '@/emails/newsletter-template';
+import { getUpcomingNote } from '@/lib/newsletter-notes';
 
 /**
  * POST /api/admin/newsletters/preview
@@ -12,8 +13,11 @@ import { renderNewsletterEmail } from '@/emails/newsletter-template';
  * Resolve Liquid tags in editor HTML for a specific subscriber.
  * Used by the admin newsletter editor's live preview pane.
  *
- * Body: { html: string, subscriberId: string }
- * Returns: { html: string }
+ * Body: { html: string, subscriberId: string, newsletterNumber?: number, postscripts?: string[] }
+ * Returns: { html: string, noteDate: string | null }
+ *
+ * The earliest note dated today or later is shown above the body (an issue being
+ * written will usually carry it); `noteDate` tells the pane which note that is.
  *
  * Auth: Bearer <ADMIN_PASSWORD>
  */
@@ -65,11 +69,15 @@ export async function POST(request: NextRequest) {
     engagement,
   });
 
+  const publication = await getNewsletterPublication(1);
+  const note = publication ? await getUpcomingNote(1, publication.timezone) : null;
+
   const chromed = renderNewsletterEmail({
     bodyHtml: resolved,
     unsubscribeUrl: '#',
     ps: postscripts?.filter(Boolean) ?? [],
+    note: note?.body,
   });
 
-  return NextResponse.json({ html: chromed });
+  return NextResponse.json({ html: chromed, noteDate: note?.sendDate ?? null });
 }

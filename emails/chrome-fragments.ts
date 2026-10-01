@@ -16,6 +16,47 @@ export function logoFragment(appUrl: string): string {
   return `<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;"><tr><td style="padding:0 0 24px;"><img src="${appUrl}/newsletter/permission-slip.png" alt="Permission Slip" width="600" height="200" style="display:block;width:100%;max-width:600px;height:auto;margin:0 auto;outline:none;border:none;text-decoration:none;" /></td></tr></table>`;
 }
 
+/** Escape text for safe inclusion in HTML content and attributes. */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Hidden preheader — the inbox preview line shown next to the subject.
+ * The trailing &zwnj;&nbsp; filler keeps clients from pulling body text into
+ * the preview after the preheader runs out.
+ */
+export function preheaderFragment(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return '';
+  const filler = '&#8204;&nbsp;'.repeat(100);
+  return `<div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${escapeHtml(trimmed)}${filler}</div>`;
+}
+
+/**
+ * Shared note shown above the issue body (e.g. explaining a skipped week).
+ * Plain text: blank lines separate paragraphs, single newlines become <br />.
+ * Wrapped in the same max-width table as the logo, with a divider below to set
+ * it apart from the issue itself.
+ */
+export function noteFragment(text: string): string {
+  const paragraphs = text
+    .trim()
+    .split(/\n\s*\n/)
+    .map(p => p.trim())
+    .filter(Boolean);
+  if (!paragraphs.length) return '';
+  const body = paragraphs
+    .map(p => `<p style="margin:0 0 16px;font-size:16px;line-height:24px;color:#292524;">${escapeHtml(p).replace(/\r?\n/g, '<br />')}</p>`)
+    .join('\n');
+  return `<table data-newsletter-note align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;"><tr><td style="font-family:'Hanken Grotesk',Helvetica,Arial,sans-serif;font-size:16px;padding:0 0 8px;">${body}<hr style="margin:8px 0 0;border:none;border-top:1px solid #C9C2B4;" /></td></tr></table>`;
+}
+
 /**
  * Shawn's email signature block — headshot + name + credentials.
  * Uses a table layout for consistent rendering across email clients.

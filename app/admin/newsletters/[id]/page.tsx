@@ -75,6 +75,14 @@ interface NewsletterInfo {
   schedule: NewsletterSchedule | null;
 }
 
+/** A note shown above the issue body of any newsletter sent on `sendDate`. */
+interface NewsletterNote {
+  id: number;
+  /** "YYYY-MM-DD" in the publication's timezone */
+  sendDate: string;
+  body: string;
+}
+
 interface NewsletterSettings {
   sendWeekday: number | null;
   sendTime: string | null;
@@ -119,6 +127,17 @@ function toDatetimeLocal(iso: string, tz: string): string {
 
   const get = (type: string) => parts.find(p => p.type === type)?.value ?? '00';
   return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
+}
+
+/** Format a "YYYY-MM-DD" note date (e.g. "Wed, Oct 8, 2026") without a timezone shift. */
+function formatNoteDate(sendDate: string): string {
+  const [year, month, day] = sendDate.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 /** Weekday options for the weekly cadence (0 = Sunday, matching the DB). */
@@ -224,6 +243,15 @@ export default function AdminNewsletterDetailPage() {
   const [settingsDirty, setSettingsDirty] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
+  // Dated notes, newest first
+  const [notes, setNotes] = useState<NewsletterNote[]>([]);
+  // Note form: editing an existing note (id) or adding a new one (null)
+  const [noteFormOpen, setNoteFormOpen] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
+  const [noteDate, setNoteDate] = useState<string>('');
+  const [noteBody, setNoteBody] = useState<string>('');
+  const [savingNote, setSavingNote] = useState(false);
+
   // Newsletter number awaiting inline delete confirmation
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
 
@@ -267,9 +295,112 @@ export default function AdminNewsletterDetailPage() {
     }
   }, [router, settingsLoaded]);
 
+  const fetchNotes = useCallback(async () => {
+    const pwd = getPassword();
+    if (!pwd) return;
+    try {
+      const res = await fetch('/api/admin/newsletters/notes', {
+        headers: { Authorization: `Bearer ${pwd}` },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionMessage(`Error: ${data.error}`);
+        return;
+      }
+      setNotes(data.notes);
+    } catch (err) {
+      setActionMessage(`Error: ${err instanceof Error ? err.message : 'Failed to load notes'}`);
+    }
+  }, []);
+
   useEffect(() => {
     void (async () => { await fetchNewsletters(); })();
   }, [fetchNewsletters]);
+
+  useEffect(() => {
+    void (async () => { await fetchNotes(); })();
+  }, [fetchNotes]);
+
+  /** The note that a send at `iso` would include (matched by day in the publication timezone). */
+  function noteForSendAt(iso: string | null): NewsletterNote | null {
+    if (!iso) return null;
+    const day = toDatetimeLocal(iso, timezone).slice(0, 10);
+    return notes.find(n => n.sendDate === day) ?? null;
+  }
+
+  const openNoteForm = (note: NewsletterNote | null) => {
+    setEditingNoteId(note?.id ?? null);
+    // New notes default to the next regular send day
+    setNoteDate(note?.sendDate ?? (nextRegularSendAt ? toDatetimeLocal(nextRegularSendAt, timezone).slice(0, 10) : ''));
+    setNoteBody(note?.body ?? '');
+    setNoteFormOpen(true);
+    setActionMessage(null);
+  };
+
+  const handleSaveNote = async () => {
+    const pwd = getPassword();
+    if (!pwd) return;
+
+    setSavingNote(true);
+    setActionMessage(null);
+    try {
+      const res = await fetch('/api/admin/newsletters/notes', {
+        method: editingNoteId === null ? 'POST' : 'PUT',
+        headers: {
+          Authorization: `Bearer ${pwd}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...(editingNoteId !== null && { id: editingNoteId }),
+          sendDate: noteDate,
+          body: noteBody,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionMessage(`Error: ${data.error}`);
+        return;
+      }
+      setNoteFormOpen(false);
+      setActionMessage('Note saved.');
+      await fetchNotes();
+    } catch (err) {
+      setActionMessage(`Error: ${err instanceof Error ? err.message : 'Unknown'}`);
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const handleDeleteNote = async (note: NewsletterNote) => {
+    const pwd = getPassword();
+    if (!pwd) return;
+
+    if (!confirm(`Delete the note for ${formatNoteDate(note.sendDate)}?`)) {
+      return;
+    }
+
+    setActionMessage(null);
+    try {
+      const res = await fetch('/api/admin/newsletters/notes', {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${pwd}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: note.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionMessage(`Error: ${data.error}`);
+        return;
+      }
+      if (editingNoteId === note.id) setNoteFormOpen(false);
+      setActionMessage('Note deleted.');
+      await fetchNotes();
+    } catch (err) {
+      setActionMessage(`Error: ${err instanceof Error ? err.message : 'Unknown'}`);
+    }
+  };
 
   const handleSchedule = async (
     newsletterNumber: number,
@@ -1094,6 +1225,204 @@ export default function AdminNewsletterDetailPage() {
         </button>
       </div>
 
+      {/* Dated notes — shown above the issue body of any newsletter sent on that day */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+          marginBottom: '1rem',
+          padding: '0.75rem 1rem',
+          background: 'var(--card)',
+          borderRadius: '8px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+          <span
+            style={{
+              fontFamily: 'var(--body)',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              color: 'var(--muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+            }}
+            title="A note is shown above the issue in every newsletter sent on its date"
+          >
+            Notes
+          </span>
+          {!noteFormOpen && (
+            <button
+              onClick={() => openNoteForm(null)}
+              style={{
+                fontFamily: 'var(--body)',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                padding: '4px 12px',
+                background: 'none',
+                color: 'var(--grape)',
+                border: '1px solid var(--grape)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+              }}
+            >
+              New note
+            </button>
+          )}
+        </div>
+
+        {noteFormOpen && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.375rem',
+              padding: '0.5rem',
+              background: 'var(--paper)',
+              borderRadius: '6px',
+            }}
+          >
+            <label
+              style={{
+                fontFamily: 'var(--body)',
+                fontSize: '0.75rem',
+                color: 'var(--muted)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}
+            >
+              Include in newsletters sent on
+              <input
+                type="date"
+                value={noteDate}
+                onChange={(e) => setNoteDate(e.target.value)}
+                style={{
+                  fontFamily: 'var(--body)',
+                  fontSize: '0.875rem',
+                  color: 'var(--ink)',
+                  padding: '0.25rem 0.5rem',
+                  border: '1px solid var(--line)',
+                  borderRadius: '4px',
+                  background: '#fff',
+                }}
+              />
+            </label>
+            <textarea
+              value={noteBody}
+              onChange={(e) => setNoteBody(e.target.value)}
+              rows={3}
+              placeholder="Shown above the issue. Blank line = new paragraph."
+              style={{
+                fontFamily: 'var(--body)',
+                fontSize: '0.875rem',
+                color: 'var(--ink)',
+                padding: '0.5rem',
+                border: '1px solid var(--line)',
+                borderRadius: '4px',
+                background: '#fff',
+                resize: 'vertical',
+              }}
+            />
+            <div style={{ display: 'flex', gap: '0.375rem' }}>
+              <button
+                onClick={handleSaveNote}
+                disabled={savingNote || !noteDate || !noteBody.trim()}
+                style={{
+                  fontFamily: 'var(--body)',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  padding: '4px 12px',
+                  background: noteDate && noteBody.trim() ? 'var(--grape)' : 'var(--line)',
+                  color: noteDate && noteBody.trim() ? '#fff' : 'var(--muted)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: savingNote || !noteDate || !noteBody.trim() ? 'default' : 'pointer',
+                  opacity: savingNote ? 0.6 : 1,
+                }}
+              >
+                {savingNote ? 'Saving...' : 'Save note'}
+              </button>
+              <button
+                onClick={() => setNoteFormOpen(false)}
+                style={{
+                  fontFamily: 'var(--body)',
+                  fontSize: '0.75rem',
+                  padding: '4px 12px',
+                  background: 'none',
+                  color: 'var(--muted)',
+                  border: '1px solid var(--line)',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {notes.length === 0 && !noteFormOpen && (
+          <span style={{ fontFamily: 'var(--body)', fontSize: '0.8125rem', color: 'var(--muted)' }}>
+            No notes yet
+          </span>
+        )}
+
+        {notes.map(note => (
+          <div
+            key={note.id}
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.75rem',
+              fontFamily: 'var(--body)',
+              fontSize: '0.8125rem',
+              opacity: note.sendDate < toDatetimeLocal(new Date().toISOString(), timezone).slice(0, 10) ? 0.6 : 1,
+            }}
+          >
+            <span style={{ fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', width: '9rem', flexShrink: 0 }}>
+              {formatNoteDate(note.sendDate)}
+            </span>
+            <span style={{ flex: 1, color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{note.body}</span>
+            <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
+              <button
+                onClick={() => openNoteForm(note)}
+                style={{
+                  fontFamily: 'var(--body)',
+                  fontSize: '0.6875rem',
+                  fontWeight: 600,
+                  padding: '2px 8px',
+                  background: 'none',
+                  border: '1px solid var(--grape)',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  color: 'var(--grape)',
+                }}
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => handleDeleteNote(note)}
+                style={{
+                  fontFamily: 'var(--body)',
+                  fontSize: '0.6875rem',
+                  fontWeight: 600,
+                  padding: '2px 8px',
+                  background: 'none',
+                  border: '1px solid var(--coral)',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  color: 'var(--coral)',
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {actionMessage && (
         <div
           style={{
@@ -1275,10 +1604,14 @@ export default function AdminNewsletterDetailPage() {
                   style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', alignItems: 'center' }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {/* Test button — always available */}
+                  {/* Test button — always available; carries the next regular send day's note */}
                   <button
                     onClick={() => handleSchedule(nl.number, undefined, { test: true })}
                     disabled={actionLoading}
+                    title={(() => {
+                      const note = noteForSendAt(nextRegularSendAt);
+                      return note ? `Includes note for ${formatNoteDate(note.sendDate)}` : undefined;
+                    })()}
                     style={{
                       fontFamily: 'var(--body)',
                       fontSize: '0.75rem',
@@ -1316,6 +1649,25 @@ export default function AdminNewsletterDetailPage() {
                             {nl.dueCount} subscriber{nl.dueCount === 1 ? '' : 's'}
                             {nl.segments.length > 1 && ` \u2014 ${nl.segments.length} segments will be merged`}
                           </div>
+                          {(() => {
+                            const sendAt = scheduleMode === 'choose'
+                              ? nextRegularSendAt
+                              : customSendAt ? localToUtcIso(customSendAt, customTimezone) : null;
+                            const note = noteForSendAt(sendAt);
+                            return note && (
+                              <div
+                                style={{
+                                  fontFamily: 'var(--body)',
+                                  fontSize: '0.75rem',
+                                  color: 'var(--grape)',
+                                  fontWeight: 600,
+                                }}
+                                title={note.body}
+                              >
+                                Includes note for {formatNoteDate(note.sendDate)}
+                              </div>
+                            );
+                          })()}
 
                           {scheduleMode === 'choose' ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>

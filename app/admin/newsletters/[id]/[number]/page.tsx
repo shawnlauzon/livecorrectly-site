@@ -451,6 +451,12 @@ function formatProfile(profile: number): string {
   return s;
 }
 
+/** Format a "YYYY-MM-DD" note date (e.g. "Oct 8") without a timezone shift. */
+function formatNoteDate(sendDate: string): string {
+  const [year, month, day] = sendDate.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 function PreviewPane({
   editorRef,
   previewTrigger,
@@ -466,6 +472,8 @@ function PreviewPane({
   const [selectedId, setSelectedId] = useState<string>('');
   const [previewHtml, setPreviewHtml] = useState<string>('');
   const [fetchError, setFetchError] = useState<string | null>(null);
+  // Date of the note shown above the body ("YYYY-MM-DD"), chosen by the server
+  const [noteDate, setNoteDate] = useState<string | null>(null);
 
   // Fetch subscribers on mount
   useEffect(() => {
@@ -521,7 +529,10 @@ function PreviewPane({
         if (cancelled) return;
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        if (!cancelled) setPreviewHtml(data.html);
+        if (!cancelled) {
+          setPreviewHtml(data.html);
+          setNoteDate(data.noteDate ?? null);
+        }
       } catch (err) {
         console.error('Preview render error:', err);
         if (!cancelled) setPreviewHtml('<p style="color: var(--coral)">Preview error</p>');
@@ -566,6 +577,11 @@ function PreviewPane({
               </option>
             ))}
           </select>
+        )}
+        {noteDate && (
+          <span className={styles.previewNoteLabel} title="The earliest note dated today or later">
+            Note for {formatNoteDate(noteDate)}
+          </span>
         )}
       </div>
       <div className={styles.previewBody}>

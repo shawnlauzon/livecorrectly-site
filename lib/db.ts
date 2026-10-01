@@ -1570,3 +1570,136 @@ export async function deleteNewsletterSegment(segmentId: number): Promise<Newsle
   `;
   return rows.length > 0 ? rowToNewsletterSegment(rows[0]) : null;
 }
+
+// --- Newsletter notes (dated) ---
+
+/** A note shown above the issue body of any newsletter sent on `sendDate`. */
+export interface NewsletterNote {
+  id: number;
+  newsletterId: number;
+  /** "YYYY-MM-DD" in the publication's timezone */
+  sendDate: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function rowToNewsletterNote(row: Record<string, unknown>): NewsletterNote {
+  return {
+    id: row.id as number,
+    newsletterId: row.newsletter_id as number,
+    sendDate: row.send_date as string,
+    body: row.body as string,
+    createdAt: (row.created_at as Date).toISOString(),
+    updatedAt: (row.updated_at as Date).toISOString(),
+  };
+}
+
+/**
+ * Get all notes for a newsletter publication, newest date first.
+ * send_date is cast to text so the driver doesn't shift it through a JS Date.
+ */
+export async function getNewsletterNotes(newsletterId: number): Promise<NewsletterNote[]> {
+  const db = getDb();
+  const rows = await db`
+    SELECT id, newsletter_id, send_date::text AS send_date, body, created_at, updated_at
+    FROM newsletter_notes
+    WHERE newsletter_id = ${newsletterId}
+    ORDER BY send_date DESC
+  `;
+  return rows.map(row => rowToNewsletterNote(row));
+}
+
+/** Get a note by ID. */
+export async function getNewsletterNote(id: number): Promise<NewsletterNote | null> {
+  const db = getDb();
+  const rows = await db`
+    SELECT id, newsletter_id, send_date::text AS send_date, body, created_at, updated_at
+    FROM newsletter_notes
+    WHERE id = ${id}
+  `;
+  return rows.length > 0 ? rowToNewsletterNote(rows[0]) : null;
+}
+
+/** Get the note for a send date ("YYYY-MM-DD"), if any. */
+export async function getNewsletterNoteForDate(
+  newsletterId: number,
+  sendDate: string,
+): Promise<NewsletterNote | null> {
+  const db = getDb();
+  const rows = await db`
+    SELECT id, newsletter_id, send_date::text AS send_date, body, created_at, updated_at
+    FROM newsletter_notes
+    WHERE newsletter_id = ${newsletterId} AND send_date = ${sendDate}::date
+  `;
+  return rows.length > 0 ? rowToNewsletterNote(rows[0]) : null;
+}
+
+/** The earliest note dated on or after `fromDate` ("YYYY-MM-DD"), if any. */
+export async function getNextNewsletterNote(
+  newsletterId: number,
+  fromDate: string,
+): Promise<NewsletterNote | null> {
+  const db = getDb();
+  const rows = await db`
+    SELECT id, newsletter_id, send_date::text AS send_date, body, created_at, updated_at
+    FROM newsletter_notes
+    WHERE newsletter_id = ${newsletterId} AND send_date >= ${fromDate}::date
+    ORDER BY send_date
+    LIMIT 1
+  `;
+  return rows.length > 0 ? rowToNewsletterNote(rows[0]) : null;
+}
+
+/**
+ * Create a note. Returns 'duplicate' when the publication already has a note
+ * for that date (unique per newsletter + date).
+ */
+export async function insertNewsletterNote(data: {
+  newsletterId: number;
+  sendDate: string;
+  body: string;
+}): Promise<NewsletterNote | 'duplicate'> {
+  const db = getDb();
+  const rows = await db`
+    INSERT INTO newsletter_notes (newsletter_id, send_date, body)
+    VALUES (${data.newsletterId}, ${data.sendDate}::date, ${data.body})
+    ON CONFLICT (newsletter_id, send_date) DO NOTHING
+    RETURNING id, newsletter_id, send_date::text AS send_date, body, created_at, updated_at
+  `;
+  return rows.length > 0 ? rowToNewsletterNote(rows[0]) : 'duplicate';
+}
+
+/**
+ * Update a note's date and body. Returns null if the note doesn't exist, or
+ * 'duplicate' when another note already has the new date.
+ */
+export async function updateNewsletterNote(
+  id: number,
+  data: { sendDate: string; body: string },
+): Promise<NewsletterNote | null | 'duplicate'> {
+  const db = getDb();
+  const clash = await db`
+    SELECT 1 FROM newsletter_notes
+    WHERE send_date = ${data.sendDate}::date
+      AND newsletter_id = (SELECT newsletter_id FROM newsletter_notes WHERE id = ${id})
+      AND id <> ${id}
+  `;
+  if (clash.length > 0) return 'duplicate';
+  const rows = await db`
+    UPDATE newsletter_notes
+    SET send_date = ${data.sendDate}::date, body = ${data.body}, updated_at = now()
+    WHERE id = ${id}
+    RETURNING id, newsletter_id, send_date::text AS send_date, body, created_at, updated_at
+  `;
+  return rows.length > 0 ? rowToNewsletterNote(rows[0]) : null;
+}
+
+/** Delete a note by ID. Returns false if it didn't exist. */
+export async function deleteNewsletterNote(id: number): Promise<boolean> {
+  const db = getDb();
+  const rows = await db`
+    DELETE FROM newsletter_notes WHERE id = ${id} RETURNING id
+  `;
+  return rows.length > 0;
+}
