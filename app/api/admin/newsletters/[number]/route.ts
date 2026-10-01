@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
-import { getDbNewsletterIssueFull, updateNewsletterIssue } from '@/lib/db';
+import { getDbNewsletterIssueFull, updateNewsletterIssue, deleteNewsletterIssue } from '@/lib/db';
+import { clearNewsletterIssueCache } from '@/newsletters/loader';
 
 /**
  * GET /api/admin/newsletters/[number]
@@ -115,6 +116,47 @@ export async function PUT(
     return NextResponse.json({ ok: true, updatedAt: result.updatedAt });
   } catch (error) {
     console.error(`[admin/newsletters/${num}] PUT error:`, error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/admin/newsletters/[number]
+ *
+ * Delete an unsent newsletter issue; later issues are renumbered down by one.
+ * Returns 409 if this issue (or a later one) has sends or schedule history.
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ number: string }> },
+) {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const password = authHeader.replace('Bearer ', '');
+  if (!checkAdminPassword(password)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { number: numStr } = await params;
+  const num = parseInt(numStr, 10);
+  if (isNaN(num) || num < 1) {
+    return NextResponse.json({ error: 'Invalid newsletter number' }, { status: 400 });
+  }
+
+  try {
+    const result = await deleteNewsletterIssue(num);
+    if (result === 'not_found') {
+      return NextResponse.json({ error: 'Newsletter not found' }, { status: 404 });
+    }
+    if (result !== 'deleted') {
+      return NextResponse.json({ error: result.blocked }, { status: 409 });
+    }
+    clearNewsletterIssueCache();
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error(`[admin/newsletters/${num}] DELETE error:`, error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

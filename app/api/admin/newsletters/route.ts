@@ -5,8 +5,9 @@ import {
   getNewsletterSchedules,
   getNewsletterPublication,
   getNewsletterSegments,
+  createNewsletterIssue,
 } from '@/lib/db';
-import { getNewsletterIssueNumbers } from '@/emails/newsletter-loader';
+import { getNewsletterIssueNumbers, clearNewsletterIssueCache } from '@/emails/newsletter-loader';
 import { loadNewsletterIssue } from '@/newsletters/loader';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 
@@ -185,6 +186,32 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[admin/newsletters] Error listing newsletters:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+/**
+ * POST /api/admin/newsletters
+ *
+ * Create a blank newsletter issue numbered after the current last issue.
+ * Returns the new issue number so the admin UI can open it in the editor.
+ */
+export async function POST(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const password = authHeader.replace('Bearer ', '');
+  if (!checkAdminPassword(password)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const number = await createNewsletterIssue(1);
+    clearNewsletterIssueCache();
+    return NextResponse.json({ number });
+  } catch (error) {
+    console.error('[admin/newsletters] Error creating newsletter issue:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

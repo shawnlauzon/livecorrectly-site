@@ -232,6 +232,9 @@ export default function AdminNewsletterDetailPage() {
   const [settingsDirty, setSettingsDirty] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
+  // Newsletter number awaiting inline delete confirmation
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+
   const fetchNewsletters = useCallback(async () => {
     const pwd = getPassword();
     if (!pwd) {
@@ -453,6 +456,63 @@ export default function AdminNewsletterDetailPage() {
       }
 
       setActionMessage('Newsletter cancelled.');
+      await fetchNewsletters();
+    } catch (err) {
+      setActionMessage(
+        `Error: ${err instanceof Error ? err.message : 'Unknown'}`,
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCreateIssue = async () => {
+    const pwd = getPassword();
+    if (!pwd) return;
+
+    setActionLoading(true);
+    setActionMessage(null);
+
+    try {
+      const res = await fetch('/api/admin/newsletters', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${pwd}` },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionMessage(`Error: ${data.error}`);
+        return;
+      }
+      router.push(`/admin/newsletters/${id}/${data.number}`);
+    } catch (err) {
+      setActionMessage(
+        `Error: ${err instanceof Error ? err.message : 'Unknown'}`,
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteIssue = async (newsletterNumber: number) => {
+    const pwd = getPassword();
+    if (!pwd) return;
+
+    setActionLoading(true);
+    setActionMessage(null);
+    setConfirmDelete(null);
+
+    try {
+      const res = await fetch(`/api/admin/newsletters/${newsletterNumber}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${pwd}` },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionMessage(`Error: ${data.error}`);
+        return;
+      }
+
+      setActionMessage(`Newsletter #${newsletterNumber} deleted.`);
       await fetchNewsletters();
     } catch (err) {
       setActionMessage(
@@ -1050,6 +1110,27 @@ export default function AdminNewsletterDetailPage() {
         </div>
       )}
 
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
+        <button
+          onClick={handleCreateIssue}
+          disabled={actionLoading}
+          style={{
+            fontFamily: 'var(--body)',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            padding: '6px 16px',
+            background: 'var(--grape)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: actionLoading ? 'wait' : 'pointer',
+            opacity: actionLoading ? 0.6 : 1,
+          }}
+        >
+          New issue
+        </button>
+      </div>
+
       <table className={styles.table}>
         <thead>
           <tr>
@@ -1440,6 +1521,72 @@ export default function AdminNewsletterDetailPage() {
                     >
                       Unschedule
                     </button>
+                  )}
+
+                  {/* Delete — only for issues never sent or scheduled */}
+                  {nl.sentCount === 0 && !nl.schedule && (
+                    confirmDelete === nl.number ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <span style={{ fontFamily: 'var(--body)', fontSize: '0.75rem', color: 'var(--ink)' }}>
+                          Delete #{nl.number}? Later drafts will be renumbered.
+                        </span>
+                        <div style={{ display: 'flex', gap: '0.375rem' }}>
+                          <button
+                            onClick={() => handleDeleteIssue(nl.number)}
+                            disabled={actionLoading}
+                            style={{
+                              fontFamily: 'var(--body)',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              padding: '4px 12px',
+                              background: 'var(--coral)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: actionLoading ? 'wait' : 'pointer',
+                              opacity: actionLoading ? 0.6 : 1,
+                            }}
+                          >
+                            Delete
+                          </button>
+                          <button
+                            onClick={() => setConfirmDelete(null)}
+                            style={{
+                              fontFamily: 'var(--body)',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              padding: '4px 12px',
+                              background: 'none',
+                              color: 'var(--muted)',
+                              border: '1px solid var(--line)',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDelete(nl.number)}
+                        disabled={actionLoading}
+                        style={{
+                          fontFamily: 'var(--body)',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          padding: '4px 12px',
+                          background: 'none',
+                          color: 'var(--coral)',
+                          border: '1px solid var(--coral)',
+                          borderRadius: '4px',
+                          cursor: actionLoading ? 'wait' : 'pointer',
+                          opacity: actionLoading ? 0.6 : 1,
+                        }}
+                      >
+                        Delete
+                      </button>
+                    )
                   )}
 
                 </div>

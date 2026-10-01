@@ -1273,6 +1273,68 @@ export async function updateNewsletterIssue(
   return { updatedAt: (rows[0].updated_at as Date).toISOString() };
 }
 
+/** TipTap JSON for an empty document (one blank paragraph). */
+const EMPTY_TIPTAP_DOC = { type: 'doc', content: [{ type: 'paragraph' }] };
+
+/**
+ * Create a blank newsletter issue numbered one past the current highest issue.
+ * Returns the new issue number.
+ */
+export async function createNewsletterIssue(newsletterId: number): Promise<number> {
+  const db = getDb();
+  const rows = await db`
+    INSERT INTO newsletter_issues (number, newsletter_id, subject, body_json, body_html)
+    SELECT COALESCE(MAX(number), 0) + 1, ${newsletterId}, 'Untitled',
+           ${JSON.stringify(EMPTY_TIPTAP_DOC)}::jsonb, ''
+    FROM newsletter_issues
+    RETURNING number
+  `;
+  return rows[0].number as number;
+}
+
+/**
+ * Delete an unsent newsletter issue and shift every later issue down by one,
+ * so issue numbers stay contiguous (segments and subscribers advance by +1).
+ *
+ * Blocked when the issue — or any later issue that would be renumbered — has
+ * sends or schedule rows, since those rows are keyed by issue number.
+ */
+export async function deleteNewsletterIssue(
+  num: number,
+): Promise<'deleted' | 'not_found' | { blocked: string }> {
+  const db = getDb();
+
+  const existing = await db`SELECT 1 FROM newsletter_issues WHERE number = ${num}`;
+  if (existing.length === 0) return 'not_found';
+
+  const referenced = await db`
+    SELECT i.number,
+      EXISTS (SELECT 1 FROM email_sends e WHERE e.email_type = 'newsletter_' || i.number) AS has_sends,
+      EXISTS (SELECT 1 FROM newsletter_schedules s WHERE s.newsletter_num = i.number) AS has_schedules
+    FROM newsletter_issues i
+    WHERE i.number >= ${num}
+    ORDER BY i.number
+  `;
+  for (const row of referenced) {
+    if (row.has_sends || row.has_schedules) {
+      const what = row.has_sends ? 'has been sent' : 'has schedule history';
+      return {
+        blocked: row.number === num
+          ? `Newsletter #${num} ${what}`
+          : `Later newsletter #${row.number} ${what}, so issues can't be renumbered`,
+      };
+    }
+  }
+
+  // Shift through negative numbers so the primary key never collides mid-update.
+  await db.transaction([
+    db`DELETE FROM newsletter_issues WHERE number = ${num}`,
+    db`UPDATE newsletter_issues SET number = -number WHERE number > ${num}`,
+    db`UPDATE newsletter_issues SET number = -number - 1, updated_at = now() WHERE number < 0`,
+  ]);
+  return 'deleted';
+}
+
 // --- Newsletter publication (schedule/cadence) ---
 
 /** A newsletter publication entity with its schedule settings. */
