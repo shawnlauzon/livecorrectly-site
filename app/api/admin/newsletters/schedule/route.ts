@@ -24,6 +24,7 @@ import {
   renderNewsletterForBroadcast,
   renderNewsletterForBroadcastWithHtml,
   syncContactProperties,
+  getBroadcastSender,
 } from '@/lib/resend-broadcasts';
 import { getResendClient, createPropertyIfMissing, deleteNewsletterProperties } from '@/lib/resend-contacts';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
@@ -417,13 +418,7 @@ export async function POST(request: NextRequest) {
         currentStep = 'broadcast';
         emit({ step: 'broadcast', status: 'start', label: 'Creating broadcast' });
 
-        const broadcastDomain = process.env.EMAIL_DOMAIN_BROADCAST;
-        const from = broadcastDomain
-          ? `Shawn Lauzon <shawn@${broadcastDomain}>`
-          : process.env.EMAIL_FROM_MARKETING ?? 'Shawn Lauzon <updates@livecorrectly.com>';
-        const replyTo = broadcastDomain
-          ? undefined
-          : process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+        const { from, replyTo } = getBroadcastSender();
 
         const { data: broadcastData, error: broadcastError } = await client.broadcasts.create({
           name: `${isTest ? '[TEST] ' : ''}Newsletter #${newsletterNumber} — ${(scheduledDate ?? new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSubscriberByEmailForWebhook, updateEmailStatus, rollBackEmailSeries, recordEmailEvent, lookupEmailSendByResendId, lookupEmailTypeByBroadcastId, getMostRecentEmailSend, getScheduleByBroadcastId, advanceEmailSeries, countPendingBroadcastSubscribers, updateScheduleStatus, getNewsletterSegmentsForIssue, advanceNewsletterSegments } from '@/lib/db';
-import { extractEmail } from '@/emails/send';
-import { unsubscribeContactInResend } from '@/lib/resend-contacts';
+import { extractEmail, forwardInboundReply } from '@/emails/send';
+import { getResendClient, unsubscribeContactInResend } from '@/lib/resend-contacts';
 
 /**
  * Resend webhook endpoint.
@@ -86,6 +86,54 @@ interface ResendWebhookEvent {
     // Click event details
     click?: { link: string; timestamp: string };
   };
+}
+
+/**
+ * Fetch a received email (the webhook payload has metadata only) and forward it
+ * to the admin mailbox. Never throws: Resend retries the webhook on non-200, and
+ * a failed forward must not cause duplicate reply events to be recorded.
+ */
+async function forwardReceivedEmail(emailId: string): Promise<void> {
+  try {
+    const client = getResendClient();
+    const { data: email, error } = await client.emails.receiving.get(emailId);
+    if (error || !email) {
+      console.error(`[webhook] Failed to fetch received email ${emailId}:`, error);
+      return;
+    }
+
+    const { data: attachmentList, error: attachmentsError } =
+      await client.emails.receiving.attachments.list({ emailId });
+    if (attachmentsError) {
+      console.error(`[webhook] Failed to list attachments for ${emailId}:`, attachmentsError);
+    }
+
+    const attachments: { filename: string; content: string }[] = [];
+    for (const attachment of attachmentList?.data ?? []) {
+      const res = await fetch(attachment.download_url);
+      if (!res.ok) {
+        console.error(`[webhook] Failed to download attachment ${attachment.id} for ${emailId}: ${res.status}`);
+        continue;
+      }
+      attachments.push({
+        filename: attachment.filename ?? 'attachment',
+        content: Buffer.from(await res.arrayBuffer()).toString('base64'),
+      });
+    }
+
+    await forwardInboundReply({
+      from: email.from,
+      subject: email.subject || '(no subject)',
+      html: email.html,
+      text: email.text,
+      headers: email.headers,
+      attachments,
+    });
+  } catch (err) {
+    // Swallowed deliberately: the reply event is already recorded and Resend
+    // keeps the received email, so a failed forward is recoverable via Replay.
+    console.error(`[webhook] Failed to forward received email ${emailId}:`, err);
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -355,6 +403,12 @@ export async function POST(request: NextRequest) {
             `[webhook] Reply from ${senderEmail} (subscriber ${subscriber.id}, attributed to ${recentSend?.email_type ?? 'unknown'})`
           );
         }
+      }
+
+      // Forward to Shawn's real inbox so he can read and reply. Any sender —
+      // a subscriber may reply from a different address than the one on file.
+      if (event.data.email_id) {
+        await forwardReceivedEmail(event.data.email_id);
       }
       break;
     }

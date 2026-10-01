@@ -189,6 +189,87 @@ export async function sendTransactionalEmail(options: SendEmailOptions) {
   return _sendEmail({ ...options, from, replyTo });
 }
 
+export interface InboundReply {
+  /** Original sender, as received ("Name <email>" or bare address). */
+  from: string;
+  subject: string;
+  html: string | null;
+  text: string | null;
+  headers: Record<string, string> | null;
+  /** Base64-encoded attachment content. */
+  attachments: { filename: string; content: string }[];
+}
+
+function adminMailbox(): string {
+  return process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Whether an inbound message should be forwarded to the admin mailbox.
+ * Skips mail from the admin mailbox itself (prevents forward loops) and
+ * auto-generated mail (out-of-office, bounces; RFC 3834 Auto-Submitted).
+ */
+export function shouldForwardReply(reply: Pick<InboundReply, 'from' | 'headers'>): boolean {
+  if (extractEmail(reply.from).toLowerCase() === extractEmail(adminMailbox()).toLowerCase()) {
+    return false;
+  }
+  const autoSubmitted = Object.entries(reply.headers ?? {}).find(
+    ([name]) => name.toLowerCase() === 'auto-submitted'
+  )?.[1];
+  return !autoSubmitted || autoSubmitted.trim().toLowerCase() === 'no';
+}
+
+/**
+ * Forward an inbound reply (received by Resend on the broadcast domain) to the
+ * admin's real mailbox. Reply-To is the original sender, so replying from the
+ * mail client answers the subscriber directly.
+ *
+ * Bypasses canSendTo() and unsubscribe headers: the recipient is the admin, not
+ * a subscriber, and the sender may not be a subscriber at all. Sent from the
+ * system sender (never the receiving domain) so the forward cannot loop back
+ * into Resend inbound.
+ */
+export async function forwardInboundReply(
+  reply: InboundReply
+): Promise<{ success: boolean; id?: string }> {
+  if (!shouldForwardReply(reply)) {
+    console.log(`[email] Not forwarding reply from ${extractEmail(reply.from)} (loop guard / auto-generated)`);
+    return { success: false };
+  }
+
+  const from = TRANSACTIONAL_DOMAIN
+    ? `Shawn Lauzon <shawn@${TRANSACTIONAL_DOMAIN}>`
+    : process.env.EMAIL_FROM_NOTIFICATIONS ?? 'Live Correctly <notifications@livecorrectly.com>';
+
+  const client = getResend();
+  const { data, error } = await client.emails.send({
+    from,
+    to: adminMailbox(),
+    replyTo: reply.from,
+    subject: `Fwd: ${reply.subject}`,
+    ...(reply.html
+      ? { html: `<p>Reply from <strong>${escapeHtml(reply.from)}</strong></p><hr>${reply.html}` }
+      : { text: `Reply from ${reply.from}\n\n${reply.text ?? ''}` }),
+    ...(reply.attachments.length > 0 && { attachments: reply.attachments }),
+  });
+
+  if (error) {
+    console.error(`[email] Failed to forward reply from ${extractEmail(reply.from)}:`, error);
+    return { success: false };
+  }
+
+  console.log(`[email] Forwarded reply from ${extractEmail(reply.from)} id=${data?.id}`);
+  return { success: true, id: data?.id };
+}
+
 /**
  * Send a plain-text admin notification when a new subscriber signs up or restarts the series.
  * This bypasses canSendTo() and unsubscribe headers — it's an internal notification,

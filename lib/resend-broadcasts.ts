@@ -12,6 +12,25 @@ import type { Subscriber } from '@/lib/types/subscriber';
 let contactPropertiesEnsured = false;
 
 /**
+ * From/Reply-To for newsletter broadcasts.
+ *
+ * When EMAIL_DOMAIN_BROADCAST is set, From is shawn@DOMAIN and no Reply-To is
+ * set: that domain's MX points at Resend inbound, so replies are captured by the
+ * `email.received` webhook, which records the reply and forwards it to Shawn's
+ * real inbox (see forwardInboundReply in emails/send.ts).
+ */
+export function getBroadcastSender(): { from: string; replyTo: string | undefined } {
+  const broadcastDomain = process.env.EMAIL_DOMAIN_BROADCAST;
+  const from = broadcastDomain
+    ? `Shawn Lauzon <shawn@${broadcastDomain}>`
+    : process.env.EMAIL_FROM_MARKETING ?? 'Shawn Lauzon <updates@livecorrectly.com>';
+  const replyTo = broadcastDomain
+    ? undefined
+    : process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+  return { from, replyTo };
+}
+
+/**
  * Delete all ephemeral segments (newsletter_* and broadcast_*) from Resend.
  *
  * Called before creating a new segment to stay within Resend's segment limit.
@@ -169,15 +188,7 @@ export async function sendPrerenderedBroadcast(opts: {
     );
   }
 
-  // Determine from/replyTo (same logic as sendNewsletterBroadcast)
-  const broadcastDomain = process.env.EMAIL_DOMAIN_BROADCAST;
-  const from = broadcastDomain
-    ? `Shawn Lauzon <shawn@${broadcastDomain}>`
-    : process.env.EMAIL_FROM_MARKETING ??
-      'Shawn Lauzon <updates@livecorrectly.com>';
-  const replyTo = broadcastDomain
-    ? undefined
-    : process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+  const { from, replyTo } = getBroadcastSender();
 
   // Create + send broadcast
   const { data: broadcastData, error: broadcastError } =
@@ -360,15 +371,7 @@ export async function sendNewsletterBroadcast(
     await renderNewsletterForBroadcast(newsletterNumber);
 
   // 4. Create + send broadcast
-  const broadcastDomain = process.env.EMAIL_DOMAIN_BROADCAST;
-  const from = broadcastDomain
-    ? `Shawn Lauzon <shawn@${broadcastDomain}>`
-    : process.env.EMAIL_FROM_MARKETING ??
-      'Shawn Lauzon <updates@livecorrectly.com>';
-  // When using domain override, from is already shawn@ so no replyTo needed
-  const replyTo = broadcastDomain
-    ? undefined
-    : process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+  const { from, replyTo } = getBroadcastSender();
 
   const { data: broadcastData, error: broadcastError } =
     await client.broadcasts.create({
