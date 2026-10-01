@@ -9,7 +9,6 @@ Legal entity: Lauzon Consulting LLC. Brand/DBA: Live Correctly. Contact: shawn@l
 This is a **deliberate rebuild that is simpler than the old app**. The old app was over-engineered; we are not recreating it. Do **not** introduce, and actively push back if asked to add:
 - User accounts, login, or auth. The chart flow is **anonymous**.
 - Storage of other people's charts, or the ability to browse them.
-- A normalized multi-table chart schema (gates/lines/channels/centers as separate tables). See Data model — it's **one table, one JSONB column**.
 - Saved/shareable charts or any persistence beyond the single subscriber row.
 - Queues, workers, or job systems. Throughput is very low; keep it boring.
 
@@ -37,7 +36,7 @@ pnpm start        # Serve production build locally
 
 **Always run `pnpm lint` after `pnpm build`** — both must pass before considering a change complete.
 
-No test framework is configured. TypeScript strict mode is on; type-check with `npx tsc --noEmit`.
+Tests use Vitest (`pnpm test:run`; tests live in `tests/`). TypeScript strict mode is on; type-check with `npx tsc --noEmit`.
 
 Environment variables — copy `.env.example` to `.env.local` and fill in:
 - `DATABASE_URL` — Neon Postgres connection string (required)
@@ -58,7 +57,7 @@ Environment variables — copy `.env.example` to `.env.local` and fill in:
 - **Vercel Analytics** (`@vercel/analytics`).
 - Analytics: **GA4** via a shared `track()` wrapper in `lib/analytics.ts`. Funnel events: `form_start`, `chart_generated`, `generate_lead` (key event — fires after subscriber save), `book_consultation_click`. Import `track` from `@/lib/analytics` wherever needed. **Maintain best-in-class GA4 implementation**: Consent Mode v2 (all 4 types declared), events fire only after the action they describe succeeds, no UTM params on internal navigation, every meaningful user action has a named event. When adding new features, add appropriate GA4 events and keep the consent/privacy model intact.
 
-## Data model — ONE table
+## Data model
 Rename target: `subscribers` (the old name `charts` is misleading — a row is a person who has a chart, not a chart).
 
 ```
@@ -184,16 +183,13 @@ Use `utm_source=workcorrectly` when linking to livecorrectly.com from Work Corre
 - **Kill switch**: the automated cron only runs when `CRON_EMAIL_ENABLED=true`. Admin manual sends (from `/admin/[id]`) bypass this flag — they always send if `RESEND_API_KEY` is set. Omit `RESEND_API_KEY` in `.env.local` to prevent any sends during local development.
 - **Sole call site**: `emails/send.ts` is the only file that calls `resend.emails.send()`. All emails go through `sendEmail()`, which checks `canSendTo()` (subscriber must be `active`), sets `List-Unsubscribe` / `List-Unsubscribe-Post` headers, and renders the React component to HTML.
 - **Welcome series**: 3-day drip (career type → signposts → invitation). Templates are in `emails/welcome[1-3].tsx`. Each receives `firstName`, `chart` (flat `EmailChartData` from `parseChartForEmail()`), and `unsubscribeUrl`.
-- **Daily cron**: Vercel Cron at 14:00 UTC (`/api/cron/daily-emails`, configured in `vercel.json`). Queries active subscribers with `next_step` between 1 and `WELCOME_SERIES_LENGTH`, sends the email at `next_step`, advances `next_step`. Extensible for future per-subscriber emails (birthday, milestones).
-- **Newsletter cron**: Vercel Cron on Wednesdays at 14:47 UTC (`/api/cron/newsletter`). Queries active subscribers with `next_step > WELCOME_SERIES_LENGTH`, sends the next newsletter in sequence, advances `next_step`.
+- **Daily cron**: Vercel Cron (`/api/cron/daily-emails`; schedule lives in `vercel.json`). Queries active subscribers with `next_step` between 1 and `WELCOME_SERIES_LENGTH`, sends the email at `next_step`, advances `next_step`. Extensible for future per-subscriber emails (birthday, milestones).
+- **Newsletters**: no cron. An admin schedules each issue as a Resend broadcast via `POST /api/admin/newsletters/schedule` (other newsletter admin routes live under `app/api/admin/newsletters/`).
 - **Admin manual send**: `POST /api/admin/subscribers/[id]/send-welcome` with `{ step: 1-3 }`. Sends a specific welcome email without advancing `next_step`. Requires admin auth. Returns 422 if subscriber is not active.
-- **Personalization**: templates branch on chart type booleans (`isGenerator`, `isProjector`, etc.) and pull content from maps in `emails/content.ts` (strategy writeups, authority writeups/tips keyed by authority type).
+- **Personalization**: templates branch on chart type booleans (`isGenerator`, `isProjector`, etc.) and pull content from maps in `emails/content.tsx` (strategy writeups, authority writeups/tips keyed by authority type).
 - **Compliance**: `List-Unsubscribe` header + footer link in every email; `GET /api/unsubscribe?token=<uuid>` and `POST` (RFC 8058 one-click); physical address in footer; bounce/complaint webhook at `/api/webhooks/resend` updates `email_status`.
-- **Content maps**: `emails/content.ts` holds `strategyWriteups`, `authorityWriteups`, `authorityTips` — ported from the old `WelcomeCampaignText.tsx`. Use `lookupByAuthority()` to handle casing normalization.
+- **Content maps**: `emails/content.tsx` holds `strategyWriteups`, `authorityWriteups`, `authorityTips` — ported from the old `WelcomeCampaignText.tsx`. Use `lookupByAuthority()` to handle casing normalization.
 - Free-tier notes: Resend = 3,000/mo, 100/day, 1 domain. Neon free = 0.5GB/branch.
-
-## Migration
-Existing charts (~150) migrate into the one-table model via a one-off Node script (`@neondatabase/serverless`): read old store → map to the schema → drop full chart into `chart` JSONB → upsert. CSV/SQL import works too at this size. Both old and new are Postgres, so nothing exotic. No migration script is checked into this repo; schema is managed manually.
 
 ## Key paths
 ```
@@ -205,11 +201,11 @@ app/api/admin/subscribers/[id]/send-welcome/  POST — manual welcome email send
 app/api/unsubscribe/route.ts        GET/POST — unsubscribe (token-based)
 app/api/webhooks/resend/route.ts    POST — Resend bounce/complaint webhook
 app/api/cron/daily-emails/route.ts   GET — daily cron: welcome series + future per-subscriber emails
-app/api/cron/newsletter/route.ts     GET — weekly cron (Tuesdays): newsletter sequence
+app/api/admin/newsletters/          newsletter admin + broadcast scheduling
 lib/db.ts                           all database queries (raw SQL via Neon)
 emails/send.ts                      sole Resend call site (sendEmail + canSendTo)
 emails/welcome.ts                   shared getWelcomeEmail() + WELCOME_SERIES_LENGTH
-emails/content.ts                   content maps (strategy/authority writeups)
+emails/content.tsx                  content maps (strategy/authority writeups)
 emails/subjects.ts                  subject line generator per welcome step
 lib/analytics.ts                    shared GA4 track() wrapper
 lib/hd-chart/                       chart interpreter (constants + hdChart())
