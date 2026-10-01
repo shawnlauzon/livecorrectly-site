@@ -227,6 +227,6 @@ vercel.json                         cron schedule config
 The old app repo is at `/Users/shawn/Development/github/fractalhumandesign`. Reference it when migrating templates, copy, or logic from the previous system.
 
 ## Workflow
-- Commit at each working checkpoint so steps can be rolled back.
+- **Never commit until Shawn explicitly says to.** At a working checkpoint, say it's ready and propose a commit message, then wait.
 - Prefer verifiable targets ("form posts to Neon and the row appears") over open-ended "build the app."
 - When in doubt, choose the simpler option — this project's whole thesis is that the old version was too complex.
