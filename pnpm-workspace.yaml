@@ -2,3 +2,43 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+
+# Pin all @tiptap/* to 3.30.2: from 3.30.3 on, @tiptap/react's BubbleMenu loses its
+# data-*/aria-*/style props in minified production builds (Next/Turbopack drops the
+# `(/* @__PURE__ */ new Set(...)).forEach(...)` loops in useMenuElementProps), leaving the
+# newsletter editor's bubble menu unstyled. Remove once a release includes the fix.
+# https://github.com/ueberdosis/tiptap/issues/8408 · https://github.com/ueberdosis/tiptap/pull/8411
+overrides:
+  '@tiptap/core': 3.30.2
+  '@tiptap/extension-blockquote': 3.30.2
+  '@tiptap/extension-bold': 3.30.2
+  '@tiptap/extension-bubble-menu': 3.30.2
+  '@tiptap/extension-bullet-list': 3.30.2
+  '@tiptap/extension-code': 3.30.2
+  '@tiptap/extension-code-block': 3.30.2
+  '@tiptap/extension-document': 3.30.2
+  '@tiptap/extension-dropcursor': 3.30.2
+  '@tiptap/extension-floating-menu': 3.30.2
+  '@tiptap/extension-gapcursor': 3.30.2
+  '@tiptap/extension-hard-break': 3.30.2
+  '@tiptap/extension-heading': 3.30.2
+  '@tiptap/extension-horizontal-rule': 3.30.2
+  '@tiptap/extension-italic': 3.30.2
+  '@tiptap/extension-link': 3.30.2
+  '@tiptap/extension-list': 3.30.2
+  '@tiptap/extension-list-item': 3.30.2
+  '@tiptap/extension-list-keymap': 3.30.2
+  '@tiptap/extension-mention': 3.30.2
+  '@tiptap/extension-ordered-list': 3.30.2
+  '@tiptap/extension-paragraph': 3.30.2
+  '@tiptap/extension-placeholder': 3.30.2
+  '@tiptap/extension-strike': 3.30.2
+  '@tiptap/extension-superscript': 3.30.2
+  '@tiptap/extension-text': 3.30.2
+  '@tiptap/extension-underline': 3.30.2
+  '@tiptap/extensions': 3.30.2
+  '@tiptap/html': 3.30.2
+  '@tiptap/pm': 3.30.2
+  '@tiptap/react': 3.30.2
+  '@tiptap/starter-kit': 3.30.2
+  '@tiptap/suggestion': 3.30.2
