@@ -92,6 +92,11 @@ function getSplitLabel(subscriber: Subscriber): string {
   return hd.splitType();
 }
 
+function getDefinedCenterCount(subscriber: Subscriber): number | null {
+  if (!subscriber.chart?.chart) return null;
+  return hdChart(subscriber.chart.chart).definedCenters().length;
+}
+
 function getFirstShadowLabel(subscriber: Subscriber): string {
   if (!subscriber.chart?.chart) return '—';
 
@@ -271,10 +276,10 @@ function computePipelineStats(subscribers: Subscriber[]) {
   return { active, inWelcome, receivingNewsletters, unsubscribed, bouncedComplained, last7Days, last30Days };
 }
 
-type SortColumn = 'name' | 'email' | 'profile' | 'authority' | 'type' | 'split' | 'shadow' | 'status' | 'nextEmail' | 'created' | 'lastActive';
+type SortColumn = 'name' | 'email' | 'profile' | 'authority' | 'type' | 'split' | 'centers' | 'shadow' | 'status' | 'nextEmail' | 'created' | 'lastActive';
 type SortDirection = 'asc' | 'desc';
 
-const VALID_SORT_COLUMNS: SortColumn[] = ['name','email','profile','authority','type','split','shadow','status','nextEmail','created','lastActive'];
+const VALID_SORT_COLUMNS: SortColumn[] = ['name','email','profile','authority','type','split','centers','shadow','status','nextEmail','created','lastActive'];
 
 
 function EmailEngagementPanel({
@@ -1020,6 +1025,8 @@ function AdminPageContent() {
         return careerDesigns[subscriber.chart.chart.type];
       case 'split':
         return getSplitLabel(subscriber);
+      case 'centers':
+        return getDefinedCenterCount(subscriber) ?? -1;
       case 'shadow':
         return getFirstShadowLabel(subscriber);
       case 'status':
@@ -1229,6 +1236,11 @@ function AdminPageContent() {
                   {sortColumn === 'split' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
                 </span>
               </th>
+              <th onClick={() => handleSort('centers')} style={{ textAlign: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }} title="Defined centers">
+                Centers<span style={{ display: 'inline-block', width: '1em', textAlign: 'center' }}>
+                  {sortColumn === 'centers' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                </span>
+              </th>
               <th onClick={() => handleSort('shadow')} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 #1 Shadow<span style={{ display: 'inline-block', width: '1em', textAlign: 'center' }}>
                   {sortColumn === 'shadow' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
@@ -1385,6 +1397,7 @@ function AdminPageContent() {
                   )}
                 </td>
                 <td>{getSplitLabel(subscriber)}</td>
+                <td style={{ textAlign: 'center' }}>{getDefinedCenterCount(subscriber) ?? '—'}</td>
                 <td>{getFirstShadowLabel(subscriber)}</td>
                 <td className={styles.nextEmail}>
                   {getNextEmailLabel(subscriber)}
