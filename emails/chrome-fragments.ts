@@ -8,9 +8,12 @@
 
 /**
  * Permission Slip logo block — centered at the top of the email.
+ * Wrapped in the same max-width table as the suffix so the logo never exceeds
+ * the content width; the image scales down (width:100%) in narrower viewports.
+ * Intrinsic size is 1200x400 (2x for Retina), displayed at 600x200.
  */
 export function logoFragment(appUrl: string): string {
-  return `<img src="${appUrl}/newsletter/permission-slip.png" alt="Permission Slip" width="600" style="display:block;margin:0 auto 24px;outline:none;border:none;text-decoration:none;" />`;
+  return `<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;"><tr><td style="padding:0 0 24px;"><img src="${appUrl}/newsletter/permission-slip.png" alt="Permission Slip" width="600" height="200" style="display:block;width:100%;max-width:600px;height:auto;margin:0 auto;outline:none;border:none;text-decoration:none;" /></td></tr></table>`;
 }
 
 /**
