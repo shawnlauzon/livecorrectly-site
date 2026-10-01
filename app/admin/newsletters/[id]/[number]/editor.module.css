@@ -211,12 +211,14 @@
   margin: 12px 0;
 }
 
-/* The editor theme sets a fixed width (600px) on .node-container for email
-   layout. Inside conditional blocks that container can exceed the available
-   width (reduced by padding + dashed border), causing overflow: hidden on
-   the block wrapper to clip text. Cap it so it never overflows. */
-.editorWrap :global([data-type="conditional-block"] .node-container) {
+/* The editor theme sets a fixed width on .node-container for email layout.
+   That container can exceed the width available inside the editor (reduced
+   by the editor padding, and by padding + dashed border inside conditional
+   blocks), so overflow: hidden on the wrapper clips the text on the right.
+   Cap it so it never overflows. */
+.editorWrap :global(.node-container) {
   max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Branch divider — visual separator between sibling branches */
