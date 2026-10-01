@@ -19,8 +19,10 @@ import styles from './editor.module.css';
 import adminStyles from '../../../admin.module.css';
 import { VariableNode, VariableEditForm, VARIABLE } from './variable-node';
 import { ConditionalBlockNode, ConditionalBranchNode, ConditionalKeymap, IF_THEN_ELSE, DEFAULT_CONDITION } from './conditional-node';
-import { types, innerAuthorityTypes } from '@/lib/hd-chart/constants';
+import { types, innerAuthorityTypes, definitions } from '@/lib/hd-chart/constants';
 import type { Subscriber } from '@/lib/types/subscriber';
+import { Bodygraph } from '@/components/bodygraph/bodygraph';
+import { ChartLightbox } from '@/components/admin/chart-lightbox';
 
 interface NewsletterData {
   number: number;
@@ -444,6 +446,14 @@ function EditorPanel({
 // Preview pane — resolves Liquid + contact vars via server API
 // ---------------------------------------------------------------------------
 
+/** Short dropdown labels, keyed by the `definitions` constant ('none' is omitted). */
+const DEFINITION_LABELS: Record<string, string> = {
+  single: 'single def',
+  split: 'simple split',
+  'triple split': 'triple-split',
+  'quadruple split': 'quad split',
+};
+
 /** Format a subscriber's profile number (e.g. 46 → "4/6"). */
 function formatProfile(profile: number): string {
   const s = String(profile);
@@ -471,6 +481,8 @@ function PreviewPane({
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
   const [previewHtml, setPreviewHtml] = useState<string>('');
+  const [chartOpen, setChartOpen] = useState(false);
+  const closeChart = useCallback(() => setChartOpen(false), []);
   const [fetchError, setFetchError] = useState<string | null>(null);
   // Date of the note shown above the body ("YYYY-MM-DD"), chosen by the server
   const [noteDate, setNoteDate] = useState<string | null>(null);
@@ -542,6 +554,8 @@ function PreviewPane({
     return () => { cancelled = true; clearTimeout(timer); };
   }, [previewTrigger, selectedId, subscribers, editorRef, postscripts, num]);
 
+  const selectedChart = subscribers.find(s => s.id === selectedId)?.chart?.chart ?? null;
+
   const subscriberLabel = useCallback((s: Subscriber) => {
     const chart = s.chart?.chart;
     const name = [s.first_name, s.last_name].filter(Boolean).join(' ');
@@ -553,7 +567,9 @@ function PreviewPane({
       // Reflector has no authority qualifier; Projector with no authority is "Mental"
       authority = hdType === 'Reflector' ? '' : 'Mental';
     }
-    return `${name} — ${[profile, authority, hdType].filter(Boolean).join(' ')}`;
+    const definition = DEFINITION_LABELS[definitions[chart.definition]] ?? '';
+    const design = [profile, authority, hdType].filter(Boolean).join(' ');
+    return `${name} — ${[design, definition].filter(Boolean).join(', ')}`;
   }, []);
 
   return (
@@ -578,6 +594,17 @@ function PreviewPane({
             ))}
           </select>
         )}
+        {selectedChart && (
+          <button
+            type="button"
+            className={styles.previewChartThumb}
+            onClick={() => setChartOpen(true)}
+            title="View chart"
+            aria-label="View chart"
+          >
+            <Bodygraph chart={selectedChart} showGateNumbers={false} />
+          </button>
+        )}
         {noteDate && (
           <span className={styles.previewNoteLabel} title="The earliest note dated today or later">
             Note for {formatNoteDate(noteDate)}
@@ -595,6 +622,9 @@ function PreviewPane({
           />
         )}
       </div>
+      {chartOpen && selectedChart && (
+        <ChartLightbox chart={selectedChart} onClose={closeChart} />
+      )}
     </div>
   );
 }

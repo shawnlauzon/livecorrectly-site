@@ -6,7 +6,7 @@ import { Subscriber } from '@/lib/types/subscriber';
 import type { Chart, ChartRecord } from '@/lib/types/chart';
 import hdChart from '@/lib/hd-chart';
 import { innerAuthorityTypes, careerDesigns } from '@/lib/hd-chart/constants';
-import { BodygraphChart } from '@/components/bodygraph/bodygraph-chart';
+import { ChartLightbox } from '@/components/admin/chart-lightbox';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { formatUnsubFrom } from './utils';
 import styles from './admin.module.css';
@@ -867,6 +867,8 @@ function AdminPageContent() {
     }
   };
 
+  const closeLightbox = useCallback(() => setLightboxChart(null), []);
+
   const handleViewChart = (chart: Chart, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row click
     setLightboxChart(chart);
@@ -1408,32 +1410,7 @@ function AdminPageContent() {
       )}
 
       {lightboxChart && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(255, 255, 255, 0.85)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            cursor: 'zoom-out'
-          }}
-          onClick={() => setLightboxChart(null)}
-        >
-          <div
-            style={{
-              maxWidth: 'min(92vw, 560px)',
-              width: '100%',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <BodygraphChart chart={lightboxChart} planets={lightboxChart.planets} />
-          </div>
-        </div>
+        <ChartLightbox chart={lightboxChart} onClose={closeLightbox} />
       )}
     </div>
   );
