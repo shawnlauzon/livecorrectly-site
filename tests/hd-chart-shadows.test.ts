@@ -978,5 +978,29 @@ describe('Bridge Shadow (split-aware Bringing Traits/Strengths)', () => {
       expect(data.topShadowVerb).toBe('overcompensate');
       expect(data.topShadowDescription).toBe('trying to prove yourself through willpower and commitments');
     });
+
+    it('lists every shadow name in priority order', () => {
+      const record = shawnsChartData[0] as unknown as { chart: ChartRecord };
+      const data = parseChartForEmail(record.chart.chart);
+      expect(data.shadows).toEqual([
+        'Overcompensating',
+        'Touchy & nervous',
+        'Mentally defensive',
+        'Losing focus',
+        'Trying to be the star',
+      ]);
+      expect(data.shadows[0]).toBe(data.topShadowName);
+    });
+
+    it('names the bridge shadow by its split variant in the shadow list', () => {
+      expect(parseChartForEmail(wideChannelChart).shadows[0]).toBe(bridgeShadowVariants.wide.name);
+      expect(parseChartForEmail(veryWideChart).shadows[0]).toBe(bridgeShadowVariants.veryWide.name);
+    });
+
+    it('has an empty shadow list when every center is defined', () => {
+      const data = parseChartForEmail(makeChart({ definition: 1, centers: [2, 2, 2, 2, 2, 2, 2, 2, 2] }));
+      expect(data.shadows).toEqual([]);
+      expect(data.topShadowName).toBeNull();
+    });
   });
 });

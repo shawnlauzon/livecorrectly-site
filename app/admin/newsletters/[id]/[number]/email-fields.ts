@@ -23,6 +23,12 @@ import {
 /** Deduplicate an indexed array into unique values (preserving order). */
 const unique = (arr: readonly string[]) => [...new Set(arr)];
 
+/** Every shadow name a chart can have, including each bridge-shadow split variant. */
+export const SHADOW_NAMES = unique([
+  ...Object.values(shadowNames),
+  ...Object.values(bridgeShadowVariants).map(v => v.name),
+]);
+
 export interface EmailField {
   key: string;
   label: string;
@@ -43,7 +49,7 @@ export const EMAIL_FIELDS: EmailField[] = [
   { key: 'signature_theme', label: 'Signature Theme', values: unique(signatureThemes) },
   { key: 'not_self_theme', label: 'Not-Self Theme', values: unique(notSelfThemes) },
   { key: 'not_self_theme_adjective', label: 'Not-Self Theme (Adjective)', values: unique(notSelfThemeAdjectives) },
-  { key: 'top_shadow', label: 'Top Shadow', values: unique([...Object.values(shadowNames), ...Object.values(bridgeShadowVariants).map(v => v.name)]) },
+  { key: 'top_shadow', label: 'Top Shadow', values: SHADOW_NAMES },
   { key: 'top_shadow_description', label: 'Top Shadow Description', values: unique(Object.values(shadowDescriptions)) },
   { key: 'top_shadow_verb', label: 'Top Shadow (verb)', values: unique([...Object.values(shadowVerbs), ...Object.values(bridgeShadowVariants).map(v => v.verb)]) },
   { key: 'decision_making_strategy', label: 'Decision-making Strategy' },

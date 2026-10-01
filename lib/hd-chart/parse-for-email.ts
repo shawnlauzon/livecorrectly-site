@@ -53,6 +53,8 @@ export interface EmailChartData {
   innerAuthorityVideo: string;
   signatureVideo: string;
   topShadow: string | null;
+  /** Names of every shadow on the chart in priority order (e.g. ["Overcompensating", "Losing focus"]) */
+  shadows: string[];
   /** Shadow name for the top shadow (e.g. "Overcompensating"), null if no shadows */
   topShadowName: string | null;
   /** Shadow description for the top shadow, null if no shadows */
@@ -88,17 +90,19 @@ export function parseChartForEmail(chart: Chart): EmailChartData {
 
   // The Bringing Traits/Strengths shadow's wording depends on split width
   // and names the missing piece, so it can't come from the static maps.
-  let topShadowName: string | null = null;
+  const bridgeShadow = shadows.includes('Bringing Traits/Strengths') ? hd.getBridgeShadow() : null;
+  const bridgeWording = bridgeShadow ? bridgeShadowVariants[bridgeShadow.variant] : null;
+  const shadowNameList = shadows.map(fn =>
+    fn === 'Bringing Traits/Strengths' && bridgeWording ? bridgeWording.name : shadowNames[fn],
+  );
+
+  const topShadowName = shadowNameList[0] ?? null;
   let topShadowDescription: string | null = null;
   let topShadowVerb: string | null = null;
-  if (topShadow === 'Bringing Traits/Strengths') {
-    const { variant, missingPiece } = hd.getBridgeShadow();
-    const wording = bridgeShadowVariants[variant];
-    topShadowName = wording.name;
-    topShadowDescription = wording.describe(missingPiece);
-    topShadowVerb = wording.verb;
+  if (topShadow === 'Bringing Traits/Strengths' && bridgeShadow && bridgeWording) {
+    topShadowDescription = bridgeWording.describe(bridgeShadow.missingPiece);
+    topShadowVerb = bridgeWording.verb;
   } else if (topShadow) {
-    topShadowName = shadowNames[topShadow] ?? null;
     topShadowDescription = shadowDescriptions[topShadow] ?? null;
     topShadowVerb = shadowVerbs[topShadow] ?? null;
   }
@@ -143,6 +147,7 @@ export function parseChartForEmail(chart: Chart): EmailChartData {
     innerAuthorityVideo: innerAuthorityVideos[authorityIndex],
     signatureVideo: signatureVideos[typeIndex],
     topShadow,
+    shadows: shadowNameList,
     topShadowName,
     topShadowDescription: topShadowDescription?.replace(/^./, c => c.toLowerCase()) ?? null,
     topShadowVerb,

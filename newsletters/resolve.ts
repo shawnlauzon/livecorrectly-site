@@ -515,6 +515,9 @@ export function buildLiquidContext(
     top_shadow_description: chart.topShadowDescription ?? '',
     top_shadow_verb: chart.topShadowVerb ?? '',
 
+    // Every shadow name, for `{% if shadows contains "Overcompensating" %}`
+    shadows: chart.shadows,
+
     // Boolean flags
     isBuilder: chart.isGenerator,
     isClassicBuilder: chart.isPureGenerator,
