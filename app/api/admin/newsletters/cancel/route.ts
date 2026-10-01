@@ -4,20 +4,21 @@ import {
   getScheduleForNewsletter,
   updateScheduleStatus,
   deleteEmailSendsForBroadcast,
+  deleteEmailSendsForResendEmails,
 } from '@/lib/db';
 import { getResendClient } from '@/lib/resend-contacts';
 
 /**
  * POST /api/admin/newsletters/cancel
  *
- * Cancel a scheduled newsletter broadcast.
+ * Cancel a scheduled newsletter (broadcast, or direct per-subscriber emails).
  *
  * Body: { newsletterNumber: number }
  *
  * Pipeline:
  * 1. Find the active schedule for this newsletter
- * 2. Cancel the broadcast in Resend
- * 3. Delete email_sends records for the broadcast
+ * 2. Cancel the broadcast (or each scheduled email) in Resend
+ * 3. Delete the email_sends records for it
  * 4. Update schedule status to 'cancelled'
  */
 export async function POST(request: NextRequest) {
@@ -47,26 +48,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cancel the broadcast in Resend
+    // Cancel in Resend. Continue with the DB rollback even if Resend fails —
+    // the send may have already happened or may not exist.
     const client = getResendClient();
-    const { error: cancelError } = await client.broadcasts.remove(schedule.broadcast_id);
-    if (cancelError) {
-      console.warn(
-        `[cancel] Failed to remove/delete broadcast ${schedule.broadcast_id} in Resend:`,
-        cancelError,
-      );
-      // Continue with DB rollback even if Resend cancel fails —
-      // the broadcast may have already been sent or may not exist
+    if (schedule.kind === 'direct') {
+      for (const emailId of schedule.resend_email_ids ?? []) {
+        const { error: cancelError } = await client.emails.cancel(emailId);
+        if (cancelError) {
+          console.warn(`[cancel] Failed to cancel email ${emailId} in Resend:`, cancelError);
+        }
+      }
+      await deleteEmailSendsForResendEmails(schedule.resend_email_ids ?? []);
+    } else if (schedule.broadcast_id) {
+      const { error: cancelError } = await client.broadcasts.remove(schedule.broadcast_id);
+      if (cancelError) {
+        console.warn(
+          `[cancel] Failed to remove/delete broadcast ${schedule.broadcast_id} in Resend:`,
+          cancelError,
+        );
+      }
+      await deleteEmailSendsForBroadcast(schedule.broadcast_id);
     }
-
-    // Delete email_sends records
-    await deleteEmailSendsForBroadcast(schedule.broadcast_id);
 
     // Update schedule status
     await updateScheduleStatus(schedule.id, 'cancelled');
 
     console.log(
-      `[cancel] Newsletter #${newsletterNumber} cancelled. Broadcast ${schedule.broadcast_id}`,
+      `[cancel] Newsletter #${newsletterNumber} cancelled (${schedule.kind}${schedule.broadcast_id ? ` broadcast ${schedule.broadcast_id}` : ''})`,
     );
 
     return NextResponse.json({ ok: true });

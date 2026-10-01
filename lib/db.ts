@@ -855,12 +855,18 @@ export async function getNewsletterEngagementBatch(
 
 // --- Newsletter schedules ---
 
-/** A scheduled newsletter broadcast tracked in newsletter_schedules. */
+/** A scheduled newsletter send tracked in newsletter_schedules. */
 export interface NewsletterSchedule {
   id: number;
   newsletter_num: number;
-  broadcast_id: string;
+  /** 'broadcast' = Resend broadcast to a segment; 'direct' = per-subscriber scheduled emails */
+  kind: 'broadcast' | 'direct';
+  broadcast_id: string | null;
   segment_id: string | null;
+  /** The persistent newsletter_segments row this send targeted (broadcast only) */
+  newsletter_segment_id: number | null;
+  /** Resend email IDs for direct sends */
+  resend_email_ids: string[] | null;
   scheduled_at: string;
   subscriber_count: number;
   status: string; // 'scheduled' | 'sent' | 'cancelled'
@@ -872,15 +878,25 @@ export interface NewsletterSchedule {
  */
 export async function insertNewsletterSchedule(data: {
   newsletterNum: number;
-  broadcastId: string;
+  kind: 'broadcast' | 'direct';
+  broadcastId: string | null;
   segmentId: string | null;
+  newsletterSegmentId: number | null;
+  resendEmailIds: string[] | null;
   scheduledAt: Date;
   subscriberCount: number;
 }): Promise<NewsletterSchedule> {
   const db = getDb();
   const rows = await db`
-    INSERT INTO newsletter_schedules (newsletter_num, broadcast_id, segment_id, scheduled_at, subscriber_count)
-    VALUES (${data.newsletterNum}, ${data.broadcastId}, ${data.segmentId}, ${data.scheduledAt.toISOString()}, ${data.subscriberCount})
+    INSERT INTO newsletter_schedules (
+      newsletter_num, kind, broadcast_id, segment_id, newsletter_segment_id,
+      resend_email_ids, scheduled_at, subscriber_count
+    )
+    VALUES (
+      ${data.newsletterNum}, ${data.kind}, ${data.broadcastId}, ${data.segmentId},
+      ${data.newsletterSegmentId}, ${data.resendEmailIds}, ${data.scheduledAt.toISOString()},
+      ${data.subscriberCount}
+    )
     RETURNING *
   `;
   return rows[0] as NewsletterSchedule;
@@ -981,22 +997,55 @@ export async function getScheduleByBroadcastId(broadcastId: string): Promise<New
 }
 
 /**
- * Count subscribers in a broadcast whose next_step hasn't been advanced yet.
- * A count of 0 means all recipients have been delivered (email.sent received for all).
+ * Schedules still marked 'scheduled' whose send time has passed — candidates
+ * for finalization once Resend confirms the send completed.
  */
-export async function countPendingBroadcastSubscribers(
-  broadcastId: string,
-  newsletterNum: number,
-): Promise<number> {
+export async function getDueUnfinalizedSchedules(): Promise<NewsletterSchedule[]> {
   const db = getDb();
   const rows = await db`
-    SELECT COUNT(*) AS pending
-    FROM email_sends es
-    JOIN subscribers s ON s.id = es.subscriber_id
-    WHERE es.resend_broadcast_id = ${broadcastId}
-      AND s.next_step = ${newsletterNum}
+    SELECT * FROM newsletter_schedules
+    WHERE status = 'scheduled'
+      AND scheduled_at <= now()
+    ORDER BY scheduled_at
   `;
-  return Number(rows[0].pending);
+  return rows as NewsletterSchedule[];
+}
+
+/**
+ * Atomically mark a schedule sent and move its segment to the next issue.
+ *
+ * Single statement so concurrent callers (many email.sent webhooks + the cron)
+ * can't double-advance: only the caller whose UPDATE flips status from
+ * 'scheduled' gets a row back, and the segment is set to newsletter_num + 1
+ * only while it still points at newsletter_num.
+ */
+export async function finalizeNewsletterSchedule(
+  scheduleId: number,
+): Promise<{ finalized: boolean; segmentAdvanced: boolean }> {
+  const db = getDb();
+  const rows = await db`
+    WITH marked AS (
+      UPDATE newsletter_schedules
+      SET status = 'sent'
+      WHERE id = ${scheduleId} AND status = 'scheduled'
+      RETURNING newsletter_segment_id, newsletter_num
+    ),
+    advanced AS (
+      UPDATE newsletter_segments seg
+      SET next_issue = marked.newsletter_num + 1
+      FROM marked
+      WHERE seg.id = marked.newsletter_segment_id
+        AND seg.next_issue = marked.newsletter_num
+      RETURNING seg.id
+    )
+    SELECT
+      (SELECT count(*) FROM marked) AS marked,
+      (SELECT count(*) FROM advanced) AS advanced
+  `;
+  return {
+    finalized: Number(rows[0].marked) > 0,
+    segmentAdvanced: Number(rows[0].advanced) > 0,
+  };
 }
 
 /**
@@ -1009,6 +1058,20 @@ export async function deleteEmailSendsForBroadcast(
   await db`
     DELETE FROM email_sends
     WHERE resend_broadcast_id = ${broadcastId}
+  `;
+}
+
+/**
+ * Delete email_sends records for cancelled direct newsletter emails.
+ */
+export async function deleteEmailSendsForResendEmails(
+  resendEmailIds: string[],
+): Promise<void> {
+  if (resendEmailIds.length === 0) return;
+  const db = getDb();
+  await db`
+    DELETE FROM email_sends
+    WHERE resend_email_id = ANY(${resendEmailIds})
   `;
 }
 
@@ -1337,12 +1400,14 @@ export async function deleteNewsletterIssue(
 
 // --- Newsletter publication (schedule/cadence) ---
 
-/** A newsletter publication entity with its schedule settings. */
+/** A newsletter publication entity with its weekly cadence settings. */
 export interface NewsletterPublication {
   id: number;
   name: string;
-  nextSendAt: string | null;
-  intervalDays: number;
+  /** 0 = Sunday … 6 = Saturday */
+  sendWeekday: number | null;
+  /** "HH:MM" (24h) in `timezone` */
+  sendTime: string | null;
   timezone: string;
 }
 
@@ -1350,8 +1415,8 @@ function rowToNewsletterPublication(row: Record<string, unknown>): NewsletterPub
   return {
     id: row.id as number,
     name: row.name as string,
-    nextSendAt: row.next_send_at ? (row.next_send_at as Date).toISOString() : null,
-    intervalDays: row.interval_days as number,
+    sendWeekday: (row.send_weekday as number | null) ?? null,
+    sendTime: row.send_time ? (row.send_time as string).slice(0, 5) : null,
     timezone: row.timezone as string,
   };
 }
@@ -1379,21 +1444,22 @@ export async function getNewsletterPublication(id: number): Promise<NewsletterPu
 }
 
 /**
- * Update a newsletter publication's schedule settings.
+ * Update a newsletter publication's weekly cadence settings.
+ * Omitted fields are left unchanged.
  */
 export async function updateNewsletterPublication(
   id: number,
   data: {
-    nextSendAt?: string | null;
-    intervalDays?: number;
+    sendWeekday?: number;
+    sendTime?: string;
     timezone?: string;
   },
 ): Promise<NewsletterPublication> {
   const db = getDb();
   const rows = await db`
     UPDATE newsletters SET
-      next_send_at = COALESCE(${data.nextSendAt !== undefined ? (data.nextSendAt ?? null) : null}::timestamptz, next_send_at),
-      interval_days = COALESCE(${data.intervalDays ?? null}, interval_days),
+      send_weekday = COALESCE(${data.sendWeekday ?? null}::int, send_weekday),
+      send_time = COALESCE(${data.sendTime ?? null}::time, send_time),
       timezone = COALESCE(${data.timezone ?? null}, timezone),
       updated_at = now()
     WHERE id = ${id}
@@ -1488,17 +1554,3 @@ export async function deleteNewsletterSegment(segmentId: number): Promise<Newsle
   `;
   return rows.length > 0 ? rowToNewsletterSegment(rows[0]) : null;
 }
-
-/**
- * Advance next_issue by 1 for the given segment IDs.
- */
-export async function advanceNewsletterSegments(segmentIds: number[]): Promise<void> {
-  if (segmentIds.length === 0) return;
-  const db = getDb();
-  await db`
-    UPDATE newsletter_segments
-    SET next_issue = next_issue + 1
-    WHERE id = ANY(${segmentIds})
-  `;
-}
-

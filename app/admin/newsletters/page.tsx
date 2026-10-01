@@ -8,8 +8,9 @@ import styles from '../admin.module.css';
 interface PublicationInfo {
   id: number;
   name: string;
-  nextSendAt: string | null;
-  intervalDays: number;
+  sendWeekday: number | null;
+  sendTime: string | null;
+  nextRegularSendAt: string | null;
   timezone: string;
   issueCount: number;
   subscriberCount: number;
@@ -31,13 +32,18 @@ function formatDate(iso: string, tz?: string): string {
   });
 }
 
-/** Format interval days as a human-readable cadence string. */
-function formatCadence(days: number): string {
-  if (days === 7) return 'Every week';
-  if (days === 14) return 'Every 2 weeks';
-  if (days === 21) return 'Every 3 weeks';
-  if (days === 28) return 'Every 4 weeks';
-  return `Every ${days} days`;
+const WEEKDAYS = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
+
+/** Format the weekly cadence, e.g. "Tuesdays at 6:47 AM". */
+function formatCadence(weekday: number | null, time: string | null): string {
+  if (weekday === null || !time) return 'Not set';
+  const [h, m] = time.split(':').map(Number);
+  const clock = new Date(Date.UTC(2000, 0, 1, h, m)).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'UTC',
+  });
+  return `${WEEKDAYS[weekday]} at ${clock}`;
 }
 
 /** Format a timezone for display (e.g., "America/Chicago" → "Chicago (CST)"). */
@@ -144,13 +150,13 @@ export default function AdminPublicationsPage() {
                 {pub.name}
               </td>
               <td>
-                {formatCadence(pub.intervalDays)}
+                {formatCadence(pub.sendWeekday, pub.sendTime)}
                 {' \u00b7 '}
                 {formatTimezone(pub.timezone)}
               </td>
               <td>
-                {pub.nextSendAt
-                  ? formatDate(pub.nextSendAt, pub.timezone)
+                {pub.nextRegularSendAt
+                  ? formatDate(pub.nextRegularSendAt, pub.timezone)
                   : <span style={{ color: 'var(--muted)' }}>Not set</span>
                 }
               </td>

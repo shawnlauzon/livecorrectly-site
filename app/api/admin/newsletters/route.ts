@@ -10,6 +10,9 @@ import {
 import { getNewsletterIssueNumbers, clearNewsletterIssueCache } from '@/emails/newsletter-loader';
 import { loadNewsletterIssue } from '@/newsletters/loader';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
+import { finalizeDueSchedules } from '@/lib/newsletter-finalize';
+import { regularSendAtWeeksOut } from '@/lib/newsletter-cadence';
+import { SEGMENT_MIN_SIZE } from '@/lib/newsletter-audience';
 
 
 /**
@@ -37,7 +40,10 @@ function weeksUntilReady(currentStep: number, targetNum: number): number {
  * - sentCount: subscribers who have already received this newsletter (next_step > N)
  * - nextWeekCount: active subscribers projected to be ready within 1 week
  * - laterCount: active subscribers projected to need 2+ weeks
+ * - dueNowCount / directSend: subscribers due now, and whether they'll get direct emails
  * - projectedSendAt: ISO timestamp of the projected (or actual) send date
+ *
+ * Finalizes completed sends first (see finalizeDueSchedules).
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -50,6 +56,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Pick up sends Resend has completed since the last look, so status and
+    // each segment's "Next" issue are current when the list renders.
+    await finalizeDueSchedules();
+
     const [allSubscribers, schedules, publication, allSegments] = await Promise.all([
       getAllSubscribers(),
       getNewsletterSchedules(),
@@ -75,17 +85,16 @@ export async function GET(request: NextRequest) {
 
     // Compute projected cadence dates from persisted publication settings.
     // Sent/scheduled newsletters keep their actual date; unsent ones get
-    // consecutive slots based on next_send_at + interval_days.
+    // consecutive weekly slots starting at the next regular send time.
     const unsentNumbers = postWelcomeNumbers.filter(num => {
       const schedule = scheduleMap.get(num);
       return !schedule || (schedule.status !== 'scheduled' && schedule.status !== 'sent');
     });
     const projectedDateMap = new Map<number, string>();
-    if (publication?.nextSendAt) {
-      const startDate = new Date(publication.nextSendAt);
+    if (publication) {
       unsentNumbers.forEach((num, i) => {
-        const sendDate = new Date(startDate.getTime() + i * (publication.intervalDays ?? 7) * 24 * 60 * 60 * 1000);
-        projectedDateMap.set(num, sendDate.toISOString());
+        const sendDate = regularSendAtWeeksOut(publication, i);
+        if (sendDate) projectedDateMap.set(num, sendDate.toISOString());
       });
     }
 
@@ -125,6 +134,11 @@ export async function GET(request: NextRequest) {
       // Determine the send date to display:
       // - Scheduled/sent → use the schedule's actual date
       // - Unsent → use the projected cadence date
+      // Subscribers due right now (next_step = this issue), for the "Next"
+      // column when no segment exists: under SEGMENT_MIN_SIZE they're sent directly.
+      const dueNowCount = activeSubscribers.filter(s => s.next_step === num).length;
+      const directSend = !hasSegment && dueNowCount > 0 && dueNowCount < SEGMENT_MIN_SIZE;
+
       let projectedSendAt: string | null = null;
       if (schedule?.status === 'scheduled' || schedule?.status === 'sent') {
         projectedSendAt = schedule.scheduled_at;
@@ -139,6 +153,8 @@ export async function GET(request: NextRequest) {
 
         sentCount,
         nextWeekCount,
+        dueNowCount,
+        directSend,
         laterCount,
         projectedSendAt,
         nextWeekSubscribers: nextWeekSubs.map(s => ({
@@ -159,6 +175,7 @@ export async function GET(request: NextRequest) {
         schedule: schedule
           ? {
               id: schedule.id,
+              kind: schedule.kind,
               broadcastId: schedule.broadcast_id,
               scheduledAt: schedule.scheduled_at,
               subscriberCount: schedule.subscriber_count,
@@ -178,9 +195,10 @@ export async function GET(request: NextRequest) {
       })),
       settings: publication
         ? {
-            nextSendAt: publication.nextSendAt,
-            intervalDays: publication.intervalDays,
+            sendWeekday: publication.sendWeekday,
+            sendTime: publication.sendTime,
             timezone: publication.timezone,
+            nextRegularSendAt: regularSendAtWeeksOut(publication, 0)?.toISOString() ?? null,
           }
         : null,
     });

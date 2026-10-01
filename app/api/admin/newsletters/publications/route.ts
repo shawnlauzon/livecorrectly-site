@@ -3,6 +3,7 @@ import { checkAdminPassword } from '@/lib/admin-auth';
 import { getAllNewsletterPublications, getAllSubscribers, getNewsletterSchedules } from '@/lib/db';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import { getNewsletterIssueNumbers } from '@/emails/newsletter-loader';
+import { nextRegularSendAt } from '@/lib/newsletter-cadence';
 
 /**
  * GET /api/admin/newsletters/publications
@@ -49,8 +50,9 @@ export async function GET(request: NextRequest) {
     const result = publications.map(pub => ({
       id: pub.id,
       name: pub.name,
-      nextSendAt: pub.nextSendAt,
-      intervalDays: pub.intervalDays,
+      sendWeekday: pub.sendWeekday,
+      sendTime: pub.sendTime,
+      nextRegularSendAt: nextRegularSendAt(pub)?.toISOString() ?? null,
       timezone: pub.timezone,
       issueCount,
       subscriberCount,

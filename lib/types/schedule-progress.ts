@@ -29,8 +29,11 @@ export interface ScheduleCompleteEvent {
   step: 'complete';
   result: {
     scheduleId: number;
-    broadcastId: string;
-    segmentId: string;
+    kind: 'broadcast' | 'direct';
+    /** null for direct sends */
+    broadcastId: string | null;
+    /** null for direct sends */
+    segmentId: string | null;
     contactCount: number;
     scheduledAt: string;
   };

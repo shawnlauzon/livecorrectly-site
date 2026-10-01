@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import styles from '../../admin.module.css';
-import type { ScheduleStepId, ScheduleEvent } from '@/lib/types/schedule-progress';
+import type { ScheduleStepId, ScheduleEvent, ScheduleCompleteEvent } from '@/lib/types/schedule-progress';
 
 /** All pipeline steps in display order. */
 const SCHEDULE_STEPS: { id: ScheduleStepId; label: string }[] = [
@@ -32,20 +32,15 @@ interface ScheduleProgress {
   newsletterNumber: number;
   isTest?: boolean;
   steps: ProgressStepState[];
-  result?: {
-    scheduleId: number;
-    broadcastId: string;
-    segmentId: string;
-    contactCount: number;
-    scheduledAt: string;
-  };
+  result?: ScheduleCompleteEvent['result'];
   error?: string;
   done: boolean;
 }
 
 interface NewsletterSchedule {
   id: number;
-  broadcastId: string;
+  kind: 'broadcast' | 'direct';
+  broadcastId: string | null;
   scheduledAt: string;
   subscriberCount: number;
   status: string;
@@ -72,6 +67,10 @@ interface NewsletterInfo {
 
   sentCount: number;
   nextWeekCount: number;
+  /** Subscribers whose next_step is this issue right now */
+  dueNowCount: number;
+  /** True when no segment exists and too few are due for one — sent as individual emails */
+  directSend: boolean;
   laterCount: number;
   projectedSendAt: string | null;
   nextWeekSubscribers: ReadySubscriber[];
@@ -81,9 +80,10 @@ interface NewsletterInfo {
 }
 
 interface NewsletterSettings {
-  nextSendAt: string | null;
-  intervalDays: number;
+  sendWeekday: number | null;
+  sendTime: string | null;
   timezone: string;
+  nextRegularSendAt: string | null;
 }
 
 interface NewslettersResponse {
@@ -125,13 +125,8 @@ function toDatetimeLocal(iso: string, tz: string): string {
   return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
 }
 
-/** Interval options for the repeat cadence. */
-const INTERVAL_OPTIONS = [
-  { label: 'Every week', days: 7 },
-  { label: 'Every 2 weeks', days: 14 },
-  { label: 'Every 3 weeks', days: 21 },
-  { label: 'Every 4 weeks', days: 28 },
-];
+/** Weekday options for the weekly cadence (0 = Sunday, matching the DB). */
+const WEEKDAY_OPTIONS = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
 
 /** Common timezones for the selector. */
 const TIMEZONE_OPTIONS = [
@@ -225,8 +220,10 @@ export default function AdminNewsletterDetailPage() {
   const [loadingSegmentContacts, setLoadingSegmentContacts] = useState<number | null>(null);
 
   // Cadence controls (initialized from server settings)
-  const [nextSendAt, setNextSendAt] = useState<string>('');
-  const [intervalDays, setIntervalDays] = useState<number>(7);
+  const [sendWeekday, setSendWeekday] = useState<number | null>(null);
+  const [sendTime, setSendTime] = useState<string>('');
+  // Derived server-side from the saved cadence; refreshed on every list fetch
+  const [nextRegularSendAt, setNextRegularSendAt] = useState<string | null>(null);
   const [timezone, setTimezone] = useState<string>('America/Chicago');
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [settingsDirty, setSettingsDirty] = useState(false);
@@ -257,12 +254,12 @@ export default function AdminNewsletterDetailPage() {
       const data: NewslettersResponse = await res.json();
       setNewsletters(data.newsletters);
 
+      setNextRegularSendAt(data.settings?.nextRegularSendAt ?? null);
+
       // Initialize cadence controls from persisted settings (once)
       if (!settingsLoaded && data.settings) {
-        if (data.settings.nextSendAt) {
-          setNextSendAt(toDatetimeLocal(data.settings.nextSendAt, data.settings.timezone));
-        }
-        setIntervalDays(data.settings.intervalDays);
+        setSendWeekday(data.settings.sendWeekday);
+        setSendTime(data.settings.sendTime ?? '');
         setTimezone(data.settings.timezone);
         setSettingsLoaded(true);
       }
@@ -279,7 +276,11 @@ export default function AdminNewsletterDetailPage() {
     void (async () => { await fetchNewsletters(); })();
   }, [fetchNewsletters]);
 
-  const handleSchedule = async (newsletterNumber: number, sendAt?: string | null, options?: { test?: boolean }) => {
+  const handleSchedule = async (
+    newsletterNumber: number,
+    sendAt?: string | null,
+    options?: { test?: boolean; confirmMerge?: boolean },
+  ): Promise<void> => {
     const pwd = getPassword();
     if (!pwd) return;
 
@@ -305,7 +306,12 @@ export default function AdminNewsletterDetailPage() {
           Authorization: `Bearer ${pwd}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ newsletterNumber, ...(sendAt && { sendAt }), ...(isTest && { test: true }) }),
+        body: JSON.stringify({
+          newsletterNumber,
+          ...(sendAt && { sendAt }),
+          ...(isTest && { test: true }),
+          ...(options?.confirmMerge && { confirmMerge: true }),
+        }),
       });
 
       const contentType = res.headers.get('content-type') ?? '';
@@ -313,6 +319,18 @@ export default function AdminNewsletterDetailPage() {
       if (contentType.includes('application/json')) {
         // Pre-stream validation error — standard JSON response
         const data = await res.json();
+        if (data.needsMergeConfirmation) {
+          const merging = (data.merge as string[]).join(', ');
+          if (confirm(
+            `Several segments are on #${newsletterNumber}. "${merging}" will be merged into "${data.keep}" ` +
+            `(the merged segments are deleted), then #${newsletterNumber} is scheduled to "${data.keep}". Continue?`,
+          )) {
+            setActionLoading(false);
+            return handleSchedule(newsletterNumber, sendAt, { ...options, confirmMerge: true });
+          }
+          setScheduleProgress(null);
+          return;
+        }
         setScheduleProgress(prev => prev ? {
           ...prev,
           error: data.error ?? 'Unknown error',
@@ -531,8 +549,6 @@ export default function AdminNewsletterDetailPage() {
     setActionMessage(null);
 
     try {
-      const nextSendAtUtc = nextSendAt ? localToUtcIso(nextSendAt, timezone) : null;
-
       const res = await fetch('/api/admin/newsletters/settings', {
         method: 'PUT',
         headers: {
@@ -540,8 +556,8 @@ export default function AdminNewsletterDetailPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          nextSendAt: nextSendAtUtc,
-          intervalDays,
+          ...(sendWeekday !== null && { sendWeekday }),
+          ...(sendTime && { sendTime }),
           timezone,
         }),
       });
@@ -989,11 +1005,10 @@ export default function AdminNewsletterDetailPage() {
             gap: '0.5rem',
           }}
         >
-          Next send
-          <input
-            type="datetime-local"
-            value={nextSendAt}
-            onChange={(e) => { setNextSendAt(e.target.value); setSettingsDirty(true); }}
+          Send every
+          <select
+            value={sendWeekday ?? ''}
+            onChange={(e) => { setSendWeekday(e.target.value === '' ? null : Number(e.target.value)); setSettingsDirty(true); }}
             style={{
               fontFamily: 'var(--body)',
               fontSize: '0.875rem',
@@ -1003,7 +1018,12 @@ export default function AdminNewsletterDetailPage() {
               borderRadius: '4px',
               background: '#fff',
             }}
-          />
+          >
+            {sendWeekday === null && <option value="">Choose a day</option>}
+            {WEEKDAY_OPTIONS.map((label, i) => (
+              <option key={i} value={i}>{label}</option>
+            ))}
+          </select>
         </label>
         <label
           style={{
@@ -1018,10 +1038,11 @@ export default function AdminNewsletterDetailPage() {
             gap: '0.5rem',
           }}
         >
-          Repeat
-          <select
-            value={intervalDays}
-            onChange={(e) => { setIntervalDays(Number(e.target.value)); setSettingsDirty(true); }}
+          At
+          <input
+            type="time"
+            value={sendTime}
+            onChange={(e) => { setSendTime(e.target.value); setSettingsDirty(true); }}
             style={{
               fontFamily: 'var(--body)',
               fontSize: '0.875rem',
@@ -1031,11 +1052,7 @@ export default function AdminNewsletterDetailPage() {
               borderRadius: '4px',
               background: '#fff',
             }}
-          >
-            {INTERVAL_OPTIONS.map(opt => (
-              <option key={opt.days} value={opt.days}>{opt.label}</option>
-            ))}
-          </select>
+          />
         </label>
         <label
           style={{
@@ -1221,14 +1238,24 @@ export default function AdminNewsletterDetailPage() {
                     {nl.segments[0].name}
                   </button>
                 ) : (
-                  renderSubscriberCount(
-                    nl.nextWeekCount,
-                    expandedReady === nl.number,
-                    () => {
-                      setExpandedReady(expandedReady === nl.number ? null : nl.number);
-                      setExpandedLater(null);
-                    },
-                  )
+                  <>
+                    {renderSubscriberCount(
+                      nl.nextWeekCount,
+                      expandedReady === nl.number,
+                      () => {
+                        setExpandedReady(expandedReady === nl.number ? null : nl.number);
+                        setExpandedLater(null);
+                      },
+                    )}
+                    {nl.directSend && (
+                      <div
+                        style={{ fontFamily: 'var(--body)', fontSize: '0.6875rem', color: 'var(--muted)' }}
+                        title="Fewer than 10 due and no segment: scheduling sends individual emails"
+                      >
+                        direct
+                      </div>
+                    )}
+                  </>
                 )}
               </td>
               <td style={{ textAlign: 'center' }}>
@@ -1340,14 +1367,16 @@ export default function AdminNewsletterDetailPage() {
                             }}
                           >
                             {nl.nextWeekCount} subscriber{nl.nextWeekCount === 1 ? '' : 's'}
+                            {nl.directSend && ' \u2014 sent as individual emails (no segment)'}
+                            {nl.segments.length > 1 && ` \u2014 ${nl.segments.length} segments will be merged`}
                           </div>
 
                           {scheduleMode === 'choose' ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                               <div style={{ display: 'flex', gap: '0.375rem' }}>
                                 <button
-                                  onClick={() => handleSchedule(nl.number, nextSendAt ? localToUtcIso(nextSendAt, timezone) : undefined)}
-                                  disabled={actionLoading}
+                                  onClick={() => handleSchedule(nl.number, nextRegularSendAt)}
+                                  disabled={actionLoading || !nextRegularSendAt}
                                   style={{
                                     fontFamily: 'var(--body)',
                                     fontSize: '0.75rem',
@@ -1360,16 +1389,16 @@ export default function AdminNewsletterDetailPage() {
                                     cursor: actionLoading ? 'wait' : 'pointer',
                                     opacity: actionLoading ? 0.6 : 1,
                                   }}
-                                  title={nextSendAt ? formatDateTime(localToUtcIso(nextSendAt, timezone), timezone) : undefined}
+                                  title={nextRegularSendAt ? formatDateTime(nextRegularSendAt, timezone) : 'Set the weekly send day and time first'}
                                 >
-                                  {actionLoading ? 'Scheduling...' : `Regular time${nextSendAt ? ` \u2014 ${formatDateTime(localToUtcIso(nextSendAt, timezone), timezone)}` : ''}`}
+                                  {actionLoading ? 'Scheduling...' : `Regular time${nextRegularSendAt ? ` \u2014 ${formatDateTime(nextRegularSendAt, timezone)}` : ''}`}
                                 </button>
                               </div>
                               <div style={{ display: 'flex', gap: '0.375rem' }}>
                                 <button
                                   onClick={() => {
                                     setCustomTimezone(timezone);
-                                    setCustomSendAt(nextSendAt || '');
+                                    setCustomSendAt(nextRegularSendAt ? toDatetimeLocal(nextRegularSendAt, timezone) : '');
                                     setScheduleMode('custom');
                                   }}
                                   style={{
@@ -1888,7 +1917,9 @@ export default function AdminNewsletterDetailPage() {
                   <>Test broadcast {scheduleProgress.result.broadcastId} sent to admin. Check your inbox.</>
                 ) : (
                   <>
-                    Broadcast {scheduleProgress.result.broadcastId} scheduled for{' '}
+                    {scheduleProgress.result.kind === 'direct'
+                      ? 'Individual emails'
+                      : `Broadcast ${scheduleProgress.result.broadcastId}`} scheduled for{' '}
                     {formatDateTime(scheduleProgress.result.scheduledAt, timezone)} with{' '}
                     {scheduleProgress.result.contactCount} contact
                     {scheduleProgress.result.contactCount === 1 ? '' : 's'}.

@@ -78,11 +78,15 @@ export async function canSendTo(recipient: string): Promise<boolean> {
 interface _SendEmailOptions {
   to: string;
   subject: string;
-  react: React.ReactElement;
+  /** React component to render — or pass pre-rendered `html` instead */
+  react?: React.ReactElement;
+  html?: string;
   unsubToken: string;
   from: string;
   replyTo?: string;
   emailLabel?: string;
+  /** ISO timestamp: Resend holds the email and sends it at this time */
+  scheduledAt?: string;
 }
 
 /**
@@ -108,7 +112,9 @@ export async function _sendEmail({
   unsubToken,
   from,
   replyTo,
-  emailLabel
+  emailLabel,
+  html: prerenderedHtml,
+  scheduledAt
 }: _SendEmailOptions): Promise<{ success: boolean; id?: string }> {
   const sendable = await canSendTo(to);
   if (!sendable) {
@@ -118,7 +124,10 @@ export async function _sendEmail({
   }
 
   const unsubscribeUrl = buildUnsubscribeUrl(unsubToken, emailLabel);
-  const html = await renderEmail(react);
+  if (!react && prerenderedHtml === undefined) {
+    throw new Error('_sendEmail requires either react or html');
+  }
+  const html = react ? await renderEmail(react) : prerenderedHtml!;
 
   // Derive Resend tags from emailLabel for dashboard segmentation
   const tags: { name: string; value: string }[] = [];
@@ -138,6 +147,7 @@ export async function _sendEmail({
     html,
     ...(replyTo && { replyTo }),
     ...(tags.length > 0 && { tags }),
+    ...(scheduledAt && { scheduledAt }),
     headers: {
       'List-Unsubscribe': `<${unsubscribeUrl}>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
@@ -150,7 +160,9 @@ export async function _sendEmail({
     return { success: false };
   }
 
-  console.log(`[email] Sent to=${email} subject="${subject}" id=${data?.id}`);
+  console.log(
+    `[email] ${scheduledAt ? `Scheduled for ${scheduledAt}` : 'Sent'} to=${email} subject="${subject}" id=${data?.id}`
+  );
   return { success: true, id: data?.id };
 }
 
@@ -160,6 +172,25 @@ interface SendEmailOptions {
   react: React.ReactElement;
   unsubToken: string;
   emailLabel?: string;
+}
+
+/**
+ * Send one subscriber a pre-rendered newsletter issue, optionally scheduled.
+ * Used for small cohorts that don't warrant a segment + broadcast. The caller
+ * supplies the broadcast sender (getBroadcastSender) so replies are captured
+ * the same way as broadcast replies.
+ */
+export async function sendNewsletterEmail(options: {
+  to: string;
+  subject: string;
+  html: string;
+  unsubToken: string;
+  emailLabel: string;
+  from: string;
+  replyTo?: string;
+  scheduledAt?: string;
+}) {
+  return _sendEmail(options);
 }
 
 /**

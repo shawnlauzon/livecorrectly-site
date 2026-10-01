@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSubscriberByEmailForWebhook, updateEmailStatus, rollBackEmailSeries, recordEmailEvent, lookupEmailSendByResendId, lookupEmailTypeByBroadcastId, getMostRecentEmailSend, getScheduleByBroadcastId, advanceEmailSeries, countPendingBroadcastSubscribers, updateScheduleStatus, getNewsletterSegmentsForIssue, advanceNewsletterSegments } from '@/lib/db';
+import { getSubscriberByEmailForWebhook, updateEmailStatus, rollBackEmailSeries, recordEmailEvent, lookupEmailSendByResendId, lookupEmailTypeByBroadcastId, getMostRecentEmailSend, getScheduleByBroadcastId, advanceEmailSeries } from '@/lib/db';
 import { extractEmail, forwardInboundReply } from '@/emails/send';
 import { getResendClient, unsubscribeContactInResend } from '@/lib/resend-contacts';
 
@@ -199,9 +199,15 @@ export async function POST(request: NextRequest) {
         const subscriber = await getSubscriberByEmailForWebhook(recipientEmail);
         if (subscriber) {
           await updateEmailStatus(subscriber.id, 'failed');
-          await rollBackEmailSeries(subscriber.id);
+          // Newsletter next_step only advances on email.sent, so a failed
+          // newsletter has nothing to roll back — the subscriber stays due.
+          const isNewsletter =
+            !!event.data.broadcast_id || event.data.tags?.category === 'newsletter';
+          if (!isNewsletter) {
+            await rollBackEmailSeries(subscriber.id);
+          }
           console.log(
-            `[webhook] Failed: ${recipientEmail} (subscriber ${subscriber.id}), rolled back next_step`
+            `[webhook] Failed: ${recipientEmail} (subscriber ${subscriber.id})${isNewsletter ? '' : ', rolled back next_step'}`
           );
         }
       }
@@ -241,43 +247,32 @@ export async function POST(request: NextRequest) {
     }
 
     case 'email.sent': {
-      // Advance next_step for broadcast emails when Resend confirms delivery.
-      // Transactional emails (welcome series) are already advanced by the cron/send code,
-      // so we only act when broadcast_id is present.
-      if (event.data.broadcast_id && recipientEmail) {
-        const schedule = await getScheduleByBroadcastId(event.data.broadcast_id);
-        if (schedule) {
+      // Advance next_step for newsletter recipients when Resend confirms the send:
+      // broadcasts are matched by broadcast_id, direct newsletter sends by their
+      // recorded email_sends row. Welcome emails are advanced by the cron itself.
+      if (recipientEmail) {
+        let newsletterNum: number | null = null;
+        if (event.data.broadcast_id) {
+          const schedule = await getScheduleByBroadcastId(event.data.broadcast_id);
+          newsletterNum = schedule?.newsletter_num ?? null;
+        } else if (event.data.email_id && event.data.tags?.category === 'newsletter') {
+          const send = await lookupEmailSendByResendId(event.data.email_id);
+          const match = send?.email_type.match(/^newsletter_(\d+)$/);
+          newsletterNum = match ? Number(match[1]) : null;
+        }
+
+        if (newsletterNum !== null) {
           const subscriber = await getSubscriberByEmailForWebhook(recipientEmail);
-          if (subscriber) {
-            // Idempotency: only advance if next_step still equals the newsletter number
-            if (subscriber.next_step === schedule.newsletter_num) {
-              await advanceEmailSeries(subscriber.id, schedule.newsletter_num + 1);
-              console.log(
-                `[webhook] email.sent: advanced ${recipientEmail} next_step ${schedule.newsletter_num} → ${schedule.newsletter_num + 1} (broadcast ${event.data.broadcast_id})`
-              );
-
-              // Check if all subscribers in this broadcast have been advanced
-              const pending = await countPendingBroadcastSubscribers(
-                event.data.broadcast_id,
-                schedule.newsletter_num,
-              );
-              if (pending === 0 && schedule.status === 'scheduled') {
-                await updateScheduleStatus(schedule.id, 'sent');
-                console.log(
-                  `[webhook] All subscribers delivered for broadcast ${event.data.broadcast_id}, schedule ${schedule.id} → sent`
-                );
-
-                // Advance persistent segments now that all subscribers have been delivered
-                const segments = await getNewsletterSegmentsForIssue(1, schedule.newsletter_num);
-                if (segments.length > 0) {
-                  await advanceNewsletterSegments(segments.map(s => s.id));
-                  console.log(
-                    `[webhook] Advanced ${segments.length} segment(s): ${segments.map(s => s.name).join(', ')}`
-                  );
-                }
-              }
-            }
+          // Idempotency: only advance if next_step still equals the newsletter number
+          if (subscriber && subscriber.next_step === newsletterNum) {
+            await advanceEmailSeries(subscriber.id, newsletterNum + 1);
+            console.log(
+              `[webhook] email.sent: advanced ${recipientEmail} next_step ${newsletterNum} → ${newsletterNum + 1}`
+            );
           }
+          // Schedule completion (status → sent, segment → next issue) is not
+          // decided here: one webhook per recipient would hammer Resend's API.
+          // See finalizeDueSchedules() (admin newsletter list + daily cron).
         }
       }
       break;

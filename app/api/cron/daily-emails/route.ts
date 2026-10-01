@@ -4,12 +4,14 @@ import { sendWelcomeEmail, formatEmailRecipient, buildUnsubscribeUrl } from '@/e
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/emails/subjects';
 import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
+import { finalizeDueSchedules } from '@/lib/newsletter-finalize';
 
 /**
  * Cron endpoint: sends per-subscriber daily emails.
- * Currently handles the welcome series (steps 2-3).
+ * Currently handles the welcome series (steps 2-3), and finalizes completed
+ * newsletter schedules as a safety net.
  * Secured by CRON_SECRET (Vercel sends Authorization: Bearer <CRON_SECRET>).
- * Runs daily at 14:00 UTC (configured in vercel.json).
+ * Runs daily on the schedule configured in vercel.json.
  *
  * The CRON_EMAIL_ENABLED kill switch is checked here — when not 'true',
  * the route returns early without querying or sending anything.
@@ -22,6 +24,13 @@ export async function GET(request: NextRequest) {
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
     console.error('[cron] Unauthorized cron request');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Finalize newsletter sends Resend has completed (status → sent, segment →
+  // next issue). Sends nothing, so it runs regardless of the kill switch.
+  const { finalized } = await finalizeDueSchedules();
+  if (finalized.length > 0) {
+    console.log(`[cron] Finalized newsletter schedule(s): ${finalized.join(', ')}`);
   }
 
   // Kill switch: only the automated cron respects this flag.

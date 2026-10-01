@@ -3,11 +3,11 @@ import { checkAdminPassword } from '@/lib/admin-auth';
 import {
   getNewsletterDueSubscribers,
   insertNewsletterSegment,
-  deleteNewsletterSegment,
   getNewsletterSegments,
 } from '@/lib/db';
 import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
 import { getResendClient } from '@/lib/resend-contacts';
+import { addEmailsToSegment, removeNewsletterSegment } from '@/lib/newsletter-segments';
 
 /**
  * POST /api/admin/newsletters/segment
@@ -73,24 +73,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Add each subscriber to the segment
-    let contactCount = 0;
-    for (const subscriber of subscribers) {
-      const { error } = await client.contacts.segments.add({
-        email: subscriber.email,
-        segmentId: segmentData.id,
-      });
-      if (error) {
-        console.warn(`[segment] Failed to add ${subscriber.email} to segment:`, error);
-        continue;
-      }
-      contactCount++;
-    }
+    const contactCount = await addEmailsToSegment(
+      segmentData.id,
+      subscribers.map(s => s.email),
+    );
 
     if (contactCount === 0) {
-      // Clean up the empty segment
-      await client.segments.remove(segmentData.id).catch(() => {
-        // Don't let cleanup failure block the response
-      });
+      // Clean up the empty segment; a failure here only leaves an empty
+      // segment in Resend, so log it and still report the real error.
+      const { error: removeError } = await client.segments.remove(segmentData.id);
+      if (removeError) {
+        console.warn(`[segment] Failed to remove empty segment ${segmentData.id}:`, removeError);
+      }
       return NextResponse.json(
         { error: 'No contacts could be added to segment' },
         { status: 500 },
@@ -163,18 +157,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Segment not found' }, { status: 404 });
     }
 
-    // Delete from Resend (ignore 404 — may already be gone)
-    const client = getResendClient();
-    await client.segments.remove(segment.resendSegmentId).catch((err: unknown) => {
-      console.warn(`[segment] Failed to delete Resend segment ${segment.resendSegmentId}:`, err);
-    });
-
-    // Delete DB row
-    await deleteNewsletterSegment(segmentId);
-
-    console.log(
-      `[segment] Deleted audience segment "${segment.name}" (DB: ${segmentId}, Resend: ${segment.resendSegmentId})`,
-    );
+    await removeNewsletterSegment(segment);
 
     return NextResponse.json({ ok: true });
   } catch (error) {
