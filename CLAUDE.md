@@ -49,6 +49,7 @@ Environment variables — copy `.env.example` to `.env.local` and fill in:
 - `EMAIL_FROM` — sender address (default: `Live Correctly <hello@livecorrectly.com>`)
 - `APP_URL` — public URL for unsubscribe links (default: `https://www.livecorrectly.com`)
 - `CRON_SECRET` — Vercel cron authorization secret
+- `NEWSLETTER_TEST_EMAIL` — recipient of newsletter test sends; must be a subscriber with a chart (default: `shawn.lauzon@gmail.com`). Separate from `ADMIN_EMAIL`, which receives admin notifications.
 
 ## Stack
 - **Next.js 16** (React 19) on **Vercel**. Turbopack for dev.

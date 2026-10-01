@@ -41,6 +41,9 @@ import { buildUnsubscribeUrl, formatEmailRecipient, sendNewsletterEmail } from '
 import type { EngagementData } from '@/newsletters/resolve';
 import type { ScheduleEvent, ScheduleStepId } from '@/lib/types/schedule-progress';
 
+/** Test sends go to this subscriber unless NEWSLETTER_TEST_EMAIL is set. */
+const DEFAULT_NEWSLETTER_TEST_EMAIL = 'shawn.lauzon@gmail.com';
+
 /**
  * POST /api/admin/newsletters/schedule
  *
@@ -62,8 +65,9 @@ import type { ScheduleEvent, ScheduleStepId } from '@/lib/types/schedule-progres
  * Completion (status → sent, segment → next issue) happens later in
  * finalizeDueSchedules(), once Resend reports the send done.
  *
- * When `test: true`, the broadcast is sent immediately to the admin
- * subscriber only (via ADMIN_EMAIL env var). No DB side-effects occur.
+ * When `test: true`, the broadcast is sent immediately to the test subscriber
+ * only (NEWSLETTER_TEST_EMAIL, defaulting to DEFAULT_NEWSLETTER_TEST_EMAIL).
+ * No DB side-effects occur.
  *
  * Pre-stream validation errors (auth, input, already-scheduled, merge
  * confirmation) return standard JSON responses. Once validation passes, the
@@ -98,19 +102,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid newsletterNumber' }, { status: 400 });
   }
 
-  // Test mode: validate ADMIN_EMAIL is configured and extract bare email
-  let adminEmail: string | undefined;
+  // Test mode: the recipient must be a subscriber with a chart, since the
+  // issue is personalized from their row
+  let testEmail: string | undefined;
   if (isTest) {
-    const rawAdminEmail = process.env.ADMIN_EMAIL;
-    if (!rawAdminEmail) {
-      return NextResponse.json(
-        { error: 'ADMIN_EMAIL environment variable is not configured' },
-        { status: 400 },
-      );
-    }
+    const rawTestEmail = process.env.NEWSLETTER_TEST_EMAIL || DEFAULT_NEWSLETTER_TEST_EMAIL;
     // Handle both "Name <email>" and bare "email" formats
-    const match = rawAdminEmail.match(/<([^>]+)>/);
-    adminEmail = match ? match[1] : rawAdminEmail.trim();
+    const match = rawTestEmail.match(/<([^>]+)>/);
+    testEmail = match ? match[1] : rawTestEmail.trim();
   }
 
   const publication = await getNewsletterPublication(1);
@@ -200,21 +199,21 @@ export async function POST(request: NextRequest) {
         }
         emit({ step: 'load', status: 'done', label: 'Loading newsletter content', detail: `#${newsletterNumber}` });
 
-        // Step 2: Get due subscribers (test mode: admin subscriber only)
+        // Step 2: Get due subscribers (test mode: test subscriber only)
         currentStep = 'subscribers';
-        emit({ step: 'subscribers', status: 'start', label: isTest ? 'Finding admin subscriber' : 'Finding subscribers' });
+        emit({ step: 'subscribers', status: 'start', label: isTest ? 'Finding test subscriber' : 'Finding subscribers' });
 
         let subscribers: Subscriber[];
         if (isTest) {
-          const adminSub = await getSubscriberByEmail(adminEmail!);
-          if (!adminSub) {
-            throw new Error(`Admin subscriber not found: ${adminEmail}`);
+          const testSub = await getSubscriberByEmail(testEmail!);
+          if (!testSub) {
+            throw new Error(`Test subscriber not found: ${testEmail}`);
           }
-          if (!adminSub.chart) {
-            throw new Error(`Admin subscriber has no chart data: ${adminEmail}`);
+          if (!testSub.chart) {
+            throw new Error(`Test subscriber has no chart data: ${testEmail}`);
           }
-          subscribers = [adminSub];
-          emit({ step: 'subscribers', status: 'done', label: 'Finding admin subscriber', detail: adminSub.email });
+          subscribers = [testSub];
+          emit({ step: 'subscribers', status: 'done', label: 'Finding test subscriber', detail: testSub.email });
         } else {
           subscribers = dueSubscribers;
           emit({ step: 'subscribers', status: 'done', label: 'Finding subscribers', detail: `Found ${subscribers.length}` });
@@ -375,7 +374,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Step 5: Resolve the audience segment.
-        // Test mode always uses an ephemeral segment with only the admin subscriber —
+        // Test mode always uses an ephemeral segment with only the test subscriber —
         // a persistent segment would send the broadcast to ALL its contacts.
         currentStep = 'segment';
         let segmentId: string;
@@ -485,7 +484,7 @@ export async function POST(request: NextRequest) {
           emit({ step: 'records', status: 'done', label: 'Recording schedule', detail: 'Skipped (test)' });
 
           console.log(
-            `[schedule] TEST: Newsletter #${newsletterNumber} sent as broadcast ${broadcastId} to ${adminEmail}, ${contactCount} contacts`,
+            `[schedule] TEST: Newsletter #${newsletterNumber} sent as broadcast ${broadcastId} to ${testEmail},${contactCount} contacts`,
           );
 
           emit({
