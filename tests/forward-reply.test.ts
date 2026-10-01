@@ -50,30 +50,34 @@ describe('shouldForwardReply', () => {
 });
 
 describe('forwardInboundReply', () => {
-  it('sends to the admin mailbox from the system sender with Reply-To set to the original sender', async () => {
+  it('sends to the admin mailbox looking like a direct message: original subject, sender name as display name, Reply-To the sender, body untouched', async () => {
     const result = await forwardInboundReply(reply);
 
     expect(result).toEqual({ success: true, id: 'fwd_1' });
     const payload = sendMock.mock.calls[0][0];
     expect(payload.to).toBe('Shawn Lauzon <shawn@livecorrectly.com>');
-    expect(payload.from).toBe('Live Correctly <notifications@livecorrectly.com>');
+    expect(payload.from).toBe('"Korynn" <notifications@livecorrectly.com>');
     expect(payload.replyTo).toBe('Korynn <korynn@example.com>');
-    expect(payload.subject).toBe('Fwd: Re: Look before you leap');
-    expect(payload.html).toContain('Loved this one');
-    expect(payload.html).toContain('korynn@example.com');
+    expect(payload.subject).toBe('Re: Look before you leap');
+    expect(payload.html).toBe('<p>Loved this one</p>');
+    expect(payload.text).toBeUndefined();
   });
 
-  it('escapes the sender in the HTML header', async () => {
-    await forwardInboundReply({ ...reply, from: '"<script>x</script>" <a@example.com>' });
-    expect(sendMock.mock.calls[0][0].html).not.toContain('<script>');
+  it('uses the sender address as display name when there is no name', async () => {
+    await forwardInboundReply({ ...reply, from: 'korynn@example.com' });
+    expect(sendMock.mock.calls[0][0].from).toBe('"korynn@example.com" <notifications@livecorrectly.com>');
+  });
+
+  it('strips quotes and angle brackets from the display name', async () => {
+    await forwardInboundReply({ ...reply, from: '"Ko"rynn <x>" <korynn@example.com>' });
+    expect(sendMock.mock.calls[0][0].from).toBe('"Korynn x" <notifications@livecorrectly.com>');
   });
 
   it('falls back to text when there is no HTML body', async () => {
     await forwardInboundReply({ ...reply, html: null });
     const payload = sendMock.mock.calls[0][0];
     expect(payload.html).toBeUndefined();
-    expect(payload.text).toContain('Loved this one');
-    expect(payload.text).toContain('korynn@example.com');
+    expect(payload.text).toBe('Loved this one');
   });
 
   it('passes attachments through', async () => {

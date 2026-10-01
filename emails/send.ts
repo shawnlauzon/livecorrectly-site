@@ -204,12 +204,17 @@ function adminMailbox(): string {
   return process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+/**
+ * Display name for the forward's From header: the sender's name, or their bare
+ * address when they have none. Quotes, angle brackets and control characters are
+ * stripped so the value is safe inside a quoted display name.
+ */
+function senderDisplayName(from: string): string {
+  const lt = from.lastIndexOf('<');
+  const name = (lt === -1 ? '' : from.slice(0, lt))
+    .replace(/["<>\\]|[\u0000-\u001f]/g, '')
+    .trim();
+  return name || extractEmail(from);
 }
 
 /**
@@ -229,8 +234,10 @@ export function shouldForwardReply(reply: Pick<InboundReply, 'from' | 'headers'>
 
 /**
  * Forward an inbound reply (received by Resend on the broadcast domain) to the
- * admin's real mailbox. Reply-To is the original sender, so replying from the
- * mail client answers the subscriber directly.
+ * admin's real mailbox so it looks like a message sent directly to them:
+ * original subject and body, the sender's name as the From display name, and
+ * Reply-To set to the sender so replying from the mail client answers them.
+ * The From *address* must stay on a verified domain (it cannot be the sender's).
  *
  * Bypasses canSendTo() and unsubscribe headers: the recipient is the admin, not
  * a subscriber, and the sender may not be a subscriber at all. Sent from the
@@ -245,19 +252,18 @@ export async function forwardInboundReply(
     return { success: false };
   }
 
-  const from = TRANSACTIONAL_DOMAIN
-    ? `Shawn Lauzon <shawn@${TRANSACTIONAL_DOMAIN}>`
-    : process.env.EMAIL_FROM_NOTIFICATIONS ?? 'Live Correctly <notifications@livecorrectly.com>';
+  const systemSender = TRANSACTIONAL_DOMAIN
+    ? `shawn@${TRANSACTIONAL_DOMAIN}`
+    : extractEmail(process.env.EMAIL_FROM_NOTIFICATIONS ?? 'notifications@livecorrectly.com');
+  const from = `"${senderDisplayName(reply.from)}" <${systemSender}>`;
 
   const client = getResend();
   const { data, error } = await client.emails.send({
     from,
     to: adminMailbox(),
     replyTo: reply.from,
-    subject: `Fwd: ${reply.subject}`,
-    ...(reply.html
-      ? { html: `<p>Reply from <strong>${escapeHtml(reply.from)}</strong></p><hr>${reply.html}` }
-      : { text: `Reply from ${reply.from}\n\n${reply.text ?? ''}` }),
+    subject: reply.subject,
+    ...(reply.html ? { html: reply.html } : { text: reply.text ?? '' }),
     ...(reply.attachments.length > 0 && { attachments: reply.attachments }),
   });
 
