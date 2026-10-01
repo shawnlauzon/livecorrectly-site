@@ -19,6 +19,7 @@ import styles from './editor.module.css';
 import adminStyles from '../../../admin.module.css';
 import { VariableNode, VariableEditForm, VARIABLE } from './variable-node';
 import { ConditionalBlockNode, ConditionalBranchNode, ConditionalKeymap, IF_THEN_ELSE, DEFAULT_CONDITION } from './conditional-node';
+import { LiquidPaste } from './liquid-paste-extension';
 import hdChart from '@/lib/hd-chart';
 import { types, innerAuthorityTypes, definitions } from '@/lib/hd-chart/constants';
 import type { Subscriber } from '@/lib/types/subscriber';
@@ -273,6 +274,7 @@ function EditorPanel({
     ConditionalBranchNode,
     ConditionalKeymap,
     BraceShortcuts,
+    LiquidPaste,
   ], [imageExtension]);
 
   const handleSave = useCallback(async () => {
