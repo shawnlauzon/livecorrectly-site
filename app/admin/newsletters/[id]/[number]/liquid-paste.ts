@@ -69,15 +69,17 @@ export function convertVariablesInText(node: JSONContent): JSONContent[] {
   return out;
 }
 
-/** Recursively convert variables in every text node under `node`. */
-function convertVariablesDeep(node: JSONContent): JSONContent {
-  if (!node.content) return node;
-  return {
-    ...node,
-    content: node.content.flatMap(child =>
-      child.type === 'text' ? convertVariablesInText(child) : [convertVariablesDeep(child)],
-    ),
-  };
+/**
+ * Recursively convert variables in every text node in `nodes`. Text nodes can
+ * appear at the top level when the pasted HTML has no block wrapper
+ * (e.g. copying part of a line from claude.ai).
+ */
+function convertVariablesDeep(nodes: JSONContent[]): JSONContent[] {
+  return nodes.flatMap(node => {
+    if (node.type === 'text') return convertVariablesInText(node);
+    if (!node.content) return [node];
+    return [{ ...node, content: convertVariablesDeep(node.content) }];
+  });
 }
 
 type TagKind = 'if' | 'elsif' | 'else' | 'endif';
@@ -175,7 +177,7 @@ function convertConditionals(blocks: JSONContent[]): { content: JSONContent[]; b
 export function transformPastedContent(blocks: JSONContent[]): { content: JSONContent[]; structureChanged: boolean } {
   const { content, built } = convertConditionals(blocks);
   return {
-    content: content.map(convertVariablesDeep),
+    content: convertVariablesDeep(content),
     structureChanged: built,
   };
 }

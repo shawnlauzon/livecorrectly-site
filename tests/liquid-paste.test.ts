@@ -84,6 +84,21 @@ describe('transformPastedContent', () => {
     ]);
   });
 
+  it('converts variables in top-level inline text (paste without a block wrapper)', () => {
+    const bold = [{ type: 'bold' }];
+    const result = transformPastedContent([
+      { type: 'text', text: '{{ top_shadow }}', marks: bold },
+      { type: 'text', text: ' — {{ top_shadow_description }}.' },
+    ]);
+    expect(result.structureChanged).toBe(false);
+    expect(result.content).toEqual([
+      variable('top_shadow'),
+      { type: 'text', text: ' — ' },
+      variable('top_shadow_description'),
+      { type: 'text', text: '.' },
+    ]);
+  });
+
   it('builds a conditional block from if/else/endif paragraphs', () => {
     const result = transformPastedContent([
       p('{% if career_type == "Builder" %}'),
