@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import hdChart from '../lib/hd-chart/index';
+import { parseChartForEmail } from '../lib/hd-chart/parse-for-email';
+import { missingGatePhrases, bridgeShadowVariants } from '../lib/hd-chart/constants';
 import type { Chart, ChartRecord } from '../lib/types/chart';
 import shawnsChartData from './fixtures/shawns-chart.json';
 import sevillaChartData from './fixtures/sevilla-chart.json';
@@ -798,5 +800,183 @@ describe('Sevilla Chart (wide split bridge selection)', () => {
     expect(topPair!.bridges).toHaveLength(2);
     const pairGates = topPair!.bridges.map(b => b.gate).sort((a, b) => a - b);
     expect(pairGates).toEqual([33, 51]);
+  });
+});
+
+describe('Bridge Shadow (split-aware Bringing Traits/Strengths)', () => {
+  // Simple split: missing gate 43, has harmonic 23
+  const simpleChart = makeChart({
+    definition: 2,
+    centers: [0, 0, 0, 0, 0, 2, 2, 2, 2],
+    channels: [21, 15],
+    gates: [
+      { gate: 7, mode: 2 }, { gate: 31, mode: 2 },
+      { gate: 4, mode: 2 }, { gate: 63, mode: 2 },
+      { gate: 23, mode: 1 },
+    ],
+    bridges: { bridgingGates: [43] },
+  });
+
+  // Wide split bridged by a single channel (34/20 = Charisma)
+  const wideChannelChart = makeChart({
+    definition: 2,
+    centers: [2, 2, 0, 0, 0, 2, 2, 0, 0],
+    channels: [21, 26],
+    gates: [
+      { gate: 7, mode: 2 }, { gate: 31, mode: 2 },
+      { gate: 42, mode: 2 }, { gate: 53, mode: 2 },
+    ],
+    bridges: { bridgingGates: [], bridgingChannels: ['34/20'] },
+    planets: [],
+  });
+
+  // Wide split bridged by a pair of far gates (23 and 20)
+  const widePairChart = makeChart({
+    definition: 2,
+    centers: [2, 0, 2, 2, 2, 0, 1, 2, 2],
+    channels: [6, 30, 31, 15],
+    gates: [
+      { gate: 28, mode: 2 }, { gate: 38, mode: 2 },
+      { gate: 26, mode: 2 }, { gate: 44, mode: 2 },
+      { gate: 19, mode: 2 }, { gate: 49, mode: 2 },
+      { gate: 4, mode: 2 }, { gate: 63, mode: 2 },
+      { gate: 43, mode: 1 },
+      { gate: 57, mode: 1 },
+    ],
+    bridges: { bridgingGates: [], bridgingFarGates: [23, 20] },
+    planets: [],
+  });
+
+  // Very wide split: components {G, Throat} and {Root}; only a channel from
+  // Root to Spleen exists, which doesn't reach the other component.
+  const veryWideChart = makeChart({
+    definition: 2,
+    centers: [2, 0, 2, 0, 0, 2, 2, 0, 0],
+    channels: [21, 6],
+    gates: [
+      { gate: 7, mode: 2 }, { gate: 31, mode: 2 },
+      { gate: 28, mode: 2 }, { gate: 38, mode: 2 },
+    ],
+    bridges: { bridgingGates: [], bridgingChannels: ['32/54'] },
+    planets: [],
+  });
+
+  it('has a phrase for every one of the 64 gates', () => {
+    for (let gate = 1; gate <= 64; gate++) {
+      expect(missingGatePhrases[gate], `gate ${gate}`).toBeTruthy();
+    }
+  });
+
+  it('simple split: blames yourself, names the missing gate', () => {
+    const hd = hdChart(simpleChart);
+    expect(hd.splitType()).toBe('2');
+    expect(hd.getBridgeShadow()).toEqual({
+      variant: 'simple',
+      missingPiece: { kind: 'gate', text: missingGatePhrases[43] },
+    });
+  });
+
+  it('wide split with a channel bridge: names the channel', () => {
+    const hd = hdChart(wideChannelChart);
+    expect(hd.splitType()).toBe('2W');
+    expect(hd.getBridgeShadow()).toEqual({ variant: 'wide', missingPiece: { kind: 'strength', text: 'charisma' } });
+  });
+
+  it('wide split with a gate pair: names only the top-ranked missing gate', () => {
+    const hd = hdChart(widePairChart);
+    expect(hd.splitType()).toBe('2W');
+    const pair = hd.getTopBridgePair()!.bridges.map(b => b.gate);
+    const shadow = hd.getBridgeShadow();
+    expect(shadow.variant).toBe('wide');
+    expect(shadow.missingPiece?.kind).toBe('gate');
+    expect(pair.map(g => missingGatePhrases[g])).toContain(shadow.missingPiece?.text);
+  });
+
+  it('wide split (Sevilla): names the top-ranked gate of the pair', () => {
+    const record = sevillaChartData[0] as unknown as { chart: { chart: Chart } };
+    const hd = hdChart(record.chart.chart);
+    // Gate 33 outranks 51 (personality Sun on harmonic 13)
+    expect(hd.getBridgeShadow()).toEqual({ variant: 'wide', missingPiece: { kind: 'gate', text: missingGatePhrases[33] } });
+  });
+
+  it('very wide split with only gate bridges: names the strength', () => {
+    // Components {Ajna, Head} and {Root, Spleen}; far gate 16 (user has 48)
+    // only reaches Throat, so nothing connects → 2VW
+    const hd = hdChart(makeChart({
+      definition: 2,
+      centers: [2, 0, 2, 0, 0, 0, 0, 2, 2],
+      channels: [6, 15],
+      gates: [
+        { gate: 28, mode: 2 }, { gate: 38, mode: 2 },
+        { gate: 4, mode: 2 }, { gate: 63, mode: 2 },
+        { gate: 48, mode: 1 },
+      ],
+      bridges: { bridgingGates: [], bridgingFarGates: [16] },
+      planets: [],
+    }));
+    expect(hd.splitType()).toBe('2VW');
+    expect(hd.getBridgeShadow()).toEqual({ variant: 'veryWide', missingPiece: { kind: 'strength', text: 'talent' } });
+  });
+
+  it('very wide split with a channel bridge: names the strength', () => {
+    const hd = hdChart(veryWideChart);
+    expect(hd.splitType()).toBe('2VW');
+    expect(hd.getBridgeShadow()).toEqual({ variant: 'veryWide', missingPiece: { kind: 'strength', text: 'ambition' } });
+  });
+
+  it('quadruple split uses the simple variant', () => {
+    const hd = hdChart(makeChart({ definition: 4 }));
+    expect(hd.getBridgeShadow().variant).toBe('simple');
+  });
+
+  it('returns null missing piece when there is no bridge data', () => {
+    const hd = hdChart(makeChart({ definition: 2 }));
+    expect(hd.getBridgeShadow().missingPiece).toBeNull();
+  });
+
+  describe('parseChartForEmail', () => {
+    it('simple split: yourself wording with the missing gate phrase', () => {
+      const data = parseChartForEmail(simpleChart);
+      expect(data.topShadow).toBe('Bringing Traits/Strengths');
+      expect(data.topShadowName).toBe(bridgeShadowVariants.simple.name);
+      expect(data.topShadowVerb).toBe('blame yourself');
+      expect(data.topShadowDescription).toBe(
+        `believing everything would be better if only you had ${missingGatePhrases[43]}`,
+      );
+    });
+
+    it('wide split: other-person wording with the channel', () => {
+      const data = parseChartForEmail(wideChannelChart);
+      expect(data.topShadowName).toBe('Blaming others for something missing');
+      expect(data.topShadowVerb).toBe('blame others');
+      expect(data.topShadowDescription).toBe(
+        'believing everything would be better if only others brought more charisma',
+      );
+    });
+
+    it('very wide split: world wording with the channel', () => {
+      const data = parseChartForEmail(veryWideChart);
+      expect(data.topShadowName).toBe('Blaming the world for something missing');
+      expect(data.topShadowVerb).toBe('blame the world');
+      expect(data.topShadowDescription).toBe(
+        'believing everything would be better if only the world contained more ambition',
+      );
+    });
+
+    it('falls back to a generic missing piece without bridge data', () => {
+      const data = parseChartForEmail(makeChart({ definition: 2 }));
+      expect(data.topShadowDescription).toBe(
+        'believing everything would be better if only you had that one missing piece',
+      );
+    });
+
+    it('leaves non-split shadows unchanged', () => {
+      // definition 1, Ego undefined → top shadow Willpower
+      const data = parseChartForEmail(makeChart({ definition: 1, centers: [2, 2, 2, 2, 0, 2, 2, 2, 2] }));
+      expect(data.topShadow).toBe('Willpower');
+      expect(data.topShadowName).toBe('Overcompensating');
+      expect(data.topShadowVerb).toBe('overcompensate');
+      expect(data.topShadowDescription).toBe('trying to prove yourself through willpower and commitments');
+    });
   });
 });

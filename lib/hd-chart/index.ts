@@ -21,7 +21,10 @@ import {
   groupThemes,
   channelStrengths,
   awarenessStreams,
-  type CenterStatus
+  missingGatePhrases,
+  type CenterStatus,
+  type BridgeShadowVariant,
+  type MissingPiece
 } from './constants';
 import { bridgeDescriptions } from './bridge-descriptions';
 
@@ -273,21 +276,6 @@ export default function hdChart(chart: Chart) {
         name: channelStrengths[i].name,
         thematic: channelStrengths[i].thematic,
       }));
-  };
-
-  /**
-   * Check if the chart has "near" bridging gates (specific per-gate descriptions).
-   */
-  const hasNearBridges = (): boolean => {
-    return Array.isArray(chart.bridges?.bridgingGates) && chart.bridges!.bridgingGates!.length > 0;
-  };
-
-  /**
-   * Check if the chart has "far" bridging gates (triple/quadruple split —
-   * generic description about blaming others / working with others).
-   */
-  const hasFarBridges = (): boolean => {
-    return Array.isArray(chart.bridges?.bridgingFarGates) && chart.bridges!.bridgingFarGates!.length > 0;
   };
 
   /**
@@ -1211,6 +1199,42 @@ export default function hdChart(chart: Chart) {
     return scored.map(({ _score, ...rest }) => rest);
   };
 
+  /**
+   * Split-aware view of the "Bringing Traits/Strengths" shadow: which variant
+   * applies (simple / wide / very wide) and what the missing piece is.
+   * - simple (2, and quadruple 4): the top bridge's missing-gate phrase.
+   * - wide: the channel name when a channel bridges the split, otherwise the
+   *   missing-gate phrase of the top-ranked gate in the top pair.
+   * - very wide: the top bridge's strength (channel name).
+   * Strengths are lowercased for use mid-sentence.
+   * missingPiece is null when the chart has no bridge data.
+   */
+  const getBridgeShadow = (): { variant: BridgeShadowVariant; missingPiece: MissingPiece | null } => {
+    const split = splitType();
+    const variant: BridgeShadowVariant =
+      split === '2W' ? 'wide' : split === '2VW' ? 'veryWide' : 'simple';
+
+    const top = getTopBridge()?.bridge;
+    if (!top) return { variant, missingPiece: null };
+
+    if (variant === 'veryWide' || top.isChannelBridge) {
+      return { variant, missingPiece: { kind: 'strength', text: top.strength.toLowerCase() } };
+    }
+
+    let bridge = top;
+    if (variant === 'wide') {
+      const pair = getTopBridgePair()?.bridges;
+      if (pair) {
+        bridge = [...pair].sort((a, b) => compareBridgeScores(
+          scoreBridgeDetailed(a.gate, a.harmonicGate),
+          scoreBridgeDetailed(b.gate, b.harmonicGate),
+        ))[0];
+      }
+    }
+    const phrase = missingGatePhrases[bridge.gate];
+    return { variant, missingPiece: phrase ? { kind: 'gate', text: phrase } : null };
+  };
+
   return {
     type,
     isGenerator: () => chart.type === 0 || chart.type === 1,
@@ -1257,8 +1281,7 @@ export default function hdChart(chart: Chart) {
     getTopBridge,
     getTopBridgePair,
     getAllBridgesSorted,
-    hasNearBridges,
-    hasFarBridges,
+    getBridgeShadow,
     hasChannelBridges,
     splitType,
     findDefinedComponents,

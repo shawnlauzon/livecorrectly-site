@@ -17,7 +17,8 @@ import {
   signatureVideos,
   shadowNames,
   shadowVerbs,
-  shadowDescriptions
+  shadowDescriptions,
+  bridgeShadowVariants
 } from './constants';
 import hdChart from './index';
 import { hangingGateDescriptions } from '../../emails/content';
@@ -85,6 +86,23 @@ export function parseChartForEmail(chart: Chart): EmailChartData {
   const shadows = hd.getShadows();
   const topShadow = shadows.length > 0 ? shadows[0] : null;
 
+  // The Bringing Traits/Strengths shadow's wording depends on split width
+  // and names the missing piece, so it can't come from the static maps.
+  let topShadowName: string | null = null;
+  let topShadowDescription: string | null = null;
+  let topShadowVerb: string | null = null;
+  if (topShadow === 'Bringing Traits/Strengths') {
+    const { variant, missingPiece } = hd.getBridgeShadow();
+    const wording = bridgeShadowVariants[variant];
+    topShadowName = wording.name;
+    topShadowDescription = wording.describe(missingPiece);
+    topShadowVerb = wording.verb;
+  } else if (topShadow) {
+    topShadowName = shadowNames[topShadow] ?? null;
+    topShadowDescription = shadowDescriptions[topShadow] ?? null;
+    topShadowVerb = shadowVerbs[topShadow] ?? null;
+  }
+
   // Override bridge descriptions with richer prose from hangingGateDescriptions.
   // Uses getAllBridgesSorted() to include both near + far + channel bridges, ranked by priority.
   const rawBridges = hd.getAllBridgesSorted();
@@ -125,11 +143,9 @@ export function parseChartForEmail(chart: Chart): EmailChartData {
     innerAuthorityVideo: innerAuthorityVideos[authorityIndex],
     signatureVideo: signatureVideos[typeIndex],
     topShadow,
-    topShadowName: topShadow ? (shadowNames[topShadow] ?? null) : null,
-    topShadowDescription: topShadow
-      ? (shadowDescriptions[topShadow]?.replace(/^./, c => c.toLowerCase()) ?? null)
-      : null,
-    topShadowVerb: topShadow ? (shadowVerbs[topShadow] ?? null) : null,
+    topShadowName,
+    topShadowDescription: topShadowDescription?.replace(/^./, c => c.toLowerCase()) ?? null,
+    topShadowVerb,
     hasChannelBridge: !chart.bridges?.bridgingGates?.length
       && !!chart.bridges?.bridgingChannels?.length,
     bridgeDescriptions

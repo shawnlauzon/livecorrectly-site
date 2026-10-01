@@ -17,6 +17,7 @@ import {
   shadowNames,
   shadowDescriptions,
   shadowVerbs,
+  bridgeShadowVariants,
 } from '@/lib/hd-chart/constants';
 
 /** Deduplicate an indexed array into unique values (preserving order). */
@@ -42,8 +43,8 @@ export const EMAIL_FIELDS: EmailField[] = [
   { key: 'signature_theme', label: 'Signature Theme', values: unique(signatureThemes) },
   { key: 'not_self_theme', label: 'Not-Self Theme', values: unique(notSelfThemes) },
   { key: 'not_self_theme_adjective', label: 'Not-Self Theme (Adjective)', values: unique(notSelfThemeAdjectives) },
-  { key: 'top_shadow', label: 'Top Shadow', values: unique(Object.values(shadowNames)) },
+  { key: 'top_shadow', label: 'Top Shadow', values: unique([...Object.values(shadowNames), ...Object.values(bridgeShadowVariants).map(v => v.name)]) },
   { key: 'top_shadow_description', label: 'Top Shadow Description', values: unique(Object.values(shadowDescriptions)) },
-  { key: 'top_shadow_verb', label: 'Top Shadow (verb)', values: unique(Object.values(shadowVerbs)) },
+  { key: 'top_shadow_verb', label: 'Top Shadow (verb)', values: unique([...Object.values(shadowVerbs), ...Object.values(bridgeShadowVariants).map(v => v.verb)]) },
   { key: 'decision_making_strategy', label: 'Decision-making Strategy' },
 ];

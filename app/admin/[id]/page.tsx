@@ -8,6 +8,7 @@ import ChartHero from '@/components/chart-hero';
 import hdChart from '@/lib/hd-chart';
 import {
   shadowNames,
+  bridgeShadowVariants,
   shadowDescriptions,
   shadowThemes,
   shadowLessons,
@@ -365,19 +366,8 @@ function ShadowsDisplay({ subscriber }: { subscriber: Subscriber }) {
             // Determine the shadow name for display
             let displayShadowName = shadowNames[functionName] ?? '';
             if (functionName === 'Bringing Traits/Strengths') {
-              const split = hd.splitType();
-              if (split === '2VW') {
-                displayShadowName = 'Blaming the world for something missing';
-              } else if (split === '2W') {
-                displayShadowName = 'Blaming others for something missing';
-              } else if (hd.hasNearBridges() && hd.hasFarBridges()) {
-                displayShadowName =
-                  'Blaming yourself for something missing / Blaming others';
-              } else if (hd.hasFarBridges()) {
-                displayShadowName = 'Blaming others and becoming a victim';
-              } else {
-                displayShadowName = 'Blaming yourself for something missing';
-              }
+              displayShadowName =
+                bridgeShadowVariants[hd.getBridgeShadow().variant].name;
             }
 
             const whyAnnotation =

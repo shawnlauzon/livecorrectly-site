@@ -239,12 +239,132 @@ export const functionNames = [
 ] as const;
 
 /**
+ * Split width variants of the "Bringing Traits/Strengths" shadow. The shadow
+ * is believing everything would be better if only the missing piece were
+ * there — and who you expect to supply it depends on the split width:
+ * simple (and quadruple) → yourself, wide → others, very wide → the world.
+ */
+export type BridgeShadowVariant = 'simple' | 'wide' | 'veryWide';
+
+/**
+ * What's missing: a gate (phrase from missingGatePhrases) or a strength
+ * (lowercase channel name, e.g. "talent").
+ */
+export type MissingPiece = { kind: 'gate' | 'strength'; text: string };
+
+/** Fallback missing piece when the chart has no bridge data */
+const genericMissingPiece = 'that one missing piece';
+
+/** Builds "Believing everything would be better if only {lead} {piece}" */
+const describeBridgeShadow = (leads: { gate: string; strength: string }) =>
+  (piece: MissingPiece | null): string =>
+    `Believing everything would be better if only ${
+      piece?.kind === 'strength' ? leads.strength : leads.gate
+    } ${piece?.text ?? genericMissingPiece}`;
+
+export const bridgeShadowVariants: Record<BridgeShadowVariant, {
+  name: string;
+  verb: string;
+  describe: (piece: MissingPiece | null) => string;
+}> = {
+  simple: {
+    name: 'Blaming yourself for something missing',
+    verb: 'blame yourself',
+    describe: describeBridgeShadow({ gate: 'you had', strength: 'you had more' }),
+  },
+  wide: {
+    name: 'Blaming others for something missing',
+    verb: 'blame others',
+    describe: describeBridgeShadow({ gate: 'others gave you', strength: 'others brought more' }),
+  },
+  veryWide: {
+    name: 'Blaming the world for something missing',
+    verb: 'blame the world',
+    describe: describeBridgeShadow({ gate: 'the world contained', strength: 'the world contained more' }),
+  },
+};
+
+/**
+ * Short phrase for what a MISSING gate would bring, written to complete
+ * "if only you had ___" / "if only others gave you ___".
+ * Keyed by the missing gate. Derived from the "without …" clauses in
+ * hangingGateDescriptions (emails/content.tsx); gate trait names don't read
+ * well mid-sentence.
+ */
+export const missingGatePhrases: Record<number, string> = {
+  1: 'your own creative vision to express',
+  2: 'a clear direction to aim your energy',
+  3: 'a way to give your ideas structure',
+  4: 'answers to resolve your doubts',
+  5: 'steady routines to anchor you',
+  6: 'a feel for when the timing is right',
+  7: 'a strategic vision to back up your words',
+  8: 'someone to champion your work',
+  9: 'a clear focus for your energy',
+  10: 'a clear sense of how to be yourself',
+  11: 'fresh ideas to work with',
+  12: 'the right words for what you feel',
+  13: 'someone to listen to your stories',
+  14: 'the resources to fuel your direction',
+  15: "room for life's natural extremes",
+  16: 'the skills to show your depth',
+  17: 'a framework for all the details',
+  18: 'a clear sense of what needs fixing',
+  19: 'a feel for what people actually need',
+  20: 'the words to voice what you know',
+  21: 'someone to run the day-to-day',
+  22: 'the openness to share what you feel',
+  23: 'the words to explain what you know',
+  24: 'a way to make sense of your inspiration',
+  25: 'a deeper meaning behind your actions',
+  26: 'the ability to sell what you know',
+  27: 'the energy to care for your people',
+  28: 'a struggle worth fighting for',
+  29: 'the stamina to see things through',
+  30: 'a clear sense of what you really want',
+  31: 'the influence to carry your vision forward',
+  32: 'a sense of what will last',
+  33: "space to reflect on what's worth sharing",
+  34: 'the power to act on what you know',
+  35: 'an outlet for your feelings',
+  36: 'experiences deep enough to mean something',
+  37: 'a close community to provide for',
+  38: 'a sense of which battles matter',
+  39: 'someone to provoke your spirit',
+  40: 'someone to provide for the group',
+  41: 'a dream to give your feelings direction',
+  42: 'the follow-through to finish what you start',
+  43: 'breakthrough insights',
+  44: 'a sense of what the market needs',
+  45: 'people gathered around you',
+  46: "a sense of what's truly right for you",
+  47: 'clarity about how it all fits together',
+  48: 'the depth to back up your performance',
+  49: 'the authority to meet the needs around you',
+  50: 'clear values to set your boundaries',
+  51: 'the courage to act on your love',
+  52: 'the stillness to concentrate',
+  53: 'a way to get things started',
+  54: 'the drive to make things happen',
+  55: 'someone who responds to your challenge',
+  56: 'a way to turn your ideas into stories',
+  57: 'a gut instinct to guide you',
+  58: 'the joyful energy to make things better',
+  59: 'real closeness with others',
+  60: 'patience with how things unfold',
+  61: 'a deeper truth to inspire you',
+  62: 'the details to explain what you see',
+  63: 'the right questions to answer',
+  64: 'something to make sense of',
+};
+
+/**
  * Shadow verbs — infinitive verb form of each shadow, for use mid-sentence.
  * e.g. "Your mind wants to convince you to [verb]..."
  * Keyed by function name.
  */
 export const shadowVerbs: Record<string, string> = {
-  'Bringing Traits/Strengths': 'blame yourself',
+  'Bringing Traits/Strengths': bridgeShadowVariants.simple.verb,
   'Willpower': 'overcompensate',
   'Emotional Intelligence': 'avoid confrontation',
   'Identity & Direction': 'act like someone else',
@@ -261,7 +381,7 @@ export const shadowVerbs: Record<string, string> = {
  * Keyed by function name.
  */
 export const shadowNames: Record<string, string> = {
-  'Bringing Traits/Strengths': 'Blaming yourself for something missing',
+  'Bringing Traits/Strengths': bridgeShadowVariants.simple.name,
   'Willpower': 'Overcompensating',
   'Emotional Intelligence': 'Touchy & nervous',
   'Identity & Direction': 'Role confusion',
@@ -374,7 +494,7 @@ export const shadowPressures: Record<string, string> = {
  */
 export const shadowDescriptions: Record<string, string> = {
   'Bringing Traits/Strengths':
-    'Connecting groups and bridging differences through unique talents',
+    bridgeShadowVariants.simple.describe(null),
   'Willpower':
     'Trying to prove yourself through willpower and commitments',
   'Emotional Intelligence':
