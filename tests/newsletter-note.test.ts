@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { noteFragment, preheaderFragment } from '../emails/chrome-fragments';
-import { injectEmailChrome } from '../emails/inject-chrome';
+import { noteFragment, preheaderFragment } from '../lib/newsletter/chrome-fragments';
+import { injectEmailChrome } from '../lib/newsletter/inject-chrome';
 
 const DOC = '<html><head></head><body style="x"><table><tr><td>BODY CONTENT</td></tr></table></body></html>';
 
@@ -65,15 +65,15 @@ describe('injectEmailChrome', () => {
   });
 });
 
-vi.mock('../lib/resend-contacts', () => ({
+vi.mock('../lib/resend/contacts', () => ({
   getResendClient: vi.fn(),
   ensureNeonIdProperty: vi.fn(),
   ensureChartContactProperties: vi.fn(),
 }));
-vi.mock('../emails/newsletter-loader', () => ({ getNewsletterIssue: vi.fn() }));
-vi.mock('../newsletters/loader', () => ({ loadNewsletterIssue: vi.fn() }));
-vi.mock('../emails/newsletter', () => ({ getNewsletterSubject: vi.fn() }));
-vi.mock('../newsletters/resolve', () => ({ buildContactPropertyValues: vi.fn() }));
+vi.mock('../lib/newsletter/email-loader', () => ({ getNewsletterIssue: vi.fn() }));
+vi.mock('../lib/newsletter/loader', () => ({ loadNewsletterIssue: vi.fn() }));
+vi.mock('../lib/newsletter/email', () => ({ getNewsletterSubject: vi.fn() }));
+vi.mock('../lib/newsletter/resolve', () => ({ buildContactPropertyValues: vi.fn() }));
 vi.mock('../lib/db', () => ({
   upsertContactSyncState: vi.fn(),
   getNewsletterNoteForDate: vi.fn(),
@@ -82,9 +82,9 @@ vi.mock('../lib/db', () => ({
 
 describe('broadcast rendering', () => {
   beforeEach(async () => {
-    const { getNewsletterIssue } = await import('../emails/newsletter-loader');
-    const { loadNewsletterIssue } = await import('../newsletters/loader');
-    const { getNewsletterSubject } = await import('../emails/newsletter');
+    const { getNewsletterIssue } = await import('../lib/newsletter/email-loader');
+    const { loadNewsletterIssue } = await import('../lib/newsletter/loader');
+    const { getNewsletterSubject } = await import('../lib/newsletter/email');
     vi.mocked(getNewsletterIssue).mockResolvedValue({
       number: 9,
       subject: 'Subject',
@@ -111,21 +111,21 @@ describe('broadcast rendering', () => {
   });
 
   it('renderNewsletterForBroadcast includes the issue preview and the note', async () => {
-    const { renderNewsletterForBroadcast } = await import('../lib/resend-broadcasts');
+    const { renderNewsletterForBroadcast } = await import('../lib/resend/broadcasts');
     const { html } = await renderNewsletterForBroadcast(9, { note: 'Sorry I missed last week' });
     expect(html).toContain('Issue preview');
     expect(html).toContain('Sorry I missed last week');
   });
 
   it('renderNewsletterForBroadcast omits the note by default', async () => {
-    const { renderNewsletterForBroadcast } = await import('../lib/resend-broadcasts');
+    const { renderNewsletterForBroadcast } = await import('../lib/resend/broadcasts');
     const { html } = await renderNewsletterForBroadcast(9);
     expect(html).toContain('Issue preview');
     expect(html).not.toContain('data-newsletter-note');
   });
 
   it('renderNewsletterForBroadcastWithHtml replaces variables in the preview and includes the note', async () => {
-    const { renderNewsletterForBroadcastWithHtml } = await import('../lib/resend-broadcasts');
+    const { renderNewsletterForBroadcastWithHtml } = await import('../lib/resend/broadcasts');
     const { html } = await renderNewsletterForBroadcastWithHtml(9, DOC, { note: 'A note' });
     expect(html).toContain('Preview for {{{FIRST_NAME|there}}}');
     expect(html).toContain('A note');
@@ -136,7 +136,7 @@ describe('note lookup by send day', () => {
   it('matches the calendar day in the publication timezone, not UTC', async () => {
     const { getNewsletterNoteForDate: getForDate } = await import('../lib/db');
     vi.mocked(getForDate).mockResolvedValue(null);
-    const { getNoteForSend } = await import('../lib/newsletter-notes');
+    const { getNoteForSend } = await import('../lib/newsletter/notes');
     // 2026-10-08 02:00 UTC is still Oct 7 in Chicago
     await getNoteForSend(1, new Date('2026-10-08T02:00:00Z'), 'America/Chicago');
     expect(getForDate).toHaveBeenCalledWith(1, '2026-10-07');
@@ -145,7 +145,7 @@ describe('note lookup by send day', () => {
   it('looks for upcoming notes from today in the publication timezone', async () => {
     const { getNextNewsletterNote: getNext } = await import('../lib/db');
     vi.mocked(getNext).mockResolvedValue(null);
-    const { getUpcomingNote } = await import('../lib/newsletter-notes');
+    const { getUpcomingNote } = await import('../lib/newsletter/notes');
     await getUpcomingNote(1, 'America/Chicago', new Date('2026-10-01T04:00:00Z'));
     expect(getNext).toHaveBeenCalledWith(1, '2026-09-30');
   });

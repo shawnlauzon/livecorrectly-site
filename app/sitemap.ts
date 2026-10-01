@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getWebNewsletters } from "@/newsletters/web";
+import { getWebNewsletters } from "@/lib/newsletter/web";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = "https://www.livecorrectly.com";

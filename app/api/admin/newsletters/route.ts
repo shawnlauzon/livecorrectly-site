@@ -8,11 +8,11 @@ import {
   getNewsletterSegments,
   createNewsletterIssue,
 } from '@/lib/db';
-import { getNewsletterIssueNumbers, clearNewsletterIssueCache } from '@/emails/newsletter-loader';
-import { loadNewsletterIssue } from '@/newsletters/loader';
-import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
-import { finalizeDueSchedules } from '@/lib/newsletter-finalize';
-import { nextRegularSendAt } from '@/lib/newsletter-cadence';
+import { getNewsletterIssueNumbers, clearNewsletterIssueCache } from '@/lib/newsletter/email-loader';
+import { loadNewsletterIssue } from '@/lib/newsletter/loader';
+import { WELCOME_SERIES_LENGTH } from '@/lib/email/welcome';
+import { finalizeDueSchedules } from '@/lib/newsletter/finalize';
+import { nextRegularSendAt } from '@/lib/newsletter/cadence';
 
 
 /**

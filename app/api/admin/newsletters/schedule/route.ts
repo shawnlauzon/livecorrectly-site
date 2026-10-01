@@ -13,32 +13,32 @@ import {
   insertNewsletterSegment,
 } from '@/lib/db';
 import type { Subscriber } from '@/lib/types/subscriber';
-import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
-import { loadNewsletterIssue } from '@/newsletters/loader';
+import { WELCOME_SERIES_LENGTH } from '@/lib/email/welcome';
+import { loadNewsletterIssue } from '@/lib/newsletter/loader';
 import {
   hasLiquidConditionals,
   hasLiquidOutputTags,
   extractDynamicSections,
   buildDynamicContactProperties,
   computeDerivedPropertyValues,
-} from '@/newsletters/resolve';
+} from '@/lib/newsletter/resolve';
 import {
   renderNewsletterForBroadcast,
   renderNewsletterForBroadcastWithHtml,
   syncContactProperties,
   getBroadcastSender,
-} from '@/lib/resend-broadcasts';
-import { getResendClient, createPropertyIfMissing, deleteNewsletterProperties } from '@/lib/resend-contacts';
+} from '@/lib/resend/broadcasts';
+import { getResendClient, createPropertyIfMissing, deleteNewsletterProperties } from '@/lib/resend/contacts';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { nextRegularSendAt, zonedDateString } from '@/lib/newsletter-cadence';
-import { getNoteForSend } from '@/lib/newsletter-notes';
-import { planAudience, autoSegmentName } from '@/lib/newsletter-audience';
-import type { AudiencePlan } from '@/lib/newsletter-audience';
-import { addEmailsToSegment, removeNewsletterSegment } from '@/lib/newsletter-segments';
-import { getNewsletterIssue } from '@/emails/newsletter-loader';
-import { renderNewsletterEmail } from '@/emails/newsletter-template';
-import { buildUnsubscribeUrl, formatEmailRecipient, sendNewsletterEmail } from '@/emails/send';
-import type { EngagementData } from '@/newsletters/resolve';
+import { nextRegularSendAt, zonedDateString } from '@/lib/newsletter/cadence';
+import { getNoteForSend } from '@/lib/newsletter/notes';
+import { planAudience, autoSegmentName } from '@/lib/newsletter/audience';
+import type { AudiencePlan } from '@/lib/newsletter/audience';
+import { addEmailsToSegment, removeNewsletterSegment } from '@/lib/newsletter/segments';
+import { getNewsletterIssue } from '@/lib/newsletter/email-loader';
+import { renderNewsletterEmail } from '@/lib/newsletter/email-template';
+import { buildUnsubscribeUrl, formatEmailRecipient, sendNewsletterEmail } from '@/lib/email/send';
+import type { EngagementData } from '@/lib/newsletter/resolve';
 import type { ScheduleEvent, ScheduleStepId } from '@/lib/types/schedule-progress';
 
 /** Test sends go to this subscriber unless NEWSLETTER_TEST_EMAIL is set. */

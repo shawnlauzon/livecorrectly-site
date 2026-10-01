@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   nextRegularSendAt,
   zonedDateString,
-} from '../lib/newsletter-cadence';
+} from '../lib/newsletter/cadence';
 
 // Tuesdays at 06:47 Chicago
 const cadence = { sendWeekday: 2, sendTime: '06:47', timezone: 'America/Chicago' };

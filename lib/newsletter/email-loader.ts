@@ -1,10 +1,10 @@
 import {
   loadNewsletterIssue,
   type RawNewsletterIssue,
-} from '@/newsletters/loader';
+} from '@/lib/newsletter/loader';
 import { replaceVariables as replaceVars, replaceChartSubpaths, replaceDesignedCta } from './template-variables';
-import { resolveLiquid, resolveRelativeLinks } from '@/newsletters/resolve';
-import type { EngagementData } from '@/newsletters/resolve';
+import { resolveLiquid, resolveRelativeLinks } from '@/lib/newsletter/resolve';
+import type { EngagementData } from '@/lib/newsletter/resolve';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 
 export {
@@ -12,7 +12,7 @@ export {
   getMaxNewsletterIssueNumber,
   getNewsletterIssueNumbers,
   clearNewsletterIssueCache,
-} from '@/newsletters/loader';
+} from '@/lib/newsletter/loader';
 
 export interface NewsletterIssue {
   /** Newsletter number (from filename, matches next_step) */

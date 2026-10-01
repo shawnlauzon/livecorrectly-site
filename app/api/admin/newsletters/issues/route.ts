@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
-import { loadAllNewsletterIssues } from '@/newsletters/loader';
-import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
+import { loadAllNewsletterIssues } from '@/lib/newsletter/loader';
+import { WELCOME_SERIES_LENGTH } from '@/lib/email/welcome';
 
 /**
  * GET /api/admin/newsletters/issues

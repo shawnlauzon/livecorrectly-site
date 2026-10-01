@@ -1,10 +1,10 @@
 import { Resend } from 'resend';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
-import contactProperties, { buildContactPropertyValues } from '@/newsletters/resolve';
+import contactProperties, { buildContactPropertyValues } from '@/lib/newsletter/resolve';
 import { upsertContactSyncState } from '@/lib/db';
 
 /**
- * Resend contact management — separate from emails/send.ts (the sole
+ * Resend contact management — separate from lib/email/send.ts (the sole
  * resend.emails.send() call site). This module handles contacts,
  * segments, and newsletter broadcasts through its own Resend instance.
  */

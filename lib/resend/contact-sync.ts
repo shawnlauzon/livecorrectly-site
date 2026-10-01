@@ -1,6 +1,6 @@
 import type { Subscriber } from '@/lib/types/subscriber';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { buildContactPropertyValues } from '@/newsletters/resolve';
+import { buildContactPropertyValues } from '@/lib/newsletter/resolve';
 
 /**
  * Compute all expected contact property values for a subscriber.

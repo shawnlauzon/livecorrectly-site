@@ -5,9 +5,9 @@ import {
   insertNewsletterSegment,
   getNewsletterSegments,
 } from '@/lib/db';
-import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
-import { getResendClient } from '@/lib/resend-contacts';
-import { addEmailsToSegment, removeNewsletterSegment } from '@/lib/newsletter-segments';
+import { WELCOME_SERIES_LENGTH } from '@/lib/email/welcome';
+import { getResendClient } from '@/lib/resend/contacts';
+import { addEmailsToSegment, removeNewsletterSegment } from '@/lib/newsletter/segments';
 
 /**
  * POST /api/admin/newsletters/segment

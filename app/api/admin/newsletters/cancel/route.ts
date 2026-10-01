@@ -6,7 +6,7 @@ import {
   deleteEmailSendsForBroadcast,
   deleteEmailSendsForResendEmails,
 } from '@/lib/db';
-import { getResendClient } from '@/lib/resend-contacts';
+import { getResendClient } from '@/lib/resend/contacts';
 
 /**
  * POST /api/admin/newsletters/cancel

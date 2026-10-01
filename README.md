@@ -74,7 +74,7 @@ lib/email-content.ts             Content maps (strategy/authority writeups)
 lib/email-subjects.ts            Subject line generator
 lib/hd-chart/parse-for-email.ts  Flat chart data for templates
 emails/components/               Shared layout, signature, Ra quote
-emails/welcome[1-5].tsx          Welcome series templates
+emails/welcome[1-3].tsx          Welcome series templates
 ```
 
 ### Previewing emails
@@ -109,7 +109,7 @@ Email deliverability is managed via the `subscribers.email_status` field and Res
 1. **Resend sends webhook** — When emails bounce, fail, or trigger spam complaints, Resend posts to `/api/webhooks/resend`
 2. **Signature verification** — Webhook handler validates the `svix-signature` header using HMAC-SHA256 via `crypto.subtle` to prevent spoofing
 3. **Status update** — Handler calls `updateEmailStatus()` which sets `email_status` and timestamps the change in `email_status_at`
-4. **Send prevention** — All email sends go through `sendEmail()` in `emails/send.ts`, which checks `canSendTo()` before every send. Only `active` subscribers receive emails.
+4. **Send prevention** — All email sends go through `sendEmail()` in `lib/email/send.ts`, which checks `canSendTo()` before every send. Only `active` subscribers receive emails.
 5. **Automatic reactivation** — If someone is removed from Resend's suppression list, they're automatically set back to `active`
 
 **Events handled:**

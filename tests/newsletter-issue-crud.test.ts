@@ -14,18 +14,18 @@ vi.mock('../lib/db', () => ({
   updateNewsletterIssue: vi.fn(),
   deleteNewsletterIssue: vi.fn(),
 }));
-vi.mock('../newsletters/loader', () => ({
+vi.mock('../lib/newsletter/loader', () => ({
   loadNewsletterIssue: vi.fn(),
   clearNewsletterIssueCache: vi.fn(),
 }));
-vi.mock('../emails/newsletter-loader', () => ({
+vi.mock('../lib/newsletter/email-loader', () => ({
   getNewsletterIssueNumbers: vi.fn(),
   clearNewsletterIssueCache: vi.fn(),
 }));
 
 import { createNewsletterIssue, deleteNewsletterIssue } from '../lib/db';
-import { clearNewsletterIssueCache as clearLoaderCache } from '../newsletters/loader';
-import { clearNewsletterIssueCache as clearEmailLoaderCache } from '../emails/newsletter-loader';
+import { clearNewsletterIssueCache as clearLoaderCache } from '../lib/newsletter/loader';
+import { clearNewsletterIssueCache as clearEmailLoaderCache } from '../lib/newsletter/email-loader';
 import { POST } from '../app/api/admin/newsletters/route';
 import { DELETE } from '../app/api/admin/newsletters/[number]/route';
 

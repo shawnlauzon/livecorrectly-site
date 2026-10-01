@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveLiquid } from '@/newsletters/resolve';
+import { resolveLiquid } from '@/lib/newsletter/resolve';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import type { ChartRecord } from '@/lib/types/chart';
 import shawnsChartData from './fixtures/shawns-chart.json';

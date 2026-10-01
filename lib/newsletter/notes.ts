@@ -1,6 +1,6 @@
 import { getNewsletterNoteForDate, getNextNewsletterNote } from '@/lib/db';
 import type { NewsletterNote } from '@/lib/db';
-import { zonedDateString } from '@/lib/newsletter-cadence';
+import { zonedDateString } from '@/lib/newsletter/cadence';
 
 /**
  * The note for a send at `sendAt`: the one dated on that calendar day in the

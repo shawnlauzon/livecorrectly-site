@@ -1,6 +1,6 @@
 /**
  * Shared field definitions for the newsletter editor's Variable and Conditional nodes.
- * Each field maps to a contact property name used in buildLiquidContext (newsletters/resolve.ts).
+ * Each field maps to a contact property name used in buildLiquidContext (lib/newsletter/resolve.ts).
  *
  * Fields with `values` get a dropdown in the conditional value picker;
  * fields without `values` get a free-text input.

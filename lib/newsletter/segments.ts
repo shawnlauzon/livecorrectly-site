@@ -1,6 +1,6 @@
 import { deleteNewsletterSegment } from '@/lib/db';
 import type { NewsletterSegment } from '@/lib/db';
-import { getResendClient } from '@/lib/resend-contacts';
+import { getResendClient } from '@/lib/resend/contacts';
 
 /**
  * Add each email to a Resend segment. Returns how many adds succeeded;

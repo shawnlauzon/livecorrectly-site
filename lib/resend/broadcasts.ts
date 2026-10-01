@@ -1,11 +1,11 @@
-import { getResendClient, ensureNeonIdProperty, ensureChartContactProperties } from './resend-contacts';
-import { getNewsletterIssue } from '@/emails/newsletter-loader';
-import { loadNewsletterIssue } from '@/newsletters/loader';
-import { replaceVariables as replaceVars } from '@/emails/template-variables';
-import { renderNewsletterEmail } from '@/emails/newsletter-template';
-import { getNewsletterSubject } from '@/emails/newsletter';
+import { getResendClient, ensureNeonIdProperty, ensureChartContactProperties } from './contacts';
+import { getNewsletterIssue } from '@/lib/newsletter/email-loader';
+import { loadNewsletterIssue } from '@/lib/newsletter/loader';
+import { replaceVariables as replaceVars } from '@/lib/newsletter/template-variables';
+import { renderNewsletterEmail } from '@/lib/newsletter/email-template';
+import { getNewsletterSubject } from '@/lib/newsletter/email';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { buildContactPropertyValues } from '@/newsletters/resolve';
+import { buildContactPropertyValues } from '@/lib/newsletter/resolve';
 import { upsertContactSyncState } from '@/lib/db';
 import type { Subscriber } from '@/lib/types/subscriber';
 
@@ -17,7 +17,7 @@ let contactPropertiesEnsured = false;
  * When EMAIL_DOMAIN_BROADCAST is set, From is shawn@DOMAIN and no Reply-To is
  * set: that domain's MX points at Resend inbound, so replies are captured by the
  * `email.received` webhook, which records the reply and forwards it to Shawn's
- * real inbox (see forwardInboundReply in emails/send.ts).
+ * real inbox (see forwardInboundReply in lib/email/send.ts).
  */
 export function getBroadcastSender(): { from: string; replyTo: string | undefined } {
   const broadcastDomain = process.env.EMAIL_DOMAIN_BROADCAST;

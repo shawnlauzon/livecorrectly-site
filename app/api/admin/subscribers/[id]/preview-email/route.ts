@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getWelcomeSubject, getWelcomePreview } from '@/emails/subjects';
-import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
-import { renderEmail, buildUnsubscribeUrl } from '@/emails/send';
+import { getWelcomeSubject, getWelcomePreview } from '@/lib/email/subjects';
+import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/lib/email/welcome';
+import { renderEmail, buildUnsubscribeUrl } from '@/lib/email/send';
 
 /**
  * GET /api/admin/subscribers/[id]/preview-email?step=1

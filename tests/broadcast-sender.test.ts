@@ -1,18 +1,18 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-vi.mock('../lib/resend-contacts', () => ({
+vi.mock('../lib/resend/contacts', () => ({
   getResendClient: vi.fn(),
   ensureNeonIdProperty: vi.fn(),
   ensureChartContactProperties: vi.fn(),
 }));
-vi.mock('../emails/newsletter-loader', () => ({ getNewsletterIssue: vi.fn() }));
-vi.mock('../newsletters/loader', () => ({ loadNewsletterIssue: vi.fn() }));
-vi.mock('../emails/newsletter-template', () => ({ renderNewsletterEmail: vi.fn() }));
-vi.mock('../emails/newsletter', () => ({ getNewsletterSubject: vi.fn() }));
-vi.mock('../newsletters/resolve', () => ({ buildContactPropertyValues: vi.fn() }));
+vi.mock('../lib/newsletter/email-loader', () => ({ getNewsletterIssue: vi.fn() }));
+vi.mock('../lib/newsletter/loader', () => ({ loadNewsletterIssue: vi.fn() }));
+vi.mock('../lib/newsletter/email-template', () => ({ renderNewsletterEmail: vi.fn() }));
+vi.mock('../lib/newsletter/email', () => ({ getNewsletterSubject: vi.fn() }));
+vi.mock('../lib/newsletter/resolve', () => ({ buildContactPropertyValues: vi.fn() }));
 vi.mock('../lib/db', () => ({ upsertContactSyncState: vi.fn() }));
 
-import { getBroadcastSender } from '../lib/resend-broadcasts';
+import { getBroadcastSender } from '../lib/resend/broadcasts';
 
 beforeEach(() => {
   delete process.env.EMAIL_DOMAIN_BROADCAST;

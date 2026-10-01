@@ -8,7 +8,7 @@ vi.mock('../lib/db', () => ({
   getDueUnfinalizedSchedules: vi.fn(),
   finalizeNewsletterSchedule: vi.fn(),
 }));
-vi.mock('../lib/resend-contacts', () => ({
+vi.mock('../lib/resend/contacts', () => ({
   getResendClient: () => ({
     broadcasts: { get: broadcastsGet },
     emails: { get: emailsGet },
@@ -16,7 +16,7 @@ vi.mock('../lib/resend-contacts', () => ({
 }));
 
 import { getDueUnfinalizedSchedules, finalizeNewsletterSchedule } from '../lib/db';
-import { finalizeDueSchedules } from '../lib/newsletter-finalize';
+import { finalizeDueSchedules } from '../lib/newsletter/finalize';
 
 function schedule(overrides: Partial<NewsletterSchedule>): NewsletterSchedule {
   return {

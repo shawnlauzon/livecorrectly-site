@@ -1,6 +1,6 @@
 import { getDueUnfinalizedSchedules, finalizeNewsletterSchedule } from '@/lib/db';
 import type { NewsletterSchedule } from '@/lib/db';
-import { getResendClient } from '@/lib/resend-contacts';
+import { getResendClient } from '@/lib/resend/contacts';
 
 /** Resend states in which a single scheduled email has not gone out yet. */
 const PENDING_EMAIL_EVENTS = new Set(['scheduled', 'queued']);

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById, getNewsletterPublication } from '@/lib/db';
-import { buildUnsubscribeUrl } from '@/emails/send';
+import { buildUnsubscribeUrl } from '@/lib/email/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getNewsletterIssueNumbers } from '@/emails/newsletter';
-import { getNewsletterIssue } from '@/emails/newsletter-loader';
-import { renderNewsletterEmail } from '@/emails/newsletter-template';
-import { sendPrerenderedBroadcast } from '@/lib/resend-broadcasts';
-import { getNoteForSend } from '@/lib/newsletter-notes';
+import { getNewsletterIssueNumbers } from '@/lib/newsletter/email';
+import { getNewsletterIssue } from '@/lib/newsletter/email-loader';
+import { renderNewsletterEmail } from '@/lib/newsletter/email-template';
+import { sendPrerenderedBroadcast } from '@/lib/resend/broadcasts';
+import { getNoteForSend } from '@/lib/newsletter/notes';
 
 /**
  * POST /api/admin/subscribers/[id]/send-newsletter

@@ -10,7 +10,7 @@ vi.mock('resend', () => ({
 vi.mock('react-email', () => ({ render: vi.fn() }));
 vi.mock('../lib/db', () => ({ getActiveSubscriberByEmail: vi.fn() }));
 
-import { forwardInboundReply, shouldForwardReply, type InboundReply } from '../emails/send';
+import { forwardInboundReply, shouldForwardReply, type InboundReply } from '../lib/email/send';
 
 const reply: InboundReply = {
   from: 'Korynn <korynn@example.com>',

@@ -570,8 +570,8 @@ function decodeLiquidEntities(html: string): string {
  * Resolve Liquid conditionals and output tags in HTML.
  *
  * This is the single code path for all Liquid processing — used by:
- * - Web rendering (newsletters/web.ts)
- * - Email rendering (emails/newsletter-loader.ts)
+ * - Web rendering (lib/newsletter/web.ts)
+ * - Email rendering (lib/newsletter/email-loader.ts)
  * - Admin editor preview (via /api/admin/newsletters/preview)
  *
  * If the HTML contains no Liquid tags, returns it unchanged.

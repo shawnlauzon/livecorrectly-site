@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getDbNewsletterIssueFull, updateNewsletterIssue, deleteNewsletterIssue } from '@/lib/db';
-import { clearNewsletterIssueCache } from '@/newsletters/loader';
+import { clearNewsletterIssueCache } from '@/lib/newsletter/loader';
 
 /**
  * GET /api/admin/newsletters/[number]

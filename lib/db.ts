@@ -2,7 +2,7 @@ import { cache } from 'react';
 import { neon, NeonQueryFunction } from '@neondatabase/serverless';
 import { BirthInput, EmailStatus, Subscriber, EmailSend, EmailEvent, EmailEventType } from './types/subscriber';
 import type { ChartGroup, ChartRecord } from './types/chart';
-import type { RawNewsletterIssue, LiquidSectionMap } from '@/newsletters/loader';
+import type { RawNewsletterIssue, LiquidSectionMap } from '@/lib/newsletter/loader';
 
 /** A redirect rule mapping a slug + chart property to a destination URL. */
 export interface RedirectRule {

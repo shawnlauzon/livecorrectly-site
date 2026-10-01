@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById, updateEmailSeries, setWelcomeResendStep } from '@/lib/db';
-import { sendWelcomeEmail, formatEmailRecipient, sendAdminNotification, buildUnsubscribeUrl } from '@/emails/send';
+import { sendWelcomeEmail, formatEmailRecipient, sendAdminNotification, buildUnsubscribeUrl } from '@/lib/email/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getWelcomeSubject } from '@/emails/subjects';
-import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
+import { getWelcomeSubject } from '@/lib/email/subjects';
+import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/lib/email/welcome';
 import hdChart from '@/lib/hd-chart';
 
 /**

@@ -1,5 +1,5 @@
-import { loadNewsletterIssue } from '@/newsletters/loader';
-import { hasLiquidConditionals, hasLiquidOutputTags } from '@/newsletters/resolve';
+import { loadNewsletterIssue } from '@/lib/newsletter/loader';
+import { hasLiquidConditionals, hasLiquidOutputTags } from '@/lib/newsletter/resolve';
 import { injectEmailChrome } from './inject-chrome';
 
 interface RenderNewsletterEmailOptions {

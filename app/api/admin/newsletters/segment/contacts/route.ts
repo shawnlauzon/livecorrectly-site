@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getNewsletterSegments } from '@/lib/db';
-import { getResendClient } from '@/lib/resend-contacts';
+import { getResendClient } from '@/lib/resend/contacts';
 
 /**
  * GET /api/admin/newsletters/segment/contacts?segmentId=<db-id>

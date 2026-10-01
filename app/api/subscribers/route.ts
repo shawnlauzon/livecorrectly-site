@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSubscriber, advanceEmailSeries, recordEmailSend } from '@/lib/db';
-import { sendWelcomeEmail, sendAdminNotification, formatEmailRecipient, buildUnsubscribeUrl } from '@/emails/send';
+import { sendWelcomeEmail, sendAdminNotification, formatEmailRecipient, buildUnsubscribeUrl } from '@/lib/email/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getWelcomeSubject } from '@/emails/subjects';
-import { getWelcomeEmail } from '@/emails/welcome';
-import { syncContactToResend } from '@/lib/resend-contacts';
+import { getWelcomeSubject } from '@/lib/email/subjects';
+import { getWelcomeEmail } from '@/lib/email/welcome';
+import { syncContactToResend } from '@/lib/resend/contacts';
 
 export async function POST(request: NextRequest) {
   try {

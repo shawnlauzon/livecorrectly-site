@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSubscriberByUnsubToken, updateEmailStatus, recordEmailEvent } from '@/lib/db';
-import { unsubscribeContactInResend } from '@/lib/resend-contacts';
+import { unsubscribeContactInResend } from '@/lib/resend/contacts';
 
 /**
  * Unsubscribe endpoint.

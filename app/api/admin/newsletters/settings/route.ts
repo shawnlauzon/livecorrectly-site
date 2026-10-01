@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getNewsletterPublication, updateNewsletterPublication } from '@/lib/db';
 import type { NewsletterPublication } from '@/lib/db';
-import { nextRegularSendAt } from '@/lib/newsletter-cadence';
+import { nextRegularSendAt } from '@/lib/newsletter/cadence';
 
 function settingsResponse(publication: NewsletterPublication) {
   return {

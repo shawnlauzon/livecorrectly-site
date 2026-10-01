@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { buildUnsubscribeUrl } from '@/emails/send';
-import { getNewsletterHtml, getNewsletterSubject, getNewsletterIssueNumbers } from '@/emails/newsletter';
-import { getNewsletterIssue } from '@/emails/newsletter-loader';
-import { resolveContactVars } from '@/newsletters/resolve';
-import { replaceResendContactVars } from '@/emails/template-variables';
-import { loadAllNewsletterIssues } from '@/newsletters/loader';
+import { buildUnsubscribeUrl } from '@/lib/email/send';
+import { getNewsletterHtml, getNewsletterSubject, getNewsletterIssueNumbers } from '@/lib/newsletter/email';
+import { getNewsletterIssue } from '@/lib/newsletter/email-loader';
+import { resolveContactVars } from '@/lib/newsletter/resolve';
+import { replaceResendContactVars } from '@/lib/newsletter/template-variables';
+import { loadAllNewsletterIssues } from '@/lib/newsletter/loader';
 
 /**
  * GET /api/admin/subscribers/[id]/preview-newsletter?step=1

@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import SiteNav from "@/components/site-nav";
 import SiteFooter from "@/components/site-footer";
-import { getWebNewsletters } from "@/newsletters/web";
+import { getWebNewsletters } from "@/lib/newsletter/web";
 import NewsletterIndexCta from "./NewsletterIndexCta";
 import styles from "./page.module.css";
 

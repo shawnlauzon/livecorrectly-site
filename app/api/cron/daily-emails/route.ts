@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWelcomeDueSubscribers, getWelcomeResendDueSubscribers, advanceEmailSeries, setWelcomeResendStep, acquireCronLock, recordEmailSend } from '@/lib/db';
-import { sendWelcomeEmail, formatEmailRecipient, buildUnsubscribeUrl } from '@/emails/send';
+import { sendWelcomeEmail, formatEmailRecipient, buildUnsubscribeUrl } from '@/lib/email/send';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { getWelcomeSubject } from '@/emails/subjects';
-import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/emails/welcome';
-import { finalizeDueSchedules } from '@/lib/newsletter-finalize';
+import { getWelcomeSubject } from '@/lib/email/subjects';
+import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '@/lib/email/welcome';
+import { finalizeDueSchedules } from '@/lib/newsletter/finalize';
 
 /**
  * Cron endpoint: sends per-subscriber daily emails.

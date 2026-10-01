@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getAllSubscribers, getSubscriberById } from '@/lib/db';
-import { syncContactToResend } from '@/lib/resend-contacts';
-import { syncContactProperties } from '@/lib/resend-broadcasts';
+import { syncContactToResend } from '@/lib/resend/contacts';
+import { syncContactProperties } from '@/lib/resend/broadcasts';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 
 /**

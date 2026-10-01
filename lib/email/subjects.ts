@@ -1,6 +1,6 @@
-import { subject as subject1, preview as preview1 } from './welcome1';
-import { subject as subject2, preview as preview2 } from './welcome2';
-import { subject as subject3, preview as preview3 } from './welcome3';
+import { subject as subject1, preview as preview1 } from '../../emails/welcome1';
+import { subject as subject2, preview as preview2 } from '../../emails/welcome2';
+import { subject as subject3, preview as preview3 } from '../../emails/welcome3';
 
 const subjects = [subject1, subject2, subject3];
 const previews = [preview1, preview2, preview3];

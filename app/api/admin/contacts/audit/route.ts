@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getAllSubscribers, getAllContactSyncStates, upsertContactSyncState } from '@/lib/db';
-import { getResendClient } from '@/lib/resend-contacts';
-import { computeExpectedContactValues } from '@/lib/contact-sync';
-import contactProperties from '@/newsletters/resolve';
+import { getResendClient } from '@/lib/resend/contacts';
+import { computeExpectedContactValues } from '@/lib/resend/contact-sync';
+import contactProperties from '@/lib/newsletter/resolve';
 
 interface Diff {
   field: string;

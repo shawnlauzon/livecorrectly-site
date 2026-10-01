@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSubscriberByEmailForWebhook, updateEmailStatus, rollBackEmailSeries, recordEmailEvent, lookupEmailSendByResendId, lookupEmailTypeByBroadcastId, getMostRecentEmailSend, getScheduleByBroadcastId, advanceEmailSeries } from '@/lib/db';
-import { extractEmail, forwardInboundReply } from '@/emails/send';
-import { getResendClient, unsubscribeContactInResend } from '@/lib/resend-contacts';
+import { extractEmail, forwardInboundReply } from '@/lib/email/send';
+import { getResendClient, unsubscribeContactInResend } from '@/lib/resend/contacts';
 
 /**
  * Resend webhook endpoint.

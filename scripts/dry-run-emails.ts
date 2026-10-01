@@ -16,10 +16,10 @@
 
 import { getWelcomeDueSubscribers, getNewsletterDueSubscribers } from '../lib/db';
 import { parseChartForEmail } from '../lib/hd-chart/parse-for-email';
-import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '../emails/welcome';
-import { getWelcomeSubject } from '../emails/subjects';
-import { getNewsletterHtml, getNewsletterSubject, getMaxNewsletterIssueNumber } from '../emails/newsletter';
-import { renderEmail, formatEmailRecipient, canSendTo, buildUnsubscribeUrl } from '../emails/send';
+import { getWelcomeEmail, WELCOME_SERIES_LENGTH } from '../lib/email/welcome';
+import { getWelcomeSubject } from '../lib/email/subjects';
+import { getNewsletterHtml, getNewsletterSubject, getMaxNewsletterIssueNumber } from '../lib/newsletter/email';
+import { renderEmail, formatEmailRecipient, canSendTo, buildUnsubscribeUrl } from '../lib/email/send';
 import type { Subscriber } from '../lib/types/subscriber';
 import fs from 'fs';
 import path from 'path';

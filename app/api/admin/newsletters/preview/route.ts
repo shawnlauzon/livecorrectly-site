@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getSubscriberById, getNewsletterEngagement, getNewsletterPublication } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
-import { resolveNewsletterHtml } from '@/newsletters/resolve';
-import type { EngagementData } from '@/newsletters/resolve';
-import { renderNewsletterEmail } from '@/emails/newsletter-template';
-import { getUpcomingNote } from '@/lib/newsletter-notes';
+import { resolveNewsletterHtml } from '@/lib/newsletter/resolve';
+import type { EngagementData } from '@/lib/newsletter/resolve';
+import { renderNewsletterEmail } from '@/lib/newsletter/email-template';
+import { getUpcomingNote } from '@/lib/newsletter/notes';
 
 /**
  * POST /api/admin/newsletters/preview

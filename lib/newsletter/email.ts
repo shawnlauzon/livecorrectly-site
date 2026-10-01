@@ -1,8 +1,8 @@
 import { Subscriber } from '@/lib/types/subscriber';
 import { parseChartForEmail, type EmailChartData } from '@/lib/hd-chart/parse-for-email';
-import { getNewsletterIssue } from './newsletter-loader';
-import { renderNewsletterEmail } from './newsletter-template';
-export { getNewsletterIssueCount, getMaxNewsletterIssueNumber, getNewsletterIssueNumbers } from './newsletter-loader';
+import { getNewsletterIssue } from './email-loader';
+import { renderNewsletterEmail } from './email-template';
+export { getNewsletterIssueCount, getMaxNewsletterIssueNumber, getNewsletterIssueNumbers } from './email-loader';
 
 /**
  * Build the rendered HTML for a newsletter step.

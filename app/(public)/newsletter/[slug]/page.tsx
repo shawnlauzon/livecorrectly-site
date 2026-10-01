@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import SiteNav from '@/components/site-nav';
 import SiteFooter from '@/components/site-footer';
-import { getWebNewsletter, getAllSlugs, getSlugRedirects } from '@/newsletters/web';
+import { getWebNewsletter, getAllSlugs, getSlugRedirects } from '@/lib/newsletter/web';
 import { getSubscriberById } from '@/lib/db';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import NewsletterCta from './NewsletterCta';

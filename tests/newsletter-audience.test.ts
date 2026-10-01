@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { planAudience, SEGMENT_MIN_SIZE, autoSegmentName } from '../lib/newsletter-audience';
+import { planAudience, SEGMENT_MIN_SIZE, autoSegmentName } from '../lib/newsletter/audience';
 import type { NewsletterSegment } from '../lib/db';
 
 function segment(id: number, createdAt: string): NewsletterSegment {

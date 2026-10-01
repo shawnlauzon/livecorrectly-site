@@ -13,11 +13,11 @@ vi.mock('../lib/db', () => ({
   getScheduleByBroadcastId: vi.fn(),
   advanceEmailSeries: vi.fn(),
 }));
-vi.mock('../emails/send', () => ({
+vi.mock('../lib/email/send', () => ({
   extractEmail: (r: string) => r.match(/<(.+)>/)?.[1] ?? r,
   forwardInboundReply: vi.fn(),
 }));
-vi.mock('../lib/resend-contacts', () => ({
+vi.mock('../lib/resend/contacts', () => ({
   getResendClient: vi.fn(),
   unsubscribeContactInResend: vi.fn(),
 }));

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getAllNewsletterPublications, getAllSubscribers, getNewsletterSchedules } from '@/lib/db';
-import { WELCOME_SERIES_LENGTH } from '@/emails/welcome';
-import { getNewsletterIssueNumbers } from '@/emails/newsletter-loader';
-import { nextRegularSendAt } from '@/lib/newsletter-cadence';
+import { WELCOME_SERIES_LENGTH } from '@/lib/email/welcome';
+import { getNewsletterIssueNumbers } from '@/lib/newsletter/email-loader';
+import { nextRegularSendAt } from '@/lib/newsletter/cadence';
 
 /**
  * GET /api/admin/newsletters/publications
