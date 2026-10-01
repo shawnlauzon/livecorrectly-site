@@ -56,11 +56,20 @@ export function convertVariablesInText(node: JSONContent): JSONContent[] {
     if (s) out.push({ ...node, text: s });
   };
 
+  // Formatting like bold carries onto the variable (it renders around the
+  // value in the email). `code` is dropped: claude.ai and similar sources wrap
+  // template tags in inline code purely for display.
+  const variableMarks = node.marks?.filter(m => m.type !== 'code');
+
   for (const match of text.matchAll(VARIABLE_TAG_RE)) {
     const attrs = parseVariableTag(match[1]);
     if (!attrs) continue;
     pushText(text.slice(last, match.index));
-    out.push({ type: 'variableNode', attrs: { ...attrs } });
+    out.push({
+      type: 'variableNode',
+      attrs: { ...attrs },
+      ...(variableMarks?.length ? { marks: variableMarks } : {}),
+    });
     last = match.index + match[0].length;
   }
 

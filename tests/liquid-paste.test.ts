@@ -7,9 +7,10 @@ import {
 } from '@/app/admin/newsletters/[id]/[number]/liquid-paste';
 
 const p = (text: string): JSONContent => ({ type: 'paragraph', content: [{ type: 'text', text }] });
-const variable = (variableId: string, def = '', capitalize = false): JSONContent => ({
+const variable = (variableId: string, def = '', capitalize = false, marks?: JSONContent['marks']): JSONContent => ({
   type: 'variableNode',
   attrs: { variableId, default: def, capitalize },
+  ...(marks ? { marks } : {}),
 });
 
 describe('parseVariableTag', () => {
@@ -47,12 +48,21 @@ describe('parseVariableTag', () => {
 });
 
 describe('convertVariablesInText', () => {
-  it('splits text around a variable, keeping marks on the text', () => {
+  it('splits text around a variable, keeping marks on the text and the variable', () => {
     const bold = [{ type: 'bold' }];
     expect(convertVariablesInText({ type: 'text', text: 'Hey {{ first_name }},', marks: bold })).toEqual([
       { type: 'text', text: 'Hey ', marks: bold },
-      variable('first_name'),
+      variable('first_name', '', false, bold),
       { type: 'text', text: ',', marks: bold },
+    ]);
+  });
+
+  it('drops the code mark from variables (claude.ai wraps them in <code>) but keeps others', () => {
+    expect(convertVariablesInText({ type: 'text', text: '{{ top_shadow }}', marks: [{ type: 'code' }, { type: 'italic' }] })).toEqual([
+      variable('top_shadow', '', false, [{ type: 'italic' }]),
+    ]);
+    expect(convertVariablesInText({ type: 'text', text: '{{ top_shadow }}', marks: [{ type: 'code' }] })).toEqual([
+      variable('top_shadow'),
     ]);
   });
 
@@ -92,7 +102,7 @@ describe('transformPastedContent', () => {
     ]);
     expect(result.structureChanged).toBe(false);
     expect(result.content).toEqual([
-      variable('top_shadow'),
+      variable('top_shadow', '', false, bold),
       { type: 'text', text: ' — ' },
       variable('top_shadow_description'),
       { type: 'text', text: '.' },
