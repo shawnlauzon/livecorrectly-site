@@ -26,6 +26,7 @@ import {
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { hangingGateDescriptions } from '@/emails/content';
 import { formatUnsubFrom } from '../utils';
+import { formatRelativeDate, formatReturnDate, getLargeCycleDates, getNextAnnualReturn } from '@/lib/returns';
 import styles from './detail.module.css';
 import { getAdminPassword } from '@/lib/admin-client-auth';
 
@@ -568,51 +569,6 @@ function VariablesDisplay({ subscriber }: { subscriber: Subscriber }) {
   );
 }
 
-function formatReturnDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
-}
-
-function formatRelativeDate(date: Date): string {
-  const now = new Date();
-  const diffMs = date.getTime() - now.getTime();
-  const isPast = diffMs < 0;
-  const absDiffMs = Math.abs(diffMs);
-
-  const totalDays = Math.floor(absDiffMs / (1000 * 60 * 60 * 24));
-  const years = Math.floor(totalDays / 365.25);
-  const remainingDays = totalDays - Math.floor(years * 365.25);
-  const months = Math.floor(remainingDays / 30.44);
-
-  const parts: string[] = [];
-  if (years > 0) parts.push(`${years} ${years === 1 ? 'year' : 'years'}`);
-  if (months > 0) parts.push(`${months} ${months === 1 ? 'month' : 'months'}`);
-  if (parts.length === 0) {
-    if (totalDays === 0) return isPast ? 'today' : 'today';
-    parts.push(`${totalDays} ${totalDays === 1 ? 'day' : 'days'}`);
-  }
-
-  const label = parts.join(', ');
-  return isPast ? `${label} ago` : `in ${label}`;
-}
-
-function getNextAnnualReturn(isoTimestamp: string): Date {
-  const origin = new Date(isoTimestamp);
-  const now = new Date();
-  const thisYear = now.getUTCFullYear();
-  const candidate = new Date(
-    Date.UTC(thisYear, origin.getUTCMonth(), origin.getUTCDate()),
-  );
-  if (candidate <= now) {
-    candidate.setUTCFullYear(thisYear + 1);
-  }
-  return candidate;
-}
-
 interface ReturnItem {
   name: string;
   date: Date;
@@ -630,28 +586,8 @@ function ReturnsDisplay({ subscriber }: { subscriber: Subscriber }) {
   const cycleReturns: ReturnItem[] = [];
   const now = new Date();
 
-  if (cycles) {
-    const cycleEntries: { key: string; name: string }[] = [
-      { key: 'saturn', name: 'Saturn Return' },
-      { key: 'chiron', name: 'Chiron Return' },
-      { key: 'uranus', name: 'Uranus Opposition' },
-      { key: 'secondSaturn', name: 'Second Saturn Return' },
-    ];
-
-    for (const { key, name } of cycleEntries) {
-      const value = cycles[key as keyof typeof cycles];
-      if (value) {
-        const date = new Date(value);
-        if (!isNaN(date.getTime())) {
-          cycleReturns.push({
-            name,
-            date,
-            isPast: date <= now,
-            isAnnual: false,
-          });
-        }
-      }
-    }
+  for (const { name, date } of getLargeCycleDates(subscriber.chart)) {
+    cycleReturns.push({ name, date, isPast: date <= now, isAnnual: false });
   }
 
   // Sort: upcoming first (soonest), then past (most recent first)

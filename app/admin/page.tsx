@@ -9,6 +9,7 @@ import { innerAuthorityTypes, careerDesigns } from '@/lib/hd-chart/constants';
 import { ChartLightbox } from '@/components/admin/chart-lightbox';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { formatUnsubFrom } from './utils';
+import { formatRelativeDate, formatReturnDate, getNearbyLargeCycles, getUpcomingSolarReturn, LARGE_CYCLE_WINDOW_MONTHS, LARGE_CYCLES, SOLAR_WINDOW_MONTHS } from '@/lib/returns';
 import styles from './admin.module.css';
 import { clearAdminPassword, getAdminPassword, setAdminPassword } from '@/lib/admin-client-auth';
 
@@ -217,7 +218,8 @@ function getEngagementLabel(summary: EngagementSummary | undefined, now: number)
 const WELCOME_SERIES_LENGTH = 3;
 
 type StatFilter = 'active' | 'inWelcome' | 'receivingNewsletters'
-  | 'unsubscribed' | 'bouncedComplained' | 'last7Days' | 'last30Days' | 'emailEngagement';
+  | 'unsubscribed' | 'bouncedComplained' | 'last7Days' | 'last30Days' | 'emailEngagement'
+  | 'cyclesSoon';
 
 const STAT_FILTERS: Record<StatFilter, (s: Subscriber, now: number) => boolean> = {
   active:                (s)      => s.email_status === 'active',
@@ -229,6 +231,10 @@ const STAT_FILTERS: Record<StatFilter, (s: Subscriber, now: number) => boolean> 
   last30Days:            (s, now) => new Date(s.created_at).getTime() >= now - 30 * 86400000,
   // emailEngagement doesn't filter the subscriber table — it just opens the DetailPanel
   emailEngagement:       ()       => true,
+  cyclesSoon:            (s, now) => s.email_status === 'active' && (
+    getUpcomingSolarReturn(s.chart, new Date(now)) !== null
+    || getNearbyLargeCycles(s.chart, new Date(now)).length > 0
+  ),
 };
 
 const FILTER_LABELS: Record<StatFilter, string> = {
@@ -240,6 +246,7 @@ const FILTER_LABELS: Record<StatFilter, string> = {
   last7Days: 'Last 7 days',
   last30Days: 'Last 30 days',
   emailEngagement: 'Email engagement',
+  cyclesSoon: 'Cycles soon',
 };
 
 function computePipelineStats(subscribers: Subscriber[]) {
@@ -254,8 +261,11 @@ function computePipelineStats(subscribers: Subscriber[]) {
   let bouncedComplained = 0;
   let last7Days = 0;
   let last30Days = 0;
+  let cyclesSoon = 0;
 
   for (const s of subscribers) {
+    if (STAT_FILTERS.cyclesSoon(s, now)) cyclesSoon++;
+
     if (s.email_status === 'active') {
       active++;
       if (s.next_step <= WELCOME_SERIES_LENGTH) {
@@ -274,7 +284,7 @@ function computePipelineStats(subscribers: Subscriber[]) {
     if (createdAt >= thirtyDaysAgo) last30Days++;
   }
 
-  return { active, inWelcome, receivingNewsletters, unsubscribed, bouncedComplained, last7Days, last30Days };
+  return { active, inWelcome, receivingNewsletters, unsubscribed, bouncedComplained, last7Days, last30Days, cyclesSoon };
 }
 
 type SortColumn = 'name' | 'email' | 'profile' | 'authority' | 'type' | 'split' | 'centers' | 'shadow' | 'status' | 'nextEmail' | 'created' | 'lastActive';
@@ -519,6 +529,209 @@ function EmailEngagementPanel({
   );
 }
 
+function subscriberName(s: Subscriber): string {
+  return `${s.first_name}${s.last_name ? ` ${s.last_name}` : ''}`;
+}
+
+function careerDesignLabel(s: Subscriber): string {
+  return s.chart?.chart?.type !== undefined ? (careerDesigns[s.chart.chart.type] ?? 'Unknown') : '\u2014';
+}
+
+/** Which slice of the Cycles soon panel is selected: solar, ahead, past, or a specific cycle name. */
+type CycleSelection = { kind: 'solar' } | { kind: 'ahead' } | { kind: 'past' } | { kind: 'cycle'; name: string };
+
+function selectionKey(sel: CycleSelection): string {
+  return sel.kind === 'cycle' ? `cycle:${sel.name}` : sel.kind;
+}
+
+function CyclesPanel({
+  filtered,
+  total,
+  title,
+  onClose,
+  now,
+}: {
+  filtered: Subscriber[];
+  total: number;
+  title: string;
+  onClose: () => void;
+  now: number;
+}) {
+  const router = useRouter();
+  const [selected, setSelected] = useState<CycleSelection | null>(null);
+  const asOf = new Date(now);
+
+  const solarRows = filtered
+    .flatMap(s => {
+      const date = getUpcomingSolarReturn(s.chart, asOf);
+      return date ? [{ subscriber: s, date }] : [];
+    })
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  const cycleRows = filtered
+    .flatMap(s => getNearbyLargeCycles(s.chart, asOf).map(c => ({ subscriber: s, ...c })))
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  const aheadIds = new Set(cycleRows.filter(r => r.date > asOf).map(r => r.subscriber.id));
+  const startedIds = new Set(cycleRows.filter(r => r.date <= asOf).map(r => r.subscriber.id));
+  const windowYears = LARGE_CYCLE_WINDOW_MONTHS / 12;
+
+  const summary: { label: string; count: number; selection: CycleSelection }[] = [
+    { label: `Solar return in next ${SOLAR_WINDOW_MONTHS} months`, count: solarRows.length, selection: { kind: 'solar' } },
+    { label: `Large cycle in next ${windowYears} years`, count: aheadIds.size, selection: { kind: 'ahead' } },
+    { label: `Large cycle in last ${windowYears} years`, count: startedIds.size, selection: { kind: 'past' } },
+  ];
+
+  const selectedKey = selected ? selectionKey(selected) : null;
+  const toggle = (sel: CycleSelection) => {
+    setSelected(prev => prev && selectionKey(prev) === selectionKey(sel) ? null : sel);
+  };
+  const chipProps = (sel: CycleSelection) => {
+    const isSelected = selectedKey === selectionKey(sel);
+    return {
+      className: `${styles.breakdownItem} ${styles.breakdownClickable}${isSelected ? ` ${styles.breakdownSelected}` : ''}`,
+      role: 'button' as const,
+      tabIndex: 0,
+      'aria-pressed': isSelected,
+      onClick: () => toggle(sel),
+      onKeyDown: (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggle(sel);
+        }
+      },
+    };
+  };
+
+  const showSolar = !selected || selected.kind === 'solar';
+  const showCycles = !selected || selected.kind !== 'solar';
+  const visibleCycleRows = cycleRows.filter(r => {
+    if (!selected) return true;
+    switch (selected.kind) {
+      case 'ahead': return r.date > asOf;
+      case 'past': return r.date <= asOf;
+      case 'cycle': return r.name === selected.name;
+      case 'solar': return false;
+    }
+  });
+  const cyclesTitle = !selected || selected.kind === 'solar'
+    ? `Large cycles · within ${windowYears} years either side of today`
+    : selected.kind === 'ahead'
+      ? `Large cycles · next ${windowYears} years`
+      : selected.kind === 'past'
+        ? `Large cycles · last ${windowYears} years`
+        : `${selected.name} · within ${windowYears} years either side of today`;
+
+  const byCycle = LARGE_CYCLES
+    .map(({ name }) => ({
+      label: name,
+      ahead: cycleRows.filter(r => r.name === name && r.date > asOf).length,
+      started: cycleRows.filter(r => r.name === name && r.date <= asOf).length,
+    }))
+    .filter(c => c.ahead + c.started > 0);
+
+  return (
+    <div className={styles.detailPanel}>
+      <div className={styles.detailPanelHeader}>
+        <div>
+          <p className={styles.detailPanelTitle}>{title}</p>
+          <p className={styles.detailPanelSubtitle}>
+            {filtered.length} of {total} subscriber{total !== 1 ? 's' : ''} · solar return within {SOLAR_WINDOW_MONTHS} months or a large cycle within {windowYears} years either side of today
+          </p>
+        </div>
+        <button
+          className={styles.detailPanelClose}
+          onClick={onClose}
+          title="Clear filter"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <div className={styles.breakdownList}>
+        {summary.map(b => (
+          <div key={b.label} {...chipProps(b.selection)}>
+            <span className={styles.breakdownCount}>{b.count}</span>
+            <span className={styles.breakdownLabel}>{b.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {byCycle.length > 0 && (
+        <div className={`${styles.breakdownList} ${styles.cyclesByType}`}>
+          {byCycle.map(c => (
+            <div key={c.label} {...chipProps({ kind: 'cycle', name: c.label })}>
+              <span className={styles.breakdownCount}>{c.ahead + c.started}</span>
+              <span className={styles.breakdownLabel}>{c.label} ({c.ahead} ahead, {c.started} past)</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showSolar && solarRows.length > 0 && (
+        <div className={styles.cyclesSection}>
+          <p className={styles.cyclesSectionTitle}>Solar returns · next {SOLAR_WINDOW_MONTHS} months ({solarRows.length})</p>
+          <table className={styles.cyclesTable}>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Date</th>
+                <th>When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {solarRows.map(({ subscriber, date }) => (
+                <tr key={subscriber.id} onClick={() => router.push(`/admin/${subscriber.id}`)}>
+                  <td>{subscriberName(subscriber)}</td>
+                  <td>{careerDesignLabel(subscriber)}</td>
+                  <td>{formatReturnDate(date)}</td>
+                  <td>{formatRelativeDate(date, asOf)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {showCycles && visibleCycleRows.length > 0 && (
+        <div className={styles.cyclesSection}>
+          <p className={styles.cyclesSectionTitle}>{cyclesTitle} ({visibleCycleRows.length})</p>
+          <table className={styles.cyclesTable}>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Cycle</th>
+                <th>Date</th>
+                <th>When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleCycleRows.map(({ subscriber, name, date }) => (
+                <tr
+                  key={`${subscriber.id}-${name}`}
+                  className={date <= asOf ? styles.cyclesPast : undefined}
+                  onClick={() => router.push(`/admin/${subscriber.id}`)}
+                >
+                  <td>{subscriberName(subscriber)}</td>
+                  <td>{careerDesignLabel(subscriber)}</td>
+                  <td>{name}</td>
+                  <td>{formatReturnDate(date)}</td>
+                  <td>{formatRelativeDate(date, asOf)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DetailPanel({
   filter,
   filtered,
@@ -666,9 +879,14 @@ function DetailPanel({
       break;
     }
 
+    case 'cyclesSoon':
     case 'emailEngagement':
       // No breakdown — handled separately below
       break;
+  }
+
+  if (filter === 'cyclesSoon') {
+    return <CyclesPanel filtered={filtered} total={total} title={title} onClose={onClose} now={dateNow} />;
   }
 
   // Email engagement filter shows charts instead of the standard breakdown
@@ -1180,6 +1398,10 @@ function AdminPageContent() {
               <div {...statCardProps('emailEngagement')}>
                 <div className={styles.statValue}>{emailStats ? emailStats.totals.opened : '\u2014'}</div>
                 <div className={styles.statLabel}>Email opens</div>
+              </div>
+              <div {...statCardProps('cyclesSoon')}>
+                <div className={styles.statValue}>{stats.cyclesSoon}</div>
+                <div className={styles.statLabel}>{FILTER_LABELS.cyclesSoon}</div>
               </div>
             </div>
 
