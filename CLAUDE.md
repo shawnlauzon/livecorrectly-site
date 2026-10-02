@@ -27,13 +27,6 @@ When querying the Neon MCP, use these IDs directly — do not call `list_project
 The Neon MCP is configured **read-only**. You cannot run migrations or any DDL/DML yourself. Create the migration file, then ask Shawn to run it (via Neon Console SQL Editor or `psql`).
 
 ## Development
-```bash
-pnpm dev          # Start dev server (Turbopack)
-pnpm build        # Production build
-pnpm lint         # ESLint
-pnpm start        # Serve production build locally
-```
-
 **Always run `pnpm lint` after `pnpm build`** — both must pass before considering a change complete.
 
 Tests use Vitest (`pnpm test:run`; tests live in `tests/`). TypeScript strict mode is on; type-check with `npx tsc --noEmit`.
@@ -52,10 +45,7 @@ Environment variables — copy `.env.example` to `.env.local` and fill in:
 - `NEWSLETTER_TEST_EMAIL` — recipient of newsletter test sends; must be a subscriber with a chart (default: `shawn.lauzon@gmail.com`). Separate from `ADMIN_EMAIL`, which receives admin notifications.
 
 ## Stack
-- **Next.js 16** (React 19) on **Vercel**. Turbopack for dev.
 - **Neon** (serverless Postgres) for data. Raw SQL via `@neondatabase/serverless` — no ORM.
-- **Resend** + **React Email** for sending.
-- **Vercel Analytics** (`@vercel/analytics`).
 - Analytics: **GA4** via a shared `track()` wrapper in `lib/analytics.ts`. Funnel events: `form_start`, `chart_generated`, `generate_lead` (key event — fires after subscriber save), `book_consultation_click`. Import `track` from `@/lib/analytics` wherever needed. **Maintain best-in-class GA4 implementation**: Consent Mode v2 (all 4 types declared), events fire only after the action they describe succeeds, no UTM params on internal navigation, every meaningful user action has a named event. When adding new features, add appropriate GA4 events and keep the consent/privacy model intact.
 
 ## Data model
@@ -117,53 +107,6 @@ The chart is generated via the **Maia Mechanics API** (external HTTP call from t
 
 When `NEXT_PUBLIC_MAIA_API_KEY` is unset (local dev), the form falls back to `public/fake-mmi-response.json`.
 
-## BG5 Functions & Shadows
-
-In BG5 (business-focused Human Design), **functions** are the 9 centers, and **shadows** are the conditioning patterns that appear when a function is undefined/open. The admin UI displays up to 10 functions with their shadow names in priority order:
-
-| # | Function (center) | Shadow (conditioning pattern) |
-|---|---|---|
-| 1 | **Bringing Traits/Strengths** (conditional) | Near: Blaming yourself for something missing / Far: Blaming others and becoming a victim |
-| 2 | **Willpower** (Ego undefined) | Overcompensating |
-| 3 | **Emotional Intelligence** (Solar Plexus undefined) | Touchy & nervous |
-| 4 | **Identity & Direction** (G Center undefined) | Role confusion |
-| 5 | **Survival Instinct** (Spleen undefined) | Unable to let go |
-| 6 | **Conceptualization** (Ajna undefined) | Mentally defensive |
-| 7 | **Inspiration** (Head undefined) | Losing focus |
-| 8 | **Drive & Stamina** (Root undefined) | Too much in a hurry |
-| 9 | **Energy Resource** (Sacral undefined) | Over zealous |
-| 10 | **Communication & Action** (Throat undefined) | Trying to be the star |
-
-Function/shadow data is in `lib/hd-chart/constants.ts`:
-- `functionNames` — ordered array of BG5 function names (the center-based capabilities)
-- `shadowNames` — `Record<string, string>` mapping each function name to its shadow name (the conditioning pattern)
-- `functionToCenterIndex` — maps function name to chart center array index
-- `shadowThemes`, `shadowLessons`, `shadowPressures`, `shadowDescriptions`, `shadowWriteups` — shadow properties keyed by function name
-
-### Bridge Descriptions (Shadow #1)
-
-The **Bringing Traits/Strengths** shadow has unique logic. It's about **bridging gates** — gates the person has where they're missing the harmonic partner to complete a channel. This creates a feeling of incompleteness.
-
-**Critical concept**: `chart.bridges.bridgingGates` is an array of gate numbers the person **DOESN'T have** (wishes they had). These are the missing harmonic partners. The person HAS the other gate in each channel pair.
-
-Example:
-- `bridgingGates = [8]` means they're missing gate 8 (Contribution)
-- They DO have gate 1 (Creative Self-Expression)
-- They can't complete the 1-8 channel (Inspiration)
-- Description: "If only you contributed more, you believe you could really inspire. You worry that your natural ability to express yourself creatively isn't enough."
-
-**Implementation**:
-- `lib/hd-chart/bridge-descriptions.ts` — all 64 gate descriptions, indexed by the gate they HAVE (not the missing gate)
-- `lib/hd-chart/constants.ts` — `gateTraits` mapping (trait, harmonic gate, harmonic trait, strength)
-- `lib/hd-chart/index.ts` — `getBridgeDescriptions()` function:
-  1. Takes each gate from `bridgingGates` (the missing gate)
-  2. Finds its harmonic partner(s) in `gateTraits`
-  3. Checks which harmonic the person HAS in their chart
-  4. Returns the description indexed by the gate they HAVE
-- `app/admin/[id]/page.tsx` — displays bridge details in the Shadows section (only for shadow #1)
-
-**Multi-harmonic gates**: Gates 10, 20, 34, 57 each have 3 possible harmonic partners. The function checks which one the person has and returns the appropriate description from the array.
-
 ## Copy / voice
 - Plain, direct, **outcome-framed**. Not cute, not stylized. Fewer, stronger items beat comprehensive lists.
 - Human Design is **named explicitly** here (unlike Work Correctly, where it's unnamed on the front door).
@@ -193,39 +136,6 @@ Use `utm_source=workcorrectly` when linking to livecorrectly.com from Work Corre
 - **Compliance**: `List-Unsubscribe` header + footer link in every email; `GET /api/unsubscribe?token=<uuid>` and `POST` (RFC 8058 one-click); physical address in footer; bounce/complaint webhook at `/api/webhooks/resend` updates `email_status`.
 - **Content maps**: `emails/content.tsx` holds `strategyWriteups`, `authorityWriteups`, `authorityTips` — ported from the old `WelcomeCampaignText.tsx`. Use `lookupByAuthority()` to handle casing normalization.
 - Free-tier notes: Resend = 3,000/mo, 100/day, 1 domain. Neon free = 0.5GB/branch.
-
-## Key paths
-```
-app/api/subscribers/route.ts        POST — create subscriber (upsert on email)
-app/api/subscribers/check-email/    GET  — email existence check
-app/api/subscribers/[id]/route.ts   GET  — fetch subscriber by ID
-app/api/admin/                      password-protected admin API
-app/api/admin/subscribers/[id]/send-welcome/  POST — manual welcome email send
-app/api/unsubscribe/route.ts        GET/POST — unsubscribe (token-based)
-app/api/webhooks/resend/route.ts    POST — Resend bounce/complaint webhook
-app/api/cron/daily-emails/route.ts   GET — daily cron: welcome series + future per-subscriber emails
-app/api/admin/newsletters/          newsletter admin + broadcast scheduling
-lib/db.ts                           all database queries (raw SQL via Neon)
-lib/email/send.ts                   sole Resend call site (sendEmail + canSendTo)
-lib/email/welcome.ts                shared getWelcomeEmail() + WELCOME_SERIES_LENGTH
-emails/content.tsx                  content maps (strategy/authority writeups)
-lib/email/subjects.ts               subject line generator per welcome step
-lib/analytics.ts                    shared GA4 track() wrapper
-lib/newsletter/                     newsletter issue loading, Liquid resolve, email + web rendering, cadence, audience, finalize, notes, segments
-lib/resend/                         Resend contacts, contact-property sync, broadcasts
-lib/hd-chart/                       chart interpreter (constants + hdChart())
-lib/hd-chart/constants.ts           lookup tables: types, authorities, shadows, gateTraits
-lib/hd-chart/bridge-descriptions.ts bridge gate descriptions (shadow #1)
-lib/hd-chart/parse-for-email.ts     flat chart data for email templates
-lib/types/chart.ts                  ChartRecord type (Maia API response shape)
-lib/types/subscriber.ts             Subscriber interface + EmailStatus type
-emails/components/                  shared email layout, signature, Ra quote
-emails/welcome[1-3].tsx             welcome series templates
-components/chart-form.tsx           birth-details form + chart generation
-components/chart-readout.tsx        10-field chart interpretation display
-migrations/                         SQL migration files (run manually)
-vercel.json                         cron schedule config
-```
 
 ## Old repo
 The old app repo is at `/Users/shawn/Development/github/fractalhumandesign`. Reference it when migrating templates, copy, or logic from the previous system.
