@@ -22,13 +22,22 @@ describe('editor node clipboard round-trip', () => {
       type: 'doc',
       content: [{
         type: 'paragraph',
-        content: [{ type: 'variableNode', attrs: { variableId: 'first_name', default: 'there', capitalize: true } }],
+        content: [{ type: 'variableNode', attrs: { variableId: 'first_name', default: 'there', capitalize: true, lowercase: false } }],
       }],
     });
 
     const chip = roundTrip(doc).firstChild!.firstChild!;
     expect(chip.type.name).toBe('variableNode');
-    expect(chip.attrs).toEqual({ variableId: 'first_name', default: 'there', capitalize: true });
+    expect(chip.attrs).toEqual({ variableId: 'first_name', default: 'there', capitalize: true, lowercase: false });
+  });
+
+  it('keeps a lowercase variable chip', () => {
+    const doc = schema.nodeFromJSON({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'variableNode', attrs: { variableId: 'career_type', lowercase: true } }] }],
+    });
+
+    expect(roundTrip(doc).firstChild!.firstChild!.attrs).toEqual({ variableId: 'career_type', default: '', capitalize: false, lowercase: true });
   });
 
   it('keeps a variable chip without default or capitalize', () => {
@@ -37,7 +46,7 @@ describe('editor node clipboard round-trip', () => {
       content: [{ type: 'paragraph', content: [{ type: 'variableNode', attrs: { variableId: 'type' } }] }],
     });
 
-    expect(roundTrip(doc).firstChild!.firstChild!.attrs).toEqual({ variableId: 'type', default: '', capitalize: false });
+    expect(roundTrip(doc).firstChild!.firstChild!.attrs).toEqual({ variableId: 'type', default: '', capitalize: false, lowercase: false });
   });
 
   it('keeps conditional branch types and conditions', () => {

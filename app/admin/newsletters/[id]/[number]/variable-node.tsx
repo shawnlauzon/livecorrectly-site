@@ -23,6 +23,7 @@ export function VariableEditForm() {
         variableId: string;
         default: string;
         capitalize: boolean;
+        lowercase: boolean;
       };
     },
   });
@@ -30,6 +31,7 @@ export function VariableEditForm() {
   const [draftId, setDraftId] = useState(attrs?.variableId ?? '');
   const [draftDefault, setDraftDefault] = useState(attrs?.default ?? '');
   const [draftCapitalize, setDraftCapitalize] = useState(attrs?.capitalize ?? false);
+  const [draftLowercase, setDraftLowercase] = useState(attrs?.lowercase ?? false);
 
   // Sync drafts when the selected node changes.
   useEffect(() => {
@@ -38,13 +40,14 @@ export function VariableEditForm() {
       setDraftId(attrs.variableId);
       setDraftDefault(attrs.default);
       setDraftCapitalize(attrs.capitalize);
+      setDraftLowercase(attrs.lowercase);
     }
     // Only re-sync when the specific attribute values change, not the attrs object ref.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attrs?.variableId, attrs?.default, attrs?.capitalize]);
+  }, [attrs?.variableId, attrs?.default, attrs?.capitalize, attrs?.lowercase]);
 
   /** Push current draft values to the node, preserving selection. */
-  const updateNode = (overrides: Partial<{ variableId: string; default: string; capitalize: boolean }> = {}) => {
+  const updateNode = (overrides: Partial<{ variableId: string; default: string; capitalize: boolean; lowercase: boolean }> = {}) => {
     if (!editor) return;
     const id = overrides.variableId ?? draftId;
     if (!id.trim()) return;
@@ -54,6 +57,7 @@ export function VariableEditForm() {
         variableId: id.trim(),
         default: (overrides.default ?? draftDefault).trim(),
         capitalize: overrides.capitalize ?? draftCapitalize,
+        lowercase: overrides.lowercase ?? draftLowercase,
       })
       .setNodeSelection(pos)
       .run();
@@ -100,10 +104,30 @@ export function VariableEditForm() {
         <input
           type="checkbox"
           checked={draftCapitalize}
-          onChange={(e) => { setDraftCapitalize(e.target.checked); updateNode({ capitalize: e.target.checked }); }}
+          onChange={(e) => {
+            // Capitalize and Lowercase are mutually exclusive.
+            const checked = e.target.checked;
+            setDraftCapitalize(checked);
+            if (checked) setDraftLowercase(false);
+            updateNode({ capitalize: checked, ...(checked ? { lowercase: false } : {}) });
+          }}
           style={{ margin: 0 }}
         />
         Capitalize
+      </label>
+      <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, color: '#221B3D', cursor: 'pointer', userSelect: 'none' }}>
+        <input
+          type="checkbox"
+          checked={draftLowercase}
+          onChange={(e) => {
+            const checked = e.target.checked;
+            setDraftLowercase(checked);
+            if (checked) setDraftCapitalize(false);
+            updateNode({ lowercase: checked, ...(checked ? { capitalize: false } : {}) });
+          }}
+          style={{ margin: 0 }}
+        />
+        Lowercase
       </label>
     </div>
   );
@@ -114,6 +138,7 @@ function liquidTag(attrs: Record<string, unknown>): string {
   const filters: string[] = [];
   if (attrs.default) filters.push(`default: '${attrs.default}'`);
   if (attrs.capitalize) filters.push('capitalize');
+  if (attrs.lowercase) filters.push('downcase');
   const filterStr = filters.length ? ` | ${filters.join(' | ')}` : '';
   return `{{ ${attrs.variableId}${filterStr} }}`;
 }
@@ -150,6 +175,11 @@ export const VariableNode = EmailNode.create({
         default: false,
         parseHTML: (el) => el.getAttribute('data-variable-capitalize') === 'true',
         renderHTML: (attrs) => (attrs.capitalize ? { 'data-variable-capitalize': 'true' } : {}),
+      },
+      lowercase: {
+        default: false,
+        parseHTML: (el) => el.getAttribute('data-variable-lowercase') === 'true',
+        renderHTML: (attrs) => (attrs.lowercase ? { 'data-variable-lowercase': 'true' } : {}),
       },
     };
   },

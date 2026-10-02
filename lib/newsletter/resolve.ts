@@ -376,7 +376,9 @@ export function replaceLiquidOutputTags(
         // Apply the filter to the default value for the fallback
         const transformedDefault = otherFilter === 'capitalize'
           ? defaultValue.charAt(0).toUpperCase() + defaultValue.slice(1)
-          : defaultValue;
+          : otherFilter === 'downcase'
+            ? defaultValue.toLowerCase()
+            : defaultValue;
         return `{{{contact.${derivedKey}|${transformedDefault}}}}`;
       }
 

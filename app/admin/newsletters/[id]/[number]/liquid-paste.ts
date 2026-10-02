@@ -16,6 +16,7 @@ export interface VariableAttrs {
   variableId: string;
   default: string;
   capitalize: boolean;
+  lowercase: boolean;
 }
 
 const VARIABLE_TAG_RE = /\{\{([^{}]*)\}\}/g;
@@ -25,24 +26,29 @@ const DEFAULT_FILTER_RE = /^default\s*:\s*(['"])(.*)\1$/;
 /**
  * Parse the inside of a `{{ … }}` tag into Variable node attributes.
  * Returns null when the tag can't be represented by a Variable node (empty, or
- * uses a filter other than `default` / `capitalize`), so it stays as text
+ * uses a filter other than `default` / `capitalize` / `downcase`, or combines
+ * `capitalize` with `downcase`), so it stays as text
  * rather than silently losing part of the expression.
  */
 export function parseVariableTag(inner: string): VariableAttrs | null {
   const [name, ...filters] = inner.split('|').map(s => s.trim());
   if (!VARIABLE_NAME_RE.test(name)) return null;
 
-  const attrs: VariableAttrs = { variableId: name, default: '', capitalize: false };
+  const attrs: VariableAttrs = { variableId: name, default: '', capitalize: false, lowercase: false };
   for (const filter of filters) {
     const defaultMatch = filter.match(DEFAULT_FILTER_RE);
     if (defaultMatch) {
       attrs.default = defaultMatch[2];
     } else if (filter === 'capitalize') {
       attrs.capitalize = true;
+    } else if (filter === 'downcase') {
+      attrs.lowercase = true;
     } else {
       return null;
     }
   }
+  // The node (and the broadcast pipeline) supports one case filter at a time.
+  if (attrs.capitalize && attrs.lowercase) return null;
   return attrs;
 }
 

@@ -7,35 +7,43 @@ import {
 } from '@/app/admin/newsletters/[id]/[number]/liquid-paste';
 
 const p = (text: string): JSONContent => ({ type: 'paragraph', content: [{ type: 'text', text }] });
-const variable = (variableId: string, def = '', capitalize = false, marks?: JSONContent['marks']): JSONContent => ({
+const variable = (variableId: string, def = '', capitalize = false, marks?: JSONContent['marks'], lowercase = false): JSONContent => ({
   type: 'variableNode',
-  attrs: { variableId, default: def, capitalize },
+  attrs: { variableId, default: def, capitalize, lowercase },
   ...(marks ? { marks } : {}),
 });
 
 describe('parseVariableTag', () => {
   it('parses a bare name', () => {
-    expect(parseVariableTag('first_name')).toEqual({ variableId: 'first_name', default: '', capitalize: false });
+    expect(parseVariableTag('first_name')).toEqual({ variableId: 'first_name', default: '', capitalize: false, lowercase: false });
   });
 
   it('ignores surrounding whitespace', () => {
-    expect(parseVariableTag('  first_name  ')).toEqual({ variableId: 'first_name', default: '', capitalize: false });
+    expect(parseVariableTag('  first_name  ')).toEqual({ variableId: 'first_name', default: '', capitalize: false, lowercase: false });
   });
 
   it('parses a single-quoted default', () => {
-    expect(parseVariableTag("first_name | default: 'there'")).toEqual({ variableId: 'first_name', default: 'there', capitalize: false });
+    expect(parseVariableTag("first_name | default: 'there'")).toEqual({ variableId: 'first_name', default: 'there', capitalize: false, lowercase: false });
   });
 
   it('parses a double-quoted default', () => {
-    expect(parseVariableTag('first_name | default: "there"')).toEqual({ variableId: 'first_name', default: 'there', capitalize: false });
+    expect(parseVariableTag('first_name | default: "there"')).toEqual({ variableId: 'first_name', default: 'there', capitalize: false, lowercase: false });
   });
 
   it('parses capitalize', () => {
-    expect(parseVariableTag('decision_making_strategy | capitalize')).toEqual({ variableId: 'decision_making_strategy', default: '', capitalize: true });
+    expect(parseVariableTag('decision_making_strategy | capitalize')).toEqual({ variableId: 'decision_making_strategy', default: '', capitalize: true, lowercase: false });
   });
 
   it('parses default and capitalize together with loose spacing', () => {
-    expect(parseVariableTag("first_name|default:'friend'|capitalize")).toEqual({ variableId: 'first_name', default: 'friend', capitalize: true });
+    expect(parseVariableTag("first_name|default:'friend'|capitalize")).toEqual({ variableId: 'first_name', default: 'friend', capitalize: true, lowercase: false });
+  });
+
+  it('parses downcase as lowercase', () => {
+    expect(parseVariableTag("first_name | default: 'There' | downcase")).toEqual({ variableId: 'first_name', default: 'There', capitalize: false, lowercase: true });
+  });
+
+  it('returns null when both capitalize and downcase are used', () => {
+    expect(parseVariableTag('first_name | capitalize | downcase')).toBeNull();
   });
 
   it('returns null for a filter the node cannot represent', () => {
