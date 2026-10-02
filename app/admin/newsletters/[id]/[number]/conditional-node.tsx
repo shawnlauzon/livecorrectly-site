@@ -22,6 +22,7 @@ import {
   composeModeCondition,
 } from './condition-syntax';
 import type { NewsletterEngagementProperty } from './condition-syntax';
+import { getAdminPassword } from '@/lib/admin-client-auth';
 
 // ---------------------------------------------------------------------------
 // Chart condition fields — shared EMAIL_FIELDS + conditional-only `shadows`
@@ -83,9 +84,7 @@ function fetchNewsletterIssues(): Promise<{ number: number; subject: string }[]>
 
   nlIssueFetchPromise = (async () => {
     try {
-      const pwd = typeof sessionStorage !== 'undefined'
-        ? sessionStorage.getItem('adminPassword')
-        : null;
+      const pwd = getAdminPassword();
       if (!pwd) return [];
       const res = await fetch('/api/admin/newsletters/issues', {
         headers: { Authorization: `Bearer ${pwd}` },

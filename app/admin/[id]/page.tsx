@@ -27,6 +27,7 @@ import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { hangingGateDescriptions } from '@/emails/content';
 import { formatUnsubFrom } from '../utils';
 import styles from './detail.module.css';
+import { getAdminPassword } from '@/lib/admin-client-auth';
 
 const WELCOME_SERIES_LENGTH = 3;
 const DAY_LABELS = [
@@ -55,7 +56,7 @@ export default function AdminDetailPage({
   useEffect(() => {
     if (!subscriberId) return;
 
-    const password = sessionStorage.getItem('adminPassword');
+    const password = getAdminPassword();
     if (!password) {
       router.push('/admin');
       return;
@@ -780,7 +781,7 @@ function WelcomeSeries({
   const emailsSent = Math.min(subscriber.next_step - 1, totalEmails);
 
   const handleSaveNextEmail = useCallback(async () => {
-    const password = sessionStorage.getItem('adminPassword');
+    const password = getAdminPassword();
     if (!password) return;
 
     let next_step: number;
@@ -838,7 +839,7 @@ function WelcomeSeries({
       const emailName = step === 1 ? 'Welcome' : DAY_LABELS[step - 2];
       if (!window.confirm(`Send "${emailName}" email to ${subscriber.email}?`)) return;
 
-      const password = sessionStorage.getItem('adminPassword');
+      const password = getAdminPassword();
       if (!password) return;
 
       setSendingStep(step);
@@ -890,7 +891,7 @@ function WelcomeSeries({
   const handleRestart = useCallback(async () => {
     if (!window.confirm(`Restart welcome series for ${subscriber.email}? This will send the Welcome email immediately and queue the rest.`)) return;
 
-    const password = sessionStorage.getItem('adminPassword');
+    const password = getAdminPassword();
     if (!password) return;
 
     setRestarting(true);
@@ -950,7 +951,7 @@ function WelcomeSeries({
   }, [subscriber.id, subscriber.email, onSubscriberUpdate]);
 
   const handleTouchEngagement = useCallback(async () => {
-    const password = sessionStorage.getItem('adminPassword');
+    const password = getAdminPassword();
     if (!password) return;
 
     setTouchingEngagement(true);
@@ -1234,7 +1235,7 @@ function EmailPreviewItem({
     (forceReload = false) => {
       if (!forceReload && (html !== null || loading)) return;
 
-      const password = sessionStorage.getItem('adminPassword');
+      const password = getAdminPassword();
       if (!password) return;
 
       setLoading(true);
@@ -1450,7 +1451,7 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
 
   const loadPreview = useCallback(
     async (step: number) => {
-      const password = sessionStorage.getItem('adminPassword');
+      const password = getAdminPassword();
       if (!password) return;
 
       setLoading(true);
@@ -1497,7 +1498,7 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
 
   // Load newsletter metadata on mount to populate the dropdown (no rendering)
   useEffect(() => {
-    const password = sessionStorage.getItem('adminPassword');
+    const password = getAdminPassword();
     if (!password) return;
 
     fetch(`/api/admin/subscribers/${subscriber.id}/preview-newsletter`, {
@@ -1530,7 +1531,7 @@ function NewsletterSection({ subscriber }: { subscriber: Subscriber }) {
     if (selectedStep === null) return;
     if (!window.confirm(`Send Newsletter #${selectedStep} to ${subscriber.email}?`)) return;
 
-    const password = sessionStorage.getItem('adminPassword');
+    const password = getAdminPassword();
     if (!password) return;
 
     setSending(true);

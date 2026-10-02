@@ -25,6 +25,7 @@ import { types, innerAuthorityTypes, definitions } from '@/lib/hd-chart/constant
 import type { Subscriber } from '@/lib/types/subscriber';
 import { Bodygraph } from '@/components/bodygraph/bodygraph';
 import { ChartLightbox } from '@/components/admin/chart-lightbox';
+import { clearAdminPassword, getAdminPassword } from '@/lib/admin-client-auth';
 
 interface NewsletterData {
   number: number;
@@ -41,10 +42,6 @@ interface NewsletterData {
 interface EditorHandle {
   getEmailHTML: () => Promise<string>;
   getJSON: () => JSONContent;
-}
-
-function getPassword(): string | null {
-  return sessionStorage.getItem('adminPassword');
 }
 
 /** Bridges the TipTap editor instance into an imperative ref for save. */
@@ -224,7 +221,7 @@ function EditorPanel({
   useEffect(() => { conflictedRef.current = conflicted; }, [conflicted]);
 
   const handleUploadImage = useCallback(async (file: File) => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) throw new Error('Not authenticated');
 
     const form = new FormData();
@@ -279,7 +276,7 @@ function EditorPanel({
 
   const handleSave = useCallback(async () => {
     if (!editorRef.current) return;
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) return;
     if (savingRef.current) return;
 
@@ -498,7 +495,7 @@ function PreviewPane({
 
   // Fetch subscribers on mount
   useEffect(() => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) return;
     let cancelled = false;
 
@@ -538,7 +535,7 @@ function PreviewPane({
         const json = editorRef.current!.getJSON();
         const html = injectRelativeAttrs(rawHtml, json);
         if (cancelled) return;
-        const pwd = getPassword();
+        const pwd = getAdminPassword();
         const res = await fetch('/api/admin/newsletters/preview', {
           method: 'POST',
           headers: {
@@ -671,7 +668,7 @@ export default function NewsletterEditorPage() {
   }, []);
 
   const fetchNewsletter = useCallback(async () => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) {
       router.push('/admin');
       return;
@@ -683,7 +680,7 @@ export default function NewsletterEditorPage() {
       });
       if (!res.ok) {
         if (res.status === 401) {
-          sessionStorage.removeItem('adminPassword');
+          clearAdminPassword();
           router.push('/admin');
           return;
         }

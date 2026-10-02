@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from '../admin.module.css';
+import { clearAdminPassword, getAdminPassword } from '@/lib/admin-client-auth';
 
 interface Diff {
   field: string;
@@ -38,10 +39,6 @@ interface AuditResponse {
   untrackedEmails?: string[];
 }
 
-function getPassword(): string | null {
-  return sessionStorage.getItem('adminPassword');
-}
-
 export default function AdminContactsPage() {
   const router = useRouter();
   const [auditData, setAuditData] = useState<AuditResponse | null>(null);
@@ -55,7 +52,7 @@ export default function AdminContactsPage() {
   const [filter, setFilter] = useState<string | null>(null);
 
   const runAudit = useCallback(async (backfill = false) => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) {
       router.push('/admin');
       return;
@@ -77,7 +74,7 @@ export default function AdminContactsPage() {
       });
       if (!res.ok) {
         if (res.status === 401) {
-          sessionStorage.removeItem('adminPassword');
+          clearAdminPassword();
           router.push('/admin');
           return;
         }
@@ -104,7 +101,7 @@ export default function AdminContactsPage() {
   }, [runAudit]);
 
   const handleSync = async (subscriberIds: string[]) => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) return;
 
     const isAll = subscriberIds.length === 0;

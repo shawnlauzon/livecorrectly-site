@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import styles from '../../admin.module.css';
 import type { ScheduleStepId, ScheduleEvent, ScheduleCompleteEvent } from '@/lib/types/schedule-progress';
+import { clearAdminPassword, getAdminPassword } from '@/lib/admin-client-auth';
 
 /** All pipeline steps in display order. */
 const SCHEDULE_STEPS: { id: ScheduleStepId; label: string }[] = [
@@ -94,10 +95,6 @@ interface NewslettersResponse {
   newsletters: NewsletterInfo[];
   segments: SegmentInfo[];
   settings: NewsletterSettings | null;
-}
-
-function getPassword(): string | null {
-  return sessionStorage.getItem('adminPassword');
 }
 
 function formatDateTime(iso: string, tz?: string): string {
@@ -256,7 +253,7 @@ export default function AdminNewsletterDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
 
   const fetchNewsletters = useCallback(async () => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) {
       router.push('/admin');
       return;
@@ -268,7 +265,7 @@ export default function AdminNewsletterDetailPage() {
       });
       if (!res.ok) {
         if (res.status === 401) {
-          sessionStorage.removeItem('adminPassword');
+          clearAdminPassword();
           router.push('/admin');
           return;
         }
@@ -296,7 +293,7 @@ export default function AdminNewsletterDetailPage() {
   }, [router, settingsLoaded]);
 
   const fetchNotes = useCallback(async () => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) return;
     try {
       const res = await fetch('/api/admin/newsletters/notes', {
@@ -338,7 +335,7 @@ export default function AdminNewsletterDetailPage() {
   };
 
   const handleSaveNote = async () => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) return;
 
     setSavingNote(true);
@@ -372,7 +369,7 @@ export default function AdminNewsletterDetailPage() {
   };
 
   const handleDeleteNote = async (note: NewsletterNote) => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) return;
 
     if (!confirm(`Delete the note for ${formatNoteDate(note.sendDate)}?`)) {
@@ -407,7 +404,7 @@ export default function AdminNewsletterDetailPage() {
     sendAt?: string | null,
     options?: { test?: boolean; confirmMerge?: boolean },
   ): Promise<void> => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) return;
 
     const isTest = !!options?.test;
@@ -573,7 +570,7 @@ export default function AdminNewsletterDetailPage() {
   }
 
   const handleCancel = async (newsletterNumber: number) => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) return;
 
     if (!confirm(`Unschedule newsletter #${newsletterNumber}?`)) {
@@ -611,7 +608,7 @@ export default function AdminNewsletterDetailPage() {
   };
 
   const handleCreateIssue = async () => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) return;
 
     setActionLoading(true);
@@ -638,7 +635,7 @@ export default function AdminNewsletterDetailPage() {
   };
 
   const handleDeleteIssue = async (newsletterNumber: number) => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) return;
 
     setActionLoading(true);
@@ -668,7 +665,7 @@ export default function AdminNewsletterDetailPage() {
   };
 
   const handleSaveSettings = async () => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) return;
 
     setSavingSettings(true);
@@ -741,7 +738,7 @@ export default function AdminNewsletterDetailPage() {
   }
 
   const handleCreateSegment = async (newsletterNumber: number) => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd || !segmentName.trim()) return;
 
     setCreatingSegment(newsletterNumber);
@@ -781,7 +778,7 @@ export default function AdminNewsletterDetailPage() {
   };
 
   const handleDeleteSegment = async (segId: number) => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) return;
 
     if (!confirm('Remove this segment? The Resend segment will also be deleted.')) {
@@ -819,7 +816,7 @@ export default function AdminNewsletterDetailPage() {
   };
 
   const fetchSegmentContacts = async (segId: number) => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) return;
 
     // Skip if already loaded

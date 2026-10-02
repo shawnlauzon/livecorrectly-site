@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from '../admin.module.css';
+import { clearAdminPassword, getAdminPassword } from '@/lib/admin-client-auth';
 
 interface PublicationInfo {
   id: number;
@@ -15,10 +16,6 @@ interface PublicationInfo {
   issueCount: number;
   subscriberCount: number;
   lastSentAt: string | null;
-}
-
-function getPassword(): string | null {
-  return sessionStorage.getItem('adminPassword');
 }
 
 function formatDate(iso: string, tz?: string): string {
@@ -67,7 +64,7 @@ export default function AdminPublicationsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const pwd = getPassword();
+    const pwd = getAdminPassword();
     if (!pwd) {
       router.push('/admin');
       return;
@@ -80,7 +77,7 @@ export default function AdminPublicationsPage() {
         });
         if (!res.ok) {
           if (res.status === 401) {
-            sessionStorage.removeItem('adminPassword');
+            clearAdminPassword();
             router.push('/admin');
             return;
           }

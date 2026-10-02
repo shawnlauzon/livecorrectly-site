@@ -10,6 +10,7 @@ import { ChartLightbox } from '@/components/admin/chart-lightbox';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { formatUnsubFrom } from './utils';
 import styles from './admin.module.css';
+import { clearAdminPassword, getAdminPassword, setAdminPassword } from '@/lib/admin-client-auth';
 
 interface EngagementSummary {
   lastEngagedAt: string;
@@ -74,7 +75,7 @@ async function fetchSubscribers(pwd: string): Promise<{ ok: true; data: AdminSub
     });
 
     if (!response.ok) {
-      sessionStorage.removeItem('adminPassword');
+      clearAdminPassword();
       return { ok: false, error: 'Session expired' };
     }
 
@@ -324,7 +325,7 @@ function EmailEngagementPanel({
     setSelectedEmailType(emailType);
     setEmailSubsLoading(true);
     try {
-      const pwd = sessionStorage.getItem('adminPassword') ?? '';
+      const pwd = getAdminPassword() ?? '';
       const response = await fetch(`/api/admin/email-stats/subscribers?emailType=${encodeURIComponent(emailType)}`, {
         headers: { Authorization: `Bearer ${pwd}` },
       });
@@ -803,7 +804,7 @@ function AdminPageContent() {
   // Check for existing session on mount.
   // State updates are deferred to avoid synchronous setState in the effect body.
   useEffect(() => {
-    const savedPassword = sessionStorage.getItem('adminPassword');
+    const savedPassword = getAdminPassword();
     if (!savedPassword) return;
 
     let cancelled = false;
@@ -837,7 +838,7 @@ function AdminPageContent() {
   useEffect(() => {
     const handlePageShow = (e: PageTransitionEvent) => {
       if (e.persisted) {
-        const savedPassword = sessionStorage.getItem('adminPassword');
+        const savedPassword = getAdminPassword();
         if (savedPassword) {
           loadSubscribers(savedPassword);
         }
@@ -850,8 +851,7 @@ function AdminPageContent() {
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Store password in sessionStorage for detail page
-    sessionStorage.setItem('adminPassword', password);
+    setAdminPassword(password);
     await loadSubscribers(password);
   };
 
@@ -944,7 +944,7 @@ function AdminPageContent() {
 
     setSaving(subscriberId);
     try {
-      const pwd = sessionStorage.getItem('adminPassword') ?? '';
+      const pwd = getAdminPassword() ?? '';
       const response = await fetch(`/api/admin/subscribers/${subscriberId}/update-chart`, {
         method: 'PATCH',
         headers: {
