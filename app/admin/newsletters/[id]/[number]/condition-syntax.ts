@@ -9,6 +9,11 @@
  * - mode:         mode == "web"  (web vs email rendering context)
  */
 
+import { bridgeShadowVariants } from '@/lib/hd-chart/constants';
+
+/** Single dropdown option standing in for every bridge-shadow variant of top_shadow. */
+export const SOMETHING_MISSING = 'Something missing';
+
 /**
  * Compound "any" values expand to `field == "A" or field == "B"` in Liquid.
  * To the author they're just another value in the dropdown.
@@ -16,6 +21,7 @@
 export const ANY_VALUES: Record<string, { field: string; members: string[] }> = {
   'Builder (any)': { field: 'career_type', members: ['Classic Builder', 'Express Builder'] },
   'Generator (any)': { field: 'type', members: ['Generator', 'Manifesting Generator'] },
+  [SOMETHING_MISSING]: { field: 'top_shadow', members: Object.values(bridgeShadowVariants).map(v => v.name) },
 };
 
 /** Engagement properties available for newsletter conditionals. */

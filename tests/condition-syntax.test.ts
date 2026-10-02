@@ -5,6 +5,7 @@ import {
   composeNewsletterCondition,
   composeModeCondition,
 } from '@/app/admin/newsletters/[id]/[number]/condition-syntax';
+import { EMAIL_FIELDS } from '@/app/admin/newsletters/[id]/[number]/email-fields';
 
 describe('shadows chart field', () => {
   it('composes contains / not contains', () => {
@@ -56,5 +57,35 @@ describe('existing conditions', () => {
 
   it('returns null for unrecognized conditions', () => {
     expect(parseCondition('foo > 3')).toBeNull();
+  });
+});
+
+describe('top_shadow "Something missing"', () => {
+  const variants = [
+    'Blaming yourself for something missing',
+    'Blaming others for something missing',
+    'Blaming the world for something missing',
+  ];
+
+  it('expands to every bridge-shadow variant', () => {
+    expect(composeCondition('top_shadow', '==', 'Something missing'))
+      .toBe(variants.map(v => `top_shadow == "${v}"`).join(' or '));
+    expect(composeCondition('top_shadow', '!=', 'Something missing'))
+      .toBe(variants.map(v => `top_shadow != "${v}"`).join(' and '));
+  });
+
+  it('round-trips through parseCondition', () => {
+    for (const op of ['==', '!=']) {
+      expect(parseCondition(composeCondition('top_shadow', op, 'Something missing'))).toEqual({
+        type: 'chart', field: 'top_shadow', op, value: 'Something missing',
+      });
+    }
+  });
+
+  it('is the only bridge option in the Top Shadow dropdown', () => {
+    const topShadow = EMAIL_FIELDS.find(f => f.key === 'top_shadow')!;
+    expect(topShadow.values).toContain('Something missing');
+    for (const v of variants) expect(topShadow.values).not.toContain(v);
+    expect(topShadow.values).toContain('Overcompensating');
   });
 });

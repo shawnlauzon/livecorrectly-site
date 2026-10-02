@@ -20,6 +20,7 @@ import {
   shadowVerbs,
   bridgeShadowVariants,
 } from '@/lib/hd-chart/constants';
+import { SOMETHING_MISSING } from './condition-syntax';
 
 /** Deduplicate an indexed array into unique values (preserving order). */
 const unique = (arr: readonly string[]) => [...new Set(arr)];
@@ -29,6 +30,15 @@ export const SHADOW_NAMES = unique([
   ...Object.values(shadowNames),
   ...Object.values(bridgeShadowVariants).map(v => v.name),
 ]);
+
+/**
+ * Top Shadow choices: the bridge shadow's variants collapse into one
+ * "Something missing" option (expanded via ANY_VALUES), then each center shadow.
+ */
+const TOP_SHADOW_VALUES = [
+  SOMETHING_MISSING,
+  ...Object.entries(shadowNames).filter(([fn]) => functionToCenterIndex[fn] != null).map(([, name]) => name),
+];
 
 export interface EmailField {
   key: string;
@@ -50,7 +60,7 @@ export const EMAIL_FIELDS: EmailField[] = [
   { key: 'signature_theme', label: 'Signature Theme', values: unique(signatureThemes) },
   { key: 'not_self_theme', label: 'Not-Self Theme', values: unique(notSelfThemes) },
   { key: 'not_self_theme_adjective', label: 'Not-Self Theme (Adjective)', values: unique(notSelfThemeAdjectives) },
-  { key: 'top_shadow', label: 'Top Shadow', values: SHADOW_NAMES },
+  { key: 'top_shadow', label: 'Top Shadow', values: TOP_SHADOW_VALUES },
   { key: 'top_shadow_description', label: 'Top Shadow Description', values: unique(Object.values(shadowDescriptions)) },
   { key: 'top_shadow_verb', label: 'Top Shadow (verb)', values: unique([...Object.values(shadowVerbs), ...Object.values(bridgeShadowVariants).map(v => v.verb)]) },
   { key: 'top_shadow_function', label: 'Top Shadow Function', values: Object.keys(functionToCenterIndex).filter(fn => functionToCenterIndex[fn] != null) },
