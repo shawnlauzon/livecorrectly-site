@@ -1,5 +1,6 @@
 import { Liquid } from 'liquidjs';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
+import { functionToCenterIndex } from '@/lib/hd-chart/constants';
 import type { LiquidSectionMap } from './loader';
 import type { NewsletterEngagementFlags } from '@/lib/db';
 
@@ -41,6 +42,15 @@ function buildEngagementContext(
 // =============================================================================
 
 /**
+ * Function (center) name of the top shadow, or '' when there is none.
+ * The bridging trait (Bringing Traits/Strengths) has no center, so it is not a function.
+ */
+function topShadowFunction(chart: EmailChartData): string {
+  const fn = chart.topShadow;
+  return fn != null && functionToCenterIndex[fn] != null ? fn : '';
+}
+
+/**
  * Contact property registry for {{{contact.key}}} template variables in newsletter markdown.
  *
  * Each key becomes a Resend contact property (synced before newsletter sends)
@@ -62,6 +72,7 @@ const contactProperties: Record<string, (chart: EmailChartData) => string> = {
   top_shadow:                  chart => chart.topShadowName ?? '',
   top_shadow_description:      chart => chart.topShadowDescription ?? '',
   top_shadow_verb:             chart => chart.topShadowVerb ?? '',
+  top_shadow_function:         topShadowFunction,
 };
 
 export default contactProperties;
@@ -514,6 +525,7 @@ export function buildLiquidContext(
     top_shadow: chart.topShadowName ?? '',
     top_shadow_description: chart.topShadowDescription ?? '',
     top_shadow_verb: chart.topShadowVerb ?? '',
+    top_shadow_function: topShadowFunction(chart),
 
     // Every shadow name, for `{% if shadows contains "Overcompensating" %}`
     shadows: chart.shadows,

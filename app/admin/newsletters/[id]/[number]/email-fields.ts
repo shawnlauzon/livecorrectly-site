@@ -15,6 +15,7 @@ import {
   notSelfThemes,
   notSelfThemeAdjectives,
   shadowNames,
+  functionToCenterIndex,
   shadowDescriptions,
   shadowVerbs,
   bridgeShadowVariants,
@@ -52,5 +53,6 @@ export const EMAIL_FIELDS: EmailField[] = [
   { key: 'top_shadow', label: 'Top Shadow', values: SHADOW_NAMES },
   { key: 'top_shadow_description', label: 'Top Shadow Description', values: unique(Object.values(shadowDescriptions)) },
   { key: 'top_shadow_verb', label: 'Top Shadow (verb)', values: unique([...Object.values(shadowVerbs), ...Object.values(bridgeShadowVariants).map(v => v.verb)]) },
+  { key: 'top_shadow_function', label: 'Top Shadow Function', values: Object.keys(functionToCenterIndex).filter(fn => functionToCenterIndex[fn] != null) },
   { key: 'decision_making_strategy', label: 'Decision-making Strategy' },
 ];

@@ -52,6 +52,7 @@ export interface EmailChartData {
   strategyVideo: string;
   innerAuthorityVideo: string;
   signatureVideo: string;
+  /** Function name for the top shadow (e.g. "Willpower", or "Bringing Traits/Strengths" for the bridge shadow), null if no shadows */
   topShadow: string | null;
   /** Names of every shadow on the chart in priority order (e.g. ["Overcompensating", "Losing focus"]) */
   shadows: string[];
