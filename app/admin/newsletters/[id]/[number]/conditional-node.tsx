@@ -648,6 +648,19 @@ function ConditionalBlockView({ node, editor, deleteNode, getPos }: ReactNodeVie
 }
 
 // ---------------------------------------------------------------------------
+// Liquid tags — shared by email rendering and copy-as-Liquid (liquid-copy.ts)
+// ---------------------------------------------------------------------------
+
+/** Liquid opening tag for a branch, e.g. `{% if career_type == 'Builder' %}`. */
+export function branchOpenTag(branchType: string, condition: string): string {
+  if (branchType === 'if') return `{% if ${condition} %}`;
+  if (branchType === 'elsif') return `{% elsif ${condition} %}`;
+  return '{% else %}';
+}
+
+export const ENDIF_TAG = '{% endif %}';
+
+// ---------------------------------------------------------------------------
 // ConditionalBranchNode — TipTap extension
 // ---------------------------------------------------------------------------
 
@@ -689,17 +702,7 @@ export const ConditionalBranchNode = EmailNode.create({
   },
 
   renderToReactEmail({ node, children }) {
-    const branchType: string = node.attrs?.branchType ?? 'if';
-    const condition: string = node.attrs?.condition ?? '';
-
-    let openTag: string;
-    if (branchType === 'if') {
-      openTag = `{% if ${condition} %}`;
-    } else if (branchType === 'elsif') {
-      openTag = `{% elsif ${condition} %}`;
-    } else {
-      openTag = '{% else %}';
-    }
+    const openTag = branchOpenTag(node.attrs?.branchType ?? 'if', node.attrs?.condition ?? '');
 
     return (
       <>
@@ -741,7 +744,7 @@ export const ConditionalBlockNode = EmailNode.create({
     return (
       <>
         {children}
-        <span dangerouslySetInnerHTML={{ __html: '{% endif %}' }} />
+        <span dangerouslySetInnerHTML={{ __html: ENDIF_TAG }} />
       </>
     );
   },

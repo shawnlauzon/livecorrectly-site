@@ -134,7 +134,7 @@ export function VariableEditForm() {
 }
 
 /** Liquid output tag for a variable node, e.g. `{{ first_name | default: 'there' | capitalize }}`. */
-function liquidTag(attrs: Record<string, unknown>): string {
+export function liquidTag(attrs: Record<string, unknown>): string {
   const filters: string[] = [];
   if (attrs.default) filters.push(`default: '${attrs.default}'`);
   if (attrs.capitalize) filters.push('capitalize');

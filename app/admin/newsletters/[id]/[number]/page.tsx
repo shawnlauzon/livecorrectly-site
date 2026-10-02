@@ -19,7 +19,7 @@ import styles from './editor.module.css';
 import adminStyles from '../../../admin.module.css';
 import { VariableNode, VariableEditForm, VARIABLE } from './variable-node';
 import { ConditionalBlockNode, ConditionalBranchNode, ConditionalKeymap, IF_THEN_ELSE, DEFAULT_CONDITION } from './conditional-node';
-import { LiquidPaste } from './liquid-paste-extension';
+import { LiquidClipboard } from './liquid-paste-extension';
 import hdChart from '@/lib/hd-chart';
 import { types, innerAuthorityTypes, definitions } from '@/lib/hd-chart/constants';
 import type { Subscriber } from '@/lib/types/subscriber';
@@ -271,7 +271,7 @@ function EditorPanel({
     ConditionalBranchNode,
     ConditionalKeymap,
     BraceShortcuts,
-    LiquidPaste,
+    LiquidClipboard,
   ], [imageExtension]);
 
   const handleSave = useCallback(async () => {
@@ -409,17 +409,7 @@ function EditorPanel({
             transformPastedHTML(html) {
               // Strip inline styles and classes so PreservedStyle doesn't
               // capture colors/fonts the editor UI can't remove.
-              const cleaned = html.replace(/\s+style="[^"]*"/gi, '').replace(/\s+class="[^"]*"/gi, '');
-
-              // Unwrap conditional block/branch wrappers so that copying
-              // text from one branch pastes only the text content, not the
-              // entire conditional structure.
-              const doc = new DOMParser().parseFromString(cleaned, 'text/html');
-              doc.querySelectorAll('[data-type="conditional-block"], [data-branch-type]').forEach(el => {
-                while (el.firstChild) el.parentNode?.insertBefore(el.firstChild, el);
-                el.remove();
-              });
-              return doc.body.innerHTML;
+              return html.replace(/\s+style="[^"]*"/gi, '').replace(/\s+class="[^"]*"/gi, '');
             },
           }}
         >

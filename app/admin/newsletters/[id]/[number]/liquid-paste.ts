@@ -2,7 +2,7 @@
  * Converts pasted Liquid text into the editor's Variable and Conditional nodes.
  *
  * Pure functions over TipTap JSONContent so they can be unit-tested without a
- * live editor. The LiquidPaste extension (liquid-paste-extension.ts) wires
+ * live editor. The LiquidClipboard extension (liquid-paste-extension.ts) wires
  * transformPastedContent into ProseMirror's transformPasted hook.
  *
  *   {{ first_name | default: 'there' | capitalize }}  → variableNode
