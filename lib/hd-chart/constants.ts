@@ -57,11 +57,11 @@ export const innerAuthorityDescriptions = [
 /** Noun-form short names for each authority, e.g. "So if your **gut** is telling you..." */
 export const innerAuthorityShortNames = [
   'emotional clarity', // Emotional
-  'gut',            // Sacral
-  'instinct',       // Splenic
-  'will',           // Ego
-  'inner voice',    // Self-Projected
-  'will',           // Ego-Projected
+  'gut', // Sacral
+  'instinct', // Splenic
+  'will', // Ego
+  'inner voice', // Self-Projected
+  'will', // Ego-Projected
   'sounding board', // None
 ];
 
@@ -256,31 +256,44 @@ export type MissingPiece = { kind: 'gate' | 'strength'; text: string };
 const genericMissingPiece = 'that one missing piece';
 
 /** Builds "Believing everything would be better if only {lead} {piece}" */
-const describeBridgeShadow = (leads: { gate: string; strength: string }) =>
+const describeBridgeShadow =
+  (leads: { gate: string; strength: string }) =>
   (piece: MissingPiece | null): string =>
     `Believing everything would be better if only ${
       piece?.kind === 'strength' ? leads.strength : leads.gate
     } ${piece?.text ?? genericMissingPiece}`;
 
-export const bridgeShadowVariants: Record<BridgeShadowVariant, {
-  name: string;
-  verb: string;
-  describe: (piece: MissingPiece | null) => string;
-}> = {
+export const bridgeShadowVariants: Record<
+  BridgeShadowVariant,
+  {
+    name: string;
+    verb: string;
+    describe: (piece: MissingPiece | null) => string;
+  }
+> = {
   simple: {
     name: 'Blaming yourself for something missing',
     verb: 'blame yourself',
-    describe: describeBridgeShadow({ gate: 'you had', strength: 'you had more' }),
+    describe: describeBridgeShadow({
+      gate: 'you had',
+      strength: 'you had more',
+    }),
   },
   wide: {
     name: 'Blaming others for something missing',
     verb: 'blame others',
-    describe: describeBridgeShadow({ gate: 'others gave you', strength: 'others brought more' }),
+    describe: describeBridgeShadow({
+      gate: 'others gave you',
+      strength: 'others brought more',
+    }),
   },
   veryWide: {
     name: 'Blaming the world for something missing',
     verb: 'blame the world',
-    describe: describeBridgeShadow({ gate: 'the world contained', strength: 'the world contained more' }),
+    describe: describeBridgeShadow({
+      gate: 'the world contained',
+      strength: 'the world contained more',
+    }),
   },
 };
 
@@ -365,12 +378,12 @@ export const missingGatePhrases: Record<number, string> = {
  */
 export const shadowVerbs: Record<string, string> = {
   'Bringing Traits/Strengths': bridgeShadowVariants.simple.verb,
-  'Willpower': 'overcompensate',
+  Willpower: 'overcompensate',
   'Emotional Intelligence': 'avoid confrontation',
   'Identity & Direction': 'act like someone else',
   'Survival Instinct': 'hold on',
-  'Conceptualization': 'be certain',
-  'Inspiration': 'chase answers',
+  Conceptualization: 'be certain',
+  Inspiration: 'chase answers',
   'Drive & Stamina': 'rush',
   'Energy Resource': 'keep going',
   'Communication & Action': 'seek attention',
@@ -382,12 +395,12 @@ export const shadowVerbs: Record<string, string> = {
  */
 export const shadowNames: Record<string, string> = {
   'Bringing Traits/Strengths': bridgeShadowVariants.simple.name,
-  'Willpower': 'Overcompensating',
+  Willpower: 'Overcompensating',
   'Emotional Intelligence': 'Touchy & nervous',
   'Identity & Direction': 'Role confusion',
   'Survival Instinct': 'Unable to let go',
-  'Conceptualization': 'Mentally defensive',
-  'Inspiration': 'Losing focus',
+  Conceptualization: 'Mentally defensive',
+  Inspiration: 'Losing focus',
   'Drive & Stamina': 'Too much in a hurry',
   'Energy Resource': 'Over zealous',
   'Communication & Action': 'Trying to be the star',
@@ -399,12 +412,12 @@ export const shadowNames: Record<string, string> = {
  */
 export const functionToCenterIndex: Record<string, number | null> = {
   'Bringing Traits/Strengths': null,
-  'Willpower': 4, // Ego
+  Willpower: 4, // Ego
   'Emotional Intelligence': 3, // Solar Plexus
   'Identity & Direction': 5, // G Center
   'Survival Instinct': 2, // Spleen
-  'Conceptualization': 7, // Ajna
-  'Inspiration': 8, // Head
+  Conceptualization: 7, // Ajna
+  Inspiration: 8, // Head
   'Drive & Stamina': 0, // Root
   'Energy Resource': 1, // Sacral
   'Communication & Action': 6, // Throat
@@ -425,12 +438,12 @@ export const centerIndexToFunction: Record<number, string> = Object.fromEntries(
  */
 export const shadowThemes: Record<string, string> = {
   'Bringing Traits/Strengths': 'Bridging and connecting',
-  'Willpower': 'Will and willpower',
+  Willpower: 'Will and willpower',
   'Emotional Intelligence': 'Emotional awareness and intelligence',
   'Identity & Direction': 'Identity and direction',
   'Survival Instinct': 'Survival and well-being',
-  'Conceptualization': 'Mental conceptualization',
-  'Inspiration': 'Inspiration and mental pressure',
+  Conceptualization: 'Mental conceptualization',
+  Inspiration: 'Inspiration and mental pressure',
   'Drive & Stamina': 'Stress and drive',
   'Energy Resource': 'Life force energy',
   'Communication & Action': 'Communication and manifestation',
@@ -442,7 +455,7 @@ export const shadowThemes: Record<string, string> = {
 export const shadowLessons: Record<string, string> = {
   'Bringing Traits/Strengths':
     'To bridge differences and bring people together through your unique connections',
-  'Willpower':
+  Willpower:
     'To recognize when you have the willpower to commit and when you need to rest',
   'Emotional Intelligence':
     'To navigate emotional waves with awareness and patience',
@@ -450,10 +463,10 @@ export const shadowLessons: Record<string, string> = {
     'To find your own sense of self and direction from within',
   'Survival Instinct':
     'To distinguish between real threats and conditioned fears',
-  'Conceptualization':
+  Conceptualization:
     'To stay open to multiple perspectives without getting locked into certainty',
-  'Inspiration':
-    'To let inspiration come and go without forcing answers to questions that aren\'t yours',
+  Inspiration:
+    "To let inspiration come and go without forcing answers to questions that aren't yours",
   'Drive & Stamina':
     'To work at a sustainable pace without rushing to relieve stress',
   'Energy Resource':
@@ -468,24 +481,20 @@ export const shadowLessons: Record<string, string> = {
 export const shadowPressures: Record<string, string> = {
   'Bringing Traits/Strengths':
     'Pressure to connect disparate groups or bridge gaps between people',
-  'Willpower':
-    'Pressure to prove your worth through willpower and commitments',
+  Willpower: 'Pressure to prove your worth through willpower and commitments',
   'Emotional Intelligence':
     'Pressure to avoid confrontation and emotional truth',
   'Identity & Direction':
     'Pressure to find love, identity, and direction through others',
   'Survival Instinct':
     'Pressure to hold onto what feels safe, even when it no longer serves',
-  'Conceptualization':
+  Conceptualization:
     'Pressure to be certain and mentally focused in uncertainty',
-  'Inspiration':
-    'Pressure to answer questions and solve problems that aren\'t yours',
-  'Drive & Stamina':
-    'Pressure to rush and complete tasks to relieve stress',
-  'Energy Resource':
-    'Pressure to keep working without knowing when to stop',
-  'Communication & Action':
-    'Pressure to be heard and to attract attention',
+  Inspiration:
+    "Pressure to answer questions and solve problems that aren't yours",
+  'Drive & Stamina': 'Pressure to rush and complete tasks to relieve stress',
+  'Energy Resource': 'Pressure to keep working without knowing when to stop',
+  'Communication & Action': 'Pressure to be heard and to attract attention',
 };
 
 /**
@@ -493,26 +502,17 @@ export const shadowPressures: Record<string, string> = {
  * Ported from fractalhumandesign WelcomeCampaignText.tsx
  */
 export const shadowDescriptions: Record<string, string> = {
-  'Bringing Traits/Strengths':
-    bridgeShadowVariants.simple.describe(null),
-  'Willpower':
-    'Trying to prove yourself through willpower and commitments',
+  'Bringing Traits/Strengths': bridgeShadowVariants.simple.describe(null),
+  Willpower: 'Trying to prove yourself through willpower and commitments',
   'Emotional Intelligence':
-    'Avoiding truth and consequences of emotional situations',
-  'Identity & Direction':
-    'Searching for love and direction outside yourself',
-  'Survival Instinct':
-    'Holding onto things which no longer serve you',
-  'Conceptualization':
-    'Getting distracted and losing focus',
-  'Inspiration':
-    'Trying to answer other people\'s questions',
-  'Drive & Stamina':
-    'Rushing to get things done to relieve stress',
-  'Energy Resource':
-    'Not knowing when enough is enough',
-  'Communication & Action':
-    'Trying to be seen and heard',
+    'Avoiding truth and confrontation in emotional situations',
+  'Identity & Direction': 'Searching for love and direction outside yourself',
+  'Survival Instinct': 'Holding onto things which no longer serve you',
+  Conceptualization: 'Getting distracted and losing focus',
+  Inspiration: "Trying to answer other people's questions",
+  'Drive & Stamina': 'Rushing to get things done to relieve stress',
+  'Energy Resource': 'Not knowing when enough is enough',
+  'Communication & Action': 'Trying to be seen and heard',
 };
 
 /**
@@ -543,76 +543,399 @@ export const shadowWriteups: Record<string, string> = {
  *
  * Gates 10, 20, 34, 57 have multiple possible harmonics (arrays).
  */
-export const gateTraits: Record<number, {
-  trait: string;
-  harmonicGate: number | number[];
-  harmonicTrait: string | string[];
-  strength: string | string[];
-}> = {
-  1: { trait: "Creative Self-Expression", harmonicGate: 8, harmonicTrait: "Contribution", strength: "Inspiration" },
-  2: { trait: "The Driver", harmonicGate: 14, harmonicTrait: "Power Skills", strength: "Direction" },
-  3: { trait: "Ordering", harmonicGate: 60, harmonicTrait: "Acceptance", strength: "Innovation" },
-  4: { trait: "Formulization", harmonicGate: 63, harmonicTrait: "Doubt", strength: "Logic Process" },
-  5: { trait: "Fixed Patterns", harmonicGate: 15, harmonicTrait: "Diversity", strength: "Patterns & Rhythms" },
-  6: { trait: "Friction", harmonicGate: 59, harmonicTrait: "Achieving Union", strength: "Interaction" },
-  7: { trait: "The Leader", harmonicGate: 31, harmonicTrait: "Influence", strength: "Leadership" },
-  8: { trait: "Contribution", harmonicGate: 1, harmonicTrait: "Creative Self-Expression", strength: "Inspiration" },
-  9: { trait: "Focus", harmonicGate: 52, harmonicTrait: "Stillness", strength: "Concentration" },
-  10: { trait: "Behavior of Self", harmonicGate: [20, 34, 57], harmonicTrait: ["Contemplation", "Personal Power", "Intuitive Insight"], strength: ["Higher Principles", "Conviction", "Perfected Form"] },
-  11: { trait: "Ideas", harmonicGate: 56, harmonicTrait: "Stimulation", strength: "Curiosity" },
-  12: { trait: "Caution", harmonicGate: 22, harmonicTrait: "Openness", strength: "Socialness" },
-  13: { trait: "The Listener", harmonicGate: 33, harmonicTrait: "Retreat", strength: "Witnessing" },
-  14: { trait: "Power Skills", harmonicGate: 2, harmonicTrait: "The Driver", strength: "Direction" },
-  15: { trait: "Diversity", harmonicGate: 5, harmonicTrait: "Fixed Patterns", strength: "Patterns & Rhythms" },
-  16: { trait: "Skills", harmonicGate: 48, harmonicTrait: "Depth", strength: "Talent" },
-  17: { trait: "Opinion", harmonicGate: 62, harmonicTrait: "Details", strength: "Organization" },
-  18: { trait: "Correction", harmonicGate: 58, harmonicTrait: "Vitality", strength: "Judgment" },
-  19: { trait: "Social Needs", harmonicGate: 49, harmonicTrait: "Principles", strength: "Resources" },
-  20: { trait: "Contemplation", harmonicGate: [10, 34, 57], harmonicTrait: ["Behavior of Self", "Personal Power", "Intuitive Insight"], strength: ["Higher Principles", "Charisma", "Spontaneity"] },
-  21: { trait: "Control", harmonicGate: 45, harmonicTrait: "Gathering Together", strength: "Management" },
-  22: { trait: "Openness", harmonicGate: 12, harmonicTrait: "Caution", strength: "Socialness" },
-  23: { trait: "Assimilation", harmonicGate: 43, harmonicTrait: "Breakthrough", strength: "Efficiency" },
-  24: { trait: "Rationalization", harmonicGate: 61, harmonicTrait: "Inner Truth", strength: "Creative Process" },
-  25: { trait: "Innocence", harmonicGate: 51, harmonicTrait: "Initiative", strength: "Competitiveness" },
-  26: { trait: "Sales/Marketing", harmonicGate: 44, harmonicTrait: "Alertness", strength: "Transmitter" },
-  27: { trait: "Nourishment", harmonicGate: 50, harmonicTrait: "Values", strength: "Custodianship" },
-  28: { trait: "Game Player", harmonicGate: 38, harmonicTrait: "Fighter", strength: "Tenaciousness" },
-  29: { trait: "Perseverance", harmonicGate: 46, harmonicTrait: "Determination", strength: "Discovery" },
-  30: { trait: "Fate", harmonicGate: 41, harmonicTrait: "The Dreamer", strength: "Imagination" },
-  31: { trait: "Influence", harmonicGate: 7, harmonicTrait: "The Leader", strength: "Leadership" },
-  32: { trait: "Continuity", harmonicGate: 54, harmonicTrait: "Drive", strength: "Ambition" },
-  33: { trait: "Retreat", harmonicGate: 13, harmonicTrait: "The Listener", strength: "Witnessing" },
-  34: { trait: "Personal Power", harmonicGate: [10, 57, 20], harmonicTrait: ["Behavior of Self", "Intuitive Insight", "Contemplation"], strength: ["Conviction", "Power", "Charisma"] },
-  35: { trait: "Progress", harmonicGate: 36, harmonicTrait: "Crisis", strength: "The Experiencer" },
-  36: { trait: "Crisis", harmonicGate: 35, harmonicTrait: "Progress", strength: "The Experiencer" },
-  37: { trait: "Friendship/Family", harmonicGate: 40, harmonicTrait: "Deliverance", strength: "Community" },
-  38: { trait: "Fighter", harmonicGate: 28, harmonicTrait: "Game Player", strength: "Tenaciousness" },
-  39: { trait: "Obstruction", harmonicGate: 55, harmonicTrait: "Spirit", strength: "Provoking" },
-  40: { trait: "Deliverance", harmonicGate: 37, harmonicTrait: "Friendship/Family", strength: "Community" },
-  41: { trait: "The Dreamer", harmonicGate: 30, harmonicTrait: "Fate", strength: "Imagination" },
-  42: { trait: "Growth", harmonicGate: 53, harmonicTrait: "Beginnings", strength: "Cycles" },
-  43: { trait: "Breakthrough", harmonicGate: 23, harmonicTrait: "Assimilation", strength: "Efficiency" },
-  44: { trait: "Alertness", harmonicGate: 26, harmonicTrait: "Sales/Marketing", strength: "Transmitter" },
-  45: { trait: "Gathering Together", harmonicGate: 21, harmonicTrait: "Control", strength: "Management" },
-  46: { trait: "Determination", harmonicGate: 29, harmonicTrait: "Perseverance", strength: "Discovery" },
-  47: { trait: "Realization", harmonicGate: 64, harmonicTrait: "Abstraction", strength: "Experiential Process" },
-  48: { trait: "Depth", harmonicGate: 16, harmonicTrait: "Skills", strength: "Talent" },
-  49: { trait: "Principles", harmonicGate: 19, harmonicTrait: "Social Needs", strength: "Resources" },
-  50: { trait: "Values", harmonicGate: 27, harmonicTrait: "Nourishment", strength: "Custodianship" },
-  51: { trait: "Initiative", harmonicGate: 25, harmonicTrait: "Innocence", strength: "Competitiveness" },
-  52: { trait: "Stillness", harmonicGate: 9, harmonicTrait: "Focus", strength: "Concentration" },
-  53: { trait: "Beginnings", harmonicGate: 42, harmonicTrait: "Growth", strength: "Cycles" },
-  54: { trait: "Drive", harmonicGate: 32, harmonicTrait: "Continuity", strength: "Ambition" },
-  55: { trait: "Spirit", harmonicGate: 39, harmonicTrait: "Obstruction", strength: "Provoking" },
-  56: { trait: "Stimulation", harmonicGate: 11, harmonicTrait: "Ideas", strength: "Curiosity" },
-  57: { trait: "Intuitive Insight", harmonicGate: [34, 10, 20], harmonicTrait: ["Personal Power", "Behavior of Self", "Contemplation"], strength: ["Power", "Perfected Form", "Spontaneity"] },
-  58: { trait: "Vitality", harmonicGate: 18, harmonicTrait: "Correction", strength: "Judgment" },
-  59: { trait: "Achieving Union", harmonicGate: 6, harmonicTrait: "Friction", strength: "Interaction" },
-  60: { trait: "Acceptance", harmonicGate: 3, harmonicTrait: "Ordering", strength: "Innovation" },
-  61: { trait: "Inner Truth", harmonicGate: 24, harmonicTrait: "Rationalization", strength: "Creative Process" },
-  62: { trait: "Details", harmonicGate: 17, harmonicTrait: "Opinion", strength: "Organization" },
-  63: { trait: "Doubt", harmonicGate: 4, harmonicTrait: "Formulization", strength: "Logic Process" },
-  64: { trait: "Abstraction", harmonicGate: 47, harmonicTrait: "Realization", strength: "Experiential Process" }
+export const gateTraits: Record<
+  number,
+  {
+    trait: string;
+    harmonicGate: number | number[];
+    harmonicTrait: string | string[];
+    strength: string | string[];
+  }
+> = {
+  1: {
+    trait: 'Creative Self-Expression',
+    harmonicGate: 8,
+    harmonicTrait: 'Contribution',
+    strength: 'Inspiration',
+  },
+  2: {
+    trait: 'The Driver',
+    harmonicGate: 14,
+    harmonicTrait: 'Power Skills',
+    strength: 'Direction',
+  },
+  3: {
+    trait: 'Ordering',
+    harmonicGate: 60,
+    harmonicTrait: 'Acceptance',
+    strength: 'Innovation',
+  },
+  4: {
+    trait: 'Formulization',
+    harmonicGate: 63,
+    harmonicTrait: 'Doubt',
+    strength: 'Logic Process',
+  },
+  5: {
+    trait: 'Fixed Patterns',
+    harmonicGate: 15,
+    harmonicTrait: 'Diversity',
+    strength: 'Patterns & Rhythms',
+  },
+  6: {
+    trait: 'Friction',
+    harmonicGate: 59,
+    harmonicTrait: 'Achieving Union',
+    strength: 'Interaction',
+  },
+  7: {
+    trait: 'The Leader',
+    harmonicGate: 31,
+    harmonicTrait: 'Influence',
+    strength: 'Leadership',
+  },
+  8: {
+    trait: 'Contribution',
+    harmonicGate: 1,
+    harmonicTrait: 'Creative Self-Expression',
+    strength: 'Inspiration',
+  },
+  9: {
+    trait: 'Focus',
+    harmonicGate: 52,
+    harmonicTrait: 'Stillness',
+    strength: 'Concentration',
+  },
+  10: {
+    trait: 'Behavior of Self',
+    harmonicGate: [20, 34, 57],
+    harmonicTrait: ['Contemplation', 'Personal Power', 'Intuitive Insight'],
+    strength: ['Higher Principles', 'Conviction', 'Perfected Form'],
+  },
+  11: {
+    trait: 'Ideas',
+    harmonicGate: 56,
+    harmonicTrait: 'Stimulation',
+    strength: 'Curiosity',
+  },
+  12: {
+    trait: 'Caution',
+    harmonicGate: 22,
+    harmonicTrait: 'Openness',
+    strength: 'Socialness',
+  },
+  13: {
+    trait: 'The Listener',
+    harmonicGate: 33,
+    harmonicTrait: 'Retreat',
+    strength: 'Witnessing',
+  },
+  14: {
+    trait: 'Power Skills',
+    harmonicGate: 2,
+    harmonicTrait: 'The Driver',
+    strength: 'Direction',
+  },
+  15: {
+    trait: 'Diversity',
+    harmonicGate: 5,
+    harmonicTrait: 'Fixed Patterns',
+    strength: 'Patterns & Rhythms',
+  },
+  16: {
+    trait: 'Skills',
+    harmonicGate: 48,
+    harmonicTrait: 'Depth',
+    strength: 'Talent',
+  },
+  17: {
+    trait: 'Opinion',
+    harmonicGate: 62,
+    harmonicTrait: 'Details',
+    strength: 'Organization',
+  },
+  18: {
+    trait: 'Correction',
+    harmonicGate: 58,
+    harmonicTrait: 'Vitality',
+    strength: 'Judgment',
+  },
+  19: {
+    trait: 'Social Needs',
+    harmonicGate: 49,
+    harmonicTrait: 'Principles',
+    strength: 'Resources',
+  },
+  20: {
+    trait: 'Contemplation',
+    harmonicGate: [10, 34, 57],
+    harmonicTrait: ['Behavior of Self', 'Personal Power', 'Intuitive Insight'],
+    strength: ['Higher Principles', 'Charisma', 'Spontaneity'],
+  },
+  21: {
+    trait: 'Control',
+    harmonicGate: 45,
+    harmonicTrait: 'Gathering Together',
+    strength: 'Management',
+  },
+  22: {
+    trait: 'Openness',
+    harmonicGate: 12,
+    harmonicTrait: 'Caution',
+    strength: 'Socialness',
+  },
+  23: {
+    trait: 'Assimilation',
+    harmonicGate: 43,
+    harmonicTrait: 'Breakthrough',
+    strength: 'Efficiency',
+  },
+  24: {
+    trait: 'Rationalization',
+    harmonicGate: 61,
+    harmonicTrait: 'Inner Truth',
+    strength: 'Creative Process',
+  },
+  25: {
+    trait: 'Innocence',
+    harmonicGate: 51,
+    harmonicTrait: 'Initiative',
+    strength: 'Competitiveness',
+  },
+  26: {
+    trait: 'Sales/Marketing',
+    harmonicGate: 44,
+    harmonicTrait: 'Alertness',
+    strength: 'Transmitter',
+  },
+  27: {
+    trait: 'Nourishment',
+    harmonicGate: 50,
+    harmonicTrait: 'Values',
+    strength: 'Custodianship',
+  },
+  28: {
+    trait: 'Game Player',
+    harmonicGate: 38,
+    harmonicTrait: 'Fighter',
+    strength: 'Tenaciousness',
+  },
+  29: {
+    trait: 'Perseverance',
+    harmonicGate: 46,
+    harmonicTrait: 'Determination',
+    strength: 'Discovery',
+  },
+  30: {
+    trait: 'Fate',
+    harmonicGate: 41,
+    harmonicTrait: 'The Dreamer',
+    strength: 'Imagination',
+  },
+  31: {
+    trait: 'Influence',
+    harmonicGate: 7,
+    harmonicTrait: 'The Leader',
+    strength: 'Leadership',
+  },
+  32: {
+    trait: 'Continuity',
+    harmonicGate: 54,
+    harmonicTrait: 'Drive',
+    strength: 'Ambition',
+  },
+  33: {
+    trait: 'Retreat',
+    harmonicGate: 13,
+    harmonicTrait: 'The Listener',
+    strength: 'Witnessing',
+  },
+  34: {
+    trait: 'Personal Power',
+    harmonicGate: [10, 57, 20],
+    harmonicTrait: ['Behavior of Self', 'Intuitive Insight', 'Contemplation'],
+    strength: ['Conviction', 'Power', 'Charisma'],
+  },
+  35: {
+    trait: 'Progress',
+    harmonicGate: 36,
+    harmonicTrait: 'Crisis',
+    strength: 'The Experiencer',
+  },
+  36: {
+    trait: 'Crisis',
+    harmonicGate: 35,
+    harmonicTrait: 'Progress',
+    strength: 'The Experiencer',
+  },
+  37: {
+    trait: 'Friendship/Family',
+    harmonicGate: 40,
+    harmonicTrait: 'Deliverance',
+    strength: 'Community',
+  },
+  38: {
+    trait: 'Fighter',
+    harmonicGate: 28,
+    harmonicTrait: 'Game Player',
+    strength: 'Tenaciousness',
+  },
+  39: {
+    trait: 'Obstruction',
+    harmonicGate: 55,
+    harmonicTrait: 'Spirit',
+    strength: 'Provoking',
+  },
+  40: {
+    trait: 'Deliverance',
+    harmonicGate: 37,
+    harmonicTrait: 'Friendship/Family',
+    strength: 'Community',
+  },
+  41: {
+    trait: 'The Dreamer',
+    harmonicGate: 30,
+    harmonicTrait: 'Fate',
+    strength: 'Imagination',
+  },
+  42: {
+    trait: 'Growth',
+    harmonicGate: 53,
+    harmonicTrait: 'Beginnings',
+    strength: 'Cycles',
+  },
+  43: {
+    trait: 'Breakthrough',
+    harmonicGate: 23,
+    harmonicTrait: 'Assimilation',
+    strength: 'Efficiency',
+  },
+  44: {
+    trait: 'Alertness',
+    harmonicGate: 26,
+    harmonicTrait: 'Sales/Marketing',
+    strength: 'Transmitter',
+  },
+  45: {
+    trait: 'Gathering Together',
+    harmonicGate: 21,
+    harmonicTrait: 'Control',
+    strength: 'Management',
+  },
+  46: {
+    trait: 'Determination',
+    harmonicGate: 29,
+    harmonicTrait: 'Perseverance',
+    strength: 'Discovery',
+  },
+  47: {
+    trait: 'Realization',
+    harmonicGate: 64,
+    harmonicTrait: 'Abstraction',
+    strength: 'Experiential Process',
+  },
+  48: {
+    trait: 'Depth',
+    harmonicGate: 16,
+    harmonicTrait: 'Skills',
+    strength: 'Talent',
+  },
+  49: {
+    trait: 'Principles',
+    harmonicGate: 19,
+    harmonicTrait: 'Social Needs',
+    strength: 'Resources',
+  },
+  50: {
+    trait: 'Values',
+    harmonicGate: 27,
+    harmonicTrait: 'Nourishment',
+    strength: 'Custodianship',
+  },
+  51: {
+    trait: 'Initiative',
+    harmonicGate: 25,
+    harmonicTrait: 'Innocence',
+    strength: 'Competitiveness',
+  },
+  52: {
+    trait: 'Stillness',
+    harmonicGate: 9,
+    harmonicTrait: 'Focus',
+    strength: 'Concentration',
+  },
+  53: {
+    trait: 'Beginnings',
+    harmonicGate: 42,
+    harmonicTrait: 'Growth',
+    strength: 'Cycles',
+  },
+  54: {
+    trait: 'Drive',
+    harmonicGate: 32,
+    harmonicTrait: 'Continuity',
+    strength: 'Ambition',
+  },
+  55: {
+    trait: 'Spirit',
+    harmonicGate: 39,
+    harmonicTrait: 'Obstruction',
+    strength: 'Provoking',
+  },
+  56: {
+    trait: 'Stimulation',
+    harmonicGate: 11,
+    harmonicTrait: 'Ideas',
+    strength: 'Curiosity',
+  },
+  57: {
+    trait: 'Intuitive Insight',
+    harmonicGate: [34, 10, 20],
+    harmonicTrait: ['Personal Power', 'Behavior of Self', 'Contemplation'],
+    strength: ['Power', 'Perfected Form', 'Spontaneity'],
+  },
+  58: {
+    trait: 'Vitality',
+    harmonicGate: 18,
+    harmonicTrait: 'Correction',
+    strength: 'Judgment',
+  },
+  59: {
+    trait: 'Achieving Union',
+    harmonicGate: 6,
+    harmonicTrait: 'Friction',
+    strength: 'Interaction',
+  },
+  60: {
+    trait: 'Acceptance',
+    harmonicGate: 3,
+    harmonicTrait: 'Ordering',
+    strength: 'Innovation',
+  },
+  61: {
+    trait: 'Inner Truth',
+    harmonicGate: 24,
+    harmonicTrait: 'Rationalization',
+    strength: 'Creative Process',
+  },
+  62: {
+    trait: 'Details',
+    harmonicGate: 17,
+    harmonicTrait: 'Opinion',
+    strength: 'Organization',
+  },
+  63: {
+    trait: 'Doubt',
+    harmonicGate: 4,
+    harmonicTrait: 'Formulization',
+    strength: 'Logic Process',
+  },
+  64: {
+    trait: 'Abstraction',
+    harmonicGate: 47,
+    harmonicTrait: 'Realization',
+    strength: 'Experiential Process',
+  },
 };
 
 /**
@@ -665,23 +988,78 @@ export const channelStrengths = [
  */
 export const gateToCenter: Record<number, number> = {
   // Head (8)
-  64: 8, 61: 8, 63: 8,
+  64: 8,
+  61: 8,
+  63: 8,
   // Ajna (7)
-  47: 7, 24: 7, 4: 7, 17: 7, 43: 7, 11: 7,
+  47: 7,
+  24: 7,
+  4: 7,
+  17: 7,
+  43: 7,
+  11: 7,
   // Throat (6)
-  62: 6, 23: 6, 56: 6, 35: 6, 12: 6, 45: 6, 33: 6, 8: 6, 31: 6, 20: 6, 16: 6,
+  62: 6,
+  23: 6,
+  56: 6,
+  35: 6,
+  12: 6,
+  45: 6,
+  33: 6,
+  8: 6,
+  31: 6,
+  20: 6,
+  16: 6,
   // G Center (5)
-  7: 5, 1: 5, 13: 5, 25: 5, 46: 5, 2: 5, 15: 5, 10: 5,
+  7: 5,
+  1: 5,
+  13: 5,
+  25: 5,
+  46: 5,
+  2: 5,
+  15: 5,
+  10: 5,
   // Ego (4)
-  26: 4, 51: 4, 21: 4, 40: 4,
+  26: 4,
+  51: 4,
+  21: 4,
+  40: 4,
   // Solar Plexus (3)
-  36: 3, 22: 3, 37: 3, 6: 3, 49: 3, 55: 3, 30: 3,
+  36: 3,
+  22: 3,
+  37: 3,
+  6: 3,
+  49: 3,
+  55: 3,
+  30: 3,
   // Spleen (2)
-  48: 2, 57: 2, 44: 2, 50: 2, 32: 2, 28: 2, 18: 2,
+  48: 2,
+  57: 2,
+  44: 2,
+  50: 2,
+  32: 2,
+  28: 2,
+  18: 2,
   // Sacral (1)
-  5: 1, 14: 1, 29: 1, 59: 1, 9: 1, 3: 1, 42: 1, 27: 1, 34: 1,
+  5: 1,
+  14: 1,
+  29: 1,
+  59: 1,
+  9: 1,
+  3: 1,
+  42: 1,
+  27: 1,
+  34: 1,
   // Root (0)
-  53: 0, 60: 0, 52: 0, 19: 0, 39: 0, 41: 0, 58: 0, 38: 0, 54: 0,
+  53: 0,
+  60: 0,
+  52: 0,
+  19: 0,
+  39: 0,
+  41: 0,
+  58: 0,
+  38: 0,
+  54: 0,
 };
 
 /**
@@ -689,11 +1067,17 @@ export const gateToCenter: Record<number, number> = {
  * Each gate in the Solar Plexus center carries a specific fear pattern
  * and operates through one of three wave types: Need, Passion, or Desire.
  */
-export const emotionalGateFears: Record<number, { fear: string; wave: string }> = {
-  6:  { fear: 'revealing who you really are', wave: 'Need' },
+export const emotionalGateFears: Record<
+  number,
+  { fear: string; wave: string }
+> = {
+  6: { fear: 'revealing who you really are', wave: 'Need' },
   37: { fear: 'traditional roles in life', wave: 'Need' },
   49: { fear: 'rejections, unpredictability and consequences', wave: 'Need' },
-  22: { fear: 'that no one will listen to you and there is nothing to listen to', wave: 'Passion' },
+  22: {
+    fear: 'that no one will listen to you and there is nothing to listen to',
+    wave: 'Passion',
+  },
   55: { fear: 'not having anything to be passionate about', wave: 'Passion' },
   36: { fear: 'emotional inadequacy', wave: 'Desire' },
   30: { fear: 'what might or might not happen', wave: 'Desire' },
@@ -711,55 +1095,83 @@ export const awarenessStreams = [
     name: 'Knowing',
     circuit: 'Individual',
     awarenessCenter: 'Ajna',
-    channels: [[61, 24], [43, 23]],
+    channels: [
+      [61, 24],
+      [43, 23],
+    ],
   },
   {
     name: 'Intuition',
     circuit: 'Individual',
     awarenessCenter: 'Spleen',
-    channels: [[57, 20], [28, 38]],
+    channels: [
+      [57, 20],
+      [28, 38],
+    ],
   },
   {
     name: 'Emoting',
     circuit: 'Individual',
     awarenessCenter: 'Solar Plexus',
-    channels: [[22, 12], [39, 55]],
+    channels: [
+      [22, 12],
+      [39, 55],
+    ],
   },
   {
     name: 'Instinct',
     circuit: 'Tribal',
     awarenessCenter: 'Spleen',
-    channels: [[26, 44], [32, 54]],
+    channels: [
+      [26, 44],
+      [32, 54],
+    ],
   },
   {
     name: 'Sensitivity',
     circuit: 'Tribal',
     awarenessCenter: 'Solar Plexus',
-    channels: [[37, 40], [19, 49], [6, 59]],
+    channels: [
+      [37, 40],
+      [19, 49],
+      [6, 59],
+    ],
   },
   {
     name: 'Understanding',
     circuit: 'Collective Logic',
     awarenessCenter: 'Ajna',
-    channels: [[63, 4], [17, 62]],
+    channels: [
+      [63, 4],
+      [17, 62],
+    ],
   },
   {
     name: 'Taste',
     circuit: 'Collective Logic',
     awarenessCenter: 'Spleen',
-    channels: [[48, 16], [18, 58]],
+    channels: [
+      [48, 16],
+      [18, 58],
+    ],
   },
   {
     name: 'Sensing',
     circuit: 'Collective Abstract',
     awarenessCenter: 'Ajna',
-    channels: [[64, 47], [11, 56]],
+    channels: [
+      [64, 47],
+      [11, 56],
+    ],
   },
   {
     name: 'Feeling',
     circuit: 'Collective Abstract',
     awarenessCenter: 'Solar Plexus',
-    channels: [[35, 36], [41, 30]],
+    channels: [
+      [35, 36],
+      [41, 30],
+    ],
   },
 ] as const;
 
