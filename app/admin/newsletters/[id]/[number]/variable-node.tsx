@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { mergeAttributes } from '@tiptap/core';
 import { EmailNode } from '@react-email/editor/core';
 import { useCurrentEditor, useEditorState } from '@tiptap/react';
 import type { SlashCommandItem } from '@react-email/editor/ui';
@@ -110,6 +109,15 @@ export function VariableEditForm() {
   );
 }
 
+/** Liquid output tag for a variable node, e.g. `{{ first_name | default: 'there' | capitalize }}`. */
+function liquidTag(attrs: Record<string, unknown>): string {
+  const filters: string[] = [];
+  if (attrs.default) filters.push(`default: '${attrs.default}'`);
+  if (attrs.capitalize) filters.push('capitalize');
+  const filterStr = filters.length ? ` | ${filters.join(' | ')}` : '';
+  return `{{ ${attrs.variableId}${filterStr} }}`;
+}
+
 /**
  * VariableNode — inline atom node for substitution variables.
  * Renders as a styled <span> in the editor (via renderHTML + CSS).
@@ -125,10 +133,24 @@ export const VariableNode = EmailNode.create({
   selectable: true,
 
   addAttributes() {
+    // Each attribute reads back the data-* attribute it renders to, so chips
+    // survive copy/paste (clipboard HTML is re-parsed through parseHTML).
     return {
-      variableId: { default: '' },
-      default: { default: '' },
-      capitalize: { default: false },
+      variableId: {
+        default: '',
+        parseHTML: (el) => el.getAttribute('data-variable-id') ?? '',
+        renderHTML: (attrs) => ({ 'data-variable-id': attrs.variableId }),
+      },
+      default: {
+        default: '',
+        parseHTML: (el) => el.getAttribute('data-variable-default') ?? '',
+        renderHTML: (attrs) => ({ 'data-variable-default': attrs.default }),
+      },
+      capitalize: {
+        default: false,
+        parseHTML: (el) => el.getAttribute('data-variable-capitalize') === 'true',
+        renderHTML: (attrs) => (attrs.capitalize ? { 'data-variable-capitalize': 'true' } : {}),
+      },
     };
   },
 
@@ -136,42 +158,16 @@ export const VariableNode = EmailNode.create({
     return [{ tag: 'span[data-variable-id]' }];
   },
 
-  renderHTML({ HTMLAttributes }) {
-    const { variableId, default: defaultVal, capitalize, ...rest } = HTMLAttributes;
-    return [
-      'span',
-      mergeAttributes(rest, {
-        'data-variable-id': variableId,
-        'data-variable-default': defaultVal,
-        'data-variable-capitalize': capitalize ? 'true' : undefined,
-      }),
-      (() => {
-        if (!variableId) return '{{ … }}';
-        const filters: string[] = [];
-        if (defaultVal) filters.push(`default: '${defaultVal}'`);
-        if (capitalize) filters.push('capitalize');
-        const filterStr = filters.length ? ` | ${filters.join(' | ')}` : '';
-        return `{{ ${variableId}${filterStr} }}`;
-      })(),
-    ];
+  renderHTML({ node, HTMLAttributes }) {
+    return ['span', HTMLAttributes, node.attrs.variableId ? liquidTag(node.attrs) : '{{ … }}'];
   },
 
   renderToReactEmail({ node }) {
-    const variableId = node.attrs?.variableId;
-    if (!variableId) return <span />;
-
-    const defaultVal = node.attrs?.default;
-    const capitalize = node.attrs?.capitalize ?? false;
-
-    // Build Liquid filter chain
-    const filters: string[] = [];
-    if (defaultVal) filters.push(`default: '${defaultVal}'`);
-    if (capitalize) filters.push('capitalize');
-    const filterStr = filters.length ? ` | ${filters.join(' | ')}` : '';
+    if (!node.attrs?.variableId) return <span />;
 
     // Use dangerouslySetInnerHTML so React doesn't HTML-encode the Liquid
     // syntax (e.g. single quotes in default filters becoming &#x27;).
-    return <span dangerouslySetInnerHTML={{ __html: `{{ ${variableId}${filterStr} }}` }} />;
+    return <span dangerouslySetInnerHTML={{ __html: liquidTag(node.attrs) }} />;
   },
 });
 

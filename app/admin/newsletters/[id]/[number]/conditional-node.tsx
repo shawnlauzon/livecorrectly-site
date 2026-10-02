@@ -658,26 +658,30 @@ export const ConditionalBranchNode = EmailNode.create({
   isolating: true,
 
   addAttributes() {
+    // Each attribute reads back the data-* attribute it renders to, so
+    // branches survive copy/paste (clipboard HTML is re-parsed through parseHTML).
     return {
-      branchType: { default: 'if' },
-      condition: { default: '' },
+      branchType: {
+        default: 'if',
+        parseHTML: (el) => el.getAttribute('data-branch-type') ?? 'if',
+        renderHTML: (attrs) => ({ 'data-branch-type': attrs.branchType }),
+      },
+      condition: {
+        default: '',
+        parseHTML: (el) => el.getAttribute('data-condition') ?? '',
+        renderHTML: (attrs) => ({ 'data-condition': attrs.condition }),
+      },
     };
   },
 
   parseHTML() {
-    return [{ tag: 'div[data-branch-type]' }];
+    // Above the default 50 so StarterKit's generic `div:not([data-type])`
+    // node doesn't claim branches when pasted HTML is parsed.
+    return [{ tag: 'div[data-branch-type]', priority: 100 }];
   },
 
   renderHTML({ HTMLAttributes }) {
-    const { branchType, condition, ...rest } = HTMLAttributes;
-    return [
-      'div',
-      mergeAttributes(rest, {
-        'data-branch-type': branchType,
-        'data-condition': condition,
-      }),
-      0,
-    ];
+    return ['div', HTMLAttributes, 0];
   },
 
   addNodeView() {
