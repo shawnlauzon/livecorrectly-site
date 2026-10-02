@@ -31,3 +31,20 @@ describe('shadows condition', () => {
     expect(await render('not shadows contains "Losing focus"')).toBe('NO');
   });
 });
+
+describe('line-wrapped Liquid tags', () => {
+  // composeReactEmail() pretty-prints the editor HTML, wrapping long lines —
+  // including inside a condition's quoted values.
+  it('matches a condition whose quoted value was wrapped across lines', async () => {
+    const html = `{% if top_shadow == "Blaming yourself for something
+                      missing" %}YES{% else %}NO{% endif %}`;
+    const bridged = { ...chart, topShadowName: 'Blaming yourself for something missing' };
+    expect(await resolveLiquid(html, { chart: bridged })).toBe('YES');
+  });
+
+  it('matches a wrapped output-tag default', async () => {
+    const html = `{{ first_name | default: 'there
+                      friend' }}`;
+    expect(await resolveLiquid(html, { chart, firstName: '' })).toBe('there friend');
+  });
+});

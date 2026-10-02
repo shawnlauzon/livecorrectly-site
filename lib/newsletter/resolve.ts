@@ -433,7 +433,7 @@ export function extractDynamicSections(
   const unwrapped = unwrapLiquidSpans(html);
   // Decode HTML entities inside Liquid delimiters (e.g. &#x27; → ')
   // so that parseFilterChain sees real quotes, not encoded ones.
-  const decoded = decodeLiquidEntities(unwrapped);
+  const decoded = normalizeLiquidTags(unwrapped);
 
   const nlPrefix = `n${newsletterId}_${String(newsletterNumber).padStart(2, '0')}`;
   const sections: DynamicSection[] = [];
@@ -549,13 +549,17 @@ export function buildLiquidContext(
 }
 
 /**
- * Decode HTML entities inside Liquid delimiters ({{ }} and {% %}).
+ * Normalize Liquid tags ({{ }} and {% %}) in editor HTML before parsing.
  *
- * The TipTap editor encodes characters like `'` as `&#x27;` in its HTML output.
- * This is correct for HTML content but breaks Liquid parsing — e.g.
- * `{{ name | default: &#x27;there&#x27; }}` is invalid Liquid syntax.
+ * - Decode HTML entities. The TipTap editor encodes characters like `'` as
+ *   `&#x27;` in its HTML output. This is correct for HTML content but breaks
+ *   Liquid parsing — e.g. `{{ name | default: &#x27;there&#x27; }}` is invalid.
+ * - Collapse whitespace runs to a single space. composeReactEmail() pretty-prints
+ *   its HTML and wraps long lines, even inside a tag's quoted values, so
+ *   `"Blaming yourself for something missing"` arrives as
+ *   `"Blaming yourself for something\n      missing"` and would never match.
  *
- * Only decodes within Liquid tags to avoid altering surrounding HTML.
+ * Only touches Liquid tags to avoid altering surrounding HTML.
  */
 const HTML_ENTITY_MAP: Record<string, string> = {
   '&#x27;': "'",
@@ -570,11 +574,13 @@ const HTML_ENTITY_MAP: Record<string, string> = {
 };
 const HTML_ENTITY_RE = /&#x27;|&#39;|&apos;|&#x22;|&#34;|&quot;|&amp;|&lt;|&gt;/g;
 
-function decodeLiquidEntities(html: string): string {
+function normalizeLiquidTags(html: string): string {
   // Match both {{ ... }} output tags and {% ... %} control tags
   return html.replace(
     /(\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\})/g,
-    (tag) => tag.replace(HTML_ENTITY_RE, (entity) => HTML_ENTITY_MAP[entity] ?? entity),
+    (tag) => tag
+      .replace(HTML_ENTITY_RE, (entity) => HTML_ENTITY_MAP[entity] ?? entity)
+      .replace(/\s+/g, ' '),
   );
 }
 
@@ -630,7 +636,7 @@ export async function resolveLiquid(
   // Liquid can't parse HTML entities inside its tags, so decode them first.
   // Only decode inside Liquid delimiters ({{ }}, {% %}) to avoid altering
   // the surrounding HTML.
-  const decoded = decodeLiquidEntities(html);
+  const decoded = normalizeLiquidTags(html);
 
   return engine.parseAndRender(decoded, ctx);
 }
@@ -649,7 +655,7 @@ export async function renderDynamicSection(
   engagement?: EngagementData | null,
 ): Promise<string> {
   const context = buildLiquidContext(chart, 'email', engagement);
-  const decoded = decodeLiquidEntities(sectionHtml);
+  const decoded = normalizeLiquidTags(sectionHtml);
   const resolved = await engine.parseAndRender(decoded, context);
 
   // If all conditionals resolved to empty, skip rendering
