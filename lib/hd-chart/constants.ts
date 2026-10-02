@@ -508,7 +508,7 @@ export const shadowDescriptions: Record<string, string> = {
     'Avoiding truth and confrontation in emotional situations',
   'Identity & Direction': 'Searching for love and direction outside yourself',
   'Survival Instinct': 'Holding onto things which no longer serve you',
-  Conceptualization: 'Getting distracted and losing focus',
+  Conceptualization: 'Trying too hard to be certain',
   Inspiration: "Trying to answer other people's questions",
   'Drive & Stamina': 'Rushing to get things done to relieve stress',
   'Energy Resource': 'Not knowing when enough is enough',
