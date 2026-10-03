@@ -1,4 +1,12 @@
 import type { NextConfig } from "next";
+import { PRODUCTION_URL } from "./lib/site-url";
+
+// Upload URLs are absolute and baked in with the APP_URL of wherever the upload
+// ran, and every environment reads the same DB — so production-host URLs show
+// up locally too. Allow /i/ on both hosts.
+const imageProxyOrigins = [
+  ...new Set([PRODUCTION_URL, process.env.APP_URL ?? PRODUCTION_URL]),
+].map((origin) => new URL(origin));
 
 const nextConfig: NextConfig = {
   images: {
@@ -9,11 +17,12 @@ const nextConfig: NextConfig = {
       },
       // Newsletter images uploaded since the /i/ proxy (below) use the app's own
       // host, so the newsletter index thumbnails must be allowed through it too.
-      {
-        protocol: 'https',
-        hostname: new URL(process.env.APP_URL ?? 'https://www.livecorrectly.com').hostname,
+      ...imageProxyOrigins.map(({ protocol, hostname, port }) => ({
+        protocol: protocol.replace(':', '') as 'http' | 'https',
+        hostname,
+        port,
         pathname: '/i/**',
-      },
+      })),
     ],
   },
   turbopack: {

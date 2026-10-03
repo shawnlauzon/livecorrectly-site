@@ -7,6 +7,8 @@ import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 export interface WebNewsletter {
   slug: string;
   number: number;
+  /** Publication (newsletter) this issue belongs to — used for the admin editor URL */
+  newsletterId: number;
   /** Display title (from subject) */
   title: string;
   /** SEO-only description (used in metadata, not displayed on index) */
@@ -105,6 +107,7 @@ async function renderForWeb(
   return {
     slug: raw.slug,
     number: raw.number,
+    newsletterId: raw.newsletterId,
     title: raw.subject,
     description: raw.description,
     preview: raw.preview,

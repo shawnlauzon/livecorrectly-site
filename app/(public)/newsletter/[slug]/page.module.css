@@ -67,6 +67,11 @@
 .dateLine .date {
   margin-bottom: 0;
 }
+.dateActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 
 .shareBtn {
   background: none;

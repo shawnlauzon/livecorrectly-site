@@ -5,6 +5,7 @@ import SiteNav from "@/components/site-nav";
 import SiteFooter from "@/components/site-footer";
 import { getWebNewsletters } from "@/lib/newsletter/web";
 import NewsletterIndexCta from "./NewsletterIndexCta";
+import AdminEditLink from "./AdminEditLink";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
@@ -36,7 +37,10 @@ export default async function NewsletterIndexPage({
     <>
       <SiteNav />
       <main className={styles.page}>
-        <h1 className={styles.h1}>Newsletter</h1>
+        <div className={styles.heading}>
+          <h1 className={styles.h1}>Newsletter</h1>
+          <AdminEditLink href="/admin/newsletters" />
+        </div>
         {!subscriberParam && <NewsletterIndexCta />}
         <ul className={styles.list}>
           {issues.map((issue) => (

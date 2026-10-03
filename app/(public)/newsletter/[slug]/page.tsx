@@ -8,6 +8,7 @@ import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import NewsletterCta from './NewsletterCta';
 import NewsletterShare from './NewsletterShare';
 import NewsletterTracker from './NewsletterTracker';
+import AdminEditLink from '../AdminEditLink';
 import styles from './page.module.css';
 
 interface Props {
@@ -140,7 +141,12 @@ export default async function NewsletterIssuePage({
                 {formatDate(issue.publishedAt)}
               </time>
             </p>
-            <NewsletterShare url={shareUrl} title={issue.title} slug={issue.slug} />
+            <div className={styles.dateActions}>
+              <AdminEditLink
+                href={`/admin/newsletters/${issue.newsletterId}/${issue.number}`}
+              />
+              <NewsletterShare url={shareUrl} title={issue.title} slug={issue.slug} />
+            </div>
           </div>
           <h1 className={styles.h1}>{issue.title}</h1>
           {subscriberName && (
