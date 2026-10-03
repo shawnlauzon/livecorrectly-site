@@ -194,14 +194,14 @@
   text-underline-offset: 2px;
 }
 
-/* ---- Personalization callout ---- */
+/* ---- Sample-chart callout ---- */
 
 .callout {
   background: var(--pulse-soft);
   border-left: 3px solid var(--pulse);
   border-radius: 4px;
   padding: 1rem 1.25rem;
-  margin-top: 2.5rem;
+  margin: -1rem 0 2.5rem;
   font-size: 0.9375rem;
   color: var(--ink-soft);
 }
@@ -219,43 +219,18 @@
   text-underline-offset: 2px;
 }
 
-/* ---- Personalized section ---- */
-
-.personalized {
+/* Chart values rendered from the sample chart (body HTML + callout) */
+.page :global(mark.sample-value) {
   background: var(--pulse-soft);
-  border-radius: 8px;
-  padding: 1.5rem 1.5rem 1rem;
-  margin-top: 2.5rem;
+  color: inherit;
+  border-bottom: 2px solid var(--pulse);
+  padding: 0 0.15em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
-.personalizedHeading {
-  font-family: var(--display);
-  font-weight: 400;
-  font-size: 1.25rem;
-  line-height: 1.2;
-  margin-bottom: 1rem;
-  color: var(--ink);
-}
-
-.shareLink {
-  margin-top: 1.25rem;
-  font-size: 0.875rem;
-  color: var(--ink-soft);
-}
-
-.shareLinkButton {
-  background: none;
-  border: none;
-  color: var(--pulse);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  font: inherit;
-  font-size: 0.875rem;
-  cursor: pointer;
-  padding: 0;
-}
-.shareLinkButton:hover {
-  opacity: 0.8;
+.callout :global(mark.sample-value) {
+  background: var(--card);
 }
 
 /* ---- Bottom CTA ---- */

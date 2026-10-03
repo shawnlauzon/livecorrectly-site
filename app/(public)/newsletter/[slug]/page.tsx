@@ -8,6 +8,8 @@ import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import NewsletterCta from './NewsletterCta';
 import NewsletterShare from './NewsletterShare';
 import NewsletterTracker from './NewsletterTracker';
+import PersonalizationCallout from './PersonalizationCallout';
+import { SAMPLE_CHART } from '@/lib/newsletter/sample-chart';
 import AdminEditLink from '../AdminEditLink';
 import styles from './page.module.css';
 
@@ -134,7 +136,7 @@ export default async function NewsletterIssuePage({
           {!issue.published && (
             <p className={styles.draftBanner}>Unpublished draft</p>
           )}
-          <NewsletterTracker slug={issue.slug} issue={issue.number} personalized={!!subscriberParam} />
+          <NewsletterTracker slug={issue.slug} issue={issue.number} personalized={!issue.usesSampleChart} />
           <div className={styles.dateLine}>
             <p className={styles.date}>
               <time dateTime={issue.publishedAt}>
@@ -151,6 +153,9 @@ export default async function NewsletterIssuePage({
           <h1 className={styles.h1}>{issue.title}</h1>
           {subscriberName && (
             <p className={styles.builtFor}>Built for {subscriberName}</p>
+          )}
+          {issue.usesSampleChart && (
+            <PersonalizationCallout sampleCareerDesign={SAMPLE_CHART.careerDesign} />
           )}
           <div
             className={styles.body}

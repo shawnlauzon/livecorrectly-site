@@ -587,6 +587,20 @@ function normalizeLiquidTags(html: string): string {
 }
 
 /**
+ * Wrap output tags for chart variables (e.g. `{{ authority_short }}`) in a
+ * `<mark class="sample-value">` so web readers can see which words come from
+ * the chart. Identity and template variables are left alone.
+ *
+ * Assumes output tags never appear inside HTML attributes — a wrapped tag
+ * there would produce broken markup.
+ */
+function highlightChartOutputTags(html: string): string {
+  return html.replace(LIQUID_OUTPUT_RE, (match, varName: string) =>
+    KNOWN_CONTACT_KEYS.has(varName) ? `<mark class="sample-value">${match}</mark>` : match,
+  );
+}
+
+/**
  * Resolve Liquid conditionals and output tags in HTML.
  *
  * This is the single code path for all Liquid processing — used by:
@@ -605,6 +619,8 @@ export async function resolveLiquid(
     lastName?: string;
     email?: string;
     engagement?: EngagementData | null;
+    /** Wrap chart-variable output in `<mark class="sample-value">` (sample-chart web view) */
+    highlightChartValues?: boolean;
   },
 ): Promise<string> {
   if (!hasLiquidConditionals(html) && !hasLiquidOutputTags(html)) {
@@ -639,8 +655,9 @@ export async function resolveLiquid(
   // Only decode inside Liquid delimiters ({{ }}, {% %}) to avoid altering
   // the surrounding HTML.
   const decoded = normalizeLiquidTags(html);
+  const template = options?.highlightChartValues ? highlightChartOutputTags(decoded) : decoded;
 
-  return engine.parseAndRender(decoded, ctx);
+  return engine.parseAndRender(template, ctx);
 }
 
 /**
@@ -806,6 +823,7 @@ export async function resolveNewsletterHtml(
     newsletterNumber?: number;
     mode?: 'web' | 'email';
     engagement?: EngagementData | null;
+    highlightChartValues?: boolean;
   },
 ): Promise<string> {
   let result = await resolveLiquid(html, {
@@ -815,6 +833,7 @@ export async function resolveNewsletterHtml(
     lastName: options.lastName,
     email: options.email,
     engagement: options.engagement,
+    highlightChartValues: options.highlightChartValues,
   });
 
   result = resolveContactVars(result, options.chart ?? null);

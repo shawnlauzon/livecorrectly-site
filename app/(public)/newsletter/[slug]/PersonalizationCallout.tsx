@@ -5,22 +5,23 @@ import { track } from "@/lib/analytics";
 import styles from "./page.module.css";
 
 interface PersonalizationCalloutProps {
-  /** When true, mentions that personalized advice is available for subscribers */
-  hasWebPersonalization?: boolean;
+  /** Career design of the sample chart the issue was rendered against */
+  sampleCareerDesign: string;
 }
 
-export default function PersonalizationCallout({ hasWebPersonalization }: PersonalizationCalloutProps) {
+export default function PersonalizationCallout({ sampleCareerDesign }: PersonalizationCalloutProps) {
   return (
     <aside className={styles.callout}>
       <p>
-        {hasWebPersonalization
-          ? 'This article includes personalized advice based on your Human Design type.'
-          : 'Subscribers receive this newsletter weekly, customized to their unique Human Design.'}
+        <strong>You&rsquo;re reading the example version.</strong>{' '}
+        Each issue is personalized to the reader&rsquo;s Human Design. The{' '}
+        <mark className="sample-value">highlighted</mark> parts are written for a
+        sample {sampleCareerDesign}.
       </p>
       <p>
         <Link
           href="/see-your-design"
-          onClick={() => track('cta_click', { location: 'newsletter_personalization_callout' })}
+          onClick={() => track('cta_click', { location: 'newsletter_sample_banner' })}
         >
           Get your free chart
         </Link>{' '}

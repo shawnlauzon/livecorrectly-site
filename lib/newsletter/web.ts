@@ -3,6 +3,7 @@ import { loadAllNewsletterIssues, type RawNewsletterIssue } from './loader';
 import { resolveNewsletterHtml } from './resolve';
 import type { EngagementData } from './resolve';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
+import { SAMPLE_CHART } from './sample-chart';
 
 export interface WebNewsletter {
   slug: string;
@@ -24,12 +25,25 @@ export interface WebNewsletter {
   bodyHtml: string;
   /** Postscripts (plain text) */
   ps: string[];
+  /** Rendered against SAMPLE_CHART because the reader has no chart */
+  usesSampleChart: boolean;
 }
 
 /** Extract the first <img> src from an HTML string, or null if none. */
 function extractFirstImageUrl(html: string): string | null {
   const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
   return match?.[1] ?? null;
+}
+
+/**
+ * Editor HTML is a complete email document (doctype, <html>, <head>, <body>).
+ * Return only the <body> contents so the page doesn't nest a second
+ * <html>/<body> inside the article (browsers hoist those attributes onto the
+ * real root, causing a hydration mismatch). Fragments are returned unchanged.
+ */
+export function extractBodyContent(html: string): string {
+  const match = html.match(/<body\b[^>]*>([\s\S]*)<\/body>/i);
+  return match ? match[1] : html;
 }
 
 /** Strip inline style="..." attributes so web CSS can style the content cleanly. */
@@ -67,7 +81,7 @@ function addHeadingIds(html: string): string {
  * Returns null if the newsletter has no slug (email-only issue).
  *
  * Processing pipeline:
- * 1. Start from editor HTML (bodyHtml)
+ * 1. Start from editor HTML (bodyHtml), unwrapped to its <body> contents
  * 2. Strip inline style attributes for clean web CSS
  * 3. Add heading IDs for anchor linking
  * 4. Resolve Liquid conditionals and output tags ({{ var | filter }})
@@ -80,6 +94,7 @@ async function renderForWeb(
   published: boolean,
   chart?: EmailChartData | null,
   subscriberId?: string,
+  useSampleChart = false,
 ): Promise<WebNewsletter | null> {
   if (!raw.slug) return null;
 
@@ -93,11 +108,12 @@ async function renderForWeb(
     engagement = { newsletters: engagementMap };
   }
 
-  let html = stripInlineStyles(raw.bodyHtml);
+  let html = stripInlineStyles(extractBodyContent(raw.bodyHtml));
   html = addHeadingIds(html);
 
   html = await resolveNewsletterHtml(html, {
-    chart,
+    chart: useSampleChart ? SAMPLE_CHART : chart,
+    highlightChartValues: useSampleChart,
     mode: 'web',
     subscriberId,
     newsletterNumber: raw.number,
@@ -116,6 +132,7 @@ async function renderForWeb(
     published,
     bodyHtml: html,
     ps: raw.rawPs,
+    usesSampleChart: useSampleChart,
   };
 }
 
@@ -155,7 +172,8 @@ export async function getWebNewsletters(): Promise<WebNewsletter[]> {
 
 /**
  * Get a single newsletter by its slug.
- * When chart is provided, conditional blocks are evaluated against it.
+ * When chart is provided, conditional blocks are evaluated against it;
+ * otherwise the issue is rendered against SAMPLE_CHART with chart values highlighted.
  */
 export async function getWebNewsletter(
   slug: string,
@@ -172,7 +190,7 @@ export async function getWebNewsletter(
     if (!sentAt && !isDev) return null;
     const publishedAt = sentAt ?? new Date().toISOString();
     try {
-      return await renderForWeb(raw, publishedAt, !!sentAt, chart, subscriberId);
+      return await renderForWeb(raw, publishedAt, !!sentAt, chart, subscriberId, !chart);
     } catch (error) {
       console.error(
         `Failed to render newsletter #${num} (${slug}):`,
