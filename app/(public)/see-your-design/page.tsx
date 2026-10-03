@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import ChartForm from '@/components/chart-form';
+import { getNewsletterPublication } from '@/lib/db';
+import { weekdayName } from '@/lib/newsletter/cadence';
 import styles from './page.module.css';
 
 export const metadata: Metadata = {
@@ -9,7 +11,14 @@ export const metadata: Metadata = {
     'Get your Human Design chart, then learn how to actually use it.',
 };
 
-export default function SeeYourDesign() {
+// Re-read the newsletter send day from the DB at most hourly
+export const revalidate = 3600;
+
+export default async function SeeYourDesign() {
+  const publication = await getNewsletterPublication(1);
+  const sendDay =
+    publication?.sendWeekday != null ? weekdayName(publication.sendWeekday) : null;
+
   return (
     <>
       <header className={styles.wrap}>
@@ -58,8 +67,9 @@ export default function SeeYourDesign() {
           is annoying.
         </p>
         <p className={styles.lead}>
-          After that, you&rsquo;ll receive a weekly newsletter every
-          Wednesday&mdash;personalized to your unique design.
+          After that, you&rsquo;ll receive a weekly newsletter
+          {sendDay ? ` every ${sendDay}` : ''}&mdash;personalized to your
+          unique design.
         </p>
 
         <ChartForm />

@@ -4,11 +4,17 @@ import Link from "next/link";
 import { track } from "@/lib/analytics";
 import styles from "./page.module.css";
 
-export default function NewsletterIndexCta() {
+interface NewsletterIndexCtaProps {
+  /** Weekday the newsletter goes out (from the publication cadence), or null if unset */
+  sendDay: string | null;
+}
+
+export default function NewsletterIndexCta({ sendDay }: NewsletterIndexCtaProps) {
   return (
     <section className={styles.cta}>
       <p>
-        Sent every Wednesday, personalized to your specific Human Design.
+        {sendDay ? `Sent every ${sendDay}` : "Sent weekly"}, personalized to
+        your specific Human Design.
       </p>
       <Link
         className="btn"

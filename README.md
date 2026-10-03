@@ -52,10 +52,10 @@ A welcome series + newsletter pipeline sent via Resend with React Email template
 ### How it works
 
 1. Subscriber fills out the chart form and is inserted into the `subscribers` table
-2. A daily Vercel cron (`/api/cron/daily-emails`, 14:00 UTC) queries active subscribers with `next_step` between 1 and 3
+2. A daily Vercel cron (`/api/cron/daily-emails`; schedule in `vercel.json`) queries active subscribers with `next_step` between 1 and 3
 3. For each due subscriber, it renders the welcome email at `next_step` with their personalized chart data and calls Resend
 4. After sending, it advances `next_step`
-5. A weekly newsletter cron (`/api/cron/newsletter`, Wednesdays at 14:47 UTC) picks up subscribers who completed welcome (`next_step > 3`) and sends the next newsletter
+5. Newsletter issues are scheduled from `/admin/newsletters` on the publication's weekly cadence (`newsletters.send_weekday` / `send_time`) and go to subscribers who completed welcome (`next_step > 3`)
 
 ### Welcome series
 

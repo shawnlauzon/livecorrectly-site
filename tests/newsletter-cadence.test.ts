@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   nextRegularSendAt,
+  weekdayName,
   zonedDateString,
 } from '../lib/newsletter/cadence';
 
@@ -63,5 +64,13 @@ describe('nextRegularSendAt', () => {
 describe('zonedDateString', () => {
   it('formats the local calendar date', () => {
     expect(zonedDateString(new Date('2026-10-06T04:30:00Z'), 'America/Chicago')).toBe('2026-10-05');
+  });
+});
+
+describe('weekdayName', () => {
+  it('names the send weekday (0 = Sunday)', () => {
+    expect(weekdayName(0)).toBe('Sunday');
+    expect(weekdayName(2)).toBe('Tuesday');
+    expect(weekdayName(6)).toBe('Saturday');
   });
 });

@@ -12,6 +12,13 @@ export interface WeeklyCadence {
   timezone: string;
 }
 
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/** Display name for a cadence weekday (0 = Sunday … 6 = Saturday). */
+export function weekdayName(sendWeekday: number): string {
+  return WEEKDAY_NAMES[sendWeekday];
+}
+
 interface ZonedParts {
   year: number;
   month: number;

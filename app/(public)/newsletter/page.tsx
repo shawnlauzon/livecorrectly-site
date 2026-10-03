@@ -4,6 +4,8 @@ import Link from "next/link";
 import SiteNav from "@/components/site-nav";
 import SiteFooter from "@/components/site-footer";
 import { getWebNewsletters } from "@/lib/newsletter/web";
+import { getNewsletterPublication } from "@/lib/db";
+import { weekdayName } from "@/lib/newsletter/cadence";
 import NewsletterIndexCta from "./NewsletterIndexCta";
 import AdminEditLink from "./AdminEditLink";
 import styles from "./page.module.css";
@@ -31,7 +33,12 @@ export default async function NewsletterIndexPage({
   const resolvedSearchParams = await searchParams;
   const subscriberParam =
     typeof resolvedSearchParams.s === 'string' ? resolvedSearchParams.s : null;
-  const issues = await getWebNewsletters();
+  const [issues, publication] = await Promise.all([
+    getWebNewsletters(),
+    getNewsletterPublication(1),
+  ]);
+  const sendDay =
+    publication?.sendWeekday != null ? weekdayName(publication.sendWeekday) : null;
 
   return (
     <>
@@ -41,7 +48,7 @@ export default async function NewsletterIndexPage({
           <h1 className={styles.h1}>Newsletter</h1>
           <AdminEditLink href="/admin/newsletters" />
         </div>
-        {!subscriberParam && <NewsletterIndexCta />}
+        {!subscriberParam && <NewsletterIndexCta sendDay={sendDay} />}
         <ul className={styles.list}>
           {issues.map((issue) => (
             <li key={issue.slug} className={styles.item}>
