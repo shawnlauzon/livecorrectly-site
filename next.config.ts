@@ -7,6 +7,13 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.public.blob.vercel-storage.com',
       },
+      // Newsletter images uploaded since the /i/ proxy (below) use the app's own
+      // host, so the newsletter index thumbnails must be allowed through it too.
+      {
+        protocol: 'https',
+        hostname: new URL(process.env.APP_URL ?? 'https://www.livecorrectly.com').hostname,
+        pathname: '/i/**',
+      },
     ],
   },
   turbopack: {
