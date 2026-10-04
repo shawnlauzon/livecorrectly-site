@@ -233,6 +233,38 @@
   background: var(--card);
 }
 
+/* Hover tooltip on sample values */
+.sampleBody {
+  position: relative;
+}
+
+.sampleBody :global(mark.sample-value) {
+  cursor: help;
+}
+
+.sampleTooltip {
+  --tooltip-width: 16rem;
+  position: absolute;
+  z-index: 10;
+  width: var(--tooltip-width);
+  max-width: 100%;
+  /* Center under the anchor, but keep inside the column */
+  left: clamp(0px, calc(var(--anchor-x) - var(--tooltip-width) / 2), calc(100% - var(--tooltip-width)));
+  background: var(--ink);
+  color: var(--ground);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+}
+
+.sampleTooltip a {
+  color: var(--ground);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* ---- Bottom CTA ---- */
 
 .cta {

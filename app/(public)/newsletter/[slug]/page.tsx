@@ -9,6 +9,7 @@ import NewsletterCta from './NewsletterCta';
 import NewsletterShare from './NewsletterShare';
 import NewsletterTracker from './NewsletterTracker';
 import PersonalizationCallout from './PersonalizationCallout';
+import SampleValueTooltip from './SampleValueTooltip';
 import { SAMPLE_CHART } from '@/lib/newsletter/sample-chart';
 import AdminEditLink from '../AdminEditLink';
 import styles from './page.module.css';
@@ -157,10 +158,17 @@ export default async function NewsletterIssuePage({
           {issue.usesSampleChart && (
             <PersonalizationCallout sampleCareerDesign={SAMPLE_CHART.careerDesign} />
           )}
-          <div
-            className={styles.body}
-            dangerouslySetInnerHTML={{ __html: issue.bodyHtml }}
-          />
+          {issue.usesSampleChart ? (
+            <SampleValueTooltip
+              html={issue.bodyHtml}
+              sampleCareerDesign={SAMPLE_CHART.careerDesign}
+            />
+          ) : (
+            <div
+              className={styles.body}
+              dangerouslySetInnerHTML={{ __html: issue.bodyHtml }}
+            />
+          )}
           {issue.ps.map((p, i) => (
             <div key={i} className={styles.ps}>
               <strong>{getPostscriptPrefix(i)}</strong>{' '}
