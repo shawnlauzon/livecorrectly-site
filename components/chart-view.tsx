@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ChartHero from './chart-hero';
 import styles from './chart-form.module.css';
-import { Subscriber } from '@/lib/types/subscriber';
+import type { PublicSubscriber } from '@/lib/types/subscriber';
 import { track } from '@/lib/analytics';
 
 interface ChartViewProps {
@@ -15,7 +15,7 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
   const searchParams = useSearchParams();
   const isFromForm = searchParams.get('from') === 'form';
   const isStationAustin = searchParams.get('utm_campaign') === 'station_austin_followup';
-  const [subscriber, setSubscriber] = useState<Subscriber | null>(null);
+  const [subscriber, setSubscriber] = useState<PublicSubscriber | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [restartState, setRestartState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -54,7 +54,7 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
         if (!res.ok) {
           throw new Error(`Unexpected status: ${res.status}`);
         }
-        const data = (await res.json()) as Subscriber;
+        const data = (await res.json()) as PublicSubscriber;
         setSubscriber(data);
       } catch (err) {
         console.error('Failed to load chart:', err);

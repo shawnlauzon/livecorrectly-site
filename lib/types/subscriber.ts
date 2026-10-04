@@ -27,6 +27,26 @@ export interface Subscriber {
   created_at: string; // ISO timestamp
 }
 
+/**
+ * The subset of a subscriber the chart page (`/see-your-design/[id]`) renders.
+ * That page is reachable by anyone with the link, so contact details and
+ * tokens (email, unsub_token) and pipeline state never leave the server.
+ */
+export type PublicSubscriber = Pick<
+  Subscriber,
+  'first_name' | 'last_name' | 'birth_input' | 'chart' | 'email_status'
+>;
+
+export function toPublicSubscriber(subscriber: Subscriber): PublicSubscriber {
+  return {
+    first_name: subscriber.first_name,
+    last_name: subscriber.last_name,
+    birth_input: subscriber.birth_input,
+    chart: subscriber.chart,
+    email_status: subscriber.email_status,
+  };
+}
+
 /** A record of an email sent to a subscriber. */
 export interface EmailSend {
   id: string;

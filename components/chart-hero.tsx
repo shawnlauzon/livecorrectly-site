@@ -8,7 +8,7 @@ import ChartReadout from "./chart-readout";
 import hdChart from "@/lib/hd-chart";
 import { careerDesignSubtitles } from "@/lib/hd-chart/constants";
 import { track } from "@/lib/analytics";
-import { Subscriber } from "@/lib/types/subscriber";
+import type { PublicSubscriber } from "@/lib/types/subscriber";
 import styles from "./chart-form.module.css";
 
 function formatBirthDate(iso: string): string {
@@ -33,7 +33,7 @@ const heroImages: Record<number, string> = {
 };
 
 interface ChartHeroProps {
-  subscriber: Subscriber;
+  subscriber: PublicSubscriber;
   subscriberId: string;
 }
 
@@ -121,7 +121,6 @@ export default function ChartHero({ subscriber, subscriberId }: ChartHeroProps) 
           <div className={styles.v}>
             {subscriber.first_name}
             {subscriber.last_name && ` ${subscriber.last_name}`}
-            {' '}&lt;{subscriber.email}&gt;
           </div>
         </div>
         <div className={styles.rowitem}>

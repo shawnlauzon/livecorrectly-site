@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSubscriberById } from '@/lib/db';
+import { toPublicSubscriber } from '@/lib/types/subscriber';
 
 export async function GET(
   _request: NextRequest,
@@ -26,7 +27,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(subscriber);
+    return NextResponse.json(toPublicSubscriber(subscriber));
   } catch (error) {
     console.error('Error fetching subscriber:', error);
     return NextResponse.json(
