@@ -192,6 +192,7 @@ function EditorPanel({
   updatedAt,
   setUpdatedAt,
   onConflict,
+  onConflictResolved,
   conflicted,
 }: {
   content: Content;
@@ -209,6 +210,7 @@ function EditorPanel({
   updatedAt: string | null;
   setUpdatedAt: (ts: string) => void;
   onConflict: () => void;
+  onConflictResolved: () => void;
   conflicted: boolean;
 }) {
   const [saving, setSaving] = useState(false);
@@ -302,7 +304,9 @@ function EditorPanel({
           slug: slug || null,
           description: description || undefined,
           postscripts,
-          expectedUpdatedAt: updatedAt,
+          // After a conflict, saving again is an explicit overwrite (see banner),
+          // so skip the stale-version check that would just 409 again.
+          expectedUpdatedAt: conflictedRef.current ? undefined : updatedAt,
         }),
       });
 
@@ -324,13 +328,14 @@ function EditorPanel({
       const time = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
       setSaveMessage(`Saved at ${time}`);
       setDirty(false);
+      onConflictResolved();
     } catch (err) {
       setSaveMessage(`Error: ${err instanceof Error ? err.message : 'Unknown'}`);
     } finally {
       savingRef.current = false;
       setSaving(false);
     }
-  }, [editorRef, num, subject, preview, slug, description, postscripts, setDirty, updatedAt, setUpdatedAt, onConflict]);
+  }, [editorRef, num, subject, preview, slug, description, postscripts, setDirty, updatedAt, setUpdatedAt, onConflict, onConflictResolved]);
 
   // Auto-save every 30 seconds when dirty
   const dirtyRef = useRef(dirty);
@@ -812,6 +817,7 @@ export default function NewsletterEditorPage() {
               updatedAt={updatedAt}
               setUpdatedAt={setUpdatedAt}
               onConflict={() => setConflicted(true)}
+              onConflictResolved={() => setConflicted(false)}
               conflicted={conflicted}
             />
           )}
