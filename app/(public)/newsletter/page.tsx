@@ -51,7 +51,7 @@ export default async function NewsletterIndexPage({
 
   return (
     <>
-      <SiteNav />
+      <SiteNav subscriberId={subscriber?.id} />
       <main className={styles.page}>
         <div className={styles.heading}>
           <h1 className={styles.h1}>Newsletter</h1>

@@ -8,13 +8,20 @@ export default async function SiteNav({
   variant = "landing",
   backHref = "/",
   hideNewsletterLink = false,
+  subscriberId: knownSubscriberId,
 }: {
   variant?: "landing" | "back";
   backHref?: string;
   hideNewsletterLink?: boolean;
+  /**
+   * Subscriber the page already identified (e.g. from an email link's `?s=`).
+   * Needed on the first visit from a link, before RememberSubscriber has set
+   * the cookie. Falls back to the cookie when omitted.
+   */
+  subscriberId?: string;
 }) {
   // Returning newsletter readers (see RememberSubscriber) get links to their own pages
-  const subscriberId = await getRememberedSubscriberId();
+  const subscriberId = knownSubscriberId ?? (await getRememberedSubscriberId());
 
   return (
     <Wrap as="header" className={styles.nav}>
