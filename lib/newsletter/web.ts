@@ -92,11 +92,11 @@ async function renderForWeb(
   raw: RawNewsletterIssue,
   publishedAt: string,
   published: boolean,
-  chart?: EmailChartData | null,
-  subscriberId?: string,
+  reader: WebReader = {},
   useSampleChart = false,
 ): Promise<WebNewsletter | null> {
   if (!raw.slug) return null;
+  const { chart, subscriberId, firstName, lastName } = reader;
 
   // Extract thumbnail from original editor HTML (before style stripping)
   const thumbnailUrl = extractFirstImageUrl(raw.bodyHtml);
@@ -115,6 +115,8 @@ async function renderForWeb(
     chart: useSampleChart ? SAMPLE_CHART : chart,
     highlightChartValues: useSampleChart,
     mode: 'web',
+    firstName,
+    lastName,
     subscriberId,
     newsletterNumber: raw.number,
     engagement,
@@ -134,6 +136,14 @@ async function renderForWeb(
     ps: raw.rawPs,
     usesSampleChart: useSampleChart,
   };
+}
+
+/** Who is reading a web issue — drives chart conditionals and name variables. */
+export interface WebReader {
+  chart?: EmailChartData | null;
+  subscriberId?: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 /**
@@ -177,8 +187,7 @@ export async function getWebNewsletters(): Promise<WebNewsletter[]> {
  */
 export async function getWebNewsletter(
   slug: string,
-  chart?: EmailChartData | null,
-  subscriberId?: string,
+  reader: WebReader = {},
 ): Promise<WebNewsletter | null> {
   const sendDates = await getNewsletterSendDates();
   const isDev = process.env.NODE_ENV === 'development';
@@ -190,7 +199,7 @@ export async function getWebNewsletter(
     if (!sentAt && !isDev) return null;
     const publishedAt = sentAt ?? new Date().toISOString();
     try {
-      return await renderForWeb(raw, publishedAt, !!sentAt, chart, subscriberId, !chart);
+      return await renderForWeb(raw, publishedAt, !!sentAt, reader, !reader.chart);
     } catch (error) {
       console.error(
         `Failed to render newsletter #${num} (${slug}):`,

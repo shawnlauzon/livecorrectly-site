@@ -86,12 +86,16 @@ export default async function NewsletterIssuePage({
   const subscriberId = subscriberParam ?? (await getRememberedSubscriberId());
   let chart = null;
   let subscriberName: string | null = null;
+  let firstName: string | undefined;
+  let lastName: string | undefined;
   // Set only when the id matches a real subscriber
   let foundId: string | undefined;
   if (subscriberId) {
     const subscriber = await getSubscriberById(subscriberId);
     if (subscriber) {
       foundId = subscriber.id;
+      firstName = subscriber.first_name;
+      lastName = subscriber.last_name ?? undefined;
       subscriberName = subscriber.last_name
         ? `${subscriber.first_name} ${subscriber.last_name}`
         : subscriber.first_name;
@@ -102,7 +106,7 @@ export default async function NewsletterIssuePage({
   }
 
   // Load newsletter with chart so markdown conditionals are evaluated
-  const issue = await getWebNewsletter(slug, chart, foundId);
+  const issue = await getWebNewsletter(slug, { chart, subscriberId: foundId, firstName, lastName });
   if (!issue) {
     // Check if this is an old slug that should redirect
     const redirectSlug = (await getSlugRedirects()).get(slug);
