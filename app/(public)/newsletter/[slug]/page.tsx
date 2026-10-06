@@ -3,7 +3,9 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import SiteNav from '@/components/site-nav';
 import SiteFooter from '@/components/site-footer';
 import { getWebNewsletter, getAllSlugs, getSlugRedirects } from '@/lib/newsletter/web';
-import { getSubscriberById } from '@/lib/db';
+import { getSubscriberById, getNewsletterPublication } from '@/lib/db';
+import { weekdayName } from '@/lib/newsletter/cadence';
+import ResubscribePrompt from '@/components/resubscribe-prompt';
 import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import NewsletterCta from './NewsletterCta';
 import NewsletterShare from './NewsletterShare';
@@ -90,10 +92,12 @@ export default async function NewsletterIssuePage({
   let lastName: string | undefined;
   // Set only when the id matches a real subscriber
   let foundId: string | undefined;
+  let unsubscribed = false;
   if (subscriberId) {
     const subscriber = await getSubscriberById(subscriberId);
     if (subscriber) {
       foundId = subscriber.id;
+      unsubscribed = subscriber.email_status === 'unsubscribed';
       firstName = subscriber.first_name;
       lastName = subscriber.last_name ?? undefined;
       subscriberName = subscriber.last_name
@@ -118,6 +122,12 @@ export default async function NewsletterIssuePage({
   }
 
   const shareUrl = `https://www.livecorrectly.com/newsletter/${issue.slug}`;
+
+  let sendDay: string | null = null;
+  if (unsubscribed) {
+    const publication = await getNewsletterPublication(issue.newsletterId);
+    sendDay = publication?.sendWeekday != null ? weekdayName(publication.sendWeekday) : null;
+  }
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -185,6 +195,9 @@ export default async function NewsletterIssuePage({
           ))}
         </article>
         {!foundId && <NewsletterCta />}
+        {foundId && unsubscribed && (
+          <ResubscribePrompt subscriberId={foundId} sendDay={sendDay} location="newsletter_issue" />
+        )}
       </main>
       <SiteFooter />
       {subscriberParam && foundId && <RememberSubscriber id={subscriberParam} />}

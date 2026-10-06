@@ -1,0 +1,18 @@
+.prompt {
+  margin: 2.5rem 0;
+  text-align: center;
+}
+
+.prompt p {
+  color: var(--ink-soft);
+  margin-bottom: 1.25rem;
+}
+
+.prompt p:last-child {
+  margin-bottom: 0;
+}
+
+.error {
+  color: var(--coral);
+  margin-top: 1rem;
+}

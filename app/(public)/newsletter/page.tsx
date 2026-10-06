@@ -7,6 +7,8 @@ import { getWebNewsletters } from "@/lib/newsletter/web";
 import { getNewsletterPublication, getSubscriberById } from "@/lib/db";
 import { weekdayName } from "@/lib/newsletter/cadence";
 import NewsletterIndexCta from "./NewsletterIndexCta";
+import ResubscribePrompt from "@/components/resubscribe-prompt";
+import NotYouLink from "@/components/not-you-link";
 import AdminEditLink from "./AdminEditLink";
 import RememberSubscriber from "@/components/remember-subscriber";
 import { isSubscriberId } from "@/lib/subscriber-cookie";
@@ -55,7 +57,20 @@ export default async function NewsletterIndexPage({
           <h1 className={styles.h1}>Newsletter</h1>
           <AdminEditLink href="/admin/newsletters" />
         </div>
-        <NewsletterIndexCta sendDay={sendDay} subscribed={!!subscriber} />
+        {subscriber && (
+          <p className={styles.builtFor}>
+            Built for{" "}
+            {subscriber.last_name
+              ? `${subscriber.first_name} ${subscriber.last_name}`
+              : subscriber.first_name}{" "}
+            <NotYouLink className={styles.notYou} />
+          </p>
+        )}
+        {subscriber?.email_status === "unsubscribed" ? (
+          <ResubscribePrompt subscriberId={subscriber.id} sendDay={sendDay} location="newsletter_index" />
+        ) : (
+          <NewsletterIndexCta sendDay={sendDay} subscribed={!!subscriber} />
+        )}
         <ul className={styles.list}>
           {issues.map((issue) => (
             <li key={issue.slug} className={styles.item}>

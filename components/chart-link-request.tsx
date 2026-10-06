@@ -13,6 +13,8 @@ interface ChartLinkRequestProps {
   email?: string;
   /** Text of the link that opens the form (or sends, when `email` is set) */
   label?: string;
+  /** Lead-in shown before the link (e.g. "Already have one?"); dropped once sent */
+  prompt?: string;
 }
 
 type Status = "closed" | "open" | "sending" | "sent" | "error";
@@ -26,6 +28,7 @@ export default function ChartLinkRequest({
   slug,
   email: presetEmail,
   label = "Email me my link",
+  prompt,
 }: ChartLinkRequestProps) {
   const [status, setStatus] = useState<Status>("closed");
   const [email, setEmail] = useState(presetEmail ?? "");
@@ -49,21 +52,24 @@ export default function ChartLinkRequest({
 
   if (status === "sent") {
     return (
-      <span className={styles.note}>
+      <strong className={styles.note}>
         If that email has a chart, your link is on its way. Check your inbox.
-      </span>
+      </strong>
     );
   }
 
   if (status === "closed") {
     return (
-      <button
-        type="button"
-        className={styles.trigger}
-        onClick={() => (presetEmail ? void send(presetEmail) : setStatus("open"))}
-      >
-        {label}
-      </button>
+      <>
+        {prompt && `${prompt} `}
+        <button
+          type="button"
+          className={styles.trigger}
+          onClick={() => (presetEmail ? void send(presetEmail) : setStatus("open"))}
+        >
+          {label}
+        </button>
+      </>
     );
   }
 
@@ -81,30 +87,33 @@ export default function ChartLinkRequest({
   }
 
   return (
-    <form
-      className={styles.form}
-      onSubmit={(e) => {
-        e.preventDefault();
-        void send(email);
-      }}
-    >
-      <input
-        className={styles.input}
-        type="email"
-        required
-        autoComplete="email"
-        aria-label="Your email"
-        placeholder="you@example.com"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        autoFocus
-      />
-      <button className={styles.submit} type="submit" disabled={status === "sending"}>
-        {status === "sending" ? "Sending…" : "Send link"}
-      </button>
-      {status === "error" && (
-        <span className={styles.error}>Something went wrong. Please try again.</span>
-      )}
-    </form>
+    <>
+      {prompt}
+      <form
+        className={styles.form}
+        onSubmit={(e) => {
+          e.preventDefault();
+          void send(email);
+        }}
+      >
+        <input
+          className={styles.input}
+          type="email"
+          required
+          autoComplete="email"
+          aria-label="Your email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoFocus
+        />
+        <button className={styles.submit} type="submit" disabled={status === "sending"}>
+          {status === "sending" ? "Sending\u2026" : "Send link"}
+        </button>
+        {status === "error" && (
+          <span className={styles.error}>Something went wrong. Please try again.</span>
+        )}
+      </form>
+    </>
   );
 }

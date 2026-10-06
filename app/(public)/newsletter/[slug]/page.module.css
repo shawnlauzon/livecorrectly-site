@@ -206,10 +206,10 @@
   color: var(--ink-soft);
 }
 
-.callout p {
+.callout > * {
   margin: 0 0 0.5rem;
 }
-.callout p:last-child {
+.callout > *:last-child {
   margin-bottom: 0;
 }
 

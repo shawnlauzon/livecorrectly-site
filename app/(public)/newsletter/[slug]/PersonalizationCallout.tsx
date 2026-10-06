@@ -30,10 +30,10 @@ export default function PersonalizationCallout({ sampleCareerDesign, slug }: Per
         </Link>{' '}
         to get yours.
       </p>
-      <p>
-        Already have one?{' '}
-        <ChartLinkRequest location="newsletter_sample_banner" slug={slug} />
-      </p>
+      {/* div, not p: ChartLinkRequest opens a <form>, which can't sit inside a <p> */}
+      <div>
+        <ChartLinkRequest location="newsletter_sample_banner" slug={slug} prompt="Already have one?" />
+      </div>
     </aside>
   );
 }

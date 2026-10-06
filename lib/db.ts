@@ -209,6 +209,25 @@ export async function updateEmailStatus(
 }
 
 /**
+ * Set an unsubscribed subscriber back to active. Only `unsubscribed` qualifies —
+ * bounced/complained/suppressed addresses stay as they are. Returns the email
+ * when reactivated, null otherwise.
+ */
+export async function reactivateUnsubscribed(
+  id: string,
+): Promise<{ email: string } | null> {
+  const db = getDb();
+  const rows = await db`
+    UPDATE subscribers
+    SET email_status = 'active',
+        email_status_at = now()
+    WHERE id = ${id} AND email_status = 'unsubscribed'
+    RETURNING email
+  `;
+  return rows.length > 0 ? { email: rows[0].email as string } : null;
+}
+
+/**
  * Get a subscriber by email, but only if they are active (can receive email).
  */
 export async function getActiveSubscriberByEmail(

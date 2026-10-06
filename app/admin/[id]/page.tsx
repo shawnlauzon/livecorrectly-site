@@ -1753,6 +1753,7 @@ function EmailTimeline({
       case 'open': return '\u25CF'; // ●
       case 'click': return '\u2197'; // ↗
       case 'unsubscribe': return '\u2717'; // ✗
+      case 'resubscribe': return '\u2713'; // ✓
       case 'manual_engagement': return '\u270E'; // ✎
       case 'reply': return '\u21A9'; // ↩
       default: return '\u2022'; // •
@@ -1764,6 +1765,7 @@ function EmailTimeline({
       case 'open': return 'Opened';
       case 'click': return 'Clicked';
       case 'unsubscribe': return 'Unsubscribed';
+      case 'resubscribe': return 'Resubscribed';
       case 'manual_engagement': return 'Manual engagement';
       case 'reply': return 'Replied';
       default: return type;

@@ -245,6 +245,26 @@ export async function syncContactToResend({
 }
 
 /**
+ * Mark a contact as subscribed again in Resend. Failures are logged, not thrown —
+ * if Resend is down, the Neon-side resubscribe still takes effect.
+ */
+export async function resubscribeContactInResend(email: string): Promise<void> {
+  const client = getResendClient();
+
+  const { error } = await client.contacts.update({
+    email,
+    unsubscribed: false,
+  });
+
+  if (error) {
+    console.error(`[resend-contacts] Failed to resubscribe contact ${email} in Resend:`, error);
+    return;
+  }
+
+  console.log(`[resend-contacts] Resubscribed contact in Resend: ${email}`);
+}
+
+/**
  * Mark a contact as unsubscribed in Resend. Failures are logged, not thrown —
  * if Resend is down, the Neon-side unsubscribe still takes effect.
  */
