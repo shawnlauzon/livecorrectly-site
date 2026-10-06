@@ -1490,6 +1490,65 @@ export async function deleteNewsletterIssue(
   return 'deleted';
 }
 
+/**
+ * Swap two unsent newsletter issues' numbers, reordering them. Numbers are
+ * slots: subscribers' next_step and segments' next_issue stay on the number,
+ * so whoever is due for #a gets the content that was #b.
+ *
+ * Blocked when either issue has sends or schedule rows (both keyed by number),
+ * or when any issue's content has an engagement conditional on either number
+ * (`newsletter_<n>.opened` etc.), which would silently point at the wrong issue.
+ */
+export async function swapNewsletterIssues(
+  a: number,
+  b: number,
+): Promise<'swapped' | 'not_found' | { blocked: string }> {
+  const db = getDb();
+
+  const referenced = await db`
+    SELECT i.number,
+      EXISTS (SELECT 1 FROM email_sends e WHERE e.email_type = 'newsletter_' || i.number) AS has_sends,
+      EXISTS (SELECT 1 FROM newsletter_schedules s WHERE s.newsletter_num = i.number) AS has_schedules
+    FROM newsletter_issues i
+    WHERE i.number IN (${a}, ${b})
+    ORDER BY i.number
+  `;
+  if (referenced.length < 2) return 'not_found';
+  for (const row of referenced) {
+    if (row.has_sends) return { blocked: `Newsletter #${row.number} has been sent` };
+    if (row.has_schedules) return { blocked: `Newsletter #${row.number} has schedule history` };
+  }
+
+  const conditionals = await db`
+    SELECT number, strpos(content, ${`newsletter_${a}.`}) > 0 AS refs_a
+    FROM (
+      SELECT number,
+        coalesce(body_json::text, '') || coalesce(body_html, '') ||
+        postscripts::text || coalesce(liquid_section_map::text, '') AS content
+      FROM newsletter_issues
+    ) c
+    WHERE strpos(content, ${`newsletter_${a}.`}) > 0
+       OR strpos(content, ${`newsletter_${b}.`}) > 0
+    ORDER BY number
+    LIMIT 1
+  `;
+  if (conditionals.length > 0) {
+    const row = conditionals[0];
+    return {
+      blocked: `Newsletter #${row.number} has a conditional on #${row.refs_a ? a : b}, so issues can't be reordered`,
+    };
+  }
+
+  // Swap through negative numbers so the primary key never collides mid-update.
+  await db.transaction([
+    db`UPDATE newsletter_issues SET number = -number WHERE number IN (${a}, ${b})`,
+    db`UPDATE newsletter_issues
+       SET number = CASE number WHEN ${-a} THEN ${b}::int ELSE ${a}::int END, updated_at = now()
+       WHERE number IN (${-a}, ${-b})`,
+  ]);
+  return 'swapped';
+}
+
 // --- Newsletter publication (schedule/cadence) ---
 
 /** A newsletter publication entity with its weekly cadence settings. */

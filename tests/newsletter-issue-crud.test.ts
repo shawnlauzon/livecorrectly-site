@@ -13,6 +13,7 @@ vi.mock('../lib/db', () => ({
   getDbNewsletterIssueFull: vi.fn(),
   updateNewsletterIssue: vi.fn(),
   deleteNewsletterIssue: vi.fn(),
+  swapNewsletterIssues: vi.fn(),
 }));
 vi.mock('../lib/newsletter/loader', () => ({
   loadNewsletterIssue: vi.fn(),
@@ -23,16 +24,28 @@ vi.mock('../lib/newsletter/email-loader', () => ({
   clearNewsletterIssueCache: vi.fn(),
 }));
 
-import { createNewsletterIssue, deleteNewsletterIssue } from '../lib/db';
+import { createNewsletterIssue, deleteNewsletterIssue, swapNewsletterIssues } from '../lib/db';
 import { clearNewsletterIssueCache as clearLoaderCache } from '../lib/newsletter/loader';
 import { clearNewsletterIssueCache as clearEmailLoaderCache } from '../lib/newsletter/email-loader';
 import { POST } from '../app/api/admin/newsletters/route';
 import { DELETE } from '../app/api/admin/newsletters/[number]/route';
+import { POST as MOVE } from '../app/api/admin/newsletters/[number]/move/route';
 
 function request(method: string, auth?: string): NextRequest {
   return new NextRequest('http://localhost/api/admin/newsletters', {
     method,
     headers: auth ? { authorization: `Bearer ${auth}` } : {},
+  });
+}
+
+function moveRequest(body: unknown, auth?: string): NextRequest {
+  return new NextRequest('http://localhost/api/admin/newsletters/10/move', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(auth ? { authorization: `Bearer ${auth}` } : {}),
+    },
+    body: JSON.stringify(body),
   });
 }
 
@@ -99,6 +112,71 @@ describe('DELETE /api/admin/newsletters/[number]', () => {
     const res = await DELETE(request('DELETE', 'secret'), params('10'));
     expect(res.status).toBe(200);
     expect(deleteNewsletterIssue).toHaveBeenCalledWith(10);
+    expect(clearLoaderCache).toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/admin/newsletters/[number]/move', () => {
+  it('returns 401 without auth', async () => {
+    const res = await MOVE(moveRequest({ direction: 'down' }), params('10'));
+    expect(res.status).toBe(401);
+    expect(swapNewsletterIssues).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 with the wrong password', async () => {
+    const res = await MOVE(moveRequest({ direction: 'down' }, 'wrong'), params('10'));
+    expect(res.status).toBe(401);
+    expect(swapNewsletterIssues).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 for an invalid number', async () => {
+    const res = await MOVE(moveRequest({ direction: 'down' }, 'secret'), params('abc'));
+    expect(res.status).toBe(400);
+    expect(swapNewsletterIssues).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 for an invalid direction', async () => {
+    const res = await MOVE(moveRequest({ direction: 'sideways' }, 'secret'), params('10'));
+    expect(res.status).toBe(400);
+    expect(swapNewsletterIssues).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when moving up into the welcome series', async () => {
+    const res = await MOVE(moveRequest({ direction: 'up' }, 'secret'), params('4'));
+    expect(res.status).toBe(400);
+    expect(swapNewsletterIssues).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 when an issue does not exist', async () => {
+    vi.mocked(swapNewsletterIssues).mockResolvedValue('not_found');
+    const res = await MOVE(moveRequest({ direction: 'down' }, 'secret'), params('42'));
+    expect(res.status).toBe(404);
+    expect(clearLoaderCache).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 with the reason when the move is blocked', async () => {
+    vi.mocked(swapNewsletterIssues).mockResolvedValue({ blocked: 'Newsletter #9 has been sent' });
+    const res = await MOVE(moveRequest({ direction: 'up' }, 'secret'), params('10'));
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: 'Newsletter #9 has been sent' });
+    expect(clearLoaderCache).not.toHaveBeenCalled();
+  });
+
+  it('moves up by swapping with the previous issue', async () => {
+    vi.mocked(swapNewsletterIssues).mockResolvedValue('swapped');
+    const res = await MOVE(moveRequest({ direction: 'up' }, 'secret'), params('11'));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, number: 10 });
+    expect(swapNewsletterIssues).toHaveBeenCalledWith(11, 10);
+    expect(clearLoaderCache).toHaveBeenCalled();
+  });
+
+  it('moves down by swapping with the next issue', async () => {
+    vi.mocked(swapNewsletterIssues).mockResolvedValue('swapped');
+    const res = await MOVE(moveRequest({ direction: 'down' }, 'secret'), params('10'));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, number: 11 });
+    expect(swapNewsletterIssues).toHaveBeenCalledWith(10, 11);
     expect(clearLoaderCache).toHaveBeenCalled();
   });
 });

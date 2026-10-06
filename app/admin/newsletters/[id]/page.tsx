@@ -664,6 +664,39 @@ export default function AdminNewsletterDetailPage() {
     }
   };
 
+  const handleMoveIssue = async (newsletterNumber: number, direction: 'up' | 'down') => {
+    const pwd = getAdminPassword();
+    if (!pwd) return;
+
+    setActionLoading(true);
+    setActionMessage(null);
+
+    try {
+      const res = await fetch(`/api/admin/newsletters/${newsletterNumber}/move`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${pwd}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ direction }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionMessage(`Error: ${data.error}`);
+        return;
+      }
+
+      setActionMessage(`Newsletter #${newsletterNumber} moved to #${data.number}.`);
+      await fetchNewsletters();
+    } catch (err) {
+      setActionMessage(
+        `Error: ${err instanceof Error ? err.message : 'Unknown'}`,
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleSaveSettings = async () => {
     const pwd = getAdminPassword();
     if (!pwd) return;
@@ -702,6 +735,40 @@ export default function AdminNewsletterDetailPage() {
       setSavingSettings(false);
     }
   };
+
+  /** Never sent or scheduled — such issues can be deleted or reordered. */
+  function isUnsent(nl: NewsletterInfo): boolean {
+    return nl.receivedCount === 0 && !nl.schedule;
+  }
+
+  /** Small arrow that swaps an unsent issue with its neighbor. */
+  function renderMoveButton(newsletterNumber: number, direction: 'up' | 'down') {
+    return (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          handleMoveIssue(newsletterNumber, direction);
+        }}
+        disabled={actionLoading}
+        title={`Move #${newsletterNumber} ${direction === 'up' ? 'earlier' : 'later'}`}
+        aria-label={`Move #${newsletterNumber} ${direction === 'up' ? 'earlier' : 'later'}`}
+        style={{
+          display: 'block',
+          margin: '0 auto',
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          fontSize: '0.625rem',
+          lineHeight: 1.2,
+          color: 'var(--muted)',
+          cursor: actionLoading ? 'wait' : 'pointer',
+          opacity: actionLoading ? 0.6 : 1,
+        }}
+      >
+        {direction === 'up' ? '▲' : '▼'}
+      </button>
+    );
+  }
 
   /** Render a clickable subscriber count that expands to show the list. */
   function renderSubscriberCount(
@@ -1474,7 +1541,7 @@ export default function AdminNewsletterDetailPage() {
           </tr>
         </thead>
         <tbody>
-          {newsletters.map((nl) => (
+          {newsletters.map((nl, i) => (
             <React.Fragment key={nl.number}>
             <tr
               style={{
@@ -1486,7 +1553,14 @@ export default function AdminNewsletterDetailPage() {
               }}
             >
               <td style={{ textAlign: 'center', fontWeight: 600 }}>
-                {nl.number}
+                {/* Only unsent issues reorder, and only past another unsent one */}
+                {isUnsent(nl) && i > 0 && isUnsent(newsletters[i - 1]) && (
+                  renderMoveButton(nl.number, 'up')
+                )}
+                <div>{nl.number}</div>
+                {isUnsent(nl) && i < newsletters.length - 1 && isUnsent(newsletters[i + 1]) && (
+                  renderMoveButton(nl.number, 'down')
+                )}
               </td>
               <td>
                 <Link
@@ -1848,7 +1922,7 @@ export default function AdminNewsletterDetailPage() {
                   )}
 
                   {/* Delete — only for issues never sent or scheduled */}
-                  {nl.receivedCount === 0 && !nl.schedule && (
+                  {isUnsent(nl) && (
                     confirmDelete === nl.number ? (
                       <>
                       <button
