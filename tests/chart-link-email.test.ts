@@ -4,7 +4,7 @@ import { render } from 'react-email';
 import { ChartLink } from '@/emails/chart-link';
 
 describe('ChartLink email', () => {
-  it('has no Permission Slip header, signature, or footer', async () => {
+  it('is a plain white note: no beige background, header, signature, or footer', async () => {
     const html = await render(
       React.createElement(ChartLink, {
         firstName: 'Pat',
@@ -17,5 +17,6 @@ describe('ChartLink email', () => {
     expect(html).not.toContain('headshot');
     expect(html).not.toContain('Unsubscribe');
     expect(html).not.toContain('Indio Drive');
+    expect(html.toLowerCase()).not.toContain('faf8f4');
   });
 });

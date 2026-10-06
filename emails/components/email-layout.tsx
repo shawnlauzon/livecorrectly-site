@@ -16,16 +16,9 @@ import { Signature } from './signature';
 
 interface EmailLayoutProps {
   preview: string;
-  /** Omit for transactional emails, which carry no unsubscribe link */
-  unsubscribeUrl?: string;
+  unsubscribeUrl: string;
   children: React.ReactNode;
   postscripts?: React.ReactNode[];
-  /** Permission Slip logo at the top; off for transactional emails */
-  showHeader?: boolean;
-  /** Shawn's signature after the body; off for transactional emails */
-  showSignature?: boolean;
-  /** Divider + address/unsubscribe footer; off for transactional emails */
-  showFooter?: boolean;
 }
 
 /**
@@ -41,16 +34,13 @@ function getPostscriptPrefix(index: number): string {
  * Provides consistent structure: container, children slot, signature,
  * divider, and footer with physical address + unsubscribe link.
  *
- * Header: Permission Slip logo at the top (omit with showHeader={false}).
+ * Header: Permission Slip logo at the top of every email.
  */
 export function EmailLayout({
   preview,
   unsubscribeUrl,
   children,
   postscripts = [],
-  showHeader = true,
-  showSignature = true,
-  showFooter = true,
 }: EmailLayoutProps) {
   const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
 
@@ -61,17 +51,15 @@ export function EmailLayout({
         <Preview>{preview}</Preview>
         <Body className="bg-[#FAF8F4] font-sans">
           <Container className="mx-auto max-w-[660px] bg-white px-[24px] py-[32px]">
-            {showHeader && (
-              <Img
-                src={`${appUrl}/newsletter/permission-slip.png`}
-                alt="Permission Slip"
-                width={600}
-                className="mx-auto mb-[24px]"
-              />
-            )}
+            <Img
+              src={`${appUrl}/newsletter/permission-slip.png`}
+              alt="Permission Slip"
+              width={600}
+              className="mx-auto mb-[24px]"
+            />
             {children}
 
-            {showSignature && <Signature />}
+            <Signature />
 
             {postscripts.map((content, index) => (
               <Text
@@ -82,29 +70,23 @@ export function EmailLayout({
               </Text>
             ))}
 
-            {showFooter && (
-              <>
-                <Hr className="my-[24px] border-[#C9C2B4]" />
+            <Hr className="my-[24px] border-[#C9C2B4]" />
 
-                <Section>
-                  <Text className="m-0 text-[12px] leading-[18px] text-[#45585B]">
-                    Live Correctly
-                    <br />
-                    5305 Indio Drive, Austin, TX 78745
-                  </Text>
-                  {unsubscribeUrl && (
-                    <Text className="mt-[8px] text-[12px] leading-[18px] text-[#45585B]">
-                      <Link
-                        href={unsubscribeUrl}
-                        className="text-[#45585B] underline"
-                      >
-                        Unsubscribe
-                      </Link>
-                    </Text>
-                  )}
-                </Section>
-              </>
-            )}
+            <Section>
+              <Text className="m-0 text-[12px] leading-[18px] text-[#45585B]">
+                Live Correctly
+                <br />
+                5305 Indio Drive, Austin, TX 78745
+              </Text>
+              <Text className="mt-[8px] text-[12px] leading-[18px] text-[#45585B]">
+                <Link
+                  href={unsubscribeUrl}
+                  className="text-[#45585B] underline"
+                >
+                  Unsubscribe
+                </Link>
+              </Text>
+            </Section>
           </Container>
         </Body>
       </Html>
