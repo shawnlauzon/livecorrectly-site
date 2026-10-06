@@ -45,6 +45,7 @@ export async function GET(
       bodyJson: newsletter.bodyJson,
       bodyHtml: newsletter.bodyHtml,
       updatedAt: newsletter.updatedAt,
+      createdAt: newsletter.createdAt,
     });
   } catch (error) {
     console.error(`[admin/newsletters/${num}] Error:`, error);
@@ -87,6 +88,7 @@ export async function PUT(
       description,
       postscripts,
       expectedUpdatedAt,
+      expectedCreatedAt,
     } = body;
 
     if (!bodyJson || !bodyHtml) {
@@ -104,7 +106,19 @@ export async function PUT(
       slug,
       description,
       postscripts,
-    }, expectedUpdatedAt);
+    }, { updatedAt: expectedUpdatedAt, createdAt: expectedCreatedAt });
+
+    if (result !== 'conflict' && 'movedTo' in result) {
+      return NextResponse.json(
+        {
+          error: result.movedTo === null
+            ? 'This newsletter was deleted'
+            : `This newsletter is now #${result.movedTo}`,
+          movedTo: result.movedTo,
+        },
+        { status: 409 },
+      );
+    }
 
     if (result === 'conflict') {
       return NextResponse.json(

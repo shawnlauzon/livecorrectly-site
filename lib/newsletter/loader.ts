@@ -27,6 +27,11 @@ export interface RawNewsletterIssue {
   liquidSectionMap: LiquidSectionMap | null;
   /** Last-modified timestamp (ISO 8601) for optimistic locking */
   updatedAt: string;
+  /**
+   * Creation timestamp (ISO 8601). Moves with the content when issues are
+   * reordered or renumbered, so it identifies the issue where `number` can't.
+   */
+  createdAt: string;
 }
 
 /**

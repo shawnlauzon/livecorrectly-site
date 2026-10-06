@@ -41,6 +41,7 @@ interface NewsletterData {
   bodyJson: unknown | null;
   bodyHtml: string | null;
   updatedAt: string;
+  createdAt: string;
 }
 
 interface EditorHandle {
@@ -191,9 +192,12 @@ function EditorPanel({
   onEditorUpdate,
   updatedAt,
   setUpdatedAt,
+  createdAt,
   onConflict,
   onConflictResolved,
   conflicted,
+  movedTo,
+  onMoved,
 }: {
   content: Content;
   editorKey: number;
@@ -209,15 +213,24 @@ function EditorPanel({
   onEditorUpdate: () => void;
   updatedAt: string | null;
   setUpdatedAt: (ts: string) => void;
+  /** Identifies the loaded issue; saves are refused if it's no longer at `num` */
+  createdAt: string | null;
   onConflict: () => void;
   onConflictResolved: () => void;
   conflicted: boolean;
+  /** Set once a save finds the issue reordered (its new number) or deleted (null) */
+  movedTo: number | null | undefined;
+  onMoved: (movedTo: number | null) => void;
 }) {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const savingRef = useRef(false);
   const conflictedRef = useRef(conflicted);
   useEffect(() => { conflictedRef.current = conflicted; }, [conflicted]);
+  const { id: publicationId } = useParams<{ id: string }>();
+  const moved = movedTo !== undefined;
+  const movedRef = useRef(moved);
+  useEffect(() => { movedRef.current = moved; }, [moved]);
 
   const handleUploadImage = useCallback(async (file: File) => {
     const pwd = getAdminPassword();
@@ -280,6 +293,8 @@ function EditorPanel({
     const pwd = getAdminPassword();
     if (!pwd) return;
     if (savingRef.current) return;
+    // Another issue holds this number now; never save over it.
+    if (movedRef.current) return;
 
     savingRef.current = true;
     setSaving(true);
@@ -307,11 +322,18 @@ function EditorPanel({
           // After a conflict, saving again is an explicit overwrite (see banner),
           // so skip the stale-version check that would just 409 again.
           expectedUpdatedAt: conflictedRef.current ? undefined : updatedAt,
+          // Always checked, even when overwriting: the issue must still be at this number.
+          expectedCreatedAt: createdAt ?? undefined,
         }),
       });
 
       if (res.status === 409) {
-        onConflict();
+        const conflictData = await res.json();
+        if ('movedTo' in conflictData) {
+          onMoved(conflictData.movedTo);
+        } else {
+          onConflict();
+        }
         return;
       }
 
@@ -335,7 +357,7 @@ function EditorPanel({
       savingRef.current = false;
       setSaving(false);
     }
-  }, [editorRef, num, subject, preview, slug, description, postscripts, setDirty, updatedAt, setUpdatedAt, onConflict, onConflictResolved]);
+  }, [editorRef, num, subject, preview, slug, description, postscripts, setDirty, updatedAt, setUpdatedAt, createdAt, onConflict, onConflictResolved, onMoved]);
 
   // Auto-save every 30 seconds when dirty
   const dirtyRef = useRef(dirty);
@@ -366,8 +388,27 @@ function EditorPanel({
 
   return (
     <>
+      {/* Moved banner — the issue was reordered or deleted while open */}
+      {moved && (
+        <div className={styles.conflictBanner}>
+          <span>
+            {movedTo === null
+              ? 'This newsletter was deleted while it was open. Changes here can no longer be saved.'
+              : `This newsletter was moved to #${movedTo} while it was open, so changes here can't be saved. Open #${movedTo} to keep editing.`}
+          </span>
+          {movedTo !== null && (
+            <a
+              href={`/admin/newsletters/${publicationId}/${movedTo}`}
+              className={styles.conflictReloadButton}
+            >
+              Open #{movedTo}
+            </a>
+          )}
+        </div>
+      )}
+
       {/* Conflict warning banner */}
-      {conflicted && (
+      {conflicted && !moved && (
         <div className={styles.conflictBanner}>
           <span>This newsletter was saved in another window. Reload to get the latest version, or save again to overwrite.</span>
           <button
@@ -394,7 +435,7 @@ function EditorPanel({
         )}
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || moved}
           className={styles.saveButton}
         >
           {saving ? 'Saving...' : 'Save'}
@@ -642,6 +683,8 @@ export default function NewsletterEditorPage() {
   const [dirty, setDirty] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [conflicted, setConflicted] = useState(false);
+  const [createdAt, setCreatedAt] = useState<string | null>(null);
+  const [movedTo, setMovedTo] = useState<number | null | undefined>(undefined);
 
   // Metadata fields
   const [subject, setSubject] = useState('');
@@ -688,6 +731,7 @@ export default function NewsletterEditorPage() {
       setDescription(json.description);
       setPostscripts(json.postscripts ?? []);
       setUpdatedAt(json.updatedAt);
+      setCreatedAt(json.createdAt);
 
       if (json.bodyJson) {
         setEditorContent(json.bodyJson as Content);
@@ -816,9 +860,12 @@ export default function NewsletterEditorPage() {
               onEditorUpdate={handleEditorUpdate}
               updatedAt={updatedAt}
               setUpdatedAt={setUpdatedAt}
+              createdAt={createdAt}
               onConflict={() => setConflicted(true)}
               onConflictResolved={() => setConflicted(false)}
               conflicted={conflicted}
+              movedTo={movedTo}
+              onMoved={setMovedTo}
             />
           )}
 

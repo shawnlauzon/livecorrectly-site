@@ -1322,6 +1322,7 @@ function rowToRawNewsletterIssue(row: Record<string, unknown>): RawNewsletterIss
     bodyHtml: row.body_html as string,
     liquidSectionMap: (row.liquid_section_map as LiquidSectionMap | null) ?? null,
     updatedAt: row.updated_at ? (row.updated_at as Date).toISOString() : new Date().toISOString(),
+    createdAt: (row.created_at as Date).toISOString(),
   };
 }
 
@@ -1395,6 +1396,12 @@ export async function updateNewsletterIssueLiquidMap(
 /**
  * Update a newsletter issue's editable fields (metadata + editor content).
  * Used by the visual editor to save changes.
+ *
+ * `expected.updatedAt` is the optimistic lock; the editor drops it to
+ * overwrite after a conflict. `expected.createdAt` identifies the issue the
+ * editor loaded and is always checked: if reordering or deleting has put a
+ * different issue at `num`, the save is refused with where the issue went
+ * (`movedTo`, null if it no longer exists), never written over another issue.
  */
 export async function updateNewsletterIssue(
   num: number,
@@ -1407,8 +1414,8 @@ export async function updateNewsletterIssue(
     bodyJson?: unknown;
     bodyHtml?: string;
   },
-  expectedUpdatedAt?: string,
-): Promise<{ updatedAt: string } | 'conflict'> {
+  expected: { updatedAt?: string; createdAt?: string } = {},
+): Promise<{ updatedAt: string } | 'conflict' | { movedTo: number | null }> {
   const db = getDb();
   const rows = await db`
     UPDATE newsletter_issues SET
@@ -1421,10 +1428,21 @@ export async function updateNewsletterIssue(
       body_html = COALESCE(${data.bodyHtml ?? null}, body_html),
       updated_at = now()
     WHERE number = ${num}
-      ${expectedUpdatedAt ? db`AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', ${expectedUpdatedAt}::timestamptz)` : db``}
+      ${expected.updatedAt ? db`AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', ${expected.updatedAt}::timestamptz)` : db``}
+      ${expected.createdAt ? db`AND date_trunc('milliseconds', created_at) = date_trunc('milliseconds', ${expected.createdAt}::timestamptz)` : db``}
     RETURNING updated_at
   `;
-  if (rows.length === 0) return 'conflict';
+  if (rows.length === 0) {
+    if (expected.createdAt) {
+      const current = await db`
+        SELECT number FROM newsletter_issues
+        WHERE date_trunc('milliseconds', created_at) = date_trunc('milliseconds', ${expected.createdAt}::timestamptz)
+      `;
+      const movedTo = current.length > 0 ? (current[0].number as number) : null;
+      if (movedTo !== num) return { movedTo };
+    }
+    return 'conflict';
+  }
   return { updatedAt: (rows[0].updated_at as Date).toISOString() };
 }
 

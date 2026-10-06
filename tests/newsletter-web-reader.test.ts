@@ -26,6 +26,7 @@ const issue: RawNewsletterIssue = {
   bodyHtml: "<p>Hey {{ first_name | default: 'there' }},</p>",
   liquidSectionMap: null,
   updatedAt: '2026-09-29T00:00:00.000Z',
+  createdAt: '2026-09-29T00:00:00.000Z',
 };
 
 describe('getWebNewsletter reader personalization', () => {

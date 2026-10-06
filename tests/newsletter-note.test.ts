@@ -144,6 +144,7 @@ describe('broadcast rendering', () => {
       bodyHtml: DOC,
       liquidSectionMap: null,
       updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
     });
     vi.mocked(getNewsletterSubject).mockResolvedValue('Subject');
   });

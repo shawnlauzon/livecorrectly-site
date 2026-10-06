@@ -24,11 +24,17 @@ vi.mock('../lib/newsletter/email-loader', () => ({
   clearNewsletterIssueCache: vi.fn(),
 }));
 
-import { createNewsletterIssue, deleteNewsletterIssue, swapNewsletterIssues } from '../lib/db';
+import {
+  createNewsletterIssue,
+  deleteNewsletterIssue,
+  swapNewsletterIssues,
+  getDbNewsletterIssueFull,
+  updateNewsletterIssue,
+} from '../lib/db';
 import { clearNewsletterIssueCache as clearLoaderCache } from '../lib/newsletter/loader';
 import { clearNewsletterIssueCache as clearEmailLoaderCache } from '../lib/newsletter/email-loader';
 import { POST } from '../app/api/admin/newsletters/route';
-import { DELETE } from '../app/api/admin/newsletters/[number]/route';
+import { DELETE, GET, PUT } from '../app/api/admin/newsletters/[number]/route';
 import { POST as MOVE } from '../app/api/admin/newsletters/[number]/move/route';
 
 function request(method: string, auth?: string): NextRequest {
@@ -45,6 +51,14 @@ function moveRequest(body: unknown, auth?: string): NextRequest {
       'content-type': 'application/json',
       ...(auth ? { authorization: `Bearer ${auth}` } : {}),
     },
+    body: JSON.stringify(body),
+  });
+}
+
+function putRequest(body: unknown): NextRequest {
+  return new NextRequest('http://localhost/api/admin/newsletters/11', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json', authorization: 'Bearer secret' },
     body: JSON.stringify(body),
   });
 }
@@ -178,5 +192,69 @@ describe('POST /api/admin/newsletters/[number]/move', () => {
     expect(await res.json()).toEqual({ ok: true, number: 11 });
     expect(swapNewsletterIssues).toHaveBeenCalledWith(10, 11);
     expect(clearLoaderCache).toHaveBeenCalled();
+  });
+});
+
+describe('GET /api/admin/newsletters/[number]', () => {
+  it('returns createdAt so the editor can tell if the issue moves', async () => {
+    vi.mocked(getDbNewsletterIssueFull).mockResolvedValue({
+      number: 11,
+      newsletterId: 1,
+      subject: 'S',
+      preview: '',
+      slug: null,
+      description: '',
+      oldSlugs: [],
+      rawPs: [],
+      bodyJson: null,
+      bodyHtml: '',
+      liquidSectionMap: null,
+      updatedAt: '2026-10-06T21:00:00.000Z',
+      createdAt: '2026-10-01T22:20:56.646Z',
+    });
+    const res = await GET(request('GET', 'secret'), params('11'));
+    expect(res.status).toBe(200);
+    expect((await res.json()).createdAt).toBe('2026-10-01T22:20:56.646Z');
+  });
+});
+
+describe('PUT /api/admin/newsletters/[number]', () => {
+  const save = {
+    bodyJson: { type: 'doc' },
+    bodyHtml: '<p>x</p>',
+    expectedUpdatedAt: '2026-10-06T21:00:00.000Z',
+    expectedCreatedAt: '2026-10-01T22:20:56.646Z',
+  };
+
+  it('passes the expected version and identity to the update', async () => {
+    vi.mocked(updateNewsletterIssue).mockResolvedValue({ updatedAt: '2026-10-06T21:01:00.000Z' });
+    const res = await PUT(putRequest(save), params('11'));
+    expect(res.status).toBe(200);
+    expect(updateNewsletterIssue).toHaveBeenCalledWith(
+      11,
+      expect.objectContaining({ bodyHtml: '<p>x</p>' }),
+      { updatedAt: save.expectedUpdatedAt, createdAt: save.expectedCreatedAt },
+    );
+  });
+
+  it('returns 409 with movedTo when the issue now has a different number', async () => {
+    vi.mocked(updateNewsletterIssue).mockResolvedValue({ movedTo: 10 });
+    const res = await PUT(putRequest(save), params('11'));
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: 'This newsletter is now #10', movedTo: 10 });
+  });
+
+  it('returns 409 with movedTo null when the issue was deleted', async () => {
+    vi.mocked(updateNewsletterIssue).mockResolvedValue({ movedTo: null });
+    const res = await PUT(putRequest(save), params('11'));
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: 'This newsletter was deleted', movedTo: null });
+  });
+
+  it('returns a plain 409 on a version conflict', async () => {
+    vi.mocked(updateNewsletterIssue).mockResolvedValue('conflict');
+    const res = await PUT(putRequest(save), params('11'));
+    expect(res.status).toBe(409);
+    expect(await res.json()).not.toHaveProperty('movedTo');
   });
 });
