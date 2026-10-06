@@ -21,7 +21,7 @@ export const ChartLink = ({
   newsletterUrl,
   chartUrl,
 }: ChartLinkProps) => (
-  <EmailLayout preview={preview}>
+  <EmailLayout preview={preview} showHeader={false} showSignature={false} showFooter={false}>
     <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
       {firstName},
     </Text>
