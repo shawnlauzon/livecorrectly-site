@@ -81,12 +81,17 @@ interface _SendEmailOptions {
   /** React component to render — or pass pre-rendered `html` instead */
   react?: React.ReactElement;
   html?: string;
-  unsubToken: string;
+  /** Omit for transactional emails: no List-Unsubscribe headers are set */
+  unsubToken?: string;
   from: string;
   replyTo?: string;
   emailLabel?: string;
   /** ISO timestamp: Resend holds the email and sends it at this time */
   scheduledAt?: string;
+  /** Resend `category` tag; derived from emailLabel when omitted */
+  category?: string;
+  /** Skip the active-subscriber check; the caller has decided the recipient may receive it */
+  skipActiveCheck?: boolean;
 }
 
 /**
@@ -114,16 +119,17 @@ export async function _sendEmail({
   replyTo,
   emailLabel,
   html: prerenderedHtml,
-  scheduledAt
+  scheduledAt,
+  category: categoryOverride,
+  skipActiveCheck
 }: _SendEmailOptions): Promise<{ success: boolean; id?: string }> {
-  const sendable = await canSendTo(to);
+  const sendable = skipActiveCheck || (await canSendTo(to));
   if (!sendable) {
     const email = extractEmail(to);
     console.log(`[email] Skipping send to ${email}: subscriber not active`);
     return { success: false };
   }
 
-  const unsubscribeUrl = buildUnsubscribeUrl(unsubToken, emailLabel);
   if (!react && prerenderedHtml === undefined) {
     throw new Error('_sendEmail requires either react or html');
   }
@@ -133,9 +139,9 @@ export async function _sendEmail({
   const tags: { name: string; value: string }[] = [];
   if (emailLabel) {
     tags.push({ name: 'email_type', value: emailLabel });
-    const category = emailLabel.startsWith('welcome') ? 'welcome'
+    const category = categoryOverride ?? (emailLabel.startsWith('welcome') ? 'welcome'
       : emailLabel.startsWith('newsletter') ? 'newsletter'
-      : 'broadcast';
+      : 'broadcast');
     tags.push({ name: 'category', value: category });
   }
 
@@ -148,10 +154,12 @@ export async function _sendEmail({
     ...(replyTo && { replyTo }),
     ...(tags.length > 0 && { tags }),
     ...(scheduledAt && { scheduledAt }),
-    headers: {
-      'List-Unsubscribe': `<${unsubscribeUrl}>`,
-      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
-    }
+    ...(unsubToken && {
+      headers: {
+        'List-Unsubscribe': `<${buildUnsubscribeUrl(unsubToken, emailLabel)}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+      }
+    })
   });
 
   const email = extractEmail(to);
@@ -205,19 +213,16 @@ export async function sendWelcomeEmail(options: SendEmailOptions) {
 }
 
 /**
- * Send a transactional/system email.
- * When domain override is set: From shawn@TRANSACTIONAL (no replyTo needed).
- * Otherwise: From notifications@ with reply-to shawn@.
+ * Send a transactional email a subscriber asked for (e.g. their chart link).
+ * From: EMAIL_FROM (Shawn Lauzon <shawn@livecorrectly.com>), so replies reach Shawn
+ * directly. No unsubscribe link or List-Unsubscribe headers.
+ *
+ * Skips the active-subscriber check: an unsubscribed person who explicitly asks
+ * for this still gets it. The caller decides who is eligible (see chart-link.ts).
  */
-export async function sendTransactionalEmail(options: SendEmailOptions) {
-  const from = TRANSACTIONAL_DOMAIN
-    ? `Shawn Lauzon <shawn@${TRANSACTIONAL_DOMAIN}>`
-    : process.env.EMAIL_FROM_NOTIFICATIONS ?? 'Live Correctly <notifications@livecorrectly.com>';
-  // When using domain override, from is already shawn@ so no replyTo needed
-  const replyTo = TRANSACTIONAL_DOMAIN
-    ? undefined
-    : process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
-  return _sendEmail({ ...options, from, replyTo });
+export async function sendTransactionalEmail(options: Omit<SendEmailOptions, 'unsubToken'>) {
+  const from = process.env.EMAIL_FROM ?? 'Shawn Lauzon <shawn@livecorrectly.com>';
+  return _sendEmail({ ...options, from, category: 'transactional', skipActiveCheck: true });
 }
 
 export interface InboundReply {

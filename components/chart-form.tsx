@@ -8,6 +8,7 @@ import { ChartRecord } from "@/lib/types/chart";
 import hdChart from "@/lib/hd-chart";
 import { generateChart as generateChartAPI, BirthDetails } from "@/lib/generate-chart";
 import { track } from "@/lib/analytics";
+import ChartLinkRequest from "@/components/chart-link-request";
 
 /** Shape returned by the Maia Mechanics places API: { [timezone]: city[] } */
 interface TimeZoneCities {
@@ -34,7 +35,8 @@ export default function ChartForm() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [saveError, setSaveError] = useState(false);
-  const [emailTaken, setEmailTaken] = useState(false);
+  // The email that already has a chart, or null
+  const [emailTaken, setEmailTaken] = useState<string | null>(null);
   const [timeUnknown, setTimeUnknown] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Set<string>>(new Set());
   const clearFieldError = (field: string) =>
@@ -208,7 +210,7 @@ export default function ChartForm() {
 
     setSubmitting(true);
     setSaveError(false);
-    setEmailTaken(false);
+    setEmailTaken(null);
 
     // Check for existing subscriber before calling the chart engine
     try {
@@ -219,7 +221,7 @@ export default function ChartForm() {
         const { exists } = (await checkRes.json()) as { exists: boolean };
         if (exists) {
           track('form_error', { error_type: 'duplicate_email' });
-          setEmailTaken(true);
+          setEmailTaken(email);
           setSubmitting(false);
           emailInput.focus();
           return;
@@ -338,7 +340,7 @@ export default function ChartForm() {
               required
               onChange={() => {
                 clearFieldError("email");
-                if (emailTaken) setEmailTaken(false);
+                if (emailTaken) setEmailTaken(null);
               }}
             />
             {fieldErrors.has("email") && (
@@ -508,8 +510,12 @@ export default function ChartForm() {
               textAlign: "center",
             }}
           >
-            This email already has a chart on file. Please use a different email
-            address.
+            This email already has a chart on file.{" "}
+            <ChartLinkRequest
+              key={emailTaken}
+              location="chart_form_duplicate"
+              email={emailTaken}
+            />
           </p>
         )}
 

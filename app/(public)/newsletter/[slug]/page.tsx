@@ -164,7 +164,7 @@ export default async function NewsletterIssuePage({
             <p className={styles.builtFor}>Built for {subscriberName}</p>
           )}
           {issue.usesSampleChart && (
-            <PersonalizationCallout sampleCareerDesign={SAMPLE_CHART.careerDesign} />
+            <PersonalizationCallout sampleCareerDesign={SAMPLE_CHART.careerDesign} slug={issue.slug} />
           )}
           {issue.usesSampleChart ? (
             <SampleValueTooltip

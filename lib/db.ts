@@ -128,6 +128,27 @@ export async function getSubscriberByEmail(
 }
 
 /**
+ * Look up a subscriber by email, ignoring case (people don't retype it the way
+ * they signed up). Returns null — and logs — if more than one row matches, since
+ * the unique constraint is case-sensitive and the lookup would be ambiguous.
+ */
+export async function getSubscriberByEmailIgnoreCase(
+  email: string
+): Promise<Subscriber | null> {
+  const db = getDb();
+  const result = await db`
+    SELECT * FROM subscribers
+    WHERE lower(email) = lower(${email})
+    LIMIT 2
+  `;
+  if (result.length > 1) {
+    console.error(`[db] Multiple subscribers match ${email} ignoring case; refusing to pick one`);
+    return null;
+  }
+  return result.length > 0 ? normalizeSubscriber(result[0] as Subscriber) : null;
+}
+
+/**
  * Create or update a subscriber (upsert on email).
  * On conflict, updates birth/chart data but preserves email pipeline state.
  */
@@ -425,6 +446,42 @@ export async function recordEmailSend(params: {
       ${params.resendBroadcastId ?? null}
     )
     ON CONFLICT (subscriber_id, email_type) DO NOTHING
+  `;
+}
+
+/**
+ * Claim a send of a repeatable email (one row per subscriber + type, so
+ * `sent_at` holds the latest send). Atomic: returns false without claiming
+ * when the previous send was less than `minIntervalMinutes` ago.
+ */
+export async function claimRepeatableEmailSend(params: {
+  subscriberId: string;
+  emailType: string;
+  category: string;
+  minIntervalMinutes: number;
+}): Promise<boolean> {
+  const db = getDb();
+  const rows = await db`
+    INSERT INTO email_sends (subscriber_id, email_type, category)
+    VALUES (${params.subscriberId}, ${params.emailType}, ${params.category})
+    ON CONFLICT (subscriber_id, email_type) DO UPDATE
+      SET sent_at = now(), resend_email_id = NULL
+      WHERE email_sends.sent_at < now() - make_interval(mins => ${params.minIntervalMinutes})
+    RETURNING id
+  `;
+  return rows.length > 0;
+}
+
+/** Attach the Resend id to a claimed send so webhook events link back to it. */
+export async function setEmailSendResendId(
+  subscriberId: string,
+  emailType: string,
+  resendEmailId: string,
+): Promise<void> {
+  const db = getDb();
+  await db`
+    UPDATE email_sends SET resend_email_id = ${resendEmailId}
+    WHERE subscriber_id = ${subscriberId} AND email_type = ${emailType}
   `;
 }
 

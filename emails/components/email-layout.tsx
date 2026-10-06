@@ -16,7 +16,8 @@ import { Signature } from './signature';
 
 interface EmailLayoutProps {
   preview: string;
-  unsubscribeUrl: string;
+  /** Omit for transactional emails, which carry no unsubscribe link */
+  unsubscribeUrl?: string;
   children: React.ReactNode;
   postscripts?: React.ReactNode[];
 }
@@ -78,14 +79,16 @@ export function EmailLayout({
                 <br />
                 5305 Indio Drive, Austin, TX 78745
               </Text>
-              <Text className="mt-[8px] text-[12px] leading-[18px] text-[#45585B]">
-                <Link
-                  href={unsubscribeUrl}
-                  className="text-[#45585B] underline"
-                >
-                  Unsubscribe
-                </Link>
-              </Text>
+              {unsubscribeUrl && (
+                <Text className="mt-[8px] text-[12px] leading-[18px] text-[#45585B]">
+                  <Link
+                    href={unsubscribeUrl}
+                    className="text-[#45585B] underline"
+                  >
+                    Unsubscribe
+                  </Link>
+                </Text>
+              )}
             </Section>
           </Container>
         </Body>
