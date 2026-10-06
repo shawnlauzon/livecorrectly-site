@@ -1,4 +1,4 @@
-import { PRODUCTION_URL } from '@/lib/site-url';
+import { PRODUCTION_URL } from "@/lib/site-url";
 
 /**
  * Block token for the "newsletter library" callout.
@@ -9,25 +9,29 @@ import { PRODUCTION_URL } from '@/lib/site-url';
  * touches `[[ ]]`, so the token survives until replaceLibraryBlock() swaps the
  * whole paragraph for the block (a table can't live inside a <p>).
  */
-export const LIBRARY_BLOCK_TOKEN = '[[newsletter-library]]';
+export const LIBRARY_BLOCK_TOKEN = "[[newsletter-library]]";
 
 /** Copy for the block — the single place to edit it. */
 export const LIBRARY_BLOCK_COPY = {
-  heading: 'Your newsletter library',
-  body: 'Every issue is on the site, written for your design. Your Strategy, your Authority and your chart are already filled in. Catch up on any you missed, or go back to one worth rereading.',
-  button: 'Read past issues →',
+  heading: "Your newsletter library",
+  body: "Every issue is on the site, written for your unique design. Catch up on those you missed, go back to one worth rereading, or even skip ahead to one which you'll receive in future weeks!",
+  button: "See them all →",
 };
 
 // Brand tokens (see CLAUDE.md design system); email needs inline hex values.
-const INK = '#221B3D';
-const GRAPE = '#6A4BD6';
-const MARIGOLD = '#FFB020';
-const MARIGOLD_TINT = '#FFF4DB';
+const INK = "#221B3D";
+const GRAPE = "#6A4BD6";
+const MARIGOLD = "#FFB020";
+const MARIGOLD_TINT = "#FFF4DB";
 
 /** Paragraph (any attributes/whitespace, as the editor writes it) holding only the token. */
-const TOKEN_PARAGRAPH_RE = /<p\b[^>]*>\s*\[\[newsletter-library\]\]\s*<\/p\s*>/g;
+const TOKEN_PARAGRAPH_RE =
+  /<p\b[^>]*>\s*\[\[newsletter-library\]\]\s*<\/p\s*>/g;
 
-function libraryBlockHtml(subscriberId: string, newsletterNumber: number): string {
+function libraryBlockHtml(
+  subscriberId: string,
+  newsletterNumber: number,
+): string {
   const appUrl = process.env.APP_URL ?? PRODUCTION_URL;
   const url = `${appUrl}/newsletter?s=${subscriberId}&utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletterNumber}`;
   return (
@@ -51,8 +55,11 @@ export function replaceLibraryBlock(
   html: string,
   subscriberId: string | undefined,
   newsletterNumber: number,
-  mode: 'web' | 'email',
+  mode: "web" | "email",
 ): string {
-  if (mode === 'web' || !subscriberId) return html.replace(TOKEN_PARAGRAPH_RE, '');
-  return html.replace(TOKEN_PARAGRAPH_RE, () => libraryBlockHtml(subscriberId, newsletterNumber));
+  if (mode === "web" || !subscriberId)
+    return html.replace(TOKEN_PARAGRAPH_RE, "");
+  return html.replace(TOKEN_PARAGRAPH_RE, () =>
+    libraryBlockHtml(subscriberId, newsletterNumber),
+  );
 }
