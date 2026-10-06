@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
     unsubscribeUrl: '#',
     ps: postscripts?.filter(Boolean) ?? [],
     note: note?.body,
+    library: { subscriberId, newsletterNumber: newsletterNumber ?? 0 },
   });
 
   return NextResponse.json({ html: chromed, noteDate: note?.sendDate ?? null });

@@ -254,6 +254,7 @@ export async function renderNewsletterForBroadcast(
     ps: newsletter.ps,
     preview: newsletter.preview,
     note: options?.note,
+    library: { subscriberId: resendSubscriberId, newsletterNumber },
   });
 
   // Subject also needs Resend template vars for firstName
@@ -317,6 +318,7 @@ export async function renderNewsletterForBroadcastWithHtml(
     ps,
     preview,
     note: options?.note,
+    library: { subscriberId: resendSubscriberId, newsletterNumber },
   });
 
   return { html, subject };

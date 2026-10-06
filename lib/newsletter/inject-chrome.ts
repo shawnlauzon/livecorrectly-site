@@ -33,6 +33,7 @@ import {
   postscriptFragments,
   footerFragment,
 } from './chrome-fragments';
+import { libraryBlockFragment } from './library-block';
 
 export interface InjectChromeOptions {
   appUrl?: string;
@@ -42,14 +43,16 @@ export interface InjectChromeOptions {
   preheader?: string;
   /** Shared note shown between the logo and the issue body */
   note?: string;
+  /** Personalizes the newsletter library block shown after the note; omitted → no block */
+  library?: { subscriberId: string; newsletterNumber: number };
 }
 
 /**
  * Inject email chrome into composeReactEmail() HTML output.
  *
- * Injects the hidden preheader, logo and optional note after <body> and the
- * suffix (signature, postscripts, footer) before </body>, so chrome sits
- * outside the table structure.
+ * Injects the hidden preheader, logo, optional note and optional library block
+ * after <body> and the suffix (signature, postscripts, footer) before </body>,
+ * so chrome sits outside the table structure.
  *
  * Also normalizes font-size:1em → font-size:16px on the outer content <td>
  * so that the editor's relative em units resolve to a readable base size.
@@ -65,6 +68,9 @@ export function injectEmailChrome(
     preheaderFragment(options.preheader ?? ''),
     logoFragment(appUrl),
     noteFragment(options.note ?? ''),
+    options.library
+      ? libraryBlockFragment(options.library.subscriberId, options.library.newsletterNumber)
+      : '',
   ].filter(Boolean).join('\n');
   const signature = signatureFragment(appUrl);
   const ps = postscriptFragments(options.postscripts);
@@ -75,7 +81,7 @@ export function injectEmailChrome(
   const suffixContent = [signature, ps, footer].filter(Boolean).join('\n');
   const suffix = `<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;"><tr><td style="font-family:'Hanken Grotesk',Helvetica,Arial,sans-serif;font-size:16px;">${suffixContent}</td></tr></table>`;
 
-  // Inject prefix (preheader, logo, note) right after <body...> and suffix right before </body>.
+  // Inject prefix (preheader, logo, note, library) right after <body...> and suffix right before </body>.
   // Both sit outside the table structure for correct ordering.
   const bodyOpenPattern = /<body\b[^>]*>/i;
   const bodyMatch = bodyOpenPattern.exec(html);

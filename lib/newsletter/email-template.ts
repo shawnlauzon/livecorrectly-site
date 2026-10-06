@@ -10,6 +10,11 @@ interface RenderNewsletterEmailOptions {
   preview?: string;
   /** Shared note shown above the issue body */
   note?: string;
+  /**
+   * Who the newsletter library block (after the logo and note) links for.
+   * Required so every send path decides; null leaves the block out.
+   */
+  library: { subscriberId: string; newsletterNumber: number } | null;
 }
 
 /**
@@ -58,11 +63,13 @@ export function renderNewsletterEmail({
   ps,
   preview,
   note,
+  library,
 }: RenderNewsletterEmailOptions): string {
   return injectEmailChrome(rewriteBlobUrls(bodyHtml), {
     unsubscribeUrl,
     postscripts: ps,
     preheader: preview,
     note,
+    library: library ?? undefined,
   });
 }

@@ -635,6 +635,7 @@ async function scheduleDirectSends(
         ps: issue.ps,
         preview: issue.preview,
         note,
+        library: { subscriberId: subscriber.id, newsletterNumber },
       }),
     });
   }

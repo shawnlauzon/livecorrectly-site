@@ -29,6 +29,7 @@ export async function getNewsletterHtml(
     unsubscribeUrl,
     ps: newsletter.ps,
     preview: newsletter.preview,
+    library: { subscriberId: subscriber.id, newsletterNumber: step },
   });
 }
 

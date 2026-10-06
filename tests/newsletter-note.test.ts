@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { noteFragment, preheaderFragment } from '../lib/newsletter/chrome-fragments';
 import { injectEmailChrome } from '../lib/newsletter/inject-chrome';
+import { LIBRARY_BLOCK_COPY } from '../lib/newsletter/library-block';
 
 const DOC = '<html><head></head><body style="x"><table><tr><td>BODY CONTENT</td></tr></table></body></html>';
 
@@ -58,10 +59,43 @@ describe('injectEmailChrome', () => {
     expect(content).toBeGreaterThan(note);
   });
 
+  it('places the library block after the note, before the body content', () => {
+    const html = injectEmailChrome(DOC, {
+      appUrl: 'https://example.com',
+      unsubscribeUrl: '#',
+      postscripts: [],
+      note: 'NOTE TEXT',
+      library: { subscriberId: 'sub-123', newsletterNumber: 10 },
+    });
+    const logo = html.indexOf('permission-slip.png');
+    const note = html.indexOf('NOTE TEXT');
+    const library = html.indexOf(LIBRARY_BLOCK_COPY.heading);
+    const content = html.indexOf('BODY CONTENT');
+    expect(note).toBeGreaterThan(logo);
+    expect(library).toBeGreaterThan(note);
+    expect(content).toBeGreaterThan(library);
+    expect(html).toContain('/newsletter?s=sub-123&');
+    expect(html).toContain('utm_campaign=newsletter_10');
+  });
+
+  it('places the library block right after the logo when there is no note', () => {
+    const html = injectEmailChrome(DOC, {
+      appUrl: 'https://example.com',
+      unsubscribeUrl: '#',
+      postscripts: [],
+      library: { subscriberId: 'sub-123', newsletterNumber: 10 },
+    });
+    const logo = html.indexOf('permission-slip.png');
+    const library = html.indexOf(LIBRARY_BLOCK_COPY.heading);
+    expect(library).toBeGreaterThan(logo);
+    expect(html.indexOf('BODY CONTENT')).toBeGreaterThan(library);
+  });
+
   it('injects neither when omitted', () => {
     const html = injectEmailChrome(DOC, { appUrl: 'https://example.com', unsubscribeUrl: '#', postscripts: [] });
     expect(html).not.toContain('display:none');
     expect(html).not.toContain('data-newsletter-note');
+    expect(html).not.toContain(LIBRARY_BLOCK_COPY.heading);
   });
 });
 

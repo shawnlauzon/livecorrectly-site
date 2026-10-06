@@ -31,11 +31,12 @@ const TOKEN_PARAGRAPH_RE =
 function libraryBlockHtml(
   subscriberId: string,
   newsletterNumber: number,
+  margin = "24px 0",
 ): string {
   const appUrl = process.env.APP_URL ?? PRODUCTION_URL;
   const url = `${appUrl}/newsletter?s=${subscriberId}&utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletterNumber}`;
   return (
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;border-collapse:separate">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:${margin};border-collapse:separate">` +
     `<tr><td style="background-color:${MARIGOLD_TINT};border-left:4px solid ${MARIGOLD};border-radius:8px;padding:20px 24px">` +
     `<p style="margin:0 0 8px;font-family:'Bricolage Grotesque',Arial,sans-serif;font-size:20px;font-weight:700;line-height:1.3;color:${INK}">${LIBRARY_BLOCK_COPY.heading}</p>` +
     `<p style="margin:0 0 16px;font-size:16px;line-height:1.5;color:${INK}">${LIBRARY_BLOCK_COPY.body}</p>` +
@@ -61,5 +62,23 @@ export function replaceLibraryBlock(
     return html.replace(TOKEN_PARAGRAPH_RE, "");
   return html.replace(TOKEN_PARAGRAPH_RE, () =>
     libraryBlockHtml(subscriberId, newsletterNumber),
+  );
+}
+
+/**
+ * The library block as standalone email chrome, for injectEmailChrome() to
+ * place above the issue body. Wrapped in the same centered max-width table as
+ * the other chrome fragments; the wrapper sets the body font, since chrome sits
+ * outside the editor's content cell.
+ */
+export function libraryBlockFragment(
+  subscriberId: string,
+  newsletterNumber: number,
+): string {
+  return (
+    `<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;">` +
+    `<tr><td style="font-family:'Hanken Grotesk',Helvetica,Arial,sans-serif;font-size:16px;">` +
+    libraryBlockHtml(subscriberId, newsletterNumber, "0 0 24px") +
+    `</td></tr></table>`
   );
 }
