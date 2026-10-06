@@ -55,7 +55,7 @@ export default async function NewsletterIndexPage({
           <h1 className={styles.h1}>Newsletter</h1>
           <AdminEditLink href="/admin/newsletters" />
         </div>
-        {!subscriber && <NewsletterIndexCta sendDay={sendDay} />}
+        <NewsletterIndexCta sendDay={sendDay} subscribed={!!subscriber} />
         <ul className={styles.list}>
           {issues.map((issue) => (
             <li key={issue.slug} className={styles.item}>
