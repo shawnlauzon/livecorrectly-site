@@ -4,6 +4,7 @@ import {
 } from '@/lib/newsletter/loader';
 import { replaceVariables as replaceVars, replaceChartSubpaths, replaceDesignedCta } from './template-variables';
 import { resolveLiquid, resolveRelativeLinks } from '@/lib/newsletter/resolve';
+import { replaceLibraryBlock } from '@/lib/newsletter/library-block';
 import type { EngagementData } from '@/lib/newsletter/resolve';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 
@@ -43,6 +44,29 @@ function renderForEmail(raw: RawNewsletterIssue): NewsletterIssue {
 }
 
 /**
+ * Resolve every subscriber-specific link in email body HTML: {{chart:/path}},
+ * data-relative links, {{designed:…}} CTAs and the [[newsletter-library]] block.
+ *
+ * Shared by direct sends and both broadcast paths so none of them can skip a step.
+ * `subscriberId` may be a Resend placeholder (`{{{contact.neon_id}}}`).
+ */
+export function resolveSubscriberLinks(
+  html: string,
+  { subscriberId, slug, newsletterNumber }: {
+    subscriberId?: string;
+    slug: string | null;
+    newsletterNumber: number;
+  },
+): string {
+  let result = replaceChartSubpaths(html, subscriberId, newsletterNumber);
+  result = resolveRelativeLinks(result, subscriberId, newsletterNumber);
+  if (subscriberId) {
+    result = replaceDesignedCta(result, slug, subscriberId, newsletterNumber);
+  }
+  return replaceLibraryBlock(result, subscriberId, newsletterNumber, 'email');
+}
+
+/**
  * Replace template variables in a rendered newsletter issue.
  * Builds a variable map from firstName/subscriberId and delegates to the shared replaceVariables().
  */
@@ -56,12 +80,11 @@ function replaceNewsletterVariables(newsletter: NewsletterIssue, firstName: stri
     appUrl,
     chartUrl,
   };
-  let bodyHtml = replaceVars(newsletter.bodyHtml, vars);
-  bodyHtml = replaceChartSubpaths(bodyHtml, subscriberId, newsletter.number);
-  bodyHtml = resolveRelativeLinks(bodyHtml, subscriberId, newsletter.number);
-  if (subscriberId) {
-    bodyHtml = replaceDesignedCta(bodyHtml, newsletter.slug, subscriberId, newsletter.number);
-  }
+  const bodyHtml = resolveSubscriberLinks(replaceVars(newsletter.bodyHtml, vars), {
+    subscriberId,
+    slug: newsletter.slug,
+    newsletterNumber: newsletter.number,
+  });
 
   return {
     ...newsletter,

@@ -8,13 +8,17 @@ import About from "@/components/about";
 import ClosingCta from "@/components/closing-cta";
 import SiteFooter from "@/components/site-footer";
 import SectionTracker from "@/components/section-tracker";
+import { getRememberedSubscriberId } from "@/lib/subscriber-cookie-server";
 
-export default function Home() {
+export default async function Home() {
+  const subscriberId = await getRememberedSubscriberId();
+  const chartHref = subscriberId ? `/see-your-design/${subscriberId}` : undefined;
+
   return (
     <>
       <SiteNav />
       <main>
-        <Hero />
+        <Hero chartHref={chartHref} />
         <hr className="rule" />
         <PullQuote />
         <hr className="rule" />
@@ -22,7 +26,7 @@ export default function Home() {
         <SectionTracker name="method"><Method /></SectionTracker>
         <SectionTracker name="testimonial"><Testimonial /></SectionTracker>
         <SectionTracker name="about"><About /></SectionTracker>
-        <SectionTracker name="closing_cta"><ClosingCta /></SectionTracker>
+        <SectionTracker name="closing_cta"><ClosingCta chartHref={chartHref} /></SectionTracker>
       </main>
       <SiteFooter />
     </>

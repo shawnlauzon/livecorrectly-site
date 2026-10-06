@@ -70,7 +70,11 @@ vi.mock('../lib/resend/contacts', () => ({
   ensureNeonIdProperty: vi.fn(),
   ensureChartContactProperties: vi.fn(),
 }));
-vi.mock('../lib/newsletter/email-loader', () => ({ getNewsletterIssue: vi.fn() }));
+vi.mock('../lib/newsletter/email-loader', () => ({
+  getNewsletterIssue: vi.fn(),
+  // Link resolution is covered by subscriber-links.test.ts; pass through here
+  resolveSubscriberLinks: (html: string) => html,
+}));
 vi.mock('../lib/newsletter/loader', () => ({ loadNewsletterIssue: vi.fn() }));
 vi.mock('../lib/newsletter/email', () => ({ getNewsletterSubject: vi.fn() }));
 vi.mock('../lib/newsletter/resolve', () => ({ buildContactPropertyValues: vi.fn() }));

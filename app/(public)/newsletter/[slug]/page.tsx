@@ -12,15 +12,15 @@ import PersonalizationCallout from './PersonalizationCallout';
 import SampleValueTooltip from './SampleValueTooltip';
 import { SAMPLE_CHART } from '@/lib/newsletter/sample-chart';
 import AdminEditLink from '../AdminEditLink';
+import RememberSubscriber from '@/components/remember-subscriber';
+import { isSubscriberId } from '@/lib/subscriber-cookie';
+import { getRememberedSubscriberId } from '@/lib/subscriber-cookie-server';
 import styles from './page.module.css';
 
 interface Props {
   params: Promise<{ slug: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function generateStaticParams() {
   const current = (await getAllSlugs()).map((slug) => ({ slug }));
@@ -80,14 +80,18 @@ export default async function NewsletterIssuePage({
   const { slug } = await params;
   const resolvedSearchParams = await searchParams;
 
-  // Resolve subscriber early — needed for markdown conditionals, personalizations, and "Built for" line
-  const subscriberParam =
-    typeof resolvedSearchParams.s === 'string' ? resolvedSearchParams.s : null;
+  // Resolve subscriber early — needed for markdown conditionals, personalizations, and "Built for" line.
+  // An email link's ?s= wins; otherwise fall back to the id remembered in the cookie.
+  const subscriberParam = isSubscriberId(resolvedSearchParams.s) ? resolvedSearchParams.s : null;
+  const subscriberId = subscriberParam ?? (await getRememberedSubscriberId());
   let chart = null;
   let subscriberName: string | null = null;
-  if (subscriberParam && UUID_RE.test(subscriberParam)) {
-    const subscriber = await getSubscriberById(subscriberParam);
+  // Set only when the id matches a real subscriber
+  let foundId: string | undefined;
+  if (subscriberId) {
+    const subscriber = await getSubscriberById(subscriberId);
     if (subscriber) {
+      foundId = subscriber.id;
       subscriberName = subscriber.last_name
         ? `${subscriber.first_name} ${subscriber.last_name}`
         : subscriber.first_name;
@@ -98,7 +102,7 @@ export default async function NewsletterIssuePage({
   }
 
   // Load newsletter with chart so markdown conditionals are evaluated
-  const issue = await getWebNewsletter(slug, chart, subscriberParam ?? undefined);
+  const issue = await getWebNewsletter(slug, chart, foundId);
   if (!issue) {
     // Check if this is an old slug that should redirect
     const redirectSlug = (await getSlugRedirects()).get(slug);
@@ -176,9 +180,10 @@ export default async function NewsletterIssuePage({
             </div>
           ))}
         </article>
-        {!subscriberParam && <NewsletterCta />}
+        {!foundId && <NewsletterCta />}
       </main>
       <SiteFooter />
+      {subscriberParam && foundId && <RememberSubscriber id={subscriberParam} />}
       {issue.published && (
         <script
           type="application/ld+json"

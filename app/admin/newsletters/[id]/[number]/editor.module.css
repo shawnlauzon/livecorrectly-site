@@ -206,6 +206,26 @@
   outline-offset: 1px;
 }
 
+/* Content block chip — block atom rendered via renderHTML, styled like variable chips */
+.editorWrap :global(div[data-content-block]) {
+  margin: 0.5em 0;
+}
+
+.editorWrap :global(div[data-content-block] > span) {
+  background: #f0edf7;
+  color: var(--ink);
+  border-radius: 3px;
+  padding: 1px 3px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+.editorWrap :global(div[data-content-block].ProseMirror-selectednode > span) {
+  outline: 2px solid var(--grape);
+  outline-offset: 1px;
+}
+
 /* Conditional block — wrapper rendered by ConditionalBlockView */
 .editorWrap :global([data-type="conditional-block"]) {
   margin: 12px 0;

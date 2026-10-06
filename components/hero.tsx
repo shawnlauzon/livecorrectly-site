@@ -9,8 +9,12 @@ import { track } from '@/lib/analytics';
 
 let hasAnimated = false;
 
-export default function Hero() {
+/** `chartHref` is set for returning subscribers (remembered id) — the CTA goes to their chart. */
+export default function Hero({ chartHref }: { chartHref?: string }) {
   const [skipAnimation] = useState(() => {
+    // Track only in the browser: the page is server-rendered per request, and a
+    // flag flipped on the server would persist across requests and mismatch hydration.
+    if (typeof window === 'undefined') return false;
     if (hasAnimated) return true;
     hasAnimated = true;
     return false;
@@ -53,8 +57,8 @@ export default function Hero() {
           </p>
 
           <div className={styles.ctaGroup}>
-            <Link className="btn" href="/see-your-design"
-              onClick={() => track('cta_click', { location: 'hero' })}
+            <Link className="btn" href={chartHref ?? '/see-your-design'}
+              onClick={() => track(chartHref ? 'your_chart_click' : 'cta_click', { location: 'hero' })}
             >
               See how you&rsquo;re designed
             </Link>
@@ -62,7 +66,7 @@ export default function Hero() {
               Already have your chart, or want more depth?{' '}
               <a
                 className="link"
-                href="https://calendar.google.com/appointments/schedules/AcZssZ1kXUVAC-LNzJfVTRh5vOTKdXCDVuH1wAJvpXrgdjWLoq8XBGl5aYR3SJ1nTkN5pwwuuEnWzz8m"
+                href={process.env.NEXT_PUBLIC_BOOKING_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => track('book_consultation_click', { location: 'hero' })}

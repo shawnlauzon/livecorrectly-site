@@ -2,6 +2,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 import CookieBanner from "@/components/cookie-banner";
+import { CONSENT_STORAGE_KEY } from "@/lib/consent";
 
 export default function PublicLayout({
   children,
@@ -36,7 +37,7 @@ export default function PublicLayout({
               gtag('js', new Date());
               gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}');
 
-              if (localStorage.getItem('cookie-consent') === 'granted') {
+              if (localStorage.getItem('${CONSENT_STORAGE_KEY}') === 'granted') {
                 gtag('consent', 'update', { analytics_storage: 'granted' });
               }
             `}

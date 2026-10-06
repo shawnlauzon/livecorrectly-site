@@ -35,7 +35,7 @@ import { getNoteForSend } from '@/lib/newsletter/notes';
 import { planAudience, autoSegmentName } from '@/lib/newsletter/audience';
 import type { AudiencePlan } from '@/lib/newsletter/audience';
 import { addEmailsToSegment, removeNewsletterSegment } from '@/lib/newsletter/segments';
-import { getNewsletterIssue } from '@/lib/newsletter/email-loader';
+import { getNewsletterIssue, resolveSubscriberLinks } from '@/lib/newsletter/email-loader';
 import { renderNewsletterEmail } from '@/lib/newsletter/email-template';
 import { buildUnsubscribeUrl, formatEmailRecipient, sendNewsletterEmail } from '@/lib/email/send';
 import type { EngagementData } from '@/lib/newsletter/resolve';
@@ -327,6 +327,16 @@ export async function POST(request: NextRequest) {
               subscriber.last_name ?? undefined,
               subscriber.email,
             );
+
+            // Sections are rendered per subscriber, so their links get the real id
+            // (the broadcast body uses the {{{contact.neon_id}}} placeholder instead).
+            for (const [key, sectionHtml] of Object.entries(dynamicProps)) {
+              dynamicProps[key] = resolveSubscriberLinks(sectionHtml, {
+                subscriberId: subscriber.id,
+                slug: raw.slug,
+                newsletterNumber,
+              });
+            }
 
             const allProps = { ...dynamicProps, ...derivedProps };
 

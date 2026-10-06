@@ -5,7 +5,8 @@ import Wrap from "./wrap";
 import styles from "./closing-cta.module.css";
 import { track } from "@/lib/analytics";
 
-export default function ClosingCta() {
+/** `chartHref` is set for returning subscribers (remembered id) — the CTA goes to their chart. */
+export default function ClosingCta({ chartHref }: { chartHref?: string }) {
   return (
     <section className={styles.section}>
       <Wrap>
@@ -13,8 +14,8 @@ export default function ClosingCta() {
 
         <div className={styles.cta}>
           <h2 className={styles.h2}>Start with your own chart.</h2>
-          <Link className="btn" href="/see-your-design"
-            onClick={() => track('cta_click', { location: 'closing_cta' })}
+          <Link className="btn" href={chartHref ?? "/see-your-design"}
+            onClick={() => track(chartHref ? 'your_chart_click' : 'cta_click', { location: 'closing_cta' })}
           >
             See how you&rsquo;re designed
           </Link>
@@ -22,7 +23,7 @@ export default function ClosingCta() {
             Already have your chart, or want more depth?{" "}
             <a
               className="link"
-              href="https://calendar.google.com/appointments/schedules/AcZssZ1kXUVAC-LNzJfVTRh5vOTKdXCDVuH1wAJvpXrgdjWLoq8XBGl5aYR3SJ1nTkN5pwwuuEnWzz8m"
+              href={process.env.NEXT_PUBLIC_BOOKING_URL}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => track('book_consultation_click', { location: 'closing_cta' })}

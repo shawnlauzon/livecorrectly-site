@@ -2,6 +2,7 @@ import { Liquid } from 'liquidjs';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 import { functionToCenterIndex } from '@/lib/hd-chart/constants';
 import type { LiquidSectionMap } from './loader';
+import { replaceLibraryBlock } from './library-block';
 import type { NewsletterEngagementFlags } from '@/lib/db';
 
 // =============================================================================
@@ -842,6 +843,13 @@ export async function resolveNewsletterHtml(
     result,
     options.subscriberId,
     options.newsletterNumber ?? 0,
+  );
+
+  result = replaceLibraryBlock(
+    result,
+    options.subscriberId,
+    options.newsletterNumber ?? 0,
+    options.mode ?? 'email',
   );
 
   return result;

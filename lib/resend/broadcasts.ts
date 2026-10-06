@@ -1,5 +1,5 @@
 import { getResendClient, ensureNeonIdProperty, ensureChartContactProperties } from './contacts';
-import { getNewsletterIssue } from '@/lib/newsletter/email-loader';
+import { getNewsletterIssue, resolveSubscriberLinks } from '@/lib/newsletter/email-loader';
 import { loadNewsletterIssue } from '@/lib/newsletter/loader';
 import { replaceVariables as replaceVars } from '@/lib/newsletter/template-variables';
 import { renderNewsletterEmail } from '@/lib/newsletter/email-template';
@@ -304,7 +304,11 @@ export async function renderNewsletterForBroadcastWithHtml(
 
   const subject = replaceVars(raw.subject, vars);
   const preview = replaceVars(raw.preview, vars);
-  const bodyHtml = replaceVars(customHtml, vars);
+  const bodyHtml = resolveSubscriberLinks(replaceVars(customHtml, vars), {
+    subscriberId: resendSubscriberId,
+    slug: raw.slug,
+    newsletterNumber,
+  });
   const ps = raw.rawPs.map(p => replaceVars(p.trim(), vars));
 
   const html = renderNewsletterEmail({

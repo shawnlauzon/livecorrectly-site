@@ -2,9 +2,9 @@
 
 import { useSyncExternalStore, useState } from "react";
 import Link from "next/link";
+import { CONSENT_STORAGE_KEY as STORAGE_KEY } from "@/lib/consent";
+import { forgetCookieString } from "@/lib/subscriber-cookie";
 import styles from "./cookie-banner.module.css";
-
-const STORAGE_KEY = "cookie-consent";
 
 function subscribeNoop() {
   // localStorage doesn't fire events on same-window writes;
@@ -44,6 +44,9 @@ export default function CookieBanner() {
   function decline() {
     localStorage.setItem(STORAGE_KEY, "denied");
     setDismissed(true);
+
+    // Declining also forgets the remembered subscriber id (see RememberSubscriber)
+    document.cookie = forgetCookieString();
 
     // Explicitly deny analytics so GA4 respects revocation
     const w = window as Window & { gtag?: (...args: unknown[]) => void };

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSubscriberByUnsubToken, updateEmailStatus, recordEmailEvent } from '@/lib/db';
 import { unsubscribeContactInResend } from '@/lib/resend/contacts';
+import { CONSENT_STORAGE_KEY } from '@/lib/consent';
 
 /**
  * Unsubscribe endpoint.
@@ -21,7 +22,7 @@ function confirmationHtml(campaign: string | null): string {
     window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
     gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_personalization:'denied',ad_user_data:'denied'});
     gtag('js',new Date());gtag('config','${gaId}');
-    try{if(localStorage.getItem('cookie-consent')==='granted')gtag('consent','update',{analytics_storage:'granted'})}catch(e){}
+    try{if(localStorage.getItem('${CONSENT_STORAGE_KEY}')==='granted')gtag('consent','update',{analytics_storage:'granted'})}catch(e){}
     gtag('event','email_unsubscribe',{campaign:'${safeCampaign}'});
   </script>` : '';
 

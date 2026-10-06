@@ -20,6 +20,10 @@ import adminStyles from '../../../admin.module.css';
 import { VariableNode, VariableEditForm, VARIABLE } from './variable-node';
 import { ConditionalBlockNode, ConditionalBranchNode, ConditionalKeymap, IF_THEN_ELSE, DEFAULT_CONDITION } from './conditional-node';
 import { LiquidClipboard } from './liquid-paste-extension';
+import { NEWSLETTER_LIBRARY } from './library-block-command';
+import { ContentBlockNode } from './content-block-node';
+import { ContentBlockTrigger, filterSlashItems } from './content-block-trigger';
+import { orderForSlashMenu } from './slash-menu-order';
 import hdChart from '@/lib/hd-chart';
 import { types, innerAuthorityTypes, definitions } from '@/lib/hd-chart/constants';
 import type { Subscriber } from '@/lib/types/subscriber';
@@ -74,9 +78,6 @@ function RefBridge({
   return null;
 }
 
-// Sort by category to match the visual grouping in the SlashCommand menu.
-// The library's CommandList groups items by category but uses array indices
-// for selection, so the array order must match the grouped display order.
 // {{ → insert Variable node, {% → insert Conditional node
 const BraceShortcuts = Extension.create({
   name: 'braceShortcuts',
@@ -170,13 +171,9 @@ function injectRelativeAttrs(html: string, json: JSONContent): string {
   return result;
 }
 
-const SLASH_CATEGORY_ORDER = ['Text', 'Media', 'Layout', 'Conditionals', 'Utility'];
-const slashCommandItems = [...defaultSlashCommands, imageSlashCommand, VARIABLE, IF_THEN_ELSE]
-  .sort((a, b) => {
-    const ai = SLASH_CATEGORY_ORDER.indexOf(a.category);
-    const bi = SLASH_CATEGORY_ORDER.indexOf(b.category);
-    return (ai === -1 ? SLASH_CATEGORY_ORDER.length : ai) - (bi === -1 ? SLASH_CATEGORY_ORDER.length : bi);
-  });
+const slashCommandItems = orderForSlashMenu([
+  ...defaultSlashCommands, imageSlashCommand, VARIABLE, IF_THEN_ELSE, NEWSLETTER_LIBRARY,
+]);
 
 
 function EditorPanel({
@@ -267,6 +264,8 @@ function EditorPanel({
     }),
     imageExtension,
     VariableNode,
+    ContentBlockNode,
+    ContentBlockTrigger,
     ConditionalBlockNode,
     ConditionalBranchNode,
     ConditionalKeymap,
@@ -425,7 +424,7 @@ function EditorPanel({
           >
             <VariableEditForm />
           </BubbleMenu>
-          <SlashCommand items={slashCommandItems} />
+          <SlashCommand items={slashCommandItems} filterItems={filterSlashItems} />
         </EditorProvider>
       </div>
     </>

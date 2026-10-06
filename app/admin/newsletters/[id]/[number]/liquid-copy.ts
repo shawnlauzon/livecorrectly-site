@@ -9,6 +9,7 @@
 import { DOMSerializer, Fragment, type Node as PMNode, type Schema, type Slice } from '@tiptap/pm/model';
 import { liquidTag } from './variable-node';
 import { branchOpenTag, ENDIF_TAG } from './conditional-node';
+import { LIBRARY_BLOCK_TOKEN } from '@/lib/newsletter/library-block';
 
 function convert(fragment: Fragment, schema: Schema): PMNode[] {
   const out: PMNode[] = [];
@@ -85,11 +86,18 @@ export function sliceToLiquid(slice: Slice, schema: Schema): Fragment {
   return Fragment.from(convert(content, schema));
 }
 
+/** Plain-text form of a leaf node; content blocks copy as their `[[…]]` token. */
+function leafText(leaf: PMNode): string {
+  if (leaf.type.name === 'hardBreak') return '\n';
+  if (leaf.type.name === 'contentBlock') return LIBRARY_BLOCK_TOKEN;
+  return '';
+}
+
 /** Clipboard payloads (`text/html` and `text/plain`) for a selection slice. */
 export function liquidClipboardContent(slice: Slice, schema: Schema): { html: string; text: string } {
   const fragment = sliceToLiquid(slice, schema);
   const container = document.createElement('div');
   container.appendChild(DOMSerializer.fromSchema(schema).serializeFragment(fragment));
-  const text = fragment.textBetween(0, fragment.size, '\n\n', leaf => (leaf.type.name === 'hardBreak' ? '\n' : ''));
+  const text = fragment.textBetween(0, fragment.size, '\n\n', leafText);
   return { html: container.innerHTML, text };
 }
