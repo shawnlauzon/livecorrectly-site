@@ -154,8 +154,16 @@
   max-width: 100%;
   height: auto;
   display: block;
-  margin: 1.5rem 0;
+  margin: 2.5rem 0 1.5rem;
   border-radius: 8px;
+}
+
+/* An italic-only paragraph right after an image is its caption: give it the
+   same room below as the image has above (email: spaceImages() in
+   lib/newsletter/inject-chrome.ts). */
+.body img + p:has(> em:only-child),
+.body a:has(> img:only-child) + p:has(> em:only-child) {
+  margin-bottom: 2.5rem;
 }
 
 .body blockquote {

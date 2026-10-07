@@ -48,6 +48,25 @@ export interface InjectChromeOptions {
   library?: { subscriberId: string; newsletterNumber: number };
 }
 
+/** An <img>, optionally inside the <a> the editor wraps linked images in. */
+const IMAGE = String.raw`<img\b[^>]*>\s*(?:<\/a>\s*)?`;
+/** A paragraph holding nothing but one <em> — a caption when it follows an image. */
+const CAPTION_RE = new RegExp(
+  String.raw`(${IMAGE})<p\b([^>]*?)style="([^"]*)"(?=>\s*<em>(?:(?!<\/?em\b|<\/p>)[\s\S])*<\/em>\s*<\/p>)`,
+  'gi',
+);
+
+/**
+ * Space images in the issue body: more room above each image, and below an
+ * italic caption that follows one, so image + caption read as a unit. Runs on
+ * the body alone, before chrome (which has its own logo image) is added.
+ */
+function spaceImages(html: string): string {
+  return html
+    .replace(/<img\b([^>]*?)style="/gi, '<img$1style="margin-top:32px;')
+    .replace(CAPTION_RE, '$1<p$2style="$3;margin-bottom:24px"');
+}
+
 /**
  * Inject email chrome into composeReactEmail() HTML output.
  *
@@ -102,7 +121,7 @@ export function injectEmailChrome(
   let result =
     html.slice(0, bodyInsertPos) +
     '\n' + prefix + '\n' +
-    html.slice(bodyInsertPos, bodyCloseIndex) +
+    spaceImages(html.slice(bodyInsertPos, bodyCloseIndex)) +
     '\n' + suffix + '\n' +
     html.slice(bodyCloseIndex);
 
