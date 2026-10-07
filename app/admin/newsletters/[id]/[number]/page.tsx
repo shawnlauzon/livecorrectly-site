@@ -16,6 +16,7 @@ import { EmailNewsletter } from '@/components/admin/email-newsletter';
 import { LinkBubble, TextBubbleMenu } from './link-bubble';
 import '@react-email/editor/themes/default.css';
 import styles from './editor.module.css';
+import { EMAIL_BODY_FONT, EMAIL_HEADING_FONT } from '@/lib/email/fonts';
 import adminStyles from '../../../admin.module.css';
 import { VariableNode, VariableEditForm, VARIABLE } from './variable-node';
 import { ConditionalBlockNode, ConditionalBranchNode, ConditionalKeymap, IF_THEN_ELSE, DEFAULT_CONDITION } from './conditional-node';
@@ -270,9 +271,10 @@ function EditorPanel({
     }),
     EmailTheming.configure({
       theme: extendTheme('basic', {
-        h1: { fontFamily: "'Fraunces', Georgia, serif" },
-        h2: { fontFamily: "'Fraunces', Georgia, serif" },
-        h3: { fontFamily: "'Fraunces', Georgia, serif" },
+        body: { fontFamily: EMAIL_BODY_FONT },
+        h1: { fontFamily: EMAIL_HEADING_FONT },
+        h2: { fontFamily: EMAIL_HEADING_FONT },
+        h3: { fontFamily: EMAIL_HEADING_FONT },
         list: { paddingBottom: '0.25em' },
         listItem: { paddingTop: '0.1em', paddingBottom: '0.1em' },
       }),

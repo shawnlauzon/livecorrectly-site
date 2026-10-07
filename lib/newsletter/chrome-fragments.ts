@@ -6,6 +6,8 @@
  * just raw HTML with inline styles for maximum email client compatibility.
  */
 
+import { EMAIL_BODY_FONT } from '../email/fonts';
+
 /**
  * Permission Slip logo block — centered at the top of the email.
  * Wrapped in the same max-width table as the suffix so the logo never exceeds
@@ -54,7 +56,7 @@ export function noteFragment(text: string): string {
   const body = paragraphs
     .map(p => `<p style="margin:0 0 16px;font-size:16px;line-height:24px;color:#292524;">${escapeHtml(p).replace(/\r?\n/g, '<br />')}</p>`)
     .join('\n');
-  return `<table data-newsletter-note align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;"><tr><td style="font-family:'Hanken Grotesk',Helvetica,Arial,sans-serif;font-size:16px;padding:0 0 8px;">${body}<hr style="margin:8px 0 0;border:none;border-top:1px solid #C9C2B4;" /></td></tr></table>`;
+  return `<table data-newsletter-note align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;"><tr><td style="font-family:${EMAIL_BODY_FONT};font-size:16px;padding:0 0 8px;">${body}<hr style="margin:8px 0 0;border:none;border-top:1px solid #C9C2B4;" /></td></tr></table>`;
 }
 
 /**

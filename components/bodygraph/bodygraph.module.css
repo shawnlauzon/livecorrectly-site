@@ -30,7 +30,7 @@
   flex: 0 0 auto;
   min-width: 100px;
   padding-top: 60px;
-  font-family: var(--font-body, 'Hanken Grotesk', sans-serif);
+  font-family: var(--font-body, 'Karla', sans-serif);
   font-size: 0.85rem;
   line-height: 1;
   display: flex;

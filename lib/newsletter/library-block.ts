@@ -1,3 +1,4 @@
+import { EMAIL_BODY_FONT, EMAIL_HEADING_FONT } from "@/lib/email/fonts";
 import { PRODUCTION_URL } from "@/lib/site-url";
 
 /**
@@ -38,7 +39,7 @@ function libraryBlockHtml(
   return (
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:${margin};border-collapse:separate">` +
     `<tr><td style="background-color:${PLUM_SOFT};border-left:4px solid ${PLUM};border-radius:8px;padding:20px 24px">` +
-    `<p style="margin:0 0 8px;font-family:'Bricolage Grotesque',Arial,sans-serif;font-size:20px;font-weight:700;line-height:1.3;color:${INK}">${LIBRARY_BLOCK_COPY.heading}</p>` +
+    `<p style="margin:0 0 8px;font-family:${EMAIL_HEADING_FONT};font-size:20px;font-weight:700;line-height:1.3;color:${INK}">${LIBRARY_BLOCK_COPY.heading}</p>` +
     `<p style="margin:0 0 16px;font-size:16px;line-height:1.5;color:${INK}">${LIBRARY_BLOCK_COPY.body}</p>` +
     `<a href="${url}" style="background-color:${ACTION};color:#FFFFFF;font-size:16px;font-weight:600;padding:12px 22px;border-radius:6px;text-decoration:none;display:inline-block">${LIBRARY_BLOCK_COPY.button}</a>` +
     `</td></tr></table>`
@@ -77,7 +78,7 @@ export function libraryBlockFragment(
 ): string {
   return (
     `<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;">` +
-    `<tr><td style="font-family:'Hanken Grotesk',Helvetica,Arial,sans-serif;font-size:16px;">` +
+    `<tr><td style="font-family:${EMAIL_BODY_FONT};font-size:16px;">` +
     libraryBlockHtml(subscriberId, newsletterNumber, "0 0 24px") +
     `</td></tr></table>`
   );

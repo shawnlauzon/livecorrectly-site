@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Html, Head, Preview, Body, Container, Tailwind, Text, Section, Button, Link } from 'react-email';
+import { EMAIL_BODY_FONT, EMAIL_FONTS_HREF } from '../lib/email/fonts';
 
 export const subject = 'Your Live Correctly link';
 export const preview = 'Your chart and your personalized newsletter.';
@@ -25,9 +26,11 @@ export const ChartLink = ({
 }: ChartLinkProps) => (
   <Tailwind>
     <Html lang="en">
-      <Head />
+      <Head>
+          <link href={EMAIL_FONTS_HREF} rel="stylesheet" />
+        </Head>
       <Preview>{preview}</Preview>
-      <Body className="bg-white font-sans">
+      <Body className="bg-white" style={{ fontFamily: EMAIL_BODY_FONT }}>
         <Container className="mx-auto max-w-[660px] px-[24px] py-[32px]">
           <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
             {firstName},

@@ -34,6 +34,7 @@ import {
   footerFragment,
 } from './chrome-fragments';
 import { libraryBlockFragment } from './library-block';
+import { EMAIL_BODY_FONT, EMAIL_FONTS_HREF, EMAIL_HEADING_FONT } from '../email/fonts';
 
 export interface InjectChromeOptions {
   appUrl?: string;
@@ -79,7 +80,7 @@ export function injectEmailChrome(
   // Assemble the suffix: signature, then postscripts (if any), then footer.
   // Wrap in a centered max-width table to match the content area width.
   const suffixContent = [signature, ps, footer].filter(Boolean).join('\n');
-  const suffix = `<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;"><tr><td style="font-family:'Hanken Grotesk',Helvetica,Arial,sans-serif;font-size:16px;">${suffixContent}</td></tr></table>`;
+  const suffix = `<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;"><tr><td style="font-family:${EMAIL_BODY_FONT};font-size:16px;">${suffixContent}</td></tr></table>`;
 
   // Inject prefix (preheader, logo, note, library) right after <body...> and suffix right before </body>.
   // Both sit outside the table structure for correct ordering.
@@ -105,6 +106,15 @@ export function injectEmailChrome(
     '\n' + suffix + '\n' +
     html.slice(bodyCloseIndex);
 
+  // Set the issue body in the brand body font. The editor's theme writes its
+  // own font-family next to font-size:1em on the outer content <td>, and saved
+  // issues keep whatever font was current when they were saved. Lazy and
+  // quote-bounded rather than [^;]: the editor escapes quotes as &#x27;.
+  result = result.replace(
+    /font-family:[^"]*?(;\s*font-size:\s*1em)/,
+    `font-family:${EMAIL_BODY_FONT}$1`,
+  );
+
   // Fix font-size: 1em → 16px on the outer content <td> so relative em units
   // in the editor content resolve to a readable base size.
   result = result.replace(
@@ -112,16 +122,16 @@ export function injectEmailChrome(
     'font-size:16px',
   );
 
-  // Inject Google Fonts <link> for Fraunces into <head>.
-  // Apple Mail / iOS Mail will load the web font; other clients fall back to Georgia.
-  const fontLink = `<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;600&display=swap" rel="stylesheet" />`;
+  // Inject the Google Fonts <link> for the brand fonts into <head>.
+  // Apple Mail / iOS Mail will load the web fonts; other clients use the fallbacks.
+  const fontLink = `<link href="${EMAIL_FONTS_HREF}" rel="stylesheet" />`;
   result = result.replace('</head>', `${fontLink}\n</head>`);
 
   // Add font-family to h1-h3 headings that don't already have it.
   // Covers newsletters saved before the extendTheme fix was added.
   result = result.replace(
     /<(h[1-3])\b([^>]*?)style="(?![^"]*font-family)([^"]*)"/gi,
-    `<$1$2style="font-family:'Fraunces',Georgia,serif;$3"`,
+    `<$1$2style="font-family:${EMAIL_HEADING_FONT};$3"`,
   );
 
   // Tighten list spacing: override the basic theme defaults (1em after lists,

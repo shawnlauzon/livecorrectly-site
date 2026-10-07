@@ -13,6 +13,7 @@ import {
   Tailwind,
 } from 'react-email';
 import { Signature } from './signature';
+import { EMAIL_BODY_FONT, EMAIL_FONTS_HREF } from '../../lib/email/fonts';
 
 interface EmailLayoutProps {
   preview: string;
@@ -47,9 +48,11 @@ export function EmailLayout({
   return (
     <Tailwind>
       <Html lang="en">
-        <Head />
+        <Head>
+          <link href={EMAIL_FONTS_HREF} rel="stylesheet" />
+        </Head>
         <Preview>{preview}</Preview>
-        <Body className="bg-[#FAF8F4] font-sans">
+        <Body className="bg-[#FAF8F4]" style={{ fontFamily: EMAIL_BODY_FONT }}>
           <Container className="mx-auto max-w-[660px] bg-white px-[24px] py-[32px]">
             <Img
               src={`${appUrl}/newsletter/permission-slip.png`}
