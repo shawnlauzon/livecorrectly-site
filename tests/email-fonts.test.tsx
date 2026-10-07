@@ -34,7 +34,7 @@ describe('newsletter fonts', () => {
 
   it('sets headings, including the library heading, in Fraunces', () => {
     const html = renderNewsletter();
-    expect(html).toContain(`<h1 style="font-family:${EMAIL_HEADING_FONT};margin:0">`);
+    expect(html).toMatch(new RegExp(`<h1 style="font-family:${EMAIL_HEADING_FONT};[^"]*margin:0">`));
     expect(html).toMatch(new RegExp(`font-family:${EMAIL_HEADING_FONT};[^"]*">Your newsletter library`));
   });
 

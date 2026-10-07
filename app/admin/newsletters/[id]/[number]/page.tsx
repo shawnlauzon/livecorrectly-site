@@ -661,10 +661,7 @@ function PreviewPane({
           <p className={styles.previewEmpty}>Type in the editor to see a preview</p>
         )}
         {previewHtml && (
-          <EmailNewsletter
-            html={previewHtml}
-            className={styles.previewEmailContainer}
-          />
+          <EmailNewsletter html={previewHtml} />
         )}
       </div>
       {chartOpen && selectedChart && (

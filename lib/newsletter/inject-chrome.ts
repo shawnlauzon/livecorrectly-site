@@ -35,6 +35,7 @@ import {
 } from './chrome-fragments';
 import { libraryBlockFragment } from './library-block';
 import { EMAIL_BODY_FONT, EMAIL_FONTS_HREF, EMAIL_HEADING_FONT } from '../email/fonts';
+import { EMAIL_COLORS } from '../email/colors';
 
 export interface InjectChromeOptions {
   appUrl?: string;
@@ -56,15 +57,26 @@ const CAPTION_RE = new RegExp(
   'gi',
 );
 
+/** A `color:` declaration on its own — not border-color, background-color, etc. */
+const COLOR_DECL = String.raw`(?<![-\w])color:`;
+
 /**
- * Space images in the issue body: more room above each image, and below an
- * italic caption that follows one, so image + caption read as a unit. Runs on
- * the body alone, before chrome (which has its own logo image) is added.
+ * Style the issue body. Runs on the body alone, before chrome (which has its
+ * own logo image and colors) is added:
+ * - More room above each image, and below an italic caption that follows one,
+ *   so image + caption read as a unit.
+ * - Brand text colors: the editor theme writes black body text (saved issues
+ *   keep it), which becomes ink-soft; headings without their own color get ink.
  */
-function spaceImages(html: string): string {
+function styleIssueBody(html: string): string {
   return html
     .replace(/<img\b([^>]*?)style="/gi, '<img$1style="margin-top:32px;')
-    .replace(CAPTION_RE, '$1<p$2style="$3;margin-bottom:24px"');
+    .replace(CAPTION_RE, '$1<p$2style="$3;margin-bottom:24px"')
+    .replace(new RegExp(`${COLOR_DECL}\\s*#000000\\b`, 'gi'), `color:${EMAIL_COLORS.inkSoft}`)
+    .replace(
+      new RegExp(`<(h[1-3])\\b([^>]*?)style="(?![^"]*${COLOR_DECL})`, 'gi'),
+      `<$1$2style="color:${EMAIL_COLORS.ink};`,
+    );
 }
 
 /**
@@ -85,7 +97,6 @@ export function injectEmailChrome(
 
   // Build fragment strings
   const prefix = [
-    preheaderFragment(options.preheader ?? ''),
     logoFragment(appUrl),
     noteFragment(options.note ?? ''),
     options.library
@@ -101,8 +112,15 @@ export function injectEmailChrome(
   const suffixContent = [signature, ps, footer].filter(Boolean).join('\n');
   const suffix = `<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;"><tr><td style="font-family:${EMAIL_BODY_FONT};font-size:16px;">${suffixContent}</td></tr></table>`;
 
-  // Inject prefix (preheader, logo, note, library) right after <body...> and suffix right before </body>.
-  // Both sit outside the table structure for correct ordering.
+  // The frame (matches the welcome emails' EmailLayout): ground-colored page,
+  // everything but the hidden preheader on one white 660px column.
+  const frameOpen =
+    `<table data-newsletter-frame width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background-color:${EMAIL_COLORS.ground}"><tr><td>` +
+    `<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:660px;margin:0 auto;background-color:${EMAIL_COLORS.card}"><tr><td style="padding:32px 24px">`;
+  const frameClose = `</td></tr></table></td></tr></table>`;
+
+  // Inject the preheader and frame (logo, note, library) right after <body...>, and suffix + frame
+  // close right before </body>. Chrome sits outside the editor's table structure for correct ordering.
   const bodyOpenPattern = /<body\b[^>]*>/i;
   const bodyMatch = bodyOpenPattern.exec(html);
   if (!bodyMatch) {
@@ -117,12 +135,16 @@ export function injectEmailChrome(
   }
 
   const bodyInsertPos = bodyMatch.index + bodyMatch[0].length;
+  // The editor paints <body> white; the page around the column is ground.
+  const bodyTag = bodyMatch[0]
+    .replace(/\s+style="[^"]*"/i, '')
+    .replace(/\s*\/?>$/, ` style="background-color:${EMAIL_COLORS.ground}">`);
 
   let result =
-    html.slice(0, bodyInsertPos) +
-    '\n' + prefix + '\n' +
-    spaceImages(html.slice(bodyInsertPos, bodyCloseIndex)) +
-    '\n' + suffix + '\n' +
+    html.slice(0, bodyMatch.index) + bodyTag +
+    '\n' + preheaderFragment(options.preheader ?? '') + frameOpen + '\n' + prefix + '\n' +
+    styleIssueBody(html.slice(bodyInsertPos, bodyCloseIndex)) +
+    '\n' + suffix + frameClose + '\n' +
     html.slice(bodyCloseIndex);
 
   // Set the issue body in the brand body font. The editor's theme writes its
