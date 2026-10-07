@@ -18,11 +18,11 @@ export const LIBRARY_BLOCK_COPY = {
   button: "See them all →",
 };
 
-// Brand tokens (see CLAUDE.md design system); email needs inline hex values.
-const INK = "#221B3D";
-const GRAPE = "#6A4BD6";
-const MARIGOLD = "#FFB020";
-const MARIGOLD_TINT = "#FFF4DB";
+// Brand tokens from app/globals.css; email needs inline hex values.
+const INK = "#12262A"; // --ink
+const ACTION = "#158377"; // --action
+const PULSE = "#8C4A6B"; // --pulse
+const PULSE_SOFT = "#F0E6EB"; // --pulse-soft
 
 /** Paragraph (any attributes/whitespace, as the editor writes it) holding only the token. */
 const TOKEN_PARAGRAPH_RE =
@@ -37,10 +37,10 @@ function libraryBlockHtml(
   const url = `${appUrl}/newsletter?s=${subscriberId}&utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletterNumber}`;
   return (
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:${margin};border-collapse:separate">` +
-    `<tr><td style="background-color:${MARIGOLD_TINT};border-left:4px solid ${MARIGOLD};border-radius:8px;padding:20px 24px">` +
+    `<tr><td style="background-color:${PULSE_SOFT};border-left:4px solid ${PULSE};border-radius:8px;padding:20px 24px">` +
     `<p style="margin:0 0 8px;font-family:'Bricolage Grotesque',Arial,sans-serif;font-size:20px;font-weight:700;line-height:1.3;color:${INK}">${LIBRARY_BLOCK_COPY.heading}</p>` +
     `<p style="margin:0 0 16px;font-size:16px;line-height:1.5;color:${INK}">${LIBRARY_BLOCK_COPY.body}</p>` +
-    `<a href="${url}" style="background-color:${GRAPE};color:#FFFFFF;font-size:16px;font-weight:600;padding:12px 22px;border-radius:6px;text-decoration:none;display:inline-block">${LIBRARY_BLOCK_COPY.button}</a>` +
+    `<a href="${url}" style="background-color:${ACTION};color:#FFFFFF;font-size:16px;font-weight:600;padding:12px 22px;border-radius:6px;text-decoration:none;display:inline-block">${LIBRARY_BLOCK_COPY.button}</a>` +
     `</td></tr></table>`
   );
 }
