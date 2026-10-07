@@ -34,7 +34,7 @@ import {
   footerFragment,
 } from './chrome-fragments';
 import { libraryBlockFragment } from './library-block';
-import { EMAIL_BODY_FONT, EMAIL_FONTS_HREF, EMAIL_HEADING_FONT } from '../email/fonts';
+import { EMAIL_BODY_FONT, EMAIL_HEADING_FONT } from '../email/fonts';
 import { EMAIL_COLORS } from '../email/colors';
 
 export interface InjectChromeOptions {
@@ -67,9 +67,16 @@ const COLOR_DECL = String.raw`(?<![-\w])color:`;
  *   so image + caption read as a unit.
  * - Brand text colors: the editor theme writes black body text (saved issues
  *   keep it), which becomes ink-soft; headings without their own color get ink.
+ * - Heading font: issues saved under an older editor theme name a web font in
+ *   their headings; every email heading is the email heading font.
  */
 function styleIssueBody(html: string): string {
   return html
+    // &#x27; (the editor's escaped quote) contains a ';', so match it explicitly.
+    .replace(
+      /(<h[1-3]\b[^>]*?style="[^"]*?)font-family:(?:&#x27;|[^;"])*/gi,
+      `$1font-family:${EMAIL_HEADING_FONT}`,
+    )
     .replace(/<img\b([^>]*?)style="/gi, '<img$1style="margin-top:32px;')
     .replace(CAPTION_RE, '$1<p$2style="$3;margin-bottom:24px"')
     .replace(new RegExp(`${COLOR_DECL}\\s*#000000\\b`, 'gi'), `color:${EMAIL_COLORS.inkSoft}`)
@@ -162,11 +169,6 @@ export function injectEmailChrome(
     /font-size:\s*1em/,
     'font-size:16px',
   );
-
-  // Inject the Google Fonts <link> for the brand fonts into <head>.
-  // Apple Mail / iOS Mail will load the web fonts; other clients use the fallbacks.
-  const fontLink = `<link href="${EMAIL_FONTS_HREF}" rel="stylesheet" />`;
-  result = result.replace('</head>', `${fontLink}\n</head>`);
 
   // Add font-family to h1-h3 headings that don't already have it.
   // Covers newsletters saved before the extendTheme fix was added.

@@ -89,7 +89,7 @@ Fonts (source of truth: `app/layout.tsx`, exposed as `--display` / `--body` / `-
 - **Source Sans 3** — narrative prose (the web newsletter reader)
 - **Cinzel** — the hero's one-word accent only
 
-Emails can't use CSS variables: take font stacks from `lib/email/fonts.ts` (headings Fraunces, body Karla), which also holds the Google Fonts link every email loads.
+Emails don't use the site fonts: most clients (Gmail, Outlook) ignore web fonts, so every email uses Georgia headings and Helvetica body text, from `lib/email/fonts.ts`. No web-font links in emails.
 
 Signature elements (use sparingly, they carry the personality): a slow "breathing" aura orb behind the hero wordmark, and a marigold **highlighter swipe** under one hero word. Aesthetic is **fun but semi-professional** — deliberately not the cream+terracotta AI-default look, and not stock shadcn.
 

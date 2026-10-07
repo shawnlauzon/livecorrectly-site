@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Text, Section, Row, Column } from 'react-email';
+import { EMAIL_HEADING_FONT } from '../../lib/email/fonts';
 
 /**
  * Inline summary table of the 4 career types.
@@ -32,14 +33,14 @@ export function CareerTypeHighlight({
                   align="center"
                   className="h-[40px] w-[40px] rounded-full bg-[#F0E6EB] p-0"
                 >
-                  <Text className="m-0 font-serif text-[#8C4A6B]">{number}</Text>
+                  <Text className="m-0 text-[#8C4A6B]" style={{ fontFamily: EMAIL_HEADING_FONT }}>{number}</Text>
                 </td>
               </tr>
             </tbody>
           </table>
         </Column>
         <Column className="w-[85%]">
-          <Text className="m-0 text-[20px] font-serif leading-[28px] text-[#12262A]">
+          <Text className="m-0 text-[20px] leading-[28px] text-[#12262A]" style={{ fontFamily: EMAIL_HEADING_FONT }}>
             {title}
           </Text>
           <Text className="m-0 mt-[8px] text-[16px] leading-[24px]">
