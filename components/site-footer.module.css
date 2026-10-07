@@ -18,8 +18,8 @@
   transition: color 0.2s ease, border-color 0.2s ease;
 }
 .footerLink:hover {
-  color: var(--pulse);
-  border-color: var(--pulse);
+  color: var(--plum);
+  border-color: var(--plum);
 }
 
 .sep {

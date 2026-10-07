@@ -44,7 +44,7 @@
 }
 
 .body a {
-  color: var(--pulse);
+  color: var(--plum);
   text-decoration: underline;
   text-underline-offset: 2px;
 }

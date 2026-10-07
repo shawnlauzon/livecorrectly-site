@@ -8,8 +8,8 @@
   transition: color 0.15s, background 0.15s;
 }
 .edit:hover {
-  color: var(--pulse);
-  background: var(--pulse-soft);
+  color: var(--plum);
+  background: var(--plum-soft);
 }
 
 .icon {

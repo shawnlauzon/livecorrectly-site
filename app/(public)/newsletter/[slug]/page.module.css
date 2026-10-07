@@ -51,7 +51,7 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--pulse);
+  color: var(--plum);
   margin-top: -1.75rem;
   margin-bottom: 2.5rem;
 }
@@ -85,8 +85,8 @@
   transition: color 0.15s, background 0.15s;
 }
 .shareBtn:hover {
-  color: var(--pulse);
-  background: var(--pulse-soft);
+  color: var(--plum);
+  background: var(--plum-soft);
 }
 
 .shareIcon {
@@ -97,7 +97,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.04em;
-  color: var(--pulse);
+  color: var(--plum);
 }
 
 /* ---- Prose ---- */
@@ -132,7 +132,7 @@
 }
 
 .body a {
-  color: var(--pulse);
+  color: var(--plum);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -161,7 +161,7 @@
 .body blockquote {
   margin: 1.5rem 0;
   padding: 0.75rem 1rem;
-  border-left: 3px solid var(--pulse);
+  border-left: 3px solid var(--plum);
   color: var(--ink-soft);
   font-style: italic;
 }
@@ -189,7 +189,7 @@
 }
 
 .ps a {
-  color: var(--pulse);
+  color: var(--plum);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -197,8 +197,8 @@
 /* ---- Sample-chart callout ---- */
 
 .callout {
-  background: var(--pulse-soft);
-  border-left: 3px solid var(--pulse);
+  background: var(--plum-soft);
+  border-left: 3px solid var(--plum);
   border-radius: 4px;
   padding: 1rem 1.25rem;
   margin: -1rem 0 2.5rem;
@@ -214,16 +214,16 @@
 }
 
 .callout a {
-  color: var(--pulse);
+  color: var(--plum);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 /* Chart values rendered from the sample chart (body HTML + callout) */
 .page :global(mark.sample-value) {
-  background: var(--pulse-soft);
+  background: var(--plum-soft);
   color: inherit;
-  border-bottom: 2px solid var(--pulse);
+  border-bottom: 2px solid var(--plum);
   padding: 0 0.15em;
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;

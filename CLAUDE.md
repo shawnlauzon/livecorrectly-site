@@ -75,12 +75,14 @@ Rules:
 ## Design system
 Do not invent new visual style. Use these tokens; the two reference HTML files are the source of truth for layout and feel — **port them into components, don't regenerate from a prompt.**
 
-Colors:
+Colors (source of truth: `app/globals.css` — read it there; emails need inline hex, so copy from it):
 ```
---ink:#221B3D  --grape:#6A4BD6  --grape-deep:#4A31A8
---marigold:#FFB020  --coral:#FF6B57
---paper:#F6F3FC  --card:#FFFFFF  --muted:#6E688A  --line:#E6E1F4
+--ground:#FAF8F4  --ink:#12262A  --ink-soft:#45585B
+--stone:#D8D2C6  --stone-line:#C9C2B4
+--plum:#8C4A6B  --plum-soft:#F0E6EB
+--action:#158377  --action-hover:#1A9B8C
 ```
+`globals.css` also keeps backward-compat aliases (`--grape`, `--paper`, `--muted`, `--line`, `--marigold`, `--coral`, …) for older pages. Don't use them in new work, and never use the old grape purple (`#6A4BD6`) or the old ink (`#221B3D`).
 Fonts:
 - **Bricolage Grotesque** — display / headings
 - **Hanken Grotesk** — body / UI

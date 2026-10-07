@@ -86,7 +86,7 @@
 }
 
 .itemLink:hover .title {
-  color: var(--pulse);
+  color: var(--plum);
 }
 
 .description {
@@ -127,7 +127,7 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--pulse);
+  color: var(--plum);
   margin-top: -1.75rem;
   margin-bottom: 2.5rem;
 }
@@ -161,8 +161,8 @@
 
 /* Visitors without a chart: small callout, matching the issue page's */
 .callout {
-  background: var(--pulse-soft);
-  border-left: 3px solid var(--pulse);
+  background: var(--plum-soft);
+  border-left: 3px solid var(--plum);
   border-radius: 4px;
   padding: 1rem 1.25rem;
   margin: 0 0 2.5rem;
@@ -178,7 +178,7 @@
 }
 
 .callout a {
-  color: var(--pulse);
+  color: var(--plum);
   text-decoration: underline;
   text-underline-offset: 2px;
 }

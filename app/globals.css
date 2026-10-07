@@ -6,8 +6,8 @@
   --ink-soft: #45585B;
   --stone: #D8D2C6;
   --stone-line: #C9C2B4;
-  --pulse: #8C4A6B;
-  --pulse-soft: #F0E6EB;
+  --plum: #8C4A6B;
+  --plum-soft: #F0E6EB;
   --action: #158377;
   --action-hover: #1A9B8C;
 
@@ -19,8 +19,8 @@
   --gutter: clamp(1.25rem, 5vw, 4rem);
 
   /* Backward-compat aliases (admin, chart-form, see-your-design) */
-  --grape: var(--pulse);
-  --grape-deep: var(--pulse);
+  --grape: var(--plum);
+  --grape-deep: var(--plum);
   --paper: var(--ground);
   --card: #FFFFFF;
   --marigold: #FFB020;
@@ -90,7 +90,7 @@ h1, h2, h3 {
   padding-bottom: 2px;
   transition: color 0.2s ease;
 }
-.link:hover { color: var(--pulse); }
+.link:hover { color: var(--plum); }
 
 .rule {
   border: 0;
@@ -103,7 +103,7 @@ h1, h2, h3 {
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--pulse);
+  color: var(--plum);
   margin: 0 0 1.75rem;
 }
 
@@ -123,6 +123,6 @@ h1, h2, h3 {
 
 /* ========== Focus ========== */
 :focus-visible {
-  outline: 2px solid var(--pulse);
+  outline: 2px solid var(--plum);
   outline-offset: 3px;
 }
