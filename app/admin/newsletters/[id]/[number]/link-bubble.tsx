@@ -5,6 +5,7 @@ import { PluginKey } from '@tiptap/pm/state';
 import { useCurrentEditor } from '@tiptap/react';
 import { BubbleMenu, bubbleMenuTriggers, useBubbleMenuContext } from '@react-email/editor/ui';
 import styles from './editor.module.css';
+import { validateLinkHref } from './link-href';
 
 const linkBubblePluginKey = new PluginKey('relativeLinkBubbleMenu');
 const textBubblePluginKey = new PluginKey('textBubbleMenu');
@@ -189,19 +190,10 @@ export function TextBubbleMenu() {
     editorRef.current = editor;
   });
 
-  const validateUrl = useCallback((value: string): string | null => {
-    const trimmed = value.trim();
-    if (!trimmed) return null;
-    // When "relative" is checked, accept any path
-    if (isRelativeRef.current) {
-      return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-    }
-    // Standard absolute URL handling
-    if (trimmed === '#') return '#';
-    if (/^(https?:|mailto:|tel:)/i.test(trimmed)) return trimmed;
-    if (/^[a-z0-9]([a-z0-9-]*\.)+[a-z]{2,}/i.test(trimmed)) return `https://${trimmed}`;
-    return null;
-  }, []);
+  const validateUrl = useCallback(
+    (value: string): string | null => validateLinkHref(value, isRelativeRef.current),
+    [],
+  );
 
   const handleLinkApply = useCallback((_href: string) => {
     const ed = editorRef.current;

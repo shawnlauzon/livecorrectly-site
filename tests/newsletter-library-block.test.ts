@@ -3,8 +3,14 @@ import {
   LIBRARY_BLOCK_COPY,
   LIBRARY_BLOCK_TOKEN,
   replaceLibraryBlock,
+  replaceLibraryUrl,
 } from '@/lib/newsletter/library-block';
-import { resolveNewsletterHtml } from '@/lib/newsletter/resolve';
+import {
+  extractDynamicSections,
+  renderDynamicSection,
+  resolveLiquid,
+  resolveNewsletterHtml,
+} from '@/lib/newsletter/resolve';
 import { resolveSubscriberLinks } from '@/lib/newsletter/email-loader';
 import { SAMPLE_CHART } from '@/lib/newsletter/sample-chart';
 import { PRODUCTION_URL } from '@/lib/site-url';
@@ -97,5 +103,103 @@ describe('resolveSubscriberLinks', () => {
       `href="${PRODUCTION_URL}/see-your-design/{{{contact.neon_id}}}/lunar-cycle?utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_7"`,
     );
     expect(out).not.toContain('data-relative');
+  });
+});
+
+const UTM = 'utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_7';
+const LINK = '<p>Catch up <a href="{{library_url}}">any time</a>.</p>';
+// Any {% if %} makes the whole body go through the Liquid engine
+const CONDITIONAL = '{% if career_type == "Builder" %}<p>Builder</p>{% else %}<p>Other</p>{% endif %}';
+
+describe('replaceLibraryUrl', () => {
+  it('becomes the personalized library URL in email mode', () => {
+    expect(replaceLibraryUrl(LINK, ID, 7, 'email')).toBe(
+      `<p>Catch up <a href="${PRODUCTION_URL}/newsletter?s=${ID}&${UTM}">any time</a>.</p>`,
+    );
+  });
+
+  it('keeps a Resend placeholder id intact for broadcasts', () => {
+    expect(replaceLibraryUrl(LINK, '{{{contact.neon_id}}}', 7, 'email')).toContain(
+      `href="${PRODUCTION_URL}/newsletter?s={{{contact.neon_id}}}&${UTM}"`,
+    );
+  });
+
+  it('links to the unpersonalized library when there is no subscriber id', () => {
+    expect(replaceLibraryUrl(LINK, undefined, 7, 'email')).toContain(
+      `href="${PRODUCTION_URL}/newsletter?${UTM}"`,
+    );
+  });
+
+  it('links to the plain library in web mode', () => {
+    expect(replaceLibraryUrl(LINK, ID, 7, 'web')).toContain(
+      `href="${PRODUCTION_URL}/newsletter"`,
+    );
+  });
+
+  it('allows spaces inside the braces', () => {
+    expect(replaceLibraryUrl('<a href="{{ library_url }}">x</a>', ID, 7, 'email')).toBe(
+      `<a href="${PRODUCTION_URL}/newsletter?s=${ID}&${UTM}">x</a>`,
+    );
+  });
+
+  it('replaces every occurrence', () => {
+    const out = replaceLibraryUrl(LINK + LINK, ID, 7, 'email');
+    expect(out).not.toContain('library_url');
+    expect(out.match(/\/newsletter\?s=/g)).toHaveLength(2);
+  });
+});
+
+describe('{{library_url}} through the pipelines', () => {
+  it('resolveSubscriberLinks resolves it', () => {
+    const out = resolveSubscriberLinks(LINK, {
+      subscriberId: '{{{contact.neon_id}}}',
+      slug: 'issue-seven',
+      newsletterNumber: 7,
+    });
+    expect(out).toContain(`href="${PRODUCTION_URL}/newsletter?s={{{contact.neon_id}}}&${UTM}"`);
+  });
+
+  it('resolveNewsletterHtml personalizes it in email mode, even alongside Liquid', async () => {
+    const out = await resolveNewsletterHtml(CONDITIONAL + LINK, {
+      chart: SAMPLE_CHART,
+      mode: 'email',
+      subscriberId: ID,
+      newsletterNumber: 7,
+    });
+    expect(out).toContain(`href="${PRODUCTION_URL}/newsletter?s=${ID}&${UTM}"`);
+  });
+
+  it('resolveNewsletterHtml gives the plain library URL in web mode', async () => {
+    const out = await resolveNewsletterHtml(CONDITIONAL + LINK, {
+      chart: SAMPLE_CHART,
+      mode: 'web',
+      subscriberId: ID,
+      newsletterNumber: 7,
+    });
+    expect(out).toContain(`href="${PRODUCTION_URL}/newsletter"`);
+  });
+
+  it('survives the Liquid engine for the later replacement step', async () => {
+    const out = await resolveLiquid(CONDITIONAL + LINK, { chart: SAMPLE_CHART });
+    expect(out).toContain('href="{{library_url}}"');
+  });
+
+  it('survives rendering inside a dynamic section', async () => {
+    const section = `{% if career_type == "${SAMPLE_CHART.careerDesign}" %}${LINK}{% endif %}`;
+    const out = await renderDynamicSection(section, SAMPLE_CHART);
+    expect(out).toContain('href="{{library_url}}"');
+  });
+
+  it('is not turned into a Resend contact property for broadcasts', () => {
+    const { broadcastTemplate } = extractDynamicSections(CONDITIONAL + LINK, 7, 1);
+    expect(broadcastTemplate).toContain('href="{{library_url}}"');
+    expect(broadcastTemplate).not.toContain('contact.library_url');
+  });
+
+  it('other template variables also survive the Liquid engine', async () => {
+    const out = await resolveLiquid(`${CONDITIONAL}<a href="{{chartUrl}}">chart</a>`, {
+      chart: SAMPLE_CHART,
+    });
+    expect(out).toContain('href="{{chartUrl}}"');
   });
 });

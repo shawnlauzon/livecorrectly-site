@@ -2,7 +2,7 @@ import { Liquid } from 'liquidjs';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 import { functionToCenterIndex } from '@/lib/hd-chart/constants';
 import type { LiquidSectionMap } from './loader';
-import { replaceLibraryBlock } from './library-block';
+import { LIBRARY_URL_VAR, replaceLibraryBlock, replaceLibraryUrl } from './library-block';
 import type { NewsletterEngagementFlags } from '@/lib/db';
 
 // =============================================================================
@@ -224,7 +224,7 @@ const RESEND_IDENTITY_MAP: Record<string, string> = {
  * Template variables handled by replaceVars() in the rendering pipeline.
  * These must NOT be converted to Resend contact property syntax.
  */
-const TEMPLATE_VARS = new Set(['firstName', 'appUrl', 'chartUrl']);
+const TEMPLATE_VARS = new Set(['firstName', 'appUrl', 'chartUrl', LIBRARY_URL_VAR]);
 
 /** Known contact property keys from the registry. */
 const KNOWN_CONTACT_KEYS = new Set(Object.keys(contactProperties));
@@ -588,6 +588,19 @@ function normalizeLiquidTags(html: string): string {
 }
 
 /**
+ * Wrap template-variable tags (TEMPLATE_VARS, e.g. `{{library_url}}`) in
+ * `{% raw %}` so the Liquid engine passes them through untouched. Liquid
+ * renders an unknown variable as empty, which would blank them before
+ * replaceVars()/replaceLibraryUrl() run. Only for text about to be rendered
+ * by the engine — elsewhere the raw tags would end up in the output.
+ */
+function protectTemplateVars(html: string): string {
+  return html.replace(LIQUID_OUTPUT_RE, (match, varName: string, filters?: string) =>
+    TEMPLATE_VARS.has(varName) && !filters ? `{% raw %}${match}{% endraw %}` : match,
+  );
+}
+
+/**
  * Wrap output tags for chart variables (e.g. `{{ authority_short }}`) in a
  * `<mark class="sample-value">` so web readers can see which words come from
  * the chart. Identity and template variables are left alone.
@@ -655,7 +668,7 @@ export async function resolveLiquid(
   // Liquid can't parse HTML entities inside its tags, so decode them first.
   // Only decode inside Liquid delimiters ({{ }}, {% %}) to avoid altering
   // the surrounding HTML.
-  const decoded = normalizeLiquidTags(html);
+  const decoded = protectTemplateVars(normalizeLiquidTags(html));
   const template = options?.highlightChartValues ? highlightChartOutputTags(decoded) : decoded;
 
   return engine.parseAndRender(template, ctx);
@@ -675,7 +688,7 @@ export async function renderDynamicSection(
   engagement?: EngagementData | null,
 ): Promise<string> {
   const context = buildLiquidContext(chart, 'email', engagement);
-  const decoded = normalizeLiquidTags(sectionHtml);
+  const decoded = protectTemplateVars(normalizeLiquidTags(sectionHtml));
   const resolved = await engine.parseAndRender(decoded, context);
 
   // If all conditionals resolved to empty, skip rendering
@@ -809,7 +822,7 @@ export function resolveRelativeLinks(
  * Resolve newsletter HTML through the full pipeline:
  * 1. Resolve Liquid conditionals and output tags
  * 2. Resolve {{{contact.key}}} variables
- * 3. Resolve data-relative links
+ * 3. Resolve data-relative links, {{library_url}} and the library block
  *
  * This replaces the duplicated 3-step pipeline in web.ts and preview/route.ts.
  */
@@ -843,6 +856,13 @@ export async function resolveNewsletterHtml(
     result,
     options.subscriberId,
     options.newsletterNumber ?? 0,
+  );
+
+  result = replaceLibraryUrl(
+    result,
+    options.subscriberId,
+    options.newsletterNumber ?? 0,
+    options.mode ?? 'email',
   );
 
   result = replaceLibraryBlock(

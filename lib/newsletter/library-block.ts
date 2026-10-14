@@ -26,13 +26,30 @@ const { ink: INK, action: ACTION, plum: PLUM, plumSoft: PLUM_SOFT, card: CARD } 
 const TOKEN_PARAGRAPH_RE =
   /<p\b[^>]*>\s*\[\[newsletter-library\]\]\s*<\/p\s*>/g;
 
+/**
+ * The newsletter library URL — the single source for the block and `{{library_url}}`.
+ *
+ * In email it carries the subscriber id (so the library knows who's reading)
+ * and the email UTMs. On the web the reader is already on the site, so it's
+ * the plain index.
+ */
+function libraryUrl(
+  subscriberId: string | undefined,
+  newsletterNumber: number,
+  mode: "web" | "email",
+): string {
+  const base = `${process.env.APP_URL ?? PRODUCTION_URL}/newsletter`;
+  if (mode === "web") return base;
+  const utm = `utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletterNumber}`;
+  return subscriberId ? `${base}?s=${subscriberId}&${utm}` : `${base}?${utm}`;
+}
+
 function libraryBlockHtml(
   subscriberId: string,
   newsletterNumber: number,
   margin = "24px 0",
 ): string {
-  const appUrl = process.env.APP_URL ?? PRODUCTION_URL;
-  const url = `${appUrl}/newsletter?s=${subscriberId}&utm_source=livecorrectly&utm_medium=email&utm_campaign=newsletter_${newsletterNumber}`;
+  const url = libraryUrl(subscriberId, newsletterNumber, "email");
   return (
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:${margin};border-collapse:separate">` +
     `<tr><td style="background-color:${PLUM_SOFT};border-left:4px solid ${PLUM};border-radius:8px;padding:20px 24px">` +
@@ -61,6 +78,29 @@ export function replaceLibraryBlock(
   return html.replace(TOKEN_PARAGRAPH_RE, () =>
     libraryBlockHtml(subscriberId, newsletterNumber),
   );
+}
+
+/**
+ * Template variable for the library URL, used as a link's address in the
+ * editor so any words can link to the library. resolve.ts lists it in
+ * TEMPLATE_VARS so Liquid and the broadcast converter leave it alone.
+ */
+export const LIBRARY_URL_VAR = "library_url";
+
+const LIBRARY_URL_RE = new RegExp(`\\{\\{\\s*${LIBRARY_URL_VAR}\\s*\\}\\}`, "g");
+
+/**
+ * Replace each `{{library_url}}` with the library URL (see libraryUrl()).
+ * `subscriberId` may be a Resend placeholder like `{{{contact.neon_id}}}`.
+ */
+export function replaceLibraryUrl(
+  html: string,
+  subscriberId: string | undefined,
+  newsletterNumber: number,
+  mode: "web" | "email",
+): string {
+  const url = libraryUrl(subscriberId, newsletterNumber, mode);
+  return html.replace(LIBRARY_URL_RE, () => url);
 }
 
 /**

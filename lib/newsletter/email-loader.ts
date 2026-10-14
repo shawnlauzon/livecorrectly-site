@@ -4,7 +4,7 @@ import {
 } from '@/lib/newsletter/loader';
 import { replaceVariables as replaceVars, replaceChartSubpaths, replaceDesignedCta } from './template-variables';
 import { resolveLiquid, resolveRelativeLinks } from '@/lib/newsletter/resolve';
-import { replaceLibraryBlock } from '@/lib/newsletter/library-block';
+import { replaceLibraryBlock, replaceLibraryUrl } from '@/lib/newsletter/library-block';
 import type { EngagementData } from '@/lib/newsletter/resolve';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 
@@ -45,7 +45,8 @@ function renderForEmail(raw: RawNewsletterIssue): NewsletterIssue {
 
 /**
  * Resolve every subscriber-specific link in email body HTML: {{chart:/path}},
- * data-relative links, {{designed:…}} CTAs and the [[newsletter-library]] block.
+ * data-relative links, {{designed:…}} CTAs, {{library_url}} and the
+ * [[newsletter-library]] block.
  *
  * Shared by direct sends and both broadcast paths so none of them can skip a step.
  * `subscriberId` may be a Resend placeholder (`{{{contact.neon_id}}}`).
@@ -63,6 +64,7 @@ export function resolveSubscriberLinks(
   if (subscriberId) {
     result = replaceDesignedCta(result, slug, subscriberId, newsletterNumber);
   }
+  result = replaceLibraryUrl(result, subscriberId, newsletterNumber, 'email');
   return replaceLibraryBlock(result, subscriberId, newsletterNumber, 'email');
 }
 
