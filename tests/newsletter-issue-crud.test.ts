@@ -120,27 +120,37 @@ describe('GET /api/admin/newsletters', () => {
     ));
   });
 
-  it("gives a one-off the segment it was sent to", async () => {
+  type Listed = { number: number; segments: unknown[]; dueCount: number };
+  async function listed(num: number): Promise<Listed> {
+    const res = await LIST(request('GET', 'secret'));
+    const { newsletters } = await res.json();
+    return newsletters.find((n: Listed) => n.number === num);
+  }
+
+  it('lists a sent one-off with the segment it went to and how many it went to', async () => {
     vi.mocked(getNewsletterSchedules).mockResolvedValue([scheduleRow({})] as never);
-    const res = await LIST(request('GET', 'secret'));
-    const { newsletters } = await res.json();
-    expect(newsletters.find((n: { number: number }) => n.number === 10001).sentToSegment)
-      .toEqual({ id: 7, name: '2026-10-06 (from #4)' });
+    const nl = await listed(10001);
+    expect(nl.segments).toEqual([{ id: 7, name: '2026-10-06 (from #4)', nextIssue: 6 }]);
+    expect(nl.dueCount).toBe(12);
   });
 
-  it("gives a scheduled one-off the segment it's scheduled for", async () => {
+  it("lists a scheduled one-off with the segment it's scheduled for", async () => {
     vi.mocked(getNewsletterSchedules).mockResolvedValue([scheduleRow({ status: 'scheduled' })] as never);
-    const res = await LIST(request('GET', 'secret'));
-    const { newsletters } = await res.json();
-    expect(newsletters.find((n: { number: number }) => n.number === 10001).sentToSegment)
-      .toEqual({ id: 7, name: '2026-10-06 (from #4)' });
+    expect((await listed(10001)).segments).toEqual([{ id: 7, name: '2026-10-06 (from #4)', nextIssue: 6 }]);
   });
 
-  it('gives no segment to an unscheduled one-off or a series issue', async () => {
-    vi.mocked(getNewsletterSchedules).mockResolvedValue([scheduleRow({ newsletter_num: 6 })] as never);
-    const res = await LIST(request('GET', 'secret'));
-    const { newsletters } = await res.json();
-    expect(newsletters.map((n: { sentToSegment: unknown }) => n.sentToSegment)).toEqual([null, null]);
+  it('lists an unscheduled one-off with no segment', async () => {
+    vi.mocked(getNewsletterSchedules).mockResolvedValue([] as never);
+    const nl = await listed(10001);
+    expect(nl.segments).toEqual([]);
+    expect(nl.dueCount).toBe(0);
+  });
+
+  it("doesn't list a series segment under a one-off, or the one-off's segment under the series issue", async () => {
+    vi.mocked(getNewsletterSchedules).mockResolvedValue([] as never);
+    // segment.nextIssue is 6, so it belongs to #6 only
+    expect((await listed(6)).segments).toEqual([{ id: 7, name: '2026-10-06 (from #4)', nextIssue: 6 }]);
+    expect((await listed(10001)).segments).toEqual([]);
   });
 });
 

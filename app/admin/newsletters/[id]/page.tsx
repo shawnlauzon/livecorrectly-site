@@ -75,8 +75,6 @@ interface NewsletterInfo {
   dueCount: number;
   dueSubscribers: ReadySubscriber[];
   segments: SegmentInfo[];
-  /** For a one-off: the segment it was sent or is scheduled to (null for series issues) */
-  sentToSegment: { id: number; name: string } | null;
   /** The pending send, if one is scheduled */
   schedule: NewsletterSchedule | null;
 }
@@ -1647,19 +1645,7 @@ export default function AdminNewsletterDetailPage() {
                 )}
               </td>
               <td style={{ textAlign: 'center' }}>
-                {nl.oneOff ? (
-                  // A one-off has no cohort due for it; show the segment it was sent or scheduled to
-                  nl.sentToSegment ? (
-                    <span
-                      style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--grape)', whiteSpace: 'nowrap' }}
-                      title={`${nl.schedule ? 'Scheduled to' : 'Sent to'} ${nl.sentToSegment.name}`}
-                    >
-                      {nl.sentToSegment.name}
-                    </span>
-                  ) : (
-                    <span style={{ color: 'var(--muted)' }}>—</span>
-                  )
-                ) : nl.segments.length > 0 ? (
+                {nl.segments.length > 0 ? (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
