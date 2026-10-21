@@ -95,6 +95,17 @@ describe('Resend webhook — newsletter sends', () => {
     expect(advanceEmailSeries).not.toHaveBeenCalled();
   });
 
+  it('never advances next_step for a one-off broadcast', async () => {
+    vi.mocked(getScheduleByBroadcastId).mockResolvedValue({ newsletter_num: 10001 } as never);
+
+    await POST(signedRequest({
+      type: 'email.sent',
+      data: { broadcast_id: 'bc-2', to: ['pat@example.com'] },
+    }));
+
+    expect(advanceEmailSeries).not.toHaveBeenCalled();
+  });
+
   it('ignores email.sent for welcome emails', async () => {
     await POST(signedRequest({
       type: 'email.sent',

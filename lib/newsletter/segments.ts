@@ -28,6 +28,39 @@ export async function addEmailsToSegment(
   return added;
 }
 
+/** A contact in a Resend segment. */
+export interface SegmentContact {
+  email: string;
+  firstName: string;
+  lastName: string | null;
+}
+
+/**
+ * List every contact in a Resend segment, following pagination (Resend returns
+ * at most 100 contacts per page). Throws if Resend reports an error.
+ */
+export async function listSegmentContacts(resendSegmentId: string): Promise<SegmentContact[]> {
+  const client = getResendClient();
+  const contacts: SegmentContact[] = [];
+  let after: string | undefined;
+  for (;;) {
+    const { data, error } = await client.contacts.list({
+      segmentId: resendSegmentId,
+      limit: 100,
+      ...(after && { after }),
+    });
+    if (error || !data) {
+      throw new Error(`Failed to list contacts in segment ${resendSegmentId}: ${JSON.stringify(error)}`);
+    }
+    for (const c of data.data ?? []) {
+      contacts.push({ email: c.email ?? '', firstName: c.first_name ?? '', lastName: c.last_name ?? null });
+    }
+    const last = data.data?.at(-1);
+    if (!data.has_more || !last) return contacts;
+    after = last.id;
+  }
+}
+
 /**
  * Remove a persistent audience segment from Resend and the database.
  * A Resend failure (e.g. already deleted) is logged but doesn't block the DB delete.

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import styles from '../../admin.module.css';
 import type { ScheduleStepId, ScheduleEvent, ScheduleCompleteEvent } from '@/lib/types/schedule-progress';
 import { clearAdminPassword, getAdminPassword } from '@/lib/admin-client-auth';
+import { ONE_OFF_NUMBER_BASE } from '@/lib/newsletter/one-off';
 
 /** All pipeline steps in display order. */
 const SCHEDULE_STEPS: { id: ScheduleStepId; label: string }[] = [
@@ -63,6 +64,8 @@ interface NewsletterInfo {
   number: number;
   subject: string;
   slug: string | null;
+  /** Sent once to a chosen segment, outside the series (see lib/newsletter/one-off.ts) */
+  oneOff: boolean;
 
   /** People actually sent this issue */
   receivedCount: number;
@@ -210,6 +213,9 @@ export default function AdminNewsletterDetailPage() {
   const params = useParams();
   const id = params.id as string;
   const [newsletters, setNewsletters] = useState<NewsletterInfo[]>([]);
+  const [allSegments, setAllSegments] = useState<SegmentInfo[]>([]);
+  /** The segment picked for the one-off being scheduled */
+  const [oneOffSegmentId, setOneOffSegmentId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -273,6 +279,7 @@ export default function AdminNewsletterDetailPage() {
       }
       const data: NewslettersResponse = await res.json();
       setNewsletters(data.newsletters);
+      setAllSegments(data.segments);
 
       setNextRegularSendAt(data.settings?.nextRegularSendAt ?? null);
 
@@ -402,7 +409,7 @@ export default function AdminNewsletterDetailPage() {
   const handleSchedule = async (
     newsletterNumber: number,
     sendAt?: string | null,
-    options?: { test?: boolean; confirmMerge?: boolean },
+    options?: { test?: boolean; confirmMerge?: boolean; segmentId?: number },
   ): Promise<void> => {
     const pwd = getAdminPassword();
     if (!pwd) return;
@@ -434,6 +441,7 @@ export default function AdminNewsletterDetailPage() {
           ...(sendAt && { sendAt }),
           ...(isTest && { test: true }),
           ...(options?.confirmMerge && { confirmMerge: true }),
+          ...(!isTest && options?.segmentId !== undefined && { segmentId: options.segmentId }),
         }),
       });
 
@@ -573,7 +581,7 @@ export default function AdminNewsletterDetailPage() {
     const pwd = getAdminPassword();
     if (!pwd) return;
 
-    if (!confirm(`Unschedule newsletter #${newsletterNumber}?`)) {
+    if (!confirm(`Unschedule ${displayName(newsletterNumber)}?`)) {
       return;
     }
 
@@ -596,7 +604,7 @@ export default function AdminNewsletterDetailPage() {
         return;
       }
 
-      setActionMessage(`Newsletter #${newsletterNumber} unscheduled.`);
+      setActionMessage(`${displayName(newsletterNumber)} unscheduled.`);
       await fetchNewsletters();
     } catch (err) {
       setActionMessage(
@@ -607,7 +615,7 @@ export default function AdminNewsletterDetailPage() {
     }
   };
 
-  const handleCreateIssue = async () => {
+  const handleCreateIssue = async (oneOff: boolean) => {
     const pwd = getAdminPassword();
     if (!pwd) return;
 
@@ -617,7 +625,8 @@ export default function AdminNewsletterDetailPage() {
     try {
       const res = await fetch('/api/admin/newsletters', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${pwd}` },
+        headers: { Authorization: `Bearer ${pwd}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oneOff }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -653,7 +662,7 @@ export default function AdminNewsletterDetailPage() {
         return;
       }
 
-      setActionMessage(`Newsletter #${newsletterNumber} deleted.`);
+      setActionMessage(`${displayName(newsletterNumber)} deleted.`);
       await fetchNewsletters();
     } catch (err) {
       setActionMessage(
@@ -736,9 +745,22 @@ export default function AdminNewsletterDetailPage() {
     }
   };
 
-  /** Never sent or scheduled — such issues can be deleted or reordered. */
+  /** Never sent or scheduled — such issues can be deleted (and series issues reordered). */
   function isUnsent(nl: NewsletterInfo): boolean {
     return nl.receivedCount === 0 && !nl.schedule;
+  }
+
+  /** Unsent series issues reorder; one-offs aren't in the series, so have no order. */
+  function canReorder(nl: NewsletterInfo | undefined): boolean {
+    return !!nl && isUnsent(nl) && !nl.oneOff;
+  }
+
+  /** "Newsletter #12" or "One-off 1", for messages. */
+  function displayName(newsletterNumber: number): string {
+    const nl = newsletters.find(n => n.number === newsletterNumber);
+    return nl?.oneOff
+      ? `One-off ${newsletterNumber - ONE_OFF_NUMBER_BASE}`
+      : `Newsletter #${newsletterNumber}`;
   }
 
   /** Small arrow that swaps an unsent issue with its neighbor. */
@@ -1509,7 +1531,7 @@ export default function AdminNewsletterDetailPage() {
 
       <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '0.75rem' }}>
         <button
-          onClick={handleCreateIssue}
+          onClick={() => handleCreateIssue(false)}
           disabled={actionLoading}
           style={{
             fontFamily: 'var(--body)',
@@ -1525,6 +1547,26 @@ export default function AdminNewsletterDetailPage() {
           }}
         >
           New issue
+        </button>
+        <button
+          onClick={() => handleCreateIssue(true)}
+          disabled={actionLoading}
+          title="Sent once to a segment you choose; not part of the series and never posted"
+          style={{
+            fontFamily: 'var(--body)',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            padding: '6px 16px',
+            marginLeft: '0.5rem',
+            background: 'none',
+            color: 'var(--grape)',
+            border: '1px solid var(--grape)',
+            borderRadius: '4px',
+            cursor: actionLoading ? 'wait' : 'pointer',
+            opacity: actionLoading ? 0.6 : 1,
+          }}
+        >
+          New one-off
         </button>
       </div>
 
@@ -1553,12 +1595,21 @@ export default function AdminNewsletterDetailPage() {
               }}
             >
               <td style={{ textAlign: 'center', fontWeight: 600 }}>
-                {/* Only unsent issues reorder, and only past another unsent one */}
-                {isUnsent(nl) && i > 0 && isUnsent(newsletters[i - 1]) && (
+                {/* Only unsent series issues reorder, and only past another one */}
+                {canReorder(nl) && canReorder(newsletters[i - 1]) && (
                   renderMoveButton(nl.number, 'up')
                 )}
-                <div>{nl.number}</div>
-                {isUnsent(nl) && i < newsletters.length - 1 && isUnsent(newsletters[i + 1]) && (
+                {nl.oneOff ? (
+                  <div title="One-off: sent once to a segment you choose, outside the series">
+                    <div style={{ fontSize: '0.625rem', fontWeight: 600, color: 'var(--grape)', textTransform: 'uppercase' }}>
+                      One-off
+                    </div>
+                    <div>{nl.number - ONE_OFF_NUMBER_BASE}</div>
+                  </div>
+                ) : (
+                  <div>{nl.number}</div>
+                )}
+                {canReorder(nl) && canReorder(newsletters[i + 1]) && (
                   renderMoveButton(nl.number, 'down')
                 )}
               </td>
@@ -1594,7 +1645,10 @@ export default function AdminNewsletterDetailPage() {
                 )}
               </td>
               <td style={{ textAlign: 'center' }}>
-                {nl.segments.length > 0 ? (
+                {nl.oneOff ? (
+                  // A one-off has no cohort due for it; the segment is chosen at schedule time
+                  <span style={{ color: 'var(--muted)' }}>—</span>
+                ) : nl.segments.length > 0 ? (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1717,8 +1771,49 @@ export default function AdminNewsletterDetailPage() {
                               color: 'var(--muted)',
                             }}
                           >
-                            {nl.dueCount} subscriber{nl.dueCount === 1 ? '' : 's'}
-                            {nl.segments.length > 1 && ` \u2014 ${nl.segments.length} segments will be merged`}
+                            {nl.oneOff ? (
+                              <>
+                                <select
+                                  value={oneOffSegmentId ?? ''}
+                                  onChange={(e) => {
+                                    const segmentId = e.target.value ? Number(e.target.value) : null;
+                                    setOneOffSegmentId(segmentId);
+                                    if (segmentId !== null && !segmentContacts[segmentId]) {
+                                      fetchSegmentContacts(segmentId);
+                                    }
+                                  }}
+                                  aria-label="Segment to send this one-off to"
+                                  style={{
+                                    fontFamily: 'var(--body)',
+                                    fontSize: '0.75rem',
+                                    color: 'var(--ink)',
+                                    padding: '3px 6px',
+                                    border: '1px solid var(--line)',
+                                    borderRadius: '4px',
+                                    background: '#fff',
+                                  }}
+                                >
+                                  <option value="">Choose a segment…</option>
+                                  {allSegments.map(seg => (
+                                    <option key={seg.id} value={seg.id}>{seg.name}</option>
+                                  ))}
+                                </select>
+                                {oneOffSegmentId !== null && (
+                                  <div style={{ marginTop: '0.25rem' }}>
+                                    {loadingSegmentContacts === oneOffSegmentId
+                                      ? 'Counting contacts…'
+                                      : segmentContacts[oneOffSegmentId]
+                                        ? `${segmentContacts[oneOffSegmentId].length} contact${segmentContacts[oneOffSegmentId].length === 1 ? '' : 's'} in this segment`
+                                        : null}
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                {nl.dueCount} subscriber{nl.dueCount === 1 ? '' : 's'}
+                                {nl.segments.length > 1 && ` \u2014 ${nl.segments.length} segments will be merged`}
+                              </>
+                            )}
                           </div>
                           {(() => {
                             const sendAt = scheduleMode === 'choose'
@@ -1744,8 +1839,8 @@ export default function AdminNewsletterDetailPage() {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                               <div style={{ display: 'flex', gap: '0.375rem' }}>
                                 <button
-                                  onClick={() => handleSchedule(nl.number, nextRegularSendAt)}
-                                  disabled={actionLoading || !nextRegularSendAt}
+                                  onClick={() => handleSchedule(nl.number, nextRegularSendAt, { segmentId: oneOffSegmentId ?? undefined })}
+                                  disabled={actionLoading || !nextRegularSendAt || (nl.oneOff && oneOffSegmentId === null)}
                                   style={{
                                     fontFamily: 'var(--body)',
                                     fontSize: '0.75rem',
@@ -1836,8 +1931,8 @@ export default function AdminNewsletterDetailPage() {
                               </select>
                               <div style={{ display: 'flex', gap: '0.375rem' }}>
                                 <button
-                                  onClick={() => handleSchedule(nl.number, localToUtcIso(customSendAt, customTimezone))}
-                                  disabled={actionLoading || !customSendAt}
+                                  onClick={() => handleSchedule(nl.number, localToUtcIso(customSendAt, customTimezone), { segmentId: oneOffSegmentId ?? undefined })}
+                                  disabled={actionLoading || !customSendAt || (nl.oneOff && oneOffSegmentId === null)}
                                   style={{
                                     fontFamily: 'var(--body)',
                                     fontSize: '0.75rem',
@@ -1877,20 +1972,23 @@ export default function AdminNewsletterDetailPage() {
                           onClick={() => {
                             setConfirmSchedule(nl.number);
                             setScheduleMode('choose');
+                            setOneOffSegmentId(null);
                             setActionMessage(null);
                           }}
-                          disabled={nl.dueCount === 0}
-                          title={nl.dueCount === 0 ? 'No subscribers ready for this issue' : undefined}
+                          disabled={nl.oneOff ? allSegments.length === 0 : nl.dueCount === 0}
+                          title={nl.oneOff
+                            ? (allSegments.length === 0 ? 'No segments to send to' : undefined)
+                            : (nl.dueCount === 0 ? 'No subscribers ready for this issue' : undefined)}
                           style={{
                             fontFamily: 'var(--body)',
                             fontSize: '0.75rem',
                             fontWeight: 600,
                             padding: '4px 12px',
-                            background: nl.dueCount === 0 ? 'var(--line)' : 'var(--grape)',
-                            color: nl.dueCount === 0 ? 'var(--muted)' : '#fff',
+                            background: (nl.oneOff ? allSegments.length === 0 : nl.dueCount === 0) ? 'var(--line)' : 'var(--grape)',
+                            color: (nl.oneOff ? allSegments.length === 0 : nl.dueCount === 0) ? 'var(--muted)' : '#fff',
                             border: 'none',
                             borderRadius: '4px',
-                            cursor: nl.dueCount === 0 ? 'default' : 'pointer',
+                            cursor: (nl.oneOff ? allSegments.length === 0 : nl.dueCount === 0) ? 'default' : 'pointer',
                           }}
                         >
                           Schedule
@@ -1927,7 +2025,9 @@ export default function AdminNewsletterDetailPage() {
                       <>
                       <button
                         onClick={() => handleDeleteIssue(nl.number)}
-                        title={`Delete #${nl.number}? Later drafts will be renumbered.`}
+                        title={nl.oneOff
+                          ? `Delete ${displayName(nl.number)}?`
+                          : `Delete #${nl.number}? Later drafts will be renumbered.`}
                         disabled={actionLoading}
                         style={{
                           fontFamily: 'var(--body)',
@@ -2187,7 +2287,7 @@ export default function AdminNewsletterDetailPage() {
                 margin: '0 0 1.25rem 0',
               }}
             >
-              {scheduleProgress.isTest ? 'Testing' : 'Scheduling'} Newsletter #{scheduleProgress.newsletterNumber}
+              {scheduleProgress.isTest ? 'Testing' : 'Scheduling'} {displayName(scheduleProgress.newsletterNumber)}
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

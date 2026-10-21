@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getAllNewsletterPublications, getAllSubscribers, getNewsletterSchedules } from '@/lib/db';
 import { WELCOME_SERIES_LENGTH } from '@/lib/email/welcome';
-import { getNewsletterIssueNumbers } from '@/lib/newsletter/email-loader';
+import { loadAllNewsletterIssues } from '@/lib/newsletter/loader';
 import { nextRegularSendAt } from '@/lib/newsletter/cadence';
 
 /**
@@ -22,11 +22,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [publications, allSubscribers, schedules, issueNumbers] = await Promise.all([
+    const [publications, allSubscribers, schedules, issues] = await Promise.all([
       getAllNewsletterPublications(),
       getAllSubscribers(),
       getNewsletterSchedules(),
-      getNewsletterIssueNumbers(),
+      loadAllNewsletterIssues(),
     ]);
 
     // Count active subscribers past the welcome series (shared pool for all publications)
@@ -35,8 +35,9 @@ export async function GET(request: NextRequest) {
         && s.next_step > WELCOME_SERIES_LENGTH,
     ).length;
 
-    // Issue count: newsletters past the welcome series
-    const issueCount = issueNumbers.filter(n => n > WELCOME_SERIES_LENGTH).length;
+    // Issue count: series newsletters past the welcome series (one-offs aren't issues of the series)
+    const issueCount = [...issues.values()]
+      .filter(i => i.number > WELCOME_SERIES_LENGTH && !i.oneOff).length;
 
     // Last sent: most recent schedule with status='sent'
     const sentSchedules = schedules.filter(s => s.status === 'sent');

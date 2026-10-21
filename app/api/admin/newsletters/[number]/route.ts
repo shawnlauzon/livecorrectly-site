@@ -44,6 +44,7 @@ export async function GET(
       postscripts: newsletter.rawPs,
       bodyJson: newsletter.bodyJson,
       bodyHtml: newsletter.bodyHtml,
+      oneOff: newsletter.oneOff,
       updatedAt: newsletter.updatedAt,
       createdAt: newsletter.createdAt,
     });
@@ -137,7 +138,8 @@ export async function PUT(
 /**
  * DELETE /api/admin/newsletters/[number]
  *
- * Delete an unsent newsletter issue; later issues are renumbered down by one.
+ * Delete an unsent newsletter issue; later series issues are renumbered down by
+ * one (deleting a one-off renumbers nothing).
  * Returns 409 if this issue (or a later one) has sends or schedule history.
  */
 export async function DELETE(

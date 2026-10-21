@@ -14,6 +14,7 @@ vi.mock('../lib/db', () => ({
   updateNewsletterIssue: vi.fn(),
   deleteNewsletterIssue: vi.fn(),
   swapNewsletterIssues: vi.fn(),
+  setNewsletterIssueOneOff: vi.fn(),
 }));
 vi.mock('../lib/newsletter/loader', () => ({
   loadNewsletterIssue: vi.fn(),
@@ -30,12 +31,14 @@ import {
   swapNewsletterIssues,
   getDbNewsletterIssueFull,
   updateNewsletterIssue,
+  setNewsletterIssueOneOff,
 } from '../lib/db';
 import { clearNewsletterIssueCache as clearLoaderCache } from '../lib/newsletter/loader';
 import { clearNewsletterIssueCache as clearEmailLoaderCache } from '../lib/newsletter/email-loader';
 import { POST } from '../app/api/admin/newsletters/route';
 import { DELETE, GET, PUT } from '../app/api/admin/newsletters/[number]/route';
 import { POST as MOVE } from '../app/api/admin/newsletters/[number]/move/route';
+import { POST as SET_ONE_OFF } from '../app/api/admin/newsletters/[number]/one-off/route';
 
 function request(method: string, auth?: string): NextRequest {
   return new NextRequest('http://localhost/api/admin/newsletters', {
@@ -46,6 +49,17 @@ function request(method: string, auth?: string): NextRequest {
 
 function moveRequest(body: unknown, auth?: string): NextRequest {
   return new NextRequest('http://localhost/api/admin/newsletters/10/move', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(auth ? { authorization: `Bearer ${auth}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+function jsonRequest(body: unknown, auth?: string): NextRequest {
+  return new NextRequest('http://localhost/api/admin/newsletters', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -88,8 +102,60 @@ describe('POST /api/admin/newsletters', () => {
     const res = await POST(request('POST', 'secret'));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ number: 9 });
-    expect(createNewsletterIssue).toHaveBeenCalledWith(1);
+    expect(createNewsletterIssue).toHaveBeenCalledWith(1, { oneOff: false });
     expect(clearEmailLoaderCache).toHaveBeenCalled();
+  });
+
+  it('creates a one-off issue when asked', async () => {
+    vi.mocked(createNewsletterIssue).mockResolvedValue(10001);
+    const res = await POST(jsonRequest({ oneOff: true }, 'secret'));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ number: 10001 });
+    expect(createNewsletterIssue).toHaveBeenCalledWith(1, { oneOff: true });
+  });
+});
+
+describe('POST /api/admin/newsletters/[number]/one-off', () => {
+  it('returns 401 without auth', async () => {
+    const res = await SET_ONE_OFF(jsonRequest({ oneOff: true }), params('10'));
+    expect(res.status).toBe(401);
+    expect(setNewsletterIssueOneOff).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 for an invalid number', async () => {
+    const res = await SET_ONE_OFF(jsonRequest({ oneOff: true }, 'secret'), params('abc'));
+    expect(res.status).toBe(400);
+    expect(setNewsletterIssueOneOff).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when oneOff is not a boolean', async () => {
+    const res = await SET_ONE_OFF(jsonRequest({ oneOff: 'yes' }, 'secret'), params('10'));
+    expect(res.status).toBe(400);
+    expect(setNewsletterIssueOneOff).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 when the issue does not exist', async () => {
+    vi.mocked(setNewsletterIssueOneOff).mockResolvedValue('not_found');
+    const res = await SET_ONE_OFF(jsonRequest({ oneOff: true }, 'secret'), params('42'));
+    expect(res.status).toBe(404);
+    expect(clearLoaderCache).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 with the reason when the change is blocked', async () => {
+    vi.mocked(setNewsletterIssueOneOff).mockResolvedValue({ blocked: 'Newsletter #10 has been sent' });
+    const res = await SET_ONE_OFF(jsonRequest({ oneOff: true }, 'secret'), params('10'));
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: 'Newsletter #10 has been sent' });
+    expect(clearLoaderCache).not.toHaveBeenCalled();
+  });
+
+  it('returns the issue\'s new number and clears the cache', async () => {
+    vi.mocked(setNewsletterIssueOneOff).mockResolvedValue({ number: 10002 });
+    const res = await SET_ONE_OFF(jsonRequest({ oneOff: true }, 'secret'), params('10'));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, number: 10002 });
+    expect(setNewsletterIssueOneOff).toHaveBeenCalledWith(10, true);
+    expect(clearLoaderCache).toHaveBeenCalled();
   });
 });
 
@@ -209,12 +275,34 @@ describe('GET /api/admin/newsletters/[number]', () => {
       bodyJson: null,
       bodyHtml: '',
       liquidSectionMap: null,
+      oneOff: false,
       updatedAt: '2026-10-06T21:00:00.000Z',
       createdAt: '2026-10-01T22:20:56.646Z',
     });
     const res = await GET(request('GET', 'secret'), params('11'));
     expect(res.status).toBe(200);
     expect((await res.json()).createdAt).toBe('2026-10-01T22:20:56.646Z');
+  });
+
+  it('returns whether the issue is a one-off', async () => {
+    vi.mocked(getDbNewsletterIssueFull).mockResolvedValue({
+      number: 10001,
+      newsletterId: 1,
+      subject: 'S',
+      preview: '',
+      slug: null,
+      description: '',
+      oldSlugs: [],
+      rawPs: [],
+      bodyJson: null,
+      bodyHtml: '',
+      liquidSectionMap: null,
+      oneOff: true,
+      updatedAt: '2026-10-06T21:00:00.000Z',
+      createdAt: '2026-10-01T22:20:56.646Z',
+    });
+    const res = await GET(request('GET', 'secret'), params('10001'));
+    expect((await res.json()).oneOff).toBe(true);
   });
 });
 

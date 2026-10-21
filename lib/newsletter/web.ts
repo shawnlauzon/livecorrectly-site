@@ -95,7 +95,8 @@ async function renderForWeb(
   reader: WebReader = {},
   useSampleChart = false,
 ): Promise<WebNewsletter | null> {
-  if (!raw.slug) return null;
+  // One-offs go to a single segment once and are never posted
+  if (!raw.slug || raw.oneOff) return null;
   const { chart, subscriberId, firstName, lastName } = reader;
 
   // Extract thumbnail from original editor HTML (before style stripping)
@@ -227,7 +228,7 @@ export async function getSlugRedirects(): Promise<Map<string, string>> {
   const all = await loadAllNewsletterIssues();
   const redirects = new Map<string, string>();
   for (const [, raw] of all) {
-    if (!raw.slug) continue;
+    if (!raw.slug || raw.oneOff) continue;
     for (const old of raw.oldSlugs) {
       redirects.set(old, raw.slug);
     }

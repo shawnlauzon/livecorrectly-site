@@ -66,6 +66,7 @@ export async function GET(request: NextRequest) {
         number: num,
         subject: raw?.subject ?? '',
         slug: raw?.slug ?? null,
+        oneOff: raw?.oneOff ?? false,
 
         receivedCount: stats?.receivedCount ?? 0,
         lastSentAt: stats?.lastSentAt ?? null,
@@ -114,7 +115,10 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/admin/newsletters
  *
- * Create a blank newsletter issue numbered after the current last issue.
+ * Body (optional): { oneOff?: boolean }
+ *
+ * Create a blank newsletter issue numbered after the current last issue — or,
+ * with `oneOff: true`, after the last one-off (see lib/newsletter/one-off.ts).
  * Returns the new issue number so the admin UI can open it in the editor.
  */
 export async function POST(request: NextRequest) {
@@ -127,8 +131,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // No body (the plain "New issue" button) is normal and means a series issue
+  const body = await request.json().catch(() => null);
+  const oneOff = body?.oneOff === true;
+
   try {
-    const number = await createNewsletterIssue(1);
+    const number = await createNewsletterIssue(1, { oneOff });
     clearNewsletterIssueCache();
     return NextResponse.json({ number });
   } catch (error) {

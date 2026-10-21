@@ -143,6 +143,7 @@ describe('broadcast rendering', () => {
       bodyJson: null,
       bodyHtml: DOC,
       liquidSectionMap: null,
+      oneOff: false,
       updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
     });

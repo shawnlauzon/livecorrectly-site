@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import {
   getNewsletterDueSubscribers,
+  getNewsletterSubscribersByEmails,
+  getNewsletterSegments,
   getSubscriberByEmail,
   recordEmailSend,
   insertNewsletterSchedule,
@@ -13,6 +15,7 @@ import {
   insertNewsletterSegment,
 } from '@/lib/db';
 import type { Subscriber } from '@/lib/types/subscriber';
+import type { NewsletterSegment } from '@/lib/db';
 import { WELCOME_SERIES_LENGTH } from '@/lib/email/welcome';
 import { loadNewsletterIssue } from '@/lib/newsletter/loader';
 import {
@@ -34,7 +37,8 @@ import { nextRegularSendAt, zonedDateString } from '@/lib/newsletter/cadence';
 import { getNoteForSend } from '@/lib/newsletter/notes';
 import { planAudience, autoSegmentName } from '@/lib/newsletter/audience';
 import type { AudiencePlan } from '@/lib/newsletter/audience';
-import { addEmailsToSegment, removeNewsletterSegment } from '@/lib/newsletter/segments';
+import { addEmailsToSegment, removeNewsletterSegment, listSegmentContacts } from '@/lib/newsletter/segments';
+import { issueLabel } from '@/lib/newsletter/one-off';
 import { getNewsletterIssue, resolveSubscriberLinks } from '@/lib/newsletter/email-loader';
 import { renderNewsletterEmail } from '@/lib/newsletter/email-template';
 import { buildUnsubscribeUrl, formatEmailRecipient, sendNewsletterEmail } from '@/lib/email/send';
@@ -50,7 +54,7 @@ const DEFAULT_NEWSLETTER_TEST_EMAIL = 'shawn.lauzon@gmail.com';
  * Schedule a newsletter issue for the regular cadence time (or `sendAt`).
  * Returns an NDJSON stream with real-time progress events.
  *
- * Body: { newsletterNumber: number, sendAt?: string, test?: boolean, confirmMerge?: boolean }
+ * Body: { newsletterNumber: number, sendAt?: string, test?: boolean, confirmMerge?: boolean, segmentId?: number }
  *
  * If a note is dated on the send day (publication timezone), it's rendered
  * above the issue body. Test sends use the next regular send day's note, so
@@ -61,6 +65,12 @@ const DEFAULT_NEWSLETTER_TEST_EMAIL = 'shawn.lauzon@gmail.com';
  * segments merged into the oldest (requires `confirmMerge: true`, otherwise 409
  * with `needsMergeConfirmation`), a new persistent date-named segment, or — for
  * small cohorts — individual scheduled emails with no segment.
+ *
+ * A one-off issue (lib/newsletter/one-off.ts) instead goes to the persistent
+ * segment `segmentId` (required for one-offs, refused for series issues): its
+ * contacts who can receive newsletters, as one broadcast to that segment. One-off
+ * numbers are never a next_step or a segment's next_issue, so the send never
+ * advances anyone.
  *
  * Completion (status → sent, segment → next issue) happens later in
  * finalizeDueSchedules(), once Resend reports the send done.
@@ -88,6 +98,7 @@ export async function POST(request: NextRequest) {
     sendAt?: string;
     test?: boolean;
     confirmMerge?: boolean;
+    segmentId?: number;
   };
   try {
     body = await request.json();
@@ -120,6 +131,17 @@ export async function POST(request: NextRequest) {
   let timezone = 'America/Chicago';
   let dueSubscribers: Subscriber[] = [];
   let plan: AudiencePlan | null = null;
+  let oneOffSegment: NewsletterSegment | null = null;
+  const issue = await loadNewsletterIssue(newsletterNumber);
+  if (!issue) {
+    return NextResponse.json({ error: `Newsletter #${newsletterNumber} not found` }, { status: 404 });
+  }
+  if (!isTest && !issue.oneOff && body.segmentId !== undefined) {
+    return NextResponse.json(
+      { error: 'Series issues go to the subscribers due for them; only one-offs take a segment' },
+      { status: 400 },
+    );
+  }
   if (!isTest) {
     if (publication) timezone = publication.timezone;
     if (sendAt) {
@@ -143,15 +165,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const allDue = await getNewsletterDueSubscribers(WELCOME_SERIES_LENGTH);
-    dueSubscribers = allDue.filter(s => s.next_step === newsletterNumber);
-    if (dueSubscribers.length === 0) {
-      return NextResponse.json(
-        { error: 'No subscribers are due for this newsletter' },
-        { status: 422 },
-      );
+    if (issue.oneOff) {
+      if (typeof body.segmentId !== 'number') {
+        return NextResponse.json({ error: 'Choose a segment to send this one-off to' }, { status: 400 });
+      }
+      oneOffSegment = (await getNewsletterSegments(1)).find(s => s.id === body.segmentId) ?? null;
+      if (!oneOffSegment) {
+        return NextResponse.json({ error: 'Segment not found' }, { status: 404 });
+      }
+      const contacts = await listSegmentContacts(oneOffSegment.resendSegmentId);
+      dueSubscribers = await getNewsletterSubscribersByEmails(contacts.map(c => c.email));
+      if (dueSubscribers.length === 0) {
+        return NextResponse.json(
+          { error: `No one in ${oneOffSegment.name} can receive newsletters` },
+          { status: 422 },
+        );
+      }
+    } else {
+      const allDue = await getNewsletterDueSubscribers(WELCOME_SERIES_LENGTH);
+      dueSubscribers = allDue.filter(s => s.next_step === newsletterNumber);
+      if (dueSubscribers.length === 0) {
+        return NextResponse.json(
+          { error: 'No subscribers are due for this newsletter' },
+          { status: 422 },
+        );
+      }
     }
+  }
 
+  if (!isTest && !oneOffSegment) {
     plan = planAudience({
       dueCount: dueSubscribers.length,
       segmentsAtIssue: await getNewsletterSegmentsForIssue(1, newsletterNumber),
@@ -193,10 +235,7 @@ export async function POST(request: NextRequest) {
         // Step 1: Load newsletter content
         currentStep = 'load';
         emit({ step: 'load', status: 'start', label: 'Loading newsletter content' });
-        const raw = await loadNewsletterIssue(newsletterNumber);
-        if (!raw) {
-          throw new Error(`Newsletter #${newsletterNumber} not found`);
-        }
+        const raw = issue;
         emit({ step: 'load', status: 'done', label: 'Loading newsletter content', detail: `#${newsletterNumber}` });
 
         // Step 2: Get due subscribers (test mode: test subscriber only)
@@ -400,6 +439,11 @@ export async function POST(request: NextRequest) {
           }
           segmentId = segmentData.id;
           emit({ step: 'segment', status: 'done', label: 'Creating test segment', detail: segmentName });
+        } else if (oneOffSegment) {
+          segmentId = oneOffSegment.resendSegmentId;
+          newsletterSegmentId = oneOffSegment.id;
+          emit({ step: 'segment', status: 'start', label: 'Using segment' });
+          emit({ step: 'segment', status: 'done', label: 'Using segment', detail: oneOffSegment.name });
         } else if (plan!.kind === 'merge') {
           segmentId = plan!.keep.resendSegmentId;
           newsletterSegmentId = plan!.keep.id;
@@ -440,7 +484,8 @@ export async function POST(request: NextRequest) {
         // segment this adds stragglers who aren't in it yet.
         currentStep = 'segment-contacts';
         emit({ step: 'segment-contacts', status: 'start', label: 'Adding contacts to segment' });
-        const contactCount = await addEmailsToSegment(
+        // A one-off's audience is the segment's own contacts, so there's nothing to add
+        const contactCount = oneOffSegment ? subscribers.length : await addEmailsToSegment(
           segmentId,
           subscribers.map(s => s.email),
           (current, total) => emit({
@@ -454,11 +499,16 @@ export async function POST(request: NextRequest) {
         if (contactCount === 0) {
           throw new Error('No contacts could be added to segment');
         }
-        emit({ step: 'segment-contacts', status: 'done', label: 'Adding contacts to segment', detail: `${contactCount} added` });
+        emit({
+          step: 'segment-contacts',
+          status: 'done',
+          label: 'Adding contacts to segment',
+          detail: oneOffSegment ? 'Not needed (one-off)' : `${contactCount} added`,
+        });
 
         // Merge: the kept segment now holds everyone, so drop the others
-        if (!isTest && plan!.kind === 'merge') {
-          for (const seg of plan!.remove) {
+        if (!isTest && plan?.kind === 'merge') {
+          for (const seg of plan.remove) {
             await removeNewsletterSegment(seg);
           }
         }
@@ -470,7 +520,7 @@ export async function POST(request: NextRequest) {
         const { from, replyTo } = getBroadcastSender();
 
         const { data: broadcastData, error: broadcastError } = await client.broadcasts.create({
-          name: `${isTest ? '[TEST] ' : ''}Newsletter #${newsletterNumber} — ${(scheduledDate ?? new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+          name: `${isTest ? '[TEST] ' : ''}${raw.oneOff ? issueLabel(newsletterNumber, true) : `Newsletter #${newsletterNumber}`} — ${(scheduledDate ?? new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
           segmentId,
           from,
           replyTo,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminPassword } from '@/lib/admin-auth';
 import { getNewsletterSegments } from '@/lib/db';
-import { getResendClient } from '@/lib/resend/contacts';
+import { listSegmentContacts } from '@/lib/newsletter/segments';
 
 /**
  * GET /api/admin/newsletters/segment/contacts?segmentId=<db-id>
@@ -32,24 +32,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Segment not found' }, { status: 404 });
     }
 
-    const client = getResendClient();
-    const { data, error } = await client.contacts.list({
-      segmentId: segment.resendSegmentId,
-    });
-
-    if (error || !data) {
+    let contacts;
+    try {
+      contacts = await listSegmentContacts(segment.resendSegmentId);
+    } catch (error) {
       console.error('[segment/contacts] Failed to list contacts from Resend:', error);
       return NextResponse.json(
-        { error: `Failed to fetch segment contacts: ${JSON.stringify(error)}` },
+        { error: error instanceof Error ? error.message : 'Failed to fetch segment contacts' },
         { status: 500 },
       );
     }
-
-    const contacts = (data.data ?? []).map((c) => ({
-      email: c.email ?? '',
-      firstName: c.first_name ?? '',
-      lastName: c.last_name ?? null,
-    }));
 
     return NextResponse.json({ contacts });
   } catch (error) {

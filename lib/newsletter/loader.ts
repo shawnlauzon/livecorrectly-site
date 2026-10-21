@@ -25,6 +25,11 @@ export interface RawNewsletterIssue {
   bodyHtml: string;
   /** Stable key assignments for Liquid dynamic sections (null if no Liquid) */
   liquidSectionMap: LiquidSectionMap | null;
+  /**
+   * Sent once to a chosen segment, outside the series: never advances anyone
+   * and never appears on the web. See lib/newsletter/one-off.ts.
+   */
+  oneOff: boolean;
   /** Last-modified timestamp (ISO 8601) for optimistic locking */
   updatedAt: string;
   /**

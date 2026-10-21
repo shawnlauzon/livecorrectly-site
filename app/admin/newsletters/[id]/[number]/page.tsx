@@ -31,6 +31,7 @@ import type { Subscriber } from '@/lib/types/subscriber';
 import { Bodygraph } from '@/components/bodygraph/bodygraph';
 import { ChartLightbox } from '@/components/admin/chart-lightbox';
 import { clearAdminPassword, getAdminPassword } from '@/lib/admin-client-auth';
+import { issueLabel } from '@/lib/newsletter/one-off';
 
 interface NewsletterData {
   number: number;
@@ -41,6 +42,8 @@ interface NewsletterData {
   postscripts: string[];
   bodyJson: unknown | null;
   bodyHtml: string | null;
+  /** Sent once to a chosen segment, outside the series (see lib/newsletter/one-off.ts) */
+  oneOff: boolean;
   updatedAt: string;
   createdAt: string;
 }
@@ -691,6 +694,8 @@ export default function NewsletterEditorPage() {
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
   const [postscripts, setPostscripts] = useState<string[]>([]);
+  const [oneOff, setOneOff] = useState(false);
+  const [changingKind, setChangingKind] = useState(false);
 
   // Editor content — set once after load
   const [editorContent, setEditorContent] = useState<Content | null>(null);
@@ -729,6 +734,7 @@ export default function NewsletterEditorPage() {
       setSlug(json.slug ?? '');
       setDescription(json.description);
       setPostscripts(json.postscripts ?? []);
+      setOneOff(json.oneOff);
       setUpdatedAt(json.updatedAt);
       setCreatedAt(json.createdAt);
 
@@ -748,6 +754,33 @@ export default function NewsletterEditorPage() {
   useEffect(() => {
     void (async () => { await fetchNewsletter(); })();
   }, [fetchNewsletter]);
+
+  /**
+   * Make this issue a one-off or a series issue. It gets a new number, so the
+   * editor reopens at it; the server refuses issues that were sent or scheduled.
+   */
+  const handleKindChange = async (makeOneOff: boolean) => {
+    const pwd = getAdminPassword();
+    if (!pwd) return;
+    setChangingKind(true);
+    try {
+      const res = await fetch(`/api/admin/newsletters/${num}/one-off`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${pwd}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oneOff: makeOneOff }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? `Failed (${res.status})`);
+        return;
+      }
+      router.replace(`/admin/newsletters/${params.id}/${data.number}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to change');
+    } finally {
+      setChangingKind(false);
+    }
+  };
 
   const handlePostscriptChange = (index: number, value: string) => {
     const updated = [...postscripts];
@@ -769,7 +802,7 @@ export default function NewsletterEditorPage() {
   if (loading) {
     return (
       <div className={adminStyles.container}>
-        <p className={adminStyles.loading}>Loading newsletter #{num}...</p>
+        <p className={adminStyles.loading}>Loading newsletter...</p>
       </div>
     );
   }
@@ -787,7 +820,7 @@ export default function NewsletterEditorPage() {
       <Toaster position="top-center" richColors />
       <div className={styles.pageHeader}>
         <div>
-          <h1 className={adminStyles.title}>Newsletter {params.id} — Issue {num}</h1>
+          <h1 className={adminStyles.title}>Newsletter {params.id} — {issueLabel(num, oneOff)}</h1>
           <p className={adminStyles.subtitle}>
             <NextLink href={`/admin/newsletters/${params.id}`} style={{ color: 'var(--grape)' }}>
               Back to newsletters
@@ -818,24 +851,44 @@ export default function NewsletterEditorPage() {
             />
           </label>
           <label className={styles.fieldLabel}>
-            Slug
-            <input
-              type="text"
-              value={slug}
-              onChange={(e) => { setSlug(e.target.value); setDirty(true); }}
+            Send as
+            <select
+              value={oneOff ? 'one-off' : 'series'}
+              onChange={(e) => handleKindChange(e.target.value === 'one-off')}
+              disabled={dirty || changingKind}
+              title={dirty
+                ? 'Save your changes first'
+                : 'A one-off is sent once to a segment you choose; it is not part of the series and never posted'}
               className={styles.fieldInput}
-              placeholder="url-safe-slug"
-            />
+            >
+              <option value="series">Series issue</option>
+              <option value="one-off">One-off</option>
+            </select>
           </label>
-          <label className={styles.fieldLabel}>
-            Description
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => { setDescription(e.target.value); setDirty(true); }}
-              className={styles.fieldInput}
-            />
-          </label>
+          {/* One-offs are never posted, so they have no web slug or description */}
+          {!oneOff && (
+            <>
+              <label className={styles.fieldLabel}>
+                Slug
+                <input
+                  type="text"
+                  value={slug}
+                  onChange={(e) => { setSlug(e.target.value); setDirty(true); }}
+                  className={styles.fieldInput}
+                  placeholder="url-safe-slug"
+                />
+              </label>
+              <label className={styles.fieldLabel}>
+                Description
+                <input
+                  type="text"
+                  value={description}
+                  onChange={(e) => { setDescription(e.target.value); setDirty(true); }}
+                  className={styles.fieldInput}
+                />
+              </label>
+            </>
+          )}
         </div>
       </div>
 

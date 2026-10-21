@@ -21,11 +21,11 @@ export async function GET(request: NextRequest) {
   }
 
   const all = await loadAllNewsletterIssues();
-  const issues: { number: number; subject: string }[] = [];
+  const issues: { number: number; subject: string; oneOff: boolean }[] = [];
 
   for (const [num, raw] of all) {
     if (num <= WELCOME_SERIES_LENGTH) continue;
-    issues.push({ number: num, subject: raw.subject });
+    issues.push({ number: num, subject: raw.subject, oneOff: raw.oneOff });
   }
 
   issues.sort((a, b) => a.number - b.number);

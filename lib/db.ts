@@ -3,6 +3,7 @@ import { neon, NeonQueryFunction } from '@neondatabase/serverless';
 import { BirthInput, EmailStatus, Subscriber, EmailSend, EmailEvent, EmailEventType } from './types/subscriber';
 import type { ChartGroup, ChartRecord } from './types/chart';
 import type { RawNewsletterIssue, LiquidSectionMap } from '@/lib/newsletter/loader';
+import { ONE_OFF_NUMBER_BASE } from '@/lib/newsletter/one-off';
 
 /** A redirect rule mapping a slug + chart property to a destination URL. */
 export interface RedirectRule {
@@ -390,6 +391,23 @@ export async function getNewsletterDueSubscribers(
     SELECT * FROM subscribers
     WHERE email_status IN ('active', 'failed')
       AND next_step > ${welcomeSeriesLength}
+    ORDER BY created_at ASC
+  `;
+  return (result as Subscriber[]).map(normalizeSubscriber);
+}
+
+/**
+ * Subscribers a newsletter can go to (same statuses as getNewsletterDueSubscribers)
+ * among these emails, matched ignoring case. Used to send a one-off issue to the
+ * contacts of a chosen segment.
+ */
+export async function getNewsletterSubscribersByEmails(emails: string[]): Promise<Subscriber[]> {
+  if (emails.length === 0) return [];
+  const db = getDb();
+  const result = await db`
+    SELECT * FROM subscribers
+    WHERE email_status IN ('active', 'failed')
+      AND lower(email) = ANY(${emails.map(e => e.toLowerCase())})
     ORDER BY created_at ASC
   `;
   return (result as Subscriber[]).map(normalizeSubscriber);
@@ -1321,6 +1339,7 @@ function rowToRawNewsletterIssue(row: Record<string, unknown>): RawNewsletterIss
     bodyJson: row.body_json as unknown,
     bodyHtml: row.body_html as string,
     liquidSectionMap: (row.liquid_section_map as LiquidSectionMap | null) ?? null,
+    oneOff: (row.one_off as boolean | null) ?? false,
     updatedAt: row.updated_at ? (row.updated_at as Date).toISOString() : new Date().toISOString(),
     createdAt: (row.created_at as Date).toISOString(),
   };
@@ -1450,59 +1469,163 @@ export async function updateNewsletterIssue(
 const EMPTY_TIPTAP_DOC = { type: 'doc', content: [{ type: 'paragraph' }] };
 
 /**
- * Create a blank newsletter issue numbered one past the current highest issue.
+ * Create a blank newsletter issue. A series issue is numbered one past the last
+ * series issue; a one-off one past the last one-off, from ONE_OFF_NUMBER_BASE.
  * Returns the new issue number.
  */
-export async function createNewsletterIssue(newsletterId: number): Promise<number> {
+export async function createNewsletterIssue(
+  newsletterId: number,
+  { oneOff }: { oneOff: boolean },
+): Promise<number> {
   const db = getDb();
   const rows = await db`
-    INSERT INTO newsletter_issues (number, newsletter_id, subject, body_json, body_html)
-    SELECT COALESCE(MAX(number), 0) + 1, ${newsletterId}, 'Untitled',
-           ${JSON.stringify(EMPTY_TIPTAP_DOC)}::jsonb, ''
+    INSERT INTO newsletter_issues (number, newsletter_id, subject, body_json, body_html, one_off)
+    SELECT ${oneOff ? db`GREATEST(COALESCE(MAX(number), 0), ${ONE_OFF_NUMBER_BASE})` : db`COALESCE(MAX(number), 0)`} + 1,
+           ${newsletterId}, 'Untitled', ${JSON.stringify(EMPTY_TIPTAP_DOC)}::jsonb, '', ${oneOff}
     FROM newsletter_issues
+    WHERE one_off = ${oneOff}
     RETURNING number
   `;
   return rows[0].number as number;
 }
 
 /**
- * Delete an unsent newsletter issue and shift every later issue down by one,
- * so issue numbers stay contiguous (segments and subscribers advance by +1).
- *
- * Blocked when the issue — or any later issue that would be renumbered — has
- * sends or schedule rows, since those rows are keyed by issue number.
+ * Why an issue's sends or schedules block renumbering it, or null if neither exists.
+ * Both are keyed by issue number, so a sent or scheduled issue must keep its number.
  */
-export async function deleteNewsletterIssue(
+function sendHistoryBlock(row: Record<string, unknown>, num: number): string | null {
+  if (!row.has_sends && !row.has_schedules) return null;
+  const what = row.has_sends ? 'has been sent' : 'has schedule history';
+  return row.number === num
+    ? `Newsletter #${num} ${what}`
+    : `Later newsletter #${row.number} ${what}, so issues can't be renumbered`;
+}
+
+/** The first issue whose content has an engagement conditional on `num`, if any. */
+async function issueWithConditionalOn(num: number): Promise<number | null> {
+  const db = getDb();
+  const rows = await db`
+    SELECT number FROM newsletter_issues
+    WHERE strpos(
+      coalesce(body_json::text, '') || coalesce(body_html, '') ||
+      postscripts::text || coalesce(liquid_section_map::text, ''),
+      ${`newsletter_${num}.`}
+    ) > 0
+    ORDER BY number
+    LIMIT 1
+  `;
+  return rows.length > 0 ? (rows[0].number as number) : null;
+}
+
+/**
+ * Make an unsent issue a one-off or a series issue. The issue moves to the end
+ * of the other range, so it gets a new number (returned): a series issue that
+ * becomes a one-off leaves the series, and later series issues shift down by
+ * one, as on delete.
+ *
+ * Blocked when the issue — or, when leaving the series, any later series issue
+ * that would be renumbered — has sends or schedule rows, or when any issue has
+ * an engagement conditional on the issue's current number.
+ *
+ * The issue's Liquid section map is cleared: its contact property keys contain
+ * the old number, which another issue may take.
+ */
+export async function setNewsletterIssueOneOff(
   num: number,
-): Promise<'deleted' | 'not_found' | { blocked: string }> {
+  oneOff: boolean,
+): Promise<{ number: number } | 'not_found' | { blocked: string }> {
   const db = getDb();
 
-  const existing = await db`SELECT 1 FROM newsletter_issues WHERE number = ${num}`;
+  const existing = await db`SELECT one_off FROM newsletter_issues WHERE number = ${num}`;
   if (existing.length === 0) return 'not_found';
+  if (existing[0].one_off === oneOff) return { number: num };
 
   const referenced = await db`
     SELECT i.number,
       EXISTS (SELECT 1 FROM email_sends e WHERE e.email_type = 'newsletter_' || i.number) AS has_sends,
       EXISTS (SELECT 1 FROM newsletter_schedules s WHERE s.newsletter_num = i.number) AS has_schedules
     FROM newsletter_issues i
-    WHERE i.number >= ${num}
+    WHERE i.number = ${num}
+      ${oneOff ? db`OR (i.number > ${num} AND NOT i.one_off)` : db``}
     ORDER BY i.number
   `;
   for (const row of referenced) {
-    if (row.has_sends || row.has_schedules) {
-      const what = row.has_sends ? 'has been sent' : 'has schedule history';
-      return {
-        blocked: row.number === num
-          ? `Newsletter #${num} ${what}`
-          : `Later newsletter #${row.number} ${what}, so issues can't be renumbered`,
-      };
-    }
+    const blocked = sendHistoryBlock(row, num);
+    if (blocked) return { blocked };
+  }
+
+  const conditional = await issueWithConditionalOn(num);
+  if (conditional !== null) {
+    return { blocked: `Newsletter #${conditional} has a conditional on #${num}` };
+  }
+
+  if (!oneOff) {
+    const rows = await db`
+      UPDATE newsletter_issues
+      SET number = (SELECT COALESCE(MAX(number), 0) + 1 FROM newsletter_issues WHERE NOT one_off),
+          one_off = false, liquid_section_map = NULL, updated_at = now()
+      WHERE number = ${num}
+      RETURNING number
+    `;
+    return { number: rows[0].number as number };
+  }
+
+  // Shift later series issues through negative numbers so the primary key
+  // never collides mid-update (one-off numbers are never negative).
+  const [moved] = await db.transaction([
+    db`UPDATE newsletter_issues
+       SET number = (SELECT GREATEST(COALESCE(MAX(number), 0), ${ONE_OFF_NUMBER_BASE}) + 1
+                     FROM newsletter_issues WHERE one_off),
+           one_off = true, liquid_section_map = NULL, updated_at = now()
+       WHERE number = ${num}
+       RETURNING number`,
+    db`UPDATE newsletter_issues SET number = -number WHERE number > ${num} AND NOT one_off`,
+    db`UPDATE newsletter_issues SET number = -number - 1, updated_at = now() WHERE number < 0`,
+  ]);
+  return { number: (moved as Record<string, unknown>[])[0].number as number };
+}
+
+/**
+ * Delete an unsent newsletter issue. Deleting a series issue shifts every later
+ * series issue down by one, so series numbers stay contiguous (segments and
+ * subscribers advance by +1). One-offs aren't in the series, so deleting one
+ * renumbers nothing.
+ *
+ * Blocked when the issue — or any later series issue that would be renumbered —
+ * has sends or schedule rows, since those rows are keyed by issue number.
+ */
+export async function deleteNewsletterIssue(
+  num: number,
+): Promise<'deleted' | 'not_found' | { blocked: string }> {
+  const db = getDb();
+
+  const existing = await db`SELECT one_off FROM newsletter_issues WHERE number = ${num}`;
+  if (existing.length === 0) return 'not_found';
+  const oneOff = existing[0].one_off as boolean;
+
+  const referenced = await db`
+    SELECT i.number,
+      EXISTS (SELECT 1 FROM email_sends e WHERE e.email_type = 'newsletter_' || i.number) AS has_sends,
+      EXISTS (SELECT 1 FROM newsletter_schedules s WHERE s.newsletter_num = i.number) AS has_schedules
+    FROM newsletter_issues i
+    WHERE i.number = ${num}
+      ${oneOff ? db`` : db`OR (i.number > ${num} AND NOT i.one_off)`}
+    ORDER BY i.number
+  `;
+  for (const row of referenced) {
+    const blocked = sendHistoryBlock(row, num);
+    if (blocked) return { blocked };
+  }
+
+  if (oneOff) {
+    await db`DELETE FROM newsletter_issues WHERE number = ${num}`;
+    return 'deleted';
   }
 
   // Shift through negative numbers so the primary key never collides mid-update.
   await db.transaction([
     db`DELETE FROM newsletter_issues WHERE number = ${num}`,
-    db`UPDATE newsletter_issues SET number = -number WHERE number > ${num}`,
+    db`UPDATE newsletter_issues SET number = -number WHERE number > ${num} AND NOT one_off`,
     db`UPDATE newsletter_issues SET number = -number - 1, updated_at = now() WHERE number < 0`,
   ]);
   return 'deleted';
@@ -1513,9 +1636,11 @@ export async function deleteNewsletterIssue(
  * slots: subscribers' next_step and segments' next_issue stay on the number,
  * so whoever is due for #a gets the content that was #b.
  *
- * Blocked when either issue has sends or schedule rows (both keyed by number),
- * or when any issue's content has an engagement conditional on either number
- * (`newsletter_<n>.opened` etc.), which would silently point at the wrong issue.
+ * Blocked when either issue is a one-off (one-offs aren't in the series, so
+ * have no order), when either has sends or schedule rows (both keyed by
+ * number), or when any issue's content has an engagement conditional on either
+ * number (`newsletter_<n>.opened` etc.), which would silently point at the
+ * wrong issue.
  */
 export async function swapNewsletterIssues(
   a: number,
@@ -1524,7 +1649,7 @@ export async function swapNewsletterIssues(
   const db = getDb();
 
   const referenced = await db`
-    SELECT i.number,
+    SELECT i.number, i.one_off,
       EXISTS (SELECT 1 FROM email_sends e WHERE e.email_type = 'newsletter_' || i.number) AS has_sends,
       EXISTS (SELECT 1 FROM newsletter_schedules s WHERE s.newsletter_num = i.number) AS has_schedules
     FROM newsletter_issues i
@@ -1533,6 +1658,7 @@ export async function swapNewsletterIssues(
   `;
   if (referenced.length < 2) return 'not_found';
   for (const row of referenced) {
+    if (row.one_off) return { blocked: `Newsletter #${row.number} is a one-off, so it can't be reordered` };
     if (row.has_sends) return { blocked: `Newsletter #${row.number} has been sent` };
     if (row.has_schedules) return { blocked: `Newsletter #${row.number} has schedule history` };
   }
