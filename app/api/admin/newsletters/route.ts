@@ -25,6 +25,8 @@ import { nextRegularSendAt } from '@/lib/newsletter/cadence';
  * - dueCount / dueSubscribers: who Schedule would send to right now — active
  *   subscribers whose next_step is this issue
  * - segments: persistent segments whose next issue is this one
+ * - sentToSegment: for a one-off, the segment its latest schedule (pending or
+ *   sent) targeted — null for series issues, which use `segments`
  * - schedule: the pending send, if one is scheduled
  *
  * Finalizes completed sends first (see finalizeDueSchedules).
@@ -61,6 +63,11 @@ export async function GET(request: NextRequest) {
       const segments = allSegments.filter(s => s.nextIssue === num);
       const due = dueSubscribers.filter(s => s.next_step === num);
       const stats = receivedStats.get(num);
+      // Schedules are newest first, so this is the one-off's latest send
+      const oneOffSchedule = raw?.oneOff ? schedules.find(s => s.newsletter_num === num) : undefined;
+      const sentToSegment = oneOffSchedule
+        ? allSegments.find(s => s.id === oneOffSchedule.newsletter_segment_id) ?? null
+        : null;
 
       return {
         number: num,
@@ -78,6 +85,7 @@ export async function GET(request: NextRequest) {
           email: s.email,
         })),
         segments: segments.map(s => ({ id: s.id, name: s.name, nextIssue: s.nextIssue })),
+        sentToSegment: sentToSegment ? { id: sentToSegment.id, name: sentToSegment.name } : null,
         schedule: pending
           ? {
               id: pending.id,

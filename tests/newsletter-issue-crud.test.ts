@@ -6,6 +6,8 @@ vi.mock('../lib/admin-auth', () => ({
 }));
 vi.mock('../lib/db', () => ({
   getAllSubscribers: vi.fn(),
+  getNewsletterDueSubscribers: vi.fn(),
+  getNewsletterReceivedStats: vi.fn(),
   getNewsletterSchedules: vi.fn(),
   getNewsletterPublication: vi.fn(),
   getNewsletterSegments: vi.fn(),
@@ -20,12 +22,20 @@ vi.mock('../lib/newsletter/loader', () => ({
   loadNewsletterIssue: vi.fn(),
   clearNewsletterIssueCache: vi.fn(),
 }));
+vi.mock('../lib/newsletter/finalize', () => ({
+  finalizeDueSchedules: vi.fn(),
+}));
 vi.mock('../lib/newsletter/email-loader', () => ({
   getNewsletterIssueNumbers: vi.fn(),
   clearNewsletterIssueCache: vi.fn(),
 }));
 
 import {
+  getNewsletterDueSubscribers,
+  getNewsletterReceivedStats,
+  getNewsletterSchedules,
+  getNewsletterPublication,
+  getNewsletterSegments,
   createNewsletterIssue,
   deleteNewsletterIssue,
   swapNewsletterIssues,
@@ -33,9 +43,12 @@ import {
   updateNewsletterIssue,
   setNewsletterIssueOneOff,
 } from '../lib/db';
-import { clearNewsletterIssueCache as clearLoaderCache } from '../lib/newsletter/loader';
-import { clearNewsletterIssueCache as clearEmailLoaderCache } from '../lib/newsletter/email-loader';
-import { POST } from '../app/api/admin/newsletters/route';
+import { clearNewsletterIssueCache as clearLoaderCache, loadNewsletterIssue } from '../lib/newsletter/loader';
+import {
+  clearNewsletterIssueCache as clearEmailLoaderCache,
+  getNewsletterIssueNumbers,
+} from '../lib/newsletter/email-loader';
+import { GET as LIST, POST } from '../app/api/admin/newsletters/route';
 import { DELETE, GET, PUT } from '../app/api/admin/newsletters/[number]/route';
 import { POST as MOVE } from '../app/api/admin/newsletters/[number]/move/route';
 import { POST as SET_ONE_OFF } from '../app/api/admin/newsletters/[number]/one-off/route';
@@ -83,6 +96,52 @@ function params(number: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+describe('GET /api/admin/newsletters', () => {
+  const segment = { id: 7, newsletterId: 1, name: '2026-10-06 (from #4)', resendSegmentId: 'r7', nextIssue: 6, createdAt: '' };
+
+  function scheduleRow(overrides: Record<string, unknown>) {
+    return {
+      id: 1, newsletter_num: 10001, kind: 'broadcast', broadcast_id: 'bc', segment_id: 'r7',
+      newsletter_segment_id: 7, resend_email_ids: null, scheduled_at: '2026-10-21T15:00:00.000Z',
+      subscriber_count: 12, status: 'sent', created_at: '2026-10-20T15:00:00.000Z', ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    vi.mocked(getNewsletterDueSubscribers).mockResolvedValue([]);
+    vi.mocked(getNewsletterReceivedStats).mockResolvedValue(new Map());
+    vi.mocked(getNewsletterPublication).mockResolvedValue(null);
+    vi.mocked(getNewsletterSegments).mockResolvedValue([segment]);
+    vi.mocked(getNewsletterIssueNumbers).mockResolvedValue([6, 10001]);
+    vi.mocked(loadNewsletterIssue).mockImplementation(async (n: number) => (
+      { number: n, subject: `S${n}`, slug: null, oneOff: n === 10001 } as never
+    ));
+  });
+
+  it("gives a one-off the segment it was sent to", async () => {
+    vi.mocked(getNewsletterSchedules).mockResolvedValue([scheduleRow({})] as never);
+    const res = await LIST(request('GET', 'secret'));
+    const { newsletters } = await res.json();
+    expect(newsletters.find((n: { number: number }) => n.number === 10001).sentToSegment)
+      .toEqual({ id: 7, name: '2026-10-06 (from #4)' });
+  });
+
+  it("gives a scheduled one-off the segment it's scheduled for", async () => {
+    vi.mocked(getNewsletterSchedules).mockResolvedValue([scheduleRow({ status: 'scheduled' })] as never);
+    const res = await LIST(request('GET', 'secret'));
+    const { newsletters } = await res.json();
+    expect(newsletters.find((n: { number: number }) => n.number === 10001).sentToSegment)
+      .toEqual({ id: 7, name: '2026-10-06 (from #4)' });
+  });
+
+  it('gives no segment to an unscheduled one-off or a series issue', async () => {
+    vi.mocked(getNewsletterSchedules).mockResolvedValue([scheduleRow({ newsletter_num: 6 })] as never);
+    const res = await LIST(request('GET', 'secret'));
+    const { newsletters } = await res.json();
+    expect(newsletters.map((n: { sentToSegment: unknown }) => n.sentToSegment)).toEqual([null, null]);
+  });
 });
 
 describe('POST /api/admin/newsletters', () => {
