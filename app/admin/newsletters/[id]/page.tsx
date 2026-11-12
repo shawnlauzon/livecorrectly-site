@@ -215,7 +215,8 @@ export default function AdminNewsletterDetailPage() {
   const [newsletters, setNewsletters] = useState<NewsletterInfo[]>([]);
   const [allSegments, setAllSegments] = useState<SegmentInfo[]>([]);
   /** The segment picked for the one-off being scheduled */
-  const [oneOffSegmentId, setOneOffSegmentId] = useState<number | null>(null);
+  /** Segments a one-off is being scheduled to: one broadcast each, at the same time */
+  const [oneOffSegmentIds, setOneOffSegmentIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -409,7 +410,7 @@ export default function AdminNewsletterDetailPage() {
   const handleSchedule = async (
     newsletterNumber: number,
     sendAt?: string | null,
-    options?: { test?: boolean; confirmMerge?: boolean; segmentId?: number },
+    options?: { test?: boolean; confirmMerge?: boolean; segmentIds?: number[] },
   ): Promise<void> => {
     const pwd = getAdminPassword();
     if (!pwd) return;
@@ -441,7 +442,7 @@ export default function AdminNewsletterDetailPage() {
           ...(sendAt && { sendAt }),
           ...(isTest && { test: true }),
           ...(options?.confirmMerge && { confirmMerge: true }),
-          ...(!isTest && options?.segmentId !== undefined && { segmentId: options.segmentId }),
+          ...(!isTest && options?.segmentIds !== undefined && { segmentIds: options.segmentIds }),
         }),
       });
 
@@ -753,6 +754,19 @@ export default function AdminNewsletterDetailPage() {
   /** Unsent series issues reorder; one-offs aren't in the series, so have no order. */
   function canReorder(nl: NewsletterInfo | undefined): boolean {
     return !!nl && isUnsent(nl) && !nl.oneOff;
+  }
+
+  /**
+   * Segments whose contacts the Next column lists: every segment a one-off was
+   * sent or scheduled to, or a series issue's first segment.
+   */
+  function contactSegments(nl: NewsletterInfo): SegmentInfo[] {
+    return nl.oneOff ? nl.segments : nl.segments.slice(0, 1);
+  }
+
+  /** The segments a one-off went to, for the Next column. */
+  function segmentNames(nl: NewsletterInfo): string {
+    return nl.segments.map(seg => seg.name).join(', ');
   }
 
   /** "Newsletter #12" or "One-off 1", for messages. */
@@ -1600,7 +1614,7 @@ export default function AdminNewsletterDetailPage() {
                   renderMoveButton(nl.number, 'up')
                 )}
                 {nl.oneOff ? (
-                  <div title="One-off: sent once to a segment you choose, outside the series">
+                  <div title="One-off: sent once to the segments you choose, outside the series">
                     <div style={{ fontSize: '0.625rem', fontWeight: 600, color: 'var(--grape)', textTransform: 'uppercase' }}>
                       One-off
                     </div>
@@ -1652,7 +1666,10 @@ export default function AdminNewsletterDetailPage() {
                       const expanding = expandedReady !== nl.number;
                       setExpandedReady(expanding ? nl.number : null);
                       if (expanding) {
-                        fetchSegmentContacts(nl.segments[0].id);
+                        // One at a time: fetchSegmentContacts tracks a single loading segment
+                        void (async () => {
+                          for (const seg of contactSegments(nl)) await fetchSegmentContacts(seg.id);
+                        })();
                       }
                     }}
                     style={{
@@ -1668,9 +1685,11 @@ export default function AdminNewsletterDetailPage() {
                       padding: 0,
                       whiteSpace: 'nowrap',
                     }}
-                    title={`${nl.segments[0].name}: ${nl.dueCount} due for #${nl.number}`}
+                    title={nl.oneOff
+                      ? `${segmentNames(nl)}: sent or scheduled to ${nl.dueCount}`
+                      : `${nl.segments[0].name}: ${nl.dueCount} due for #${nl.number}`}
                   >
-                    {nl.segments[0].name} ({nl.dueCount})
+                    {nl.oneOff ? segmentNames(nl) : nl.segments[0].name} ({nl.dueCount})
                   </button>
                 ) : (
                   renderSubscriberCount(
@@ -1770,40 +1789,46 @@ export default function AdminNewsletterDetailPage() {
                           >
                             {nl.oneOff ? (
                               <>
-                                <select
-                                  value={oneOffSegmentId ?? ''}
-                                  onChange={(e) => {
-                                    const segmentId = e.target.value ? Number(e.target.value) : null;
-                                    setOneOffSegmentId(segmentId);
-                                    if (segmentId !== null && !segmentContacts[segmentId]) {
-                                      fetchSegmentContacts(segmentId);
-                                    }
-                                  }}
-                                  aria-label="Segment to send this one-off to"
-                                  style={{
-                                    fontFamily: 'var(--body)',
-                                    fontSize: '0.75rem',
-                                    color: 'var(--ink)',
-                                    padding: '3px 6px',
-                                    border: '1px solid var(--line)',
-                                    borderRadius: '4px',
-                                    background: '#fff',
-                                  }}
+                                <div style={{ marginBottom: '0.25rem' }}>Send to (one broadcast per segment):</div>
+                                <div
+                                  role="group"
+                                  aria-label="Segments to send this one-off to"
+                                  style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}
                                 >
-                                  <option value="">Choose a segment…</option>
-                                  {allSegments.map(seg => (
-                                    <option key={seg.id} value={seg.id}>{seg.name}</option>
-                                  ))}
-                                </select>
-                                {oneOffSegmentId !== null && (
-                                  <div style={{ marginTop: '0.25rem' }}>
-                                    {loadingSegmentContacts === oneOffSegmentId
-                                      ? 'Counting contacts…'
-                                      : segmentContacts[oneOffSegmentId]
-                                        ? `${segmentContacts[oneOffSegmentId].length} contact${segmentContacts[oneOffSegmentId].length === 1 ? '' : 's'} in this segment`
-                                        : null}
-                                  </div>
-                                )}
+                                  {allSegments.map(seg => {
+                                    const checked = oneOffSegmentIds.includes(seg.id);
+                                    const contacts = segmentContacts[seg.id];
+                                    return (
+                                      <label
+                                        key={seg.id}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--ink)', cursor: 'pointer' }}
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={checked}
+                                          onChange={() => {
+                                            setOneOffSegmentIds(prev => (
+                                              checked ? prev.filter(id => id !== seg.id) : [...prev, seg.id]
+                                            ));
+                                            if (!checked && !segmentContacts[seg.id]) {
+                                              fetchSegmentContacts(seg.id);
+                                            }
+                                          }}
+                                        />
+                                        {seg.name}
+                                        {checked && (
+                                          <span style={{ color: 'var(--muted)' }}>
+                                            {loadingSegmentContacts === seg.id
+                                              ? '(counting…)'
+                                              : contacts
+                                                ? `(${contacts.length} contact${contacts.length === 1 ? '' : 's'})`
+                                                : null}
+                                          </span>
+                                        )}
+                                      </label>
+                                    );
+                                  })}
+                                </div>
                               </>
                             ) : (
                               <>
@@ -1836,8 +1861,8 @@ export default function AdminNewsletterDetailPage() {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                               <div style={{ display: 'flex', gap: '0.375rem' }}>
                                 <button
-                                  onClick={() => handleSchedule(nl.number, nextRegularSendAt, { segmentId: oneOffSegmentId ?? undefined })}
-                                  disabled={actionLoading || !nextRegularSendAt || (nl.oneOff && oneOffSegmentId === null)}
+                                  onClick={() => handleSchedule(nl.number, nextRegularSendAt, { segmentIds: nl.oneOff ? oneOffSegmentIds : undefined })}
+                                  disabled={actionLoading || !nextRegularSendAt || (nl.oneOff && oneOffSegmentIds.length === 0)}
                                   style={{
                                     fontFamily: 'var(--body)',
                                     fontSize: '0.75rem',
@@ -1928,8 +1953,8 @@ export default function AdminNewsletterDetailPage() {
                               </select>
                               <div style={{ display: 'flex', gap: '0.375rem' }}>
                                 <button
-                                  onClick={() => handleSchedule(nl.number, localToUtcIso(customSendAt, customTimezone), { segmentId: oneOffSegmentId ?? undefined })}
-                                  disabled={actionLoading || !customSendAt || (nl.oneOff && oneOffSegmentId === null)}
+                                  onClick={() => handleSchedule(nl.number, localToUtcIso(customSendAt, customTimezone), { segmentIds: nl.oneOff ? oneOffSegmentIds : undefined })}
+                                  disabled={actionLoading || !customSendAt || (nl.oneOff && oneOffSegmentIds.length === 0)}
                                   style={{
                                     fontFamily: 'var(--body)',
                                     fontSize: '0.75rem',
@@ -1969,7 +1994,7 @@ export default function AdminNewsletterDetailPage() {
                           onClick={() => {
                             setConfirmSchedule(nl.number);
                             setScheduleMode('choose');
-                            setOneOffSegmentId(null);
+                            setOneOffSegmentIds([]);
                             setActionMessage(null);
                           }}
                           disabled={nl.oneOff ? allSegments.length === 0 : nl.dueCount === 0}
@@ -2112,9 +2137,9 @@ export default function AdminNewsletterDetailPage() {
                         }}
                       >
                         Segment contacts
-                        {segmentContacts[nl.segments[0].id] && (
+                        {contactSegments(nl).every(seg => segmentContacts[seg.id]) && (
                           <span style={{ textTransform: 'none', fontWeight: 400 }}>
-                            {' '}({segmentContacts[nl.segments[0].id].length})
+                            {' '}({contactSegments(nl).reduce((sum, seg) => sum + segmentContacts[seg.id].length, 0)})
                           </span>
                         )}
                       </span>
@@ -2132,49 +2157,58 @@ export default function AdminNewsletterDetailPage() {
                         Close
                       </button>
                     </div>
-                    {loadingSegmentContacts === nl.segments[0].id ? (
-                      <div style={{ fontFamily: 'var(--body)', fontSize: '0.8125rem', color: 'var(--muted)', padding: '0.25rem 0' }}>
-                        Loading contacts from Resend...
+                    {contactSegments(nl).map(seg => (
+                      <div key={seg.id}>
+                        {contactSegments(nl).length > 1 && (
+                          <div style={{ fontFamily: 'var(--body)', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ink)', padding: '0.25rem 0' }}>
+                            {seg.name}
+                          </div>
+                        )}
+                        {loadingSegmentContacts === seg.id ? (
+                          <div style={{ fontFamily: 'var(--body)', fontSize: '0.8125rem', color: 'var(--muted)', padding: '0.25rem 0' }}>
+                            Loading contacts from Resend...
+                          </div>
+                        ) : segmentContacts[seg.id]?.length === 0 ? (
+                          <div style={{ fontFamily: 'var(--body)', fontSize: '0.8125rem', color: 'var(--muted)', padding: '0.25rem 0' }}>
+                            No contacts in segment
+                          </div>
+                        ) : segmentContacts[seg.id] ? (
+                          <table
+                            style={{
+                              width: '100%',
+                              borderCollapse: 'collapse',
+                              fontFamily: 'var(--body)',
+                              fontSize: '0.8125rem',
+                            }}
+                          >
+                            <tbody>
+                              {segmentContacts[seg.id].map((contact) => (
+                                <tr key={contact.email}>
+                                  <td
+                                    style={{
+                                      padding: '0.25rem 0.5rem',
+                                      color: 'var(--ink)',
+                                      fontWeight: 500,
+                                    }}
+                                  >
+                                    {contact.firstName}
+                                    {contact.lastName ? ` ${contact.lastName}` : ''}
+                                  </td>
+                                  <td
+                                    style={{
+                                      padding: '0.25rem 0.5rem',
+                                      color: 'var(--muted)',
+                                    }}
+                                  >
+                                    {contact.email}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ) : null}
                       </div>
-                    ) : segmentContacts[nl.segments[0].id]?.length === 0 ? (
-                      <div style={{ fontFamily: 'var(--body)', fontSize: '0.8125rem', color: 'var(--muted)', padding: '0.25rem 0' }}>
-                        No contacts in segment
-                      </div>
-                    ) : segmentContacts[nl.segments[0].id] ? (
-                      <table
-                        style={{
-                          width: '100%',
-                          borderCollapse: 'collapse',
-                          fontFamily: 'var(--body)',
-                          fontSize: '0.8125rem',
-                        }}
-                      >
-                        <tbody>
-                          {segmentContacts[nl.segments[0].id].map((contact) => (
-                            <tr key={contact.email}>
-                              <td
-                                style={{
-                                  padding: '0.25rem 0.5rem',
-                                  color: 'var(--ink)',
-                                  fontWeight: 500,
-                                }}
-                              >
-                                {contact.firstName}
-                                {contact.lastName ? ` ${contact.lastName}` : ''}
-                              </td>
-                              <td
-                                style={{
-                                  padding: '0.25rem 0.5rem',
-                                  color: 'var(--muted)',
-                                }}
-                              >
-                                {contact.email}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    ) : null}
+                    ))}
 
                     {/* Existing segments for this issue */}
                     <div
@@ -2373,12 +2407,14 @@ export default function AdminNewsletterDetailPage() {
                 }}
               >
                 {scheduleProgress.isTest ? (
-                  <>Test broadcast {scheduleProgress.result.broadcastId} sent to admin. Check your inbox.</>
+                  <>Test broadcast {scheduleProgress.result.broadcastIds[0]} sent to admin. Check your inbox.</>
                 ) : (
                   <>
                     {scheduleProgress.result.kind === 'direct'
                       ? 'Individual emails'
-                      : `Broadcast ${scheduleProgress.result.broadcastId}`} scheduled for{' '}
+                      : scheduleProgress.result.broadcastIds.length === 1
+                        ? `Broadcast ${scheduleProgress.result.broadcastIds[0]}`
+                        : `${scheduleProgress.result.broadcastIds.length} broadcasts`} scheduled for{' '}
                     {formatDateTime(scheduleProgress.result.scheduledAt, timezone)} with{' '}
                     {scheduleProgress.result.contactCount} contact
                     {scheduleProgress.result.contactCount === 1 ? '' : 's'}.

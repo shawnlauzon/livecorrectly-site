@@ -28,12 +28,11 @@ export interface ScheduleProgressEvent {
 export interface ScheduleCompleteEvent {
   step: 'complete';
   result: {
-    scheduleId: number;
+    /** One per broadcast (a one-off to several segments has several); empty for a test send */
+    scheduleIds: number[];
     kind: 'broadcast' | 'direct';
-    /** null for direct sends */
-    broadcastId: string | null;
-    /** null for direct sends */
-    segmentId: string | null;
+    /** One per segment sent to; empty for direct sends */
+    broadcastIds: string[];
     contactCount: number;
     scheduledAt: string;
   };

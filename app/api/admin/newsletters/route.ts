@@ -26,9 +26,9 @@ import { nextRegularSendAt } from '@/lib/newsletter/cadence';
  *   subscribers whose next_step is this issue
  * - segments: persistent segments whose next issue is this one
  *
- * A one-off has no cohort due for it, so instead `segments` is the segment its
- * latest schedule (pending or sent) targeted, and dueCount is how many that
- * schedule went to.
+ * A one-off has no cohort due for it, so instead `segments` are the segments
+ * its schedules (pending or sent) targeted, and dueCount is how many they
+ * went to in total.
  * - schedule: the pending send, if one is scheduled
  *
  * Finalizes completed sends first (see finalizeDueSchedules).
@@ -62,10 +62,10 @@ export async function GET(request: NextRequest) {
     const newsletters = await Promise.all(postWelcomeNumbers.map(async num => {
       const raw = await loadNewsletterIssue(num);
       const pending = schedules.find(s => s.newsletter_num === num && s.status === 'scheduled');
-      // Schedules are newest first, so this is a one-off's latest send
-      const oneOffSchedule = raw?.oneOff ? schedules.find(s => s.newsletter_num === num) : undefined;
+      // A one-off has one schedule per segment it was sent or scheduled to
+      const oneOffSchedules = raw?.oneOff ? schedules.filter(s => s.newsletter_num === num) : [];
       const segments = raw?.oneOff
-        ? allSegments.filter(s => s.id === oneOffSchedule?.newsletter_segment_id)
+        ? allSegments.filter(seg => oneOffSchedules.some(s => s.newsletter_segment_id === seg.id))
         : allSegments.filter(s => s.nextIssue === num);
       const due = raw?.oneOff ? [] : dueSubscribers.filter(s => s.next_step === num);
       const stats = receivedStats.get(num);
@@ -78,7 +78,9 @@ export async function GET(request: NextRequest) {
 
         receivedCount: stats?.receivedCount ?? 0,
         lastSentAt: stats?.lastSentAt ?? null,
-        dueCount: raw?.oneOff ? oneOffSchedule?.subscriber_count ?? 0 : due.length,
+        dueCount: raw?.oneOff
+          ? oneOffSchedules.reduce((sum, s) => sum + s.subscriber_count, 0)
+          : due.length,
         dueSubscribers: due.map(s => ({
           id: s.id,
           firstName: s.first_name,

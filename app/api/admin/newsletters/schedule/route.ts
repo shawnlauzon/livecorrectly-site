@@ -54,7 +54,7 @@ const DEFAULT_NEWSLETTER_TEST_EMAIL = 'shawn.lauzon@gmail.com';
  * Schedule a newsletter issue for the regular cadence time (or `sendAt`).
  * Returns an NDJSON stream with real-time progress events.
  *
- * Body: { newsletterNumber: number, sendAt?: string, test?: boolean, confirmMerge?: boolean, segmentId?: number }
+ * Body: { newsletterNumber: number, sendAt?: string, test?: boolean, confirmMerge?: boolean, segmentIds?: number[] }
  *
  * If a note is dated on the send day (publication timezone), it's rendered
  * above the issue body. Test sends use the next regular send day's note, so
@@ -67,10 +67,11 @@ const DEFAULT_NEWSLETTER_TEST_EMAIL = 'shawn.lauzon@gmail.com';
  * small cohorts — individual scheduled emails with no segment.
  *
  * A one-off issue (lib/newsletter/one-off.ts) instead goes to the persistent
- * segment `segmentId` (required for one-offs, refused for series issues): its
- * contacts who can receive newsletters, as one broadcast to that segment. One-off
- * numbers are never a next_step or a segment's next_issue, so the send never
- * advances anyone.
+ * segments `segmentIds` (required for one-offs, refused for series issues): each
+ * segment's contacts who can receive newsletters, as one broadcast per segment,
+ * all at the same send time, each with its own schedule row. No segment is
+ * created. One-off numbers are never a next_step or a segment's next_issue, so
+ * the send never advances anyone.
  *
  * Completion (status → sent, segment → next issue) happens later in
  * finalizeDueSchedules(), once Resend reports the send done.
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
     sendAt?: string;
     test?: boolean;
     confirmMerge?: boolean;
-    segmentId?: number;
+    segmentIds?: unknown;
   };
   try {
     body = await request.json();
@@ -131,12 +132,13 @@ export async function POST(request: NextRequest) {
   let timezone = 'America/Chicago';
   let dueSubscribers: Subscriber[] = [];
   let plan: AudiencePlan | null = null;
-  let oneOffSegment: NewsletterSegment | null = null;
+  // One-off: the chosen segments, each with its contacts who can receive newsletters
+  const oneOffAudiences: { segment: NewsletterSegment; subscribers: Subscriber[] }[] = [];
   const issue = await loadNewsletterIssue(newsletterNumber);
   if (!issue) {
     return NextResponse.json({ error: `Newsletter #${newsletterNumber} not found` }, { status: 404 });
   }
-  if (!isTest && !issue.oneOff && body.segmentId !== undefined) {
+  if (!isTest && !issue.oneOff && body.segmentIds !== undefined) {
     return NextResponse.json(
       { error: 'Series issues go to the subscribers due for them; only one-offs take a segment' },
       { status: 400 },
@@ -166,21 +168,40 @@ export async function POST(request: NextRequest) {
     }
 
     if (issue.oneOff) {
-      if (typeof body.segmentId !== 'number') {
+      const segmentIds = body.segmentIds;
+      if (
+        !Array.isArray(segmentIds)
+        || segmentIds.length === 0
+        || !segmentIds.every(id => typeof id === 'number')
+      ) {
         return NextResponse.json({ error: 'Choose a segment to send this one-off to' }, { status: 400 });
       }
-      oneOffSegment = (await getNewsletterSegments(1)).find(s => s.id === body.segmentId) ?? null;
-      if (!oneOffSegment) {
-        return NextResponse.json({ error: 'Segment not found' }, { status: 404 });
+      if (new Set(segmentIds).size !== segmentIds.length) {
+        return NextResponse.json({ error: 'A segment was chosen more than once' }, { status: 400 });
       }
-      const contacts = await listSegmentContacts(oneOffSegment.resendSegmentId);
-      dueSubscribers = await getNewsletterSubscribersByEmails(contacts.map(c => c.email));
-      if (dueSubscribers.length === 0) {
-        return NextResponse.json(
-          { error: `No one in ${oneOffSegment.name} can receive newsletters` },
-          { status: 422 },
-        );
+      const allSegments = await getNewsletterSegments(1);
+      for (const segmentId of segmentIds as number[]) {
+        const segment = allSegments.find(s => s.id === segmentId);
+        if (!segment) {
+          return NextResponse.json({ error: 'Segment not found' }, { status: 404 });
+        }
+        const contacts = await listSegmentContacts(segment.resendSegmentId);
+        const subscribers = await getNewsletterSubscribersByEmails(contacts.map(c => c.email));
+        if (subscribers.length === 0) {
+          return NextResponse.json(
+            { error: `No one in ${segment.name} can receive newsletters` },
+            { status: 422 },
+          );
+        }
+        oneOffAudiences.push({ segment, subscribers });
       }
+      // Contact properties and personalized sections are prepared once for
+      // everyone; a person in two segments is prepared once (and sent to twice)
+      const byId = new Map<string, Subscriber>();
+      for (const { subscribers } of oneOffAudiences) {
+        for (const subscriber of subscribers) byId.set(subscriber.id, subscriber);
+      }
+      dueSubscribers = [...byId.values()];
     } else {
       const allDue = await getNewsletterDueSubscribers(WELCOME_SERIES_LENGTH);
       dueSubscribers = allDue.filter(s => s.next_step === newsletterNumber);
@@ -193,7 +214,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  if (!isTest && !oneOffSegment) {
+  if (!isTest && !issue.oneOff) {
     plan = planAudience({
       dueCount: dueSubscribers.length,
       segmentsAtIssue: await getNewsletterSegmentsForIssue(1, newsletterNumber),
@@ -422,12 +443,11 @@ export async function POST(request: NextRequest) {
           emit({ step: 'render-broadcast', status: 'done', label: 'Rendering broadcast', ...(note && { detail: 'Note included' }) });
         }
 
-        // Step 5: Resolve the audience segment.
+        // Step 5: Resolve the audience segment(s) — one broadcast goes to each.
         // Test mode always uses an ephemeral segment with only the test subscriber —
         // a persistent segment would send the broadcast to ALL its contacts.
         currentStep = 'segment';
-        let segmentId: string;
-        let newsletterSegmentId: number | null = null;
+        const targets: BroadcastTarget[] = [];
 
         if (isTest) {
           emit({ step: 'segment', status: 'start', label: 'Creating test segment' });
@@ -437,16 +457,21 @@ export async function POST(request: NextRequest) {
           if (segmentError || !segmentData) {
             throw new Error(`Failed to create segment: ${JSON.stringify(segmentError)}`);
           }
-          segmentId = segmentData.id;
+          targets.push({ segmentId: segmentData.id, newsletterSegmentId: null, subscribers });
           emit({ step: 'segment', status: 'done', label: 'Creating test segment', detail: segmentName });
-        } else if (oneOffSegment) {
-          segmentId = oneOffSegment.resendSegmentId;
-          newsletterSegmentId = oneOffSegment.id;
-          emit({ step: 'segment', status: 'start', label: 'Using segment' });
-          emit({ step: 'segment', status: 'done', label: 'Using segment', detail: oneOffSegment.name });
+        } else if (oneOffAudiences.length > 0) {
+          for (const { segment, subscribers: segmentSubscribers } of oneOffAudiences) {
+            targets.push({
+              segmentId: segment.resendSegmentId,
+              newsletterSegmentId: segment.id,
+              subscribers: segmentSubscribers,
+            });
+          }
+          const label = oneOffAudiences.length === 1 ? 'Using segment' : 'Using segments';
+          emit({ step: 'segment', status: 'start', label });
+          emit({ step: 'segment', status: 'done', label, detail: oneOffAudiences.map(a => a.segment.name).join(', ') });
         } else if (plan!.kind === 'merge') {
-          segmentId = plan!.keep.resendSegmentId;
-          newsletterSegmentId = plan!.keep.id;
+          targets.push({ segmentId: plan!.keep.resendSegmentId, newsletterSegmentId: plan!.keep.id, subscribers });
           emit({ step: 'segment', status: 'start', label: 'Merging segments' });
           emit({
             step: 'segment',
@@ -455,8 +480,7 @@ export async function POST(request: NextRequest) {
             detail: `${plan!.remove.map(s => s.name).join(', ')} → ${plan!.keep.name}`,
           });
         } else if (plan!.kind === 'segment') {
-          segmentId = plan!.segment.resendSegmentId;
-          newsletterSegmentId = plan!.segment.id;
+          targets.push({ segmentId: plan!.segment.resendSegmentId, newsletterSegmentId: plan!.segment.id, subscribers });
           emit({ step: 'segment', status: 'start', label: 'Using segment' });
           emit({ step: 'segment', status: 'done', label: 'Using segment', detail: plan!.segment.name });
         } else {
@@ -469,14 +493,13 @@ export async function POST(request: NextRequest) {
           if (segmentError || !segmentData) {
             throw new Error(`Failed to create segment: ${JSON.stringify(segmentError)}`);
           }
-          segmentId = segmentData.id;
           const saved = await insertNewsletterSegment({
             newsletterId: 1,
             name,
             resendSegmentId: segmentData.id,
             nextIssue: newsletterNumber,
           });
-          newsletterSegmentId = saved.id;
+          targets.push({ segmentId: segmentData.id, newsletterSegmentId: saved.id, subscribers });
           emit({ step: 'segment', status: 'done', label: 'Creating segment', detail: name });
         }
 
@@ -484,27 +507,28 @@ export async function POST(request: NextRequest) {
         // segment this adds stragglers who aren't in it yet.
         currentStep = 'segment-contacts';
         emit({ step: 'segment-contacts', status: 'start', label: 'Adding contacts to segment' });
-        // A one-off's audience is the segment's own contacts, so there's nothing to add
-        const contactCount = oneOffSegment ? subscribers.length : await addEmailsToSegment(
-          segmentId,
-          subscribers.map(s => s.email),
-          (current, total) => emit({
-            step: 'segment-contacts',
-            status: 'progress',
-            label: 'Adding contacts to segment',
-            current,
-            total,
-          }),
-        );
-        if (contactCount === 0) {
-          throw new Error('No contacts could be added to segment');
+        if (oneOffAudiences.length > 0) {
+          // A one-off's audience is each segment's own contacts, so there's nothing to add
+          emit({ step: 'segment-contacts', status: 'done', label: 'Adding contacts to segment', detail: 'Not needed (one-off)' });
+        } else {
+          const target = targets[0];
+          const added = await addEmailsToSegment(
+            target.segmentId,
+            subscribers.map(s => s.email),
+            (current, total) => emit({
+              step: 'segment-contacts',
+              status: 'progress',
+              label: 'Adding contacts to segment',
+              current,
+              total,
+            }),
+          );
+          if (added === 0) {
+            throw new Error('No contacts could be added to segment');
+          }
+          target.contactCount = added;
+          emit({ step: 'segment-contacts', status: 'done', label: 'Adding contacts to segment', detail: `${added} added` });
         }
-        emit({
-          step: 'segment-contacts',
-          status: 'done',
-          label: 'Adding contacts to segment',
-          detail: oneOffSegment ? 'Not needed (one-off)' : `${contactCount} added`,
-        });
 
         // Merge: the kept segment now holds everyone, so drop the others
         if (!isTest && plan?.kind === 'merge') {
@@ -513,92 +537,91 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Step 7: Create broadcast
+        // Step 7: Create a broadcast per target. Each real broadcast is recorded
+        // as soon as it exists, so if a later one fails, every broadcast already
+        // scheduled in Resend has a schedule row and can be cancelled.
         currentStep = 'broadcast';
-        emit({ step: 'broadcast', status: 'start', label: 'Creating broadcast' });
+        const broadcastLabel = targets.length === 1 ? 'Creating broadcast' : 'Creating broadcasts';
+        emit({ step: 'broadcast', status: 'start', label: broadcastLabel });
 
         const { from, replyTo } = getBroadcastSender();
+        const broadcastName = `${isTest ? '[TEST] ' : ''}${raw.oneOff ? issueLabel(newsletterNumber, true) : `Newsletter #${newsletterNumber}`} — ${(scheduledDate ?? new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+        const broadcastIds: string[] = [];
+        const scheduleIds: number[] = [];
+        let contactCount = 0;
 
-        const { data: broadcastData, error: broadcastError } = await client.broadcasts.create({
-          name: `${isTest ? '[TEST] ' : ''}${raw.oneOff ? issueLabel(newsletterNumber, true) : `Newsletter #${newsletterNumber}`} — ${(scheduledDate ?? new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
-          segmentId,
-          from,
-          replyTo,
-          subject,
-          html,
-          send: true,
-          ...(scheduledDate && { scheduledAt: scheduledDate.toISOString() }),
-        });
-
-        if (broadcastError || !broadcastData) {
-          throw new Error(`Failed to create broadcast: ${JSON.stringify(broadcastError)}`);
-        }
-
-        const broadcastId = broadcastData.id;
-        emit({ step: 'broadcast', status: 'done', label: 'Creating broadcast', detail: broadcastId });
-
-        // Step 8: Record in DB (skipped in test mode)
-        currentStep = 'records';
-        if (isTest) {
-          emit({ step: 'records', status: 'start', label: 'Recording schedule' });
-          emit({ step: 'records', status: 'done', label: 'Recording schedule', detail: 'Skipped (test)' });
-
-          console.log(
-            `[schedule] TEST: Newsletter #${newsletterNumber} sent as broadcast ${broadcastId} to ${testEmail},${contactCount} contacts`,
-          );
-
-          emit({
-            step: 'complete',
-            result: {
-              scheduleId: 0,
-              kind: 'broadcast',
-              broadcastId,
-              segmentId,
-              contactCount,
-              scheduledAt: new Date().toISOString(),
-            },
-          });
-        } else {
-          emit({ step: 'records', status: 'start', label: 'Recording schedule' });
-
-          for (const subscriber of subscribers) {
-            await recordEmailSend({
-              subscriberId: subscriber.id,
-              emailType: `newsletter_${newsletterNumber}`,
-              category: 'newsletter',
-              resendBroadcastId: broadcastId,
-            });
+        for (let i = 0; i < targets.length; i++) {
+          const target = targets[i];
+          if (targets.length > 1) {
+            emit({ step: 'broadcast', status: 'progress', label: broadcastLabel, current: i + 1, total: targets.length });
           }
-
-          const schedule = await insertNewsletterSchedule({
-            newsletterNum: newsletterNumber,
-            kind: 'broadcast',
-            broadcastId,
-            segmentId,
-            newsletterSegmentId,
-            resendEmailIds: null,
-            scheduledAt: scheduledDate!,
-            subscriberCount: contactCount,
+          const { data: broadcastData, error: broadcastError } = await client.broadcasts.create({
+            name: broadcastName,
+            segmentId: target.segmentId,
+            from,
+            replyTo,
+            subject,
+            html,
+            send: true,
+            ...(scheduledDate && { scheduledAt: scheduledDate.toISOString() }),
           });
+          if (broadcastError || !broadcastData) {
+            throw new Error(`Failed to create broadcast: ${JSON.stringify(broadcastError)}`);
+          }
+          const broadcastId = broadcastData.id;
+          broadcastIds.push(broadcastId);
+          const targetCount = target.contactCount ?? target.subscribers.length;
+          contactCount += targetCount;
 
-          emit({ step: 'records', status: 'done', label: 'Recording schedule' });
-
-          console.log(
-            `[schedule] Newsletter #${newsletterNumber} scheduled as broadcast ${broadcastId} for ${scheduledDate!.toISOString()}, ${contactCount} contacts`,
-          );
-
-          emit({
-            step: 'complete',
-            result: {
-              scheduleId: schedule.id,
+          if (!isTest) {
+            for (const subscriber of target.subscribers) {
+              await recordEmailSend({
+                subscriberId: subscriber.id,
+                emailType: `newsletter_${newsletterNumber}`,
+                category: 'newsletter',
+                resendBroadcastId: broadcastId,
+              });
+            }
+            const schedule = await insertNewsletterSchedule({
+              newsletterNum: newsletterNumber,
               kind: 'broadcast',
               broadcastId,
-              segmentId,
-              contactCount,
-              scheduledAt: scheduledDate!.toISOString(),
-            },
-          });
+              segmentId: target.segmentId,
+              newsletterSegmentId: target.newsletterSegmentId,
+              resendEmailIds: null,
+              scheduledAt: scheduledDate!,
+              subscriberCount: targetCount,
+            });
+            scheduleIds.push(schedule.id);
+          }
         }
+        emit({ step: 'broadcast', status: 'done', label: broadcastLabel, detail: broadcastIds.join(', ') });
+
+        // Step 8: Records were written with each broadcast (skipped in test mode)
+        currentStep = 'records';
+        emit({ step: 'records', status: 'start', label: 'Recording schedule' });
+        emit({ step: 'records', status: 'done', label: 'Recording schedule', ...(isTest && { detail: 'Skipped (test)' }) });
+
+        if (isTest) {
+          console.log(
+            `[schedule] TEST: Newsletter #${newsletterNumber} sent as broadcast ${broadcastIds[0]} to ${testEmail},${contactCount} contacts`,
+          );
+        } else {
+          console.log(
+            `[schedule] Newsletter #${newsletterNumber} scheduled as broadcast(s) ${broadcastIds.join(', ')} for ${scheduledDate!.toISOString()}, ${contactCount} contacts`,
+          );
+        }
+
+        emit({
+          step: 'complete',
+          result: {
+            scheduleIds,
+            kind: 'broadcast',
+            broadcastIds,
+            contactCount,
+            scheduledAt: (scheduledDate ?? new Date()).toISOString(),
+          },
+        });
       } catch (error) {
         console.error('[admin/newsletters/schedule] Error:', error);
         emit({
@@ -619,6 +642,17 @@ export async function POST(request: NextRequest) {
       'Transfer-Encoding': 'chunked',
     },
   });
+}
+
+/** A segment one broadcast goes to, and who it reaches. */
+interface BroadcastTarget {
+  /** Resend segment id */
+  segmentId: string;
+  /** The persistent newsletter_segments row, or null for a test segment */
+  newsletterSegmentId: number | null;
+  subscribers: Subscriber[];
+  /** Contacts actually added to the segment, when that step ran (series sends) */
+  contactCount?: number;
 }
 
 /**
@@ -751,10 +785,9 @@ async function scheduleDirectSends(
   emit({
     step: 'complete',
     result: {
-      scheduleId: schedule.id,
+      scheduleIds: [schedule.id],
       kind: 'direct',
-      broadcastId: null,
-      segmentId: null,
+      broadcastIds: [],
       contactCount: sent.length,
       scheduledAt: scheduledDate.toISOString(),
     },

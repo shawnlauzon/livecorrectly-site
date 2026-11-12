@@ -1023,6 +1023,20 @@ export async function getScheduleForNewsletter(newsletterNum: number): Promise<N
 }
 
 /**
+ * Every pending (not yet sent) schedule for a newsletter. A series issue has at
+ * most one; a one-off scheduled to several segments has one per segment.
+ */
+export async function getPendingSchedulesForNewsletter(newsletterNum: number): Promise<NewsletterSchedule[]> {
+  const db = getDb();
+  const rows = await db`
+    SELECT * FROM newsletter_schedules
+    WHERE newsletter_num = ${newsletterNum} AND status = 'scheduled'
+    ORDER BY created_at
+  `;
+  return rows as NewsletterSchedule[];
+}
+
+/**
  * Delete a schedule row. Unscheduling removes the schedule entirely — there is
  * no 'cancelled' status.
  */

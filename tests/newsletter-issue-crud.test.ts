@@ -139,6 +139,21 @@ describe('GET /api/admin/newsletters', () => {
     expect((await listed(10001)).segments).toEqual([{ id: 7, name: '2026-10-06 (from #4)', nextIssue: 6 }]);
   });
 
+  it('lists a one-off sent to several segments with all of them and the total it went to', async () => {
+    const ogs = { id: 8, newsletterId: 1, name: 'OGs', resendSegmentId: 'r8', nextIssue: 9, createdAt: '' };
+    vi.mocked(getNewsletterSegments).mockResolvedValue([segment, ogs]);
+    vi.mocked(getNewsletterSchedules).mockResolvedValue([
+      scheduleRow({ id: 2, segment_id: 'r8', newsletter_segment_id: 8, subscriber_count: 5, status: 'scheduled' }),
+      scheduleRow({ id: 1, status: 'scheduled' }),
+    ] as never);
+    const nl = await listed(10001);
+    expect(nl.segments).toEqual([
+      { id: 7, name: '2026-10-06 (from #4)', nextIssue: 6 },
+      { id: 8, name: 'OGs', nextIssue: 9 },
+    ]);
+    expect(nl.dueCount).toBe(17);
+  });
+
   it('lists an unscheduled one-off with no segment', async () => {
     vi.mocked(getNewsletterSchedules).mockResolvedValue([] as never);
     const nl = await listed(10001);
