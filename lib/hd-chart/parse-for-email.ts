@@ -18,7 +18,8 @@ import {
   shadowNames,
   shadowVerbs,
   shadowDescriptions,
-  bridgeShadowVariants
+  bridgeShadowVariants,
+  profileLineNames
 } from './constants';
 import hdChart from './index';
 import { hangingGateDescriptions } from '../../emails/content';
@@ -62,6 +63,14 @@ export interface EmailChartData {
   topShadowDescription: string | null;
   /** Shadow verb for the top shadow (e.g. "overcompensate"), null if no shadows */
   topShadowVerb: string | null;
+  /** Conscious (personality) profile line, 1-6; null if the chart has no profile */
+  qualityConscious: number | null;
+  /** Name of the conscious quality (e.g. "Influencer"), null if the chart has no profile */
+  qualityConsciousName: string | null;
+  /** Unconscious (design) profile line, 1-6; null if the chart has no profile */
+  qualityUnconscious: number | null;
+  /** Name of the unconscious quality (e.g. "Leader"), null if the chart has no profile */
+  qualityUnconsciousName: string | null;
   /** True when the #1 bridge is a channel+gate far bridge (not a simple hanging gate) */
   hasChannelBridge: boolean;
   bridgeDescriptions: Array<{
@@ -108,6 +117,11 @@ export function parseChartForEmail(chart: Chart): EmailChartData {
     topShadowVerb = shadowVerbs[topShadow] ?? null;
   }
 
+  // Profile is a two-digit number: conscious line, then unconscious line (46 = 4/6).
+  const profileDigits = chart.profile ? chart.profile.toString() : null;
+  const qualityConscious = profileDigits ? Number(profileDigits[0]) : null;
+  const qualityUnconscious = profileDigits ? Number(profileDigits[1]) : null;
+
   // Override bridge descriptions with richer prose from hangingGateDescriptions.
   // Uses getAllBridgesSorted() to include both near + far + channel bridges, ranked by priority.
   const rawBridges = hd.getAllBridgesSorted();
@@ -152,6 +166,10 @@ export function parseChartForEmail(chart: Chart): EmailChartData {
     topShadowName,
     topShadowDescription: topShadowDescription?.replace(/^./, c => c.toLowerCase()) ?? null,
     topShadowVerb,
+    qualityConscious,
+    qualityConsciousName: qualityConscious !== null ? profileLineNames[qualityConscious] ?? null : null,
+    qualityUnconscious,
+    qualityUnconsciousName: qualityUnconscious !== null ? profileLineNames[qualityUnconscious] ?? null : null,
     hasChannelBridge: !chart.bridges?.bridgingGates?.length
       && !!chart.bridges?.bridgingChannels?.length,
     bridgeDescriptions

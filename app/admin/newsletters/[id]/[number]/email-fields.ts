@@ -19,6 +19,7 @@ import {
   shadowDescriptions,
   shadowVerbs,
   bridgeShadowVariants,
+  profileLineNames,
 } from '@/lib/hd-chart/constants';
 import { SOMETHING_MISSING } from './condition-syntax';
 
@@ -39,6 +40,12 @@ const TOP_SHADOW_VALUES = [
   SOMETHING_MISSING,
   ...Object.entries(shadowNames).filter(([fn]) => functionToCenterIndex[fn] != null).map(([, name]) => name),
 ];
+
+/** The six quality (profile line) names, in line order. */
+export const QUALITY_NAMES = Object.values(profileLineNames);
+
+/** The six quality (profile line) numbers, as the strings conditions compare against. */
+const QUALITY_NUMBERS = Object.keys(profileLineNames);
 
 export interface EmailField {
   key: string;
@@ -64,5 +71,9 @@ export const EMAIL_FIELDS: EmailField[] = [
   { key: 'top_shadow_description', label: 'Top Shadow Description', values: unique(Object.values(shadowDescriptions)) },
   { key: 'top_shadow_verb', label: 'Top Shadow (verb)', values: unique([...Object.values(shadowVerbs), ...Object.values(bridgeShadowVariants).map(v => v.verb)]) },
   { key: 'top_shadow_function', label: 'Top Shadow Function', values: Object.keys(functionToCenterIndex).filter(fn => functionToCenterIndex[fn] != null) },
+  { key: 'quality_conscious_name', label: 'Conscious Quality', values: QUALITY_NAMES },
+  { key: 'quality_conscious', label: 'Conscious Quality (number)', values: QUALITY_NUMBERS },
+  { key: 'quality_unconscious_name', label: 'Unconscious Quality', values: QUALITY_NAMES },
+  { key: 'quality_unconscious', label: 'Unconscious Quality (number)', values: QUALITY_NUMBERS },
   { key: 'decision_making_strategy', label: 'Decision-making Strategy' },
 ];

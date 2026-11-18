@@ -11,7 +11,7 @@ import {
 import type { ReactNodeViewProps } from '@tiptap/react';
 import type { SlashCommandItem } from '@react-email/editor/ui';
 import { TextSelection } from '@tiptap/pm/state';
-import { EMAIL_FIELDS, SHADOW_NAMES } from './email-fields';
+import { EMAIL_FIELDS, SHADOW_NAMES, QUALITY_NAMES } from './email-fields';
 import {
   NEWSLETTER_ENGAGEMENT_PROPERTIES,
   NEWSLETTER_FIELDS,
@@ -25,7 +25,7 @@ import type { NewsletterEngagementProperty } from './condition-syntax';
 import { getAdminPassword } from '@/lib/admin-client-auth';
 
 // ---------------------------------------------------------------------------
-// Chart condition fields — shared EMAIL_FIELDS + conditional-only `shadows`
+// Chart condition fields — shared EMAIL_FIELDS + conditional-only `shadows` / `qualities`
 // ---------------------------------------------------------------------------
 
 const OPERATORS = ['==', '!='] as const;
@@ -41,8 +41,9 @@ interface ConditionField {
 /**
  * Chart fields available for conditions. Combines the shared EMAIL_FIELDS list
  * (same names used by the Variable node and buildLiquidContext) with
- * `shadows` (every shadow name on the chart, tested with `contains`), which
- * is conditional-only. `mode` is not a chart field — it lives under Newsletter.
+ * `shadows` (every shadow name on the chart) and `qualities` (the conscious
+ * and unconscious quality names), both tested with `contains` and
+ * conditional-only. `mode` is not a chart field — it lives under Newsletter.
  *
  * `career_type` = BG5 career design, `type` = traditional HD type.
  * "(any)" entries expand to an `or` of their subtypes (see ANY_VALUES).
@@ -50,6 +51,7 @@ interface ConditionField {
 const CONDITION_FIELDS: ConditionField[] = [
   ...EMAIL_FIELDS.map(f => ({ key: f.key, label: f.label, values: f.values })),
   { key: 'shadows', label: 'Shadows', values: SHADOW_NAMES, operators: ['contains', 'not contains'] },
+  { key: 'qualities', label: 'Qualities', values: QUALITY_NAMES, operators: ['contains', 'not contains'] },
 ];
 
 const FIELD_BY_KEY = new Map(CONDITION_FIELDS.map(f => [f.key, f]));

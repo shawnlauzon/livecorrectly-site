@@ -74,6 +74,10 @@ const contactProperties: Record<string, (chart: EmailChartData) => string> = {
   top_shadow_description:      chart => chart.topShadowDescription ?? '',
   top_shadow_verb:             chart => chart.topShadowVerb ?? '',
   top_shadow_function:         topShadowFunction,
+  quality_conscious:           chart => chart.qualityConscious?.toString() ?? '',
+  quality_conscious_name:      chart => chart.qualityConsciousName ?? '',
+  quality_unconscious:         chart => chart.qualityUnconscious?.toString() ?? '',
+  quality_unconscious_name:    chart => chart.qualityUnconsciousName ?? '',
 };
 
 export default contactProperties;
@@ -529,6 +533,14 @@ export function buildLiquidContext(
     top_shadow_description: chart.topShadowDescription ?? '',
     top_shadow_verb: chart.topShadowVerb ?? '',
     top_shadow_function: topShadowFunction(chart),
+    quality_conscious: chart.qualityConscious?.toString() ?? '',
+    quality_conscious_name: chart.qualityConsciousName ?? '',
+    quality_unconscious: chart.qualityUnconscious?.toString() ?? '',
+    quality_unconscious_name: chart.qualityUnconsciousName ?? '',
+
+    // Both quality names, for `{% if qualities contains "Influencer" %}`
+    // (true whether the quality is conscious or unconscious)
+    qualities: [chart.qualityConsciousName, chart.qualityUnconsciousName].filter(name => name !== null),
 
     // Every shadow name, for `{% if shadows contains "Overcompensating" %}`
     shadows: chart.shadows,

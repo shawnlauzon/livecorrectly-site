@@ -7,7 +7,7 @@ import { buildContactPropertyValues } from '@/lib/newsletter/resolve';
  *
  * Returns the flat key→value map that should be in Resend (and in
  * contact_sync_state). Includes: firstName, lastName, neon_id,
- * and 8 chart properties.
+ * and the chart properties.
  */
 export function computeExpectedContactValues(
   subscriber: Subscriber,
@@ -18,7 +18,7 @@ export function computeExpectedContactValues(
     neon_id: subscriber.id,
   };
 
-  // Chart-derived properties (8 from contact-properties registry)
+  // Chart-derived properties (from the contact-properties registry)
   if (subscriber.chart?.chart) {
     const chart = parseChartForEmail(subscriber.chart.chart);
     Object.assign(values, buildContactPropertyValues(chart));
