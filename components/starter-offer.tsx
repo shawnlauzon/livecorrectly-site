@@ -7,10 +7,10 @@ import styles from './starter-offer.module.css';
 
 /**
  * Homepage band for the Starter guide: one click to Stripe, delivered by email.
- * Until the Stripe link is set, the button goes to the Starter listing instead.
+ * Until the Stripe link is set, the button opens an email to Shawn instead.
  */
 export default function StarterOffer() {
-  const buyUrl = STARTER.bookingUrl;
+  const buyUrl = STARTER.buyUrl;
 
   return (
     <section className={styles.section}>
@@ -28,7 +28,7 @@ export default function StarterOffer() {
           <p className={styles.price}>${STARTER.price}</p>
           <a
             className="btn"
-            href={buyUrl ?? `/work-with-me#${STARTER.id}`}
+            href={buyUrl ?? 'mailto:shawn@livecorrectly.com?subject=Personalized%20guide'}
             {...(buyUrl ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
             onClick={() =>
               track('begin_checkout', {

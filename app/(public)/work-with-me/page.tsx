@@ -7,11 +7,9 @@ import { getSubscriberById } from "@/lib/db";
 import { isSubscriberId } from "@/lib/subscriber-cookie";
 import { getRememberedSubscriberId } from "@/lib/subscriber-cookie-server";
 import {
-  BLACK_FRIDAY,
   FREE_CALL_URL,
   GUIDE_VALUE,
   OFFER_GROUPS,
-  isBlackFriday,
   type Offer,
 } from "@/lib/offers";
 import OfferLink from "./OfferLink";
@@ -33,8 +31,6 @@ export default async function WorkWithMePage({
   const subscriberParam = isSubscriberId(resolvedSearchParams.s) ? resolvedSearchParams.s : null;
   const fromLink = subscriberParam ? await getSubscriberById(subscriberParam) : null;
   const subscriberId = fromLink?.id ?? (await getRememberedSubscriberId());
-
-  const blackFriday = Boolean(subscriberId) && isBlackFriday();
 
   return (
     <>
@@ -58,11 +54,6 @@ export default async function WorkWithMePage({
                 <OfferItem
                   key={offer.id}
                   offer={offer}
-                  salePrice={
-                    blackFriday && offer.id === BLACK_FRIDAY.offerId
-                      ? BLACK_FRIDAY.price
-                      : undefined
-                  }
                 />
               ))}
             </ul>
@@ -112,7 +103,7 @@ export default async function WorkWithMePage({
   );
 }
 
-function OfferItem({ offer, salePrice }: { offer: Offer; salePrice?: number }) {
+function OfferItem({ offer }: { offer: Offer }) {
   const includes = [
     offer.guides === 1 &&
       `Includes your personalized guide to living correctly ($${GUIDE_VALUE} value)`,
@@ -126,14 +117,7 @@ function OfferItem({ offer, salePrice }: { offer: Offer; salePrice?: number }) {
       <div className={styles.offerHead}>
         <h3 className={styles.h3}>{offer.name}</h3>
         <p className={styles.price}>
-          {salePrice != null ? (
-            <>
-              <s className={styles.oldPrice}>${offer.price}</s> ${salePrice}
-              <span className={styles.saleNote}> through Sunday</span>
-            </>
-          ) : (
-            <>${offer.price}</>
-          )}
+          ${offer.price}
         </p>
       </div>
       <p className={styles.description}>{offer.description}</p>
@@ -147,13 +131,8 @@ function OfferItem({ offer, salePrice }: { offer: Offer; salePrice?: number }) {
       )}
       <div className={styles.actions}>
         {offer.bookingUrl ? (
-          <OfferLink
-            className={styles.book}
-            href={offer.bookingUrl}
-            offerId={offer.id}
-            checkoutValue={offer.action === "buy" ? offer.price : undefined}
-          >
-            {offer.action === "buy" ? `Buy ${offer.name}` : `Book ${offer.name}`}
+          <OfferLink className={styles.book} href={offer.bookingUrl} offerId={offer.id}>
+            Book {offer.name}
           </OfferLink>
         ) : (
           <OfferLink className={styles.book} href={FREE_CALL_URL} offerId={offer.id} free>

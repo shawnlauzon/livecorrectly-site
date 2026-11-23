@@ -3,6 +3,7 @@ import Hero from "@/components/hero";
 import PullQuote from "@/components/pull-quote";
 import HowItHelps from "@/components/how-it-helps";
 import StarterOffer from "@/components/starter-offer";
+import WorkWithMeTeaser from "@/components/work-with-me-teaser";
 import Method from "@/components/method";
 import Testimonial from "@/components/testimonial";
 import About from "@/components/about";
@@ -25,6 +26,7 @@ export default async function Home() {
         <hr className="rule" />
         <SectionTracker name="how_it_helps"><HowItHelps /></SectionTracker>
         <SectionTracker name="starter_offer"><StarterOffer /></SectionTracker>
+        <SectionTracker name="work_with_me_teaser"><WorkWithMeTeaser /></SectionTracker>
         <SectionTracker name="method"><Method /></SectionTracker>
         <SectionTracker name="testimonial"><Testimonial /></SectionTracker>
         <SectionTracker name="about"><About /></SectionTracker>

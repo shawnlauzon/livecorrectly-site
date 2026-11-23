@@ -1,6 +1,6 @@
 /**
- * Single source of truth for what's on /work-with-me: offer names, prices,
- * descriptions, booking links, and the Black Friday window.
+ * Single source of truth for offers: names, prices,
+ * descriptions and booking links.
  *
  * Booking links come from env vars (one Google Calendar appointment schedule
  * per offer, each with its own Stripe price). An offer whose link isn't set
@@ -24,8 +24,6 @@ export type Offer = {
   guides: number;
   includesFollowUp: boolean;
   bookingUrl?: string;
-  /** "buy" = pay and it's delivered (Stripe link); default "book" = pick a time. */
-  action?: "buy" | "book";
   /** Show the free-call link beside this offer (bigger decisions). */
   offerFreeCall?: boolean;
 };
@@ -43,18 +41,6 @@ export const OFFER_GROUPS: OfferGroup[] = [
     id: "who-you-are",
     heading: "Who you are",
     offers: [
-      {
-        id: "starter",
-        name: "Starter",
-        price: 47,
-        description:
-          "Your personalized guide to living correctly, written for you. Read it at your own pace.",
-        details: "Delivered by email within 24 hours.",
-        guides: 0,
-        includesFollowUp: false,
-        bookingUrl: process.env.NEXT_PUBLIC_BUY_URL_STARTER,
-        action: "buy",
-      },
       {
         id: "guided",
         name: "Guided",
@@ -129,23 +115,6 @@ export const OFFER_GROUPS: OfferGroup[] = [
   },
 ];
 
-/**
- * Black Friday: Guided at a lower price for subscribers only. Shawn changes
- * the price on the Guided booking link for the same window; this only drives
- * what the site shows.
- */
-export const BLACK_FRIDAY = {
-  offerId: "guided",
-  price: 47,
-  // Wed Nov 25 through Sun Nov 29, 2026, Austin time (CST, UTC-6)
-  start: new Date("2026-11-25T00:00:00-06:00"),
-  end: new Date("2026-11-30T00:00:00-06:00"),
-} as const;
-
-export function isBlackFriday(now: Date = new Date()): boolean {
-  return now >= BLACK_FRIDAY.start && now < BLACK_FRIDAY.end;
-}
-
 export function findOffer(id: string): Offer | undefined {
   for (const group of OFFER_GROUPS) {
     const offer = group.offers.find((o) => o.id === id);
@@ -154,8 +123,17 @@ export function findOffer(id: string): Offer | undefined {
   return undefined;
 }
 
-/** The Starter offer: the personalized guide on its own. */
-export const STARTER = findOffer("starter")!;
+/**
+ * The personalized guide on its own. Not "working with me", so it isn't on
+ * /work-with-me: it's sold from the homepage, bought outright through a Stripe
+ * Payment Link and delivered by email within 24 hours.
+ */
+export const STARTER = {
+  id: "starter",
+  name: "Personalized guide to living correctly",
+  price: 47,
+  buyUrl: process.env.NEXT_PUBLIC_BUY_URL_STARTER,
+} as const;
 
 /** Value of one personalized guide, quoted on every offer that includes one. */
 export const GUIDE_VALUE = STARTER.price;

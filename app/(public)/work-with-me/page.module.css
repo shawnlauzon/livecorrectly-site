@@ -68,18 +68,6 @@
   white-space: nowrap;
 }
 
-.oldPrice {
-  color: var(--ink-soft);
-  font-size: 1.05rem;
-  margin-right: 0.25rem;
-}
-
-.saleNote {
-  font-family: var(--body);
-  font-size: 0.8125rem;
-  color: var(--plum);
-}
-
 .description {
   font-size: 1.0625rem;
   line-height: 1.6;

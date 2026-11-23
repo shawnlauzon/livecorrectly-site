@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Wrap from "./wrap";
 import TrackedLink from "./tracked-link";
-import BlackFridayBanner from "./black-friday-banner";
 import { getRememberedSubscriberId } from "@/lib/subscriber-cookie-server";
 import styles from "./site-nav.module.css";
 
@@ -26,7 +25,6 @@ export default async function SiteNav({
 
   return (
     <>
-      {subscriberId && <BlackFridayBanner />}
       <Wrap as="header" className={styles.nav}>
         <Link className={styles.mark} href="/">
           Live <em className={styles.markAccent}>Correctly</em>

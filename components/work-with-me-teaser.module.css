@@ -1,0 +1,31 @@
+.section {
+  padding-top: clamp(2.5rem, 6vh, 3.5rem);
+  padding-bottom: clamp(2.5rem, 6vh, 3.5rem);
+  border-bottom: 1px solid var(--stone-line);
+}
+
+.inner {
+  display: grid;
+  gap: 1.25rem;
+  align-items: end;
+}
+
+@media (min-width: 768px) {
+  .inner {
+    grid-template-columns: 1fr auto;
+    gap: 3rem;
+  }
+}
+
+.body {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  max-width: var(--measure);
+  margin: 0;
+}
+
+/* .eyebrow carries a large bottom margin for section openers; tighten it here */
+.inner :global(.eyebrow) {
+  margin-bottom: 0.75rem;
+}
