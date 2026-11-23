@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Karla, Cinzel, Source_Sans_3 } from "next/font/google";
+import { Fraunces, Karla, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -7,13 +7,6 @@ const fraunces = Fraunces({
   weight: ["300", "400", "600"],
   style: ["normal", "italic"],
   variable: "--font-display",
-  display: "swap",
-});
-
-const cinzel = Cinzel({
-  subsets: ["latin"],
-  weight: ["700", "900"],
-  variable: "--font-cinzel",
   display: "swap",
 });
 
@@ -60,7 +53,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${karla.variable} ${cinzel.variable} ${sourceSans.variable}`}
+      className={`${fraunces.variable} ${karla.variable} ${sourceSans.variable}`}
     >
       <body>{children}</body>
     </html>

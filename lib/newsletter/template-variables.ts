@@ -108,6 +108,6 @@ export function replaceDesignedCta(
     const buttonText = (hashIndex >= 0 ? raw.slice(0, hashIndex) : raw).trim();
     const anchor = hashIndex >= 0 ? raw.slice(hashIndex) : '';
     const url = `${baseUrl}${anchor}`;
-    return `<div style="text-align:center;margin:24px 0"><a href="${url}" style="background-color:#158377;color:#FFFFFF;font-size:16px;font-weight:600;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">${buttonText}</a></div>`;
+    return `<div style="text-align:center;margin:24px 0"><a href="${url}" style="background-color:#0F6F65;color:#FFFFFF;font-size:16px;font-weight:600;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">${buttonText}</a></div>`;
   });
 }

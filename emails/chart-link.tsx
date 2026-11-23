@@ -42,7 +42,7 @@ export const ChartLink = ({
           <Section className="mb-[24px] text-center">
             <Button
               href={newsletterUrl}
-              className="rounded-[8px] bg-[#158377] px-[24px] py-[12px] text-[16px] font-semibold text-white"
+              className="rounded-[8px] bg-[#0F6F65] px-[24px] py-[12px] text-[16px] font-semibold text-white"
             >
               Read it personalized for you →
             </Button>
@@ -50,7 +50,7 @@ export const ChartLink = ({
 
           <Text className="mb-[16px] text-[16px] leading-[24px] text-[#45585B]">
             Your full chart is here too:{' '}
-            <Link href={chartUrl} className="text-[#158377] underline">
+            <Link href={chartUrl} className="text-[#0F6F65] underline">
               see how you&apos;re designed
             </Link>
             .

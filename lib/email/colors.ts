@@ -9,5 +9,5 @@ export const EMAIL_COLORS = {
   inkSoft: '#45585B', // --ink-soft
   plum: '#8C4A6B', // --plum
   plumSoft: '#F0E6EB', // --plum-soft
-  action: '#158377', // --action
+  action: '#0F6F65', // --action
 } as const;

@@ -80,14 +80,13 @@ Colors (source of truth: `app/globals.css` — read it there; emails need inline
 --ground:#FAF8F4  --ink:#12262A  --ink-soft:#45585B
 --stone:#D8D2C6  --stone-line:#C9C2B4
 --plum:#8C4A6B  --plum-soft:#F0E6EB
---action:#158377  --action-hover:#1A9B8C
+--action:#0F6F65  --action-hover:#0B5A52
 ```
 `globals.css` also keeps backward-compat aliases (`--grape`, `--paper`, `--muted`, `--line`, `--marigold`, `--coral`, …) for older pages. Don't use them in new work, and never use the old grape purple (`#6A4BD6`) or the old ink (`#221B3D`).
 Fonts (source of truth: `app/layout.tsx`, exposed as `--display` / `--body` / `--narrative` in `globals.css`):
 - **Fraunces** (serif) — display / headings
 - **Karla** — body / UI
 - **Source Sans 3** — narrative prose (the web newsletter reader)
-- **Cinzel** — the hero's one-word accent only
 
 Emails don't use the site fonts: most clients (Gmail, Outlook) ignore web fonts, so every email uses Georgia headings and Helvetica body text, from `lib/email/fonts.ts`. No web-font links in emails.
 

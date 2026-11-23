@@ -159,7 +159,7 @@ export const Welcome1 = ({
       <Section className="mt-[24px] mb-[24px] text-center">
         <Button
           href={chartUrlWithUtm}
-          className="rounded-[8px] bg-[#158377] px-[24px] py-[12px] text-[16px] font-semibold text-white"
+          className="rounded-[8px] bg-[#0F6F65] px-[24px] py-[12px] text-[16px] font-semibold text-white"
         >
           Your full chart →
         </Button>
