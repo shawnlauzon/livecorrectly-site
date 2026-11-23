@@ -11,6 +11,10 @@ export default function SiteFooter() {
       <span className={styles.sep}>&middot;</span>
       <span>Austin, TX</span>
       <span className={styles.sep}>&middot;</span>
+      <Link className={styles.footerLink} href="/newsletter">
+        Newsletter
+      </Link>
+      <span className={styles.sep}>&middot;</span>
       <Link className={styles.footerLink} href="/privacy">
         Privacy
       </Link>

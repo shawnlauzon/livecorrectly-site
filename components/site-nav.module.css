@@ -101,3 +101,11 @@
     row-gap: 0.75rem;
   }
 }
+
+/* New visitors on narrow phones: the mark and the button share one row.
+   The Newsletter link stays reachable from the footer. */
+@media (max-width: 420px) {
+  .hideNarrow {
+    display: none;
+  }
+}

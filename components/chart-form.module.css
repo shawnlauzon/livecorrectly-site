@@ -174,7 +174,7 @@
   color: var(--ink);
   background: var(--paper);
   border: 1.5px solid var(--line);
-  border-radius: 11px;
+  border-radius: 2px;
   padding: 13px 15px;
   transition: border-color 0.18s ease;
 }
@@ -234,14 +234,13 @@
   background: var(--action);
   border: none;
   padding: 16px 26px;
-  border-radius: 12px;
-  box-shadow: 0 8px 22px -10px rgba(21, 131, 119, 0.5);
+  border-radius: 2px;
   transition: transform 0.18s ease, background 0.2s ease;
   margin-top: 28px;
 }
 .btn:hover {
   background: var(--action-hover);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 .btn:disabled {
   opacity: 0.6;
@@ -360,7 +359,16 @@
 .nameRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 0 10px;
+}
+/* Both name fields keep their bottom gap, including when they stack on phones */
+.nameRow .field {
+  margin-bottom: 22px;
+}
+
+/* The birth-details form's own card: square, like the rest of the site */
+.formCard {
+  border-radius: 2px;
 }
 
 /* Place picker — country + city row */
@@ -399,7 +407,7 @@
   margin-top: 4px;
   background: var(--card);
   border: 1.5px solid var(--line);
-  border-radius: 11px;
+  border-radius: 2px;
   box-shadow: 0 8px 24px -6px rgba(34, 27, 61, 0.15);
   max-height: 220px;
   overflow-y: auto;

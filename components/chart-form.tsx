@@ -309,7 +309,7 @@ export default function ChartForm({
   return (
     <>
       <form
-        className={styles.card}
+        className={`${styles.card} ${styles.formCard}`}
         noValidate
         onSubmit={handleBirthSubmit}
         onFocus={handleFormFocus}

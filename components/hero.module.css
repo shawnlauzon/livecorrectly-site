@@ -59,7 +59,7 @@
 .turnClip {
   display: block;
   overflow: hidden;
-  text-align: center;
+  text-align: left;
   padding-top: 1rem;
   padding-bottom: 0.5rem;
 }
@@ -150,5 +150,27 @@
   }
   .turn {
     transform: translateY(0);
+  }
+}
+
+/* ---- Phones: keep the main button on the first screen ---- */
+@media (max-width: 640px) {
+  .hero {
+    padding-top: 0.5rem;
+  }
+  .copy :global(.eyebrow) {
+    margin-bottom: 1rem;
+  }
+  .advice {
+    margin-bottom: 1.25rem;
+  }
+  .h1 {
+    margin-bottom: 1rem;
+  }
+  .turnClip {
+    padding-top: 0.5rem;
+  }
+  .lede {
+    margin-bottom: 1.5rem;
   }
 }

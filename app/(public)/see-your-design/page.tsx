@@ -35,13 +35,14 @@ export default async function SeeYourDesign() {
             href="/"
             style={{
               fontFamily: 'var(--display)',
-              fontWeight: 700,
-              fontSize: '1.24rem',
+              fontWeight: 600,
+              fontSize: '1.28rem',
+              color: 'var(--ink)',
               letterSpacing: '-0.02em',
               textDecoration: 'none',
             }}
           >
-            Live <span style={{ color: 'var(--grape)' }}>Correctly</span>
+            Live <em style={{ color: 'var(--plum)' }}>Correctly</em>
           </Link>
           <Link
             href="/"

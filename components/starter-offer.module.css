@@ -7,13 +7,18 @@
 .inner {
   display: grid;
   gap: 2rem;
-  align-items: end;
+  align-items: start;
 }
 
 @media (min-width: 768px) {
   .inner {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr 17rem;
     gap: 3rem;
+  }
+
+  /* Start the price level with the heading, below the eyebrow line */
+  .buy {
+    padding-top: 3rem;
   }
 }
 
@@ -48,6 +53,10 @@
   font-size: 0.9375rem;
   line-height: 1.5;
   color: var(--ink-soft);
-  max-width: 28ch;
   margin: 0;
+}
+
+.buy :global(.btn) {
+  width: 100%;
+  text-align: center;
 }

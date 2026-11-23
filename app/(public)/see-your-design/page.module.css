@@ -13,27 +13,27 @@
 
 .eyebrow {
   font-weight: 600;
-  font-size: 0.8rem;
-  letter-spacing: 0.16em;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--grape);
+  color: var(--plum);
   margin-bottom: 18px;
 }
 
 .h1 {
   font-family: var(--display);
-  font-weight: 800;
+  font-weight: 400;
   font-size: clamp(2.1rem, 5vw, 3.1rem);
-  line-height: 1.03;
-  letter-spacing: -0.03em;
+  line-height: 1.08;
+  letter-spacing: -0.015em;
   margin-bottom: 18px;
 }
 
 .lead {
   font-size: clamp(1.05rem, 1.6vw, 1.2rem);
-  color: var(--muted);
+  color: var(--ink-soft);
   max-width: 32em;
-  margin-bottom: 38px;
+  margin-bottom: 1rem;
 }
 
 .footer {
@@ -42,4 +42,9 @@
   text-align: center;
   font-size: 0.88rem;
   color: var(--muted);
+}
+
+/* Space between the last intro paragraph and the form */
+.lead:last-of-type {
+  margin-bottom: 38px;
 }
