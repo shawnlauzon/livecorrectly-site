@@ -6,7 +6,7 @@ import ChartHero from './chart-hero';
 import styles from './chart-form.module.css';
 import type { PublicSubscriber } from '@/lib/types/subscriber';
 import { track } from '@/lib/analytics';
-import { STARTER, guideBuyUrl } from '@/lib/offers';
+import { STARTER, guideBuyPath } from '@/lib/offers';
 
 interface ChartViewProps {
   subscriberId: string;
@@ -41,7 +41,7 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
   }
 
   const isPreview = searchParams.get('preview') === 'true';
-  const buyUrl = guideBuyUrl(subscriberId);
+  const buyUrl = guideBuyPath(subscriberId);
 
   useEffect(() => {
     async function fetchSubscriber() {

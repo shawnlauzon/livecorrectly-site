@@ -7,7 +7,7 @@ import GuidePurchase from "@/components/guide-purchase";
 import { getSubscriberById } from "@/lib/db";
 import { isCheckoutSessionId } from "@/lib/offers";
 import { isSubscriberId } from "@/lib/subscriber-cookie";
-import { getRememberedSubscriberId } from "@/lib/subscriber-cookie-server";
+import { getGuideBuyerId, getRememberedSubscriberId } from "@/lib/subscriber-cookie-server";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
@@ -28,10 +28,13 @@ export default async function GuideThanksPage({
   const params = await searchParams;
   const sessionId = isCheckoutSessionId(params.session_id) ? params.session_id : null;
 
-  // An email link's ?s= wins (checked against the database); otherwise the cookie.
+  // An email link's ?s= wins (checked against the database); then the buyer noted
+  // by /guide/buy on the way to Stripe; then the remember-me cookie.
   const subscriberParam = isSubscriberId(params.s) ? params.s : null;
   const fromLink = subscriberParam ? await getSubscriberById(subscriberParam) : null;
-  const rememberedId = fromLink ? null : await getRememberedSubscriberId();
+  const rememberedId = fromLink
+    ? null
+    : ((await getGuideBuyerId()) ?? (await getRememberedSubscriberId()));
   const subscriber = fromLink ?? (rememberedId ? await getSubscriberById(rememberedId) : null);
 
   return (

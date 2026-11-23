@@ -177,6 +177,17 @@ export function guideBuyUrl(subscriberId?: string | null): string | undefined {
   return url.toString();
 }
 
+/**
+ * Buy link for someone whose birth details are on file (emails, the design
+ * page). Goes through /guide/buy so the thank-you page recognises them after
+ * Stripe and doesn't ask for birth details again. Undefined until the Stripe
+ * link is set.
+ */
+export function guideBuyPath(subscriberId: string): string | undefined {
+  if (!STARTER.buyUrl) return undefined;
+  return `/guide/buy?s=${subscriberId}`;
+}
+
 /** Stripe Checkout Session id, as Stripe puts it in the redirect URL. */
 export function isCheckoutSessionId(value: unknown): value is string {
   return typeof value === "string" && /^cs_(test|live)_[A-Za-z0-9]{1,200}$/.test(value);

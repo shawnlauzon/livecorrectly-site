@@ -108,3 +108,15 @@ describe('Welcome3 guide offer', () => {
     expect(html).not.toContain('Get your guide');
   });
 });
+
+describe('guideBuyPath', () => {
+  it('routes a known subscriber through the site so the thank-you page recognises them', async () => {
+    vi.stubEnv('NEXT_PUBLIC_BUY_URL_STARTER', 'https://buy.stripe.com/test_abc');
+    vi.resetModules();
+    const { guideBuyPath } = await import('@/lib/offers');
+    expect(guideBuyPath('11111111-1111-4111-8111-111111111111')).toBe(
+      '/guide/buy?s=11111111-1111-4111-8111-111111111111'
+    );
+    vi.unstubAllEnvs();
+  });
+});
