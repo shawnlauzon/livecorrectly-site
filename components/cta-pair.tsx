@@ -2,11 +2,10 @@
 
 import Link from 'next/link';
 import { track } from '@/lib/analytics';
-import { FREE_CALL_URL } from '@/lib/offers';
 
 /**
  * Main button + small line under it, shared by the hero and closing CTA.
- * New visitors: get their design (free), or book a free call.
+ * New visitors: get their design (free), or see ways to work with me.
  * Subscribers (`chartHref` set): work with me, or go back to their design.
  */
 export default function CtaPair({
@@ -52,16 +51,14 @@ export default function CtaPair({
         See how you&rsquo;re designed (free)
       </Link>
       <p className={subClassName}>
-        Prefer to talk first?{' '}
-        <a
+        Want to go deeper?{' '}
+        <Link
           className="link"
-          href={FREE_CALL_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => track('book_consultation_click', { location })}
+          href="/work-with-me"
+          onClick={() => track('work_with_me_click', { location })}
         >
-          Book a free 15-minute call
-        </a>
+          See ways to work with me
+        </Link>
       </p>
     </>
   );
