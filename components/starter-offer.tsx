@@ -24,7 +24,7 @@ export default function StarterOffer({ subscriberId }: { subscriberId?: string |
             The free version shows you your design. The guide explains it:
             how you make decisions, how you work best, and what wears you out.
             About 30 pages, made to read on your phone. I put each one together
-            myself, so it&rsquo;s in your inbox within 24 hours.
+            myself, so it can take up to 24 hours to send it.
           </p>
         </div>
         <div className={styles.buy}>
