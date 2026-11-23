@@ -5,12 +5,17 @@ import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/lib/email/subjects';
 import { getWelcomeEmail } from '@/lib/email/welcome';
 import { syncContactToResend } from '@/lib/resend/contacts';
+import { isCheckoutSessionId } from '@/lib/offers';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
     const { email, first_name, last_name, birth_input, chart } = body;
+    // Sent by the form on /guide/thanks (after buying the guide on Stripe)
+    const guidePurchase = body.guide_purchase
+      ? { sessionId: isCheckoutSessionId(body.guide_purchase.session_id) ? body.guide_purchase.session_id : null }
+      : undefined;
 
     if (!email || !first_name || !birth_input || chart == null) {
       return NextResponse.json(
@@ -108,7 +113,7 @@ export async function POST(request: NextRequest) {
 
     // Admin notification — fire-and-forget, failure must never block registration
     if (isFresh && process.env.RESEND_API_KEY) {
-      sendAdminNotification(subscriber, chartData.type).catch((err) => {
+      sendAdminNotification(subscriber, chartData.type, false, guidePurchase).catch((err) => {
         console.error(`[subscribe] Failed to send admin notification for ${subscriber.email}:`, err);
       });
     }

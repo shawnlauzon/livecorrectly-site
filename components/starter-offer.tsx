@@ -2,15 +2,15 @@
 
 import Wrap from './wrap';
 import { track } from '@/lib/analytics';
-import { STARTER } from '@/lib/offers';
+import { STARTER, guideBuyUrl } from '@/lib/offers';
 import styles from './starter-offer.module.css';
 
 /**
  * Homepage band for the Starter guide: one click to Stripe, delivered by email.
  * Until the Stripe link is set, the button opens an email to Shawn instead.
  */
-export default function StarterOffer() {
-  const buyUrl = STARTER.buyUrl;
+export default function StarterOffer({ subscriberId }: { subscriberId?: string | null }) {
+  const buyUrl = guideBuyUrl(subscriberId);
 
   return (
     <section className={styles.section}>

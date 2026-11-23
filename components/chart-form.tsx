@@ -31,7 +31,16 @@ async function generateChart(details: BirthDetails): Promise<ChartRecord> {
   }
 }
 
-export default function ChartForm() {
+/**
+ * `guidePurchase` is set on /guide/thanks, after the visitor bought the guide:
+ * the signup is flagged as a purchase, and an email that already has a chart
+ * on file is fine (the details are already there) rather than an error.
+ */
+export default function ChartForm({
+  guidePurchase,
+}: {
+  guidePurchase?: { sessionId: string | null };
+} = {}) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [saveError, setSaveError] = useState(false);
@@ -219,6 +228,12 @@ export default function ChartForm() {
       );
       if (checkRes.ok) {
         const { exists } = (await checkRes.json()) as { exists: boolean };
+        if (exists && guidePurchase) {
+          track('guide_details_on_file');
+          setEmailTaken(email);
+          setSubmitting(false);
+          return;
+        }
         if (exists) {
           track('form_error', { error_type: 'duplicate_email' });
           setEmailTaken(email);
@@ -259,6 +274,9 @@ export default function ChartForm() {
           last_name: lastName || null,
           birth_input: birthInput,
           chart: result,
+          ...(guidePurchase && {
+            guide_purchase: { session_id: guidePurchase.sessionId },
+          }),
         }),
       });
 
@@ -501,7 +519,21 @@ export default function ChartForm() {
           {submitting ? "Reading your chart\u2026" : "See my design"}
         </button>
 
-        {emailTaken && (
+        {emailTaken && guidePurchase && (
+          <p
+            style={{
+              color: "var(--ink)",
+              fontSize: "0.98rem",
+              marginTop: 14,
+              textAlign: "center",
+            }}
+          >
+            I already have your birth details for this email. Your guide will be
+            in your inbox within 24 hours.
+          </p>
+        )}
+
+        {emailTaken && !guidePurchase && (
           <p
             style={{
               color: "var(--coral)",

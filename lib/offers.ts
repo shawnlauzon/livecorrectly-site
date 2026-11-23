@@ -127,6 +127,10 @@ export function findOffer(id: string): Offer | undefined {
  * The personalized guide on its own. Not "working with me", so it isn't on
  * /work-with-me: it's sold from the homepage, bought outright through a Stripe
  * Payment Link and delivered by email within 24 hours.
+ *
+ * The Payment Link collects no birth details. In Stripe it's set to redirect
+ * after payment to /guide/thanks?session_id={CHECKOUT_SESSION_ID}, where a known
+ * subscriber is done and anyone else fills in the normal chart form.
  */
 export const STARTER = {
   id: "starter",
@@ -137,3 +141,20 @@ export const STARTER = {
 
 /** Value of one personalized guide, quoted on every offer that includes one. */
 export const GUIDE_VALUE = STARTER.price;
+
+/**
+ * Buy link for the guide. For a known subscriber it carries their id as
+ * Stripe's client_reference_id, so the payment shows who bought it.
+ */
+export function guideBuyUrl(subscriberId?: string | null): string | undefined {
+  if (!STARTER.buyUrl) return undefined;
+  if (!subscriberId) return STARTER.buyUrl;
+  const url = new URL(STARTER.buyUrl);
+  url.searchParams.set("client_reference_id", subscriberId);
+  return url.toString();
+}
+
+/** Stripe Checkout Session id, as Stripe puts it in the redirect URL. */
+export function isCheckoutSessionId(value: unknown): value is string {
+  return typeof value === "string" && /^cs_(test|live)_[A-Za-z0-9]{1,200}$/.test(value);
+}

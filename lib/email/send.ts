@@ -313,7 +313,8 @@ export async function forwardInboundReply(
 }
 
 /**
- * Send a plain-text admin notification when a new subscriber signs up or restarts the series.
+ * Send a plain-text admin notification when a new subscriber signs up (including
+ * after buying the guide) or restarts the series.
  * This bypasses canSendTo() and unsubscribe headers — it's an internal notification,
  * not a marketing email. Failures are logged but should never block registration.
  * When domain override is set: From shawn@TRANSACTIONAL (no replyTo needed).
@@ -322,7 +323,9 @@ export async function forwardInboundReply(
 export async function sendAdminNotification(
   subscriber: Subscriber,
   chartType: string,
-  isRestart = false
+  isRestart = false,
+  /** Set when the signup came from the page after buying the guide. */
+  guidePurchase?: { sessionId: string | null }
 ): Promise<void> {
   const from = TRANSACTIONAL_DOMAIN
     ? `Shawn Lauzon <shawn@${TRANSACTIONAL_DOMAIN}>`
@@ -334,9 +337,11 @@ export async function sendAdminNotification(
   const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
   const adminUrl = `${appUrl}/admin/${subscriber.id}`;
 
-  const subject = isRestart
-    ? `Series restarted: ${subscriber.first_name} (${chartType})`
-    : `New signup: ${subscriber.first_name} (${chartType})`;
+  const subject = guidePurchase
+    ? `Guide purchase: ${subscriber.first_name} (${chartType})`
+    : isRestart
+      ? `Series restarted: ${subscriber.first_name} (${chartType})`
+      : `New signup: ${subscriber.first_name} (${chartType})`;
 
   const bodyPrefix = isRestart
     ? `Series restarted: ${subscriber.first_name} (${subscriber.email})`
@@ -356,6 +361,13 @@ export async function sendAdminNotification(
     text: [
       bodyPrefix,
       `Type: ${chartType}`,
+      ...(guidePurchase
+        ? [
+            `Bought the personalized guide. Stripe checkout session: ${
+              guidePurchase.sessionId ?? 'none in the link (check Stripe before writing the guide)'
+            }`,
+          ]
+        : []),
       ``,
       `Admin: ${adminUrl}`,
     ].join('\n'),

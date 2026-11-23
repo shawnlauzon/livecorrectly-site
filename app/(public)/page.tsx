@@ -25,7 +25,7 @@ export default async function Home() {
         <PullQuote />
         <hr className="rule" />
         <SectionTracker name="how_it_helps"><HowItHelps /></SectionTracker>
-        <SectionTracker name="starter_offer"><StarterOffer /></SectionTracker>
+        <SectionTracker name="starter_offer"><StarterOffer subscriberId={subscriberId} /></SectionTracker>
         <SectionTracker name="work_with_me_teaser"><WorkWithMeTeaser /></SectionTracker>
         <SectionTracker name="method"><Method /></SectionTracker>
         <SectionTracker name="testimonial"><Testimonial /></SectionTracker>
