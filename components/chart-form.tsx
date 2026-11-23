@@ -230,6 +230,14 @@ export default function ChartForm({
         const { exists } = (await checkRes.json()) as { exists: boolean };
         if (exists && guidePurchase) {
           track('guide_details_on_file');
+          // They skip the signup that would notify Shawn, so report the purchase here.
+          if (guidePurchase.sessionId) {
+            fetch('/api/guide/purchase', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ session_id: guidePurchase.sessionId, email }),
+            }).catch((err) => console.error('Failed to report guide purchase:', err));
+          }
           setEmailTaken(email);
           setSubmitting(false);
           return;

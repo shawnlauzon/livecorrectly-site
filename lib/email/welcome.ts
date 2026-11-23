@@ -3,6 +3,7 @@ import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { Welcome1 } from '@/emails/welcome1';
 import { Welcome2 } from '@/emails/welcome2';
 import { Welcome3 } from '@/emails/welcome3';
+import { guideBuyUrl } from '@/lib/offers';
 import React from 'react';
 
 export const WELCOME_SERIES_LENGTH = 3;
@@ -32,7 +33,7 @@ export function getWelcomeEmail(
     case 2:
       return React.createElement(Welcome2, props);
     case 3:
-      return React.createElement(Welcome3, props);
+      return React.createElement(Welcome3, { ...props, guideUrl: guideBuyUrl(subscriber.id) });
     default:
       return null;
   }

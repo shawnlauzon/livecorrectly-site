@@ -324,8 +324,11 @@ export async function sendAdminNotification(
   subscriber: Subscriber,
   chartType: string,
   isRestart = false,
-  /** Set when the signup came from the page after buying the guide. */
-  guidePurchase?: { sessionId: string | null }
+  /**
+   * Set for a guide purchase. `existingSubscriber` marks a buyer whose birth
+   * details were already on file (no new signup happened).
+   */
+  guidePurchase?: { sessionId: string | null; existingSubscriber?: boolean }
 ): Promise<void> {
   const from = TRANSACTIONAL_DOMAIN
     ? `Shawn Lauzon <shawn@${TRANSACTIONAL_DOMAIN}>`
@@ -345,7 +348,9 @@ export async function sendAdminNotification(
 
   const bodyPrefix = isRestart
     ? `Series restarted: ${subscriber.first_name} (${subscriber.email})`
-    : `New subscriber: ${subscriber.first_name} (${subscriber.email})`;
+    : guidePurchase?.existingSubscriber
+      ? `Existing subscriber: ${subscriber.first_name} (${subscriber.email})`
+      : `New subscriber: ${subscriber.first_name} (${subscriber.email})`;
 
   const adminEmail = process.env.ADMIN_EMAIL;
   if (!adminEmail) {
