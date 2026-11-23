@@ -10,8 +10,6 @@
 /** Free 15-minute call. Reuses the existing site-wide booking link. */
 export const FREE_CALL_URL = process.env.NEXT_PUBLIC_BOOKING_URL;
 
-/** Value of the personalized guide, quoted on every offer above Starter. */
-export const GUIDE_VALUE = 50;
 
 export type Offer = {
   /** Anchor id on /work-with-me, e.g. /work-with-me#guided */
@@ -22,9 +20,12 @@ export type Offer = {
   description: string;
   /** Small print: format, timing, who it's for. */
   details?: string;
-  includesGuide: boolean;
+  /** Personalized guides included: one per person (Partnership covers both). */
+  guides: number;
   includesFollowUp: boolean;
   bookingUrl?: string;
+  /** "buy" = pay and it's delivered (Stripe link); default "book" = pick a time. */
+  action?: "buy" | "book";
   /** Show the free-call link beside this offer (bigger decisions). */
   offerFreeCall?: boolean;
 };
@@ -45,13 +46,14 @@ export const OFFER_GROUPS: OfferGroup[] = [
       {
         id: "starter",
         name: "Starter",
-        price: 50,
+        price: 47,
         description:
           "Your personalized guide to living correctly, written for you. Read it at your own pace.",
-        details: "Delivered by email.",
-        includesGuide: false,
+        details: "Delivered by email within 24 hours.",
+        guides: 0,
         includesFollowUp: false,
-        bookingUrl: process.env.NEXT_PUBLIC_BOOKING_URL_STARTER,
+        bookingUrl: process.env.NEXT_PUBLIC_BUY_URL_STARTER,
+        action: "buy",
       },
       {
         id: "guided",
@@ -60,18 +62,18 @@ export const OFFER_GROUPS: OfferGroup[] = [
         description:
           "Bring what you’re wrestling with. I’ll tell you what your design says about it.",
         details: "One 90-minute conversation.",
-        includesGuide: true,
+        guides: 1,
         includesFollowUp: false,
         bookingUrl: process.env.NEXT_PUBLIC_BOOKING_URL_GUIDED,
       },
       {
         id: "deep-dive",
         name: "Deep Dive",
-        price: 500,
+        price: 497,
         description:
           "For when one conversation isn’t enough. We go much further into how you decide, how you work, and where you keep getting pulled off course.",
         details: "Three 90-minute conversations.",
-        includesGuide: true,
+        guides: 1,
         includesFollowUp: true,
         bookingUrl: process.env.NEXT_PUBLIC_BOOKING_URL_DEEP_DIVE,
         offerFreeCall: true,
@@ -85,22 +87,22 @@ export const OFFER_GROUPS: OfferGroup[] = [
       {
         id: "year-ahead",
         name: "Your year ahead",
-        price: 200,
+        price: 197,
         description:
           "Each birthday starts a new yearly cycle. What the coming one holds for you, applied to what you’re dealing with now.",
         details: "Best in the three months before your birthday. One 90-minute conversation.",
-        includesGuide: true,
+        guides: 1,
         includesFollowUp: true,
         bookingUrl: process.env.NEXT_PUBLIC_BOOKING_URL_YEAR_AHEAD,
       },
       {
         id: "next-ten-years",
         name: "Your next ten years",
-        price: 300,
+        price: 297,
         description:
           "Every decade or so a bigger cycle turns over, and what used to work stops working. What’s changing for you, and what to do with it.",
         details: "Best within a few years either side of your cycle date. One conversation of up to two hours.",
-        includesGuide: true,
+        guides: 1,
         includesFollowUp: true,
         bookingUrl: process.env.NEXT_PUBLIC_BOOKING_URL_NEXT_TEN_YEARS,
         offerFreeCall: true,
@@ -115,10 +117,10 @@ export const OFFER_GROUPS: OfferGroup[] = [
       {
         id: "partnership",
         name: "Partnership",
-        price: 750,
+        price: 497,
         description:
           "Understand the person you keep clashing with — a partner, a parent, a co-founder — and what to do differently.",
-        includesGuide: true,
+        guides: 2,
         includesFollowUp: true,
         bookingUrl: process.env.NEXT_PUBLIC_BOOKING_URL_PARTNERSHIP,
         offerFreeCall: true,
@@ -151,3 +153,9 @@ export function findOffer(id: string): Offer | undefined {
   }
   return undefined;
 }
+
+/** The Starter offer: the personalized guide on its own. */
+export const STARTER = findOffer("starter")!;
+
+/** Value of one personalized guide, quoted on every offer that includes one. */
+export const GUIDE_VALUE = STARTER.price;

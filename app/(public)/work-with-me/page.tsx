@@ -114,8 +114,10 @@ export default async function WorkWithMePage({
 
 function OfferItem({ offer, salePrice }: { offer: Offer; salePrice?: number }) {
   const includes = [
-    offer.includesGuide &&
+    offer.guides === 1 &&
       `Includes your personalized guide to living correctly ($${GUIDE_VALUE} value)`,
+    offer.guides > 1 &&
+      `Includes a personalized guide to living correctly for each of you ($${GUIDE_VALUE * offer.guides} value)`,
     offer.includesFollowUp && "Includes a 30-minute follow-up",
   ].filter(Boolean) as string[];
 
@@ -145,8 +147,13 @@ function OfferItem({ offer, salePrice }: { offer: Offer; salePrice?: number }) {
       )}
       <div className={styles.actions}>
         {offer.bookingUrl ? (
-          <OfferLink className={styles.book} href={offer.bookingUrl} offerId={offer.id}>
-            Book {offer.name}
+          <OfferLink
+            className={styles.book}
+            href={offer.bookingUrl}
+            offerId={offer.id}
+            checkoutValue={offer.action === "buy" ? offer.price : undefined}
+          >
+            {offer.action === "buy" ? `Buy ${offer.name}` : `Book ${offer.name}`}
           </OfferLink>
         ) : (
           <OfferLink className={styles.book} href={FREE_CALL_URL} offerId={offer.id} free>
