@@ -525,7 +525,7 @@ export default function ChartForm({
         {!guidePurchase && (
           <p
             style={{
-              color: "var(--muted)",
+              color: "var(--ink-soft)",
               fontSize: "0.92rem",
               marginTop: 10,
               textAlign: "center",
