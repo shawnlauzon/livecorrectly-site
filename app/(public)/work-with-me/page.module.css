@@ -1,0 +1,153 @@
+.page {
+  flex: 1;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: clamp(3rem, 8vh, 5rem) var(--gutter) clamp(4rem, 10vh, 6rem);
+}
+
+.h1 {
+  font-size: clamp(2rem, 1.5rem + 2vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0 0 1.25rem;
+}
+
+.lede {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.group {
+  margin-top: clamp(3rem, 7vh, 4.5rem);
+}
+
+.h2 {
+  font-size: clamp(1.5rem, 1.25rem + 1vw, 2rem);
+  color: var(--ink);
+  margin: 0 0 1.25rem;
+}
+
+.offers {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.offer {
+  padding-top: 1.75rem;
+  padding-bottom: 1.75rem;
+  border-top: 1px solid var(--stone-line);
+  scroll-margin-top: 2rem;
+}
+.offer:last-child {
+  border-bottom: 1px solid var(--stone-line);
+}
+
+.offerHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.h3 {
+  font-size: 1.375rem;
+  color: var(--ink);
+  margin: 0;
+}
+
+.price {
+  font-family: var(--display);
+  font-size: 1.375rem;
+  color: var(--ink);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.oldPrice {
+  color: var(--ink-soft);
+  font-size: 1.05rem;
+  margin-right: 0.25rem;
+}
+
+.saleNote {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  color: var(--plum);
+}
+
+.description {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--ink);
+  margin: 0 0 0.5rem;
+}
+
+.details {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0 0 0.5rem;
+}
+
+.includes {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.includes li::before {
+  content: "+ ";
+  color: var(--plum);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  margin-top: 1.1rem;
+}
+
+.book {
+  display: inline-block;
+  background: var(--action);
+  color: var(--ground);
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  padding: 0.7rem 1.4rem;
+  border-radius: 2px;
+  transition: background 0.18s ease;
+}
+.book:hover {
+  background: var(--action-hover);
+}
+
+.groupNote {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 1.25rem 0 0;
+}
+
+.closing {
+  margin-top: clamp(3rem, 7vh, 4.5rem);
+  padding-top: 2rem;
+  border-top: 1px solid var(--stone-line);
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 480px) {
+  .offerHead {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}

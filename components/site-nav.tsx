@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Wrap from "./wrap";
 import TrackedLink from "./tracked-link";
+import BlackFridayBanner from "./black-friday-banner";
 import { getRememberedSubscriberId } from "@/lib/subscriber-cookie-server";
 import styles from "./site-nav.module.css";
 
@@ -24,37 +25,55 @@ export default async function SiteNav({
   const subscriberId = knownSubscriberId ?? (await getRememberedSubscriberId());
 
   return (
-    <Wrap as="header" className={styles.nav}>
-      <Link className={styles.mark} href="/">
-        Live <em className={styles.markAccent}>Correctly</em>
-      </Link>
-      <nav className={styles.links}>
-        {!hideNewsletterLink && (
-          <Link className={styles.link} href="/newsletter">
-            {subscriberId ? "Your newsletters" : "Newsletter"}
-          </Link>
-        )}
-        {variant === "landing" ? (
-          subscriberId ? (
+    <>
+      {subscriberId && <BlackFridayBanner />}
+      <Wrap as="header" className={styles.nav}>
+        <Link className={styles.mark} href="/">
+          Live <em className={styles.markAccent}>Correctly</em>
+        </Link>
+        <nav className={styles.links}>
+          {variant === "landing" && subscriberId && (
             <TrackedLink
-              className={styles.quiet}
+              className={styles.link}
               href={`/see-your-design/${subscriberId}`}
               event="your_chart_click"
               params={{ location: "nav" }}
             >
-              Your chart
+              Your design
             </TrackedLink>
-          ) : (
-            <Link className={styles.quiet} href="/see-your-design">
-              Do it your way
+          )}
+          {!hideNewsletterLink && (
+            <Link className={styles.link} href="/newsletter">
+              {subscriberId ? "Your newsletters" : "Newsletter"}
             </Link>
-          )
-        ) : (
-          <Link className={styles.back} href={backHref}>
-            &larr; Back
-          </Link>
-        )}
-      </nav>
-    </Wrap>
+          )}
+          {variant === "landing" ? (
+            subscriberId ? (
+              <TrackedLink
+                className={styles.button}
+                href="/work-with-me"
+                event="work_with_me_click"
+                params={{ location: "nav" }}
+              >
+                Work with me
+              </TrackedLink>
+            ) : (
+              <TrackedLink
+                className={styles.button}
+                href="/see-your-design"
+                event="cta_click"
+                params={{ location: "nav" }}
+              >
+                See how you&rsquo;re designed
+              </TrackedLink>
+            )
+          ) : (
+            <Link className={styles.back} href={backHref}>
+              &larr; Back
+            </Link>
+          )}
+        </nav>
+      </Wrap>
+    </>
   );
 }

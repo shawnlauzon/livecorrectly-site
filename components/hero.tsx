@@ -1,15 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import Wrap from './wrap';
+import CtaPair from './cta-pair';
 import styles from './hero.module.css';
-import { track } from '@/lib/analytics';
 
 let hasAnimated = false;
 
-/** `chartHref` is set for returning subscribers (remembered id) — the CTA goes to their chart. */
+/** `chartHref` is set for returning subscribers (remembered id) — they get "Work with me", with their design as the small link. */
 export default function Hero({ chartHref }: { chartHref?: string }) {
   const [skipAnimation] = useState(() => {
     // Track only in the browser: the page is server-rendered per request, and a
@@ -57,23 +56,7 @@ export default function Hero({ chartHref }: { chartHref?: string }) {
           </p>
 
           <div className={styles.ctaGroup}>
-            <Link className="btn" href={chartHref ?? '/see-your-design'}
-              onClick={() => track(chartHref ? 'your_chart_click' : 'cta_click', { location: 'hero' })}
-            >
-              See how you&rsquo;re designed
-            </Link>
-            <p className={styles.ctaSub}>
-              Already have your chart, or want more depth?{' '}
-              <a
-                className="link"
-                href={process.env.NEXT_PUBLIC_BOOKING_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => track('book_consultation_click', { location: 'hero' })}
-              >
-                Book a conversation
-              </a>
-            </p>
+            <CtaPair chartHref={chartHref} location="hero" subClassName={styles.ctaSub} />
           </div>
         </div>
 

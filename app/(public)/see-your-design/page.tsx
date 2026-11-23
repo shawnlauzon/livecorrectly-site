@@ -59,7 +59,7 @@ export default async function SeeYourDesign() {
 
       <main className={`${styles.wrap} ${styles.main}`}>
         <p className={styles.eyebrow}>Human Design</p>
-        <h1 className={styles.h1}>See how you&rsquo;re designed.</h1>
+        <h1 className={styles.h1}>See what living correctly looks like for you.</h1>
         <p className={styles.lead}>
           Enter your birth details and see your chart right away. I&rsquo;ll
           also send you a short series on how you&rsquo;re specifically designed
