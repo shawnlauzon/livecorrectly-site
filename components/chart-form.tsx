@@ -419,9 +419,8 @@ export default function ChartForm({
             <p
               className={`${styles.note} ${timeUnknown ? styles.noteShow : ""}`}
             >
-              No problem &mdash; I&rsquo;ll still generate your chart. Your
-              Type and Strategy are usually stable; a couple of finer details
-              firm up once you track down your birth time.
+              No problem. Most of your design doesn&rsquo;t depend on the
+              exact time. A few finer details firm up once you find it.
             </p>
             {fieldErrors.has("btime") && (
               <p style={{ color: "var(--coral)", fontSize: "0.85rem", marginTop: 6 }}>
@@ -516,8 +515,25 @@ export default function ChartForm({
             )}
           </div>
         <button className={styles.btn} type="submit" disabled={submitting}>
-          {submitting ? "Reading your chart\u2026" : "See my design"}
+          {submitting
+            ? "Reading your design\u2026"
+            : guidePurchase
+              ? "Send my details"
+              : "See my design"}
         </button>
+
+        {!guidePurchase && (
+          <p
+            style={{
+              color: "var(--muted)",
+              fontSize: "0.92rem",
+              marginTop: 10,
+              textAlign: "center",
+            }}
+          >
+            Free. No card.
+          </p>
+        )}
 
         {emailTaken && guidePurchase && (
           <p
@@ -542,7 +558,7 @@ export default function ChartForm({
               textAlign: "center",
             }}
           >
-            This email already has a chart on file.{" "}
+            I already have your design for this email.{" "}
             <ChartLinkRequest
               key={emailTaken}
               location="chart_form_duplicate"
@@ -560,7 +576,7 @@ export default function ChartForm({
               textAlign: "center",
             }}
           >
-            Something went wrong saving your chart. Please try again.
+            Something went wrong saving your design. Please try again.
           </p>
         )}
       </form>

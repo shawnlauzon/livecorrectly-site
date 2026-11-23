@@ -27,7 +27,32 @@
 .h2 {
   font-size: clamp(1.5rem, 1.25rem + 1vw, 2rem);
   color: var(--ink);
+  margin: 0 0 0.5rem;
+}
+
+.problem {
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
   margin: 0 0 1.25rem;
+}
+
+.quote {
+  margin: 0 0 1.5rem;
+  padding: 0;
+  border: none;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.quote p {
+  margin: 0 0 0.35rem;
+}
+
+.cite {
+  display: block;
+  font-style: normal;
+  font-size: 0.875rem;
 }
 
 .offers {

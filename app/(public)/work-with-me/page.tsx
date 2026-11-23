@@ -49,6 +49,13 @@ export default async function WorkWithMePage({
             <h2 id={group.id} className={styles.h2}>
               {group.heading}
             </h2>
+            <p className={styles.problem}>{group.problem}</p>
+            {group.quote && (
+              <blockquote className={styles.quote}>
+                <p>&ldquo;{group.quote.text}&rdquo;</p>
+                <cite className={styles.cite}>&mdash; {group.quote.name}</cite>
+              </blockquote>
+            )}
             <ul className={styles.offers}>
               {group.offers.map((offer) => (
                 <OfferItem
@@ -84,7 +91,6 @@ export default async function WorkWithMePage({
             alongside you while things change.
           </p>
           <p className={styles.groupNote}>
-            Interested in working together over a few months?{" "}
             <OfferLink className="link" href={FREE_CALL_URL} offerId="coaching" free>
               Book a free 15-minute call
             </OfferLink>
@@ -132,7 +138,7 @@ function OfferItem({ offer }: { offer: Offer }) {
       <div className={styles.actions}>
         {offer.bookingUrl ? (
           <OfferLink className={styles.book} href={offer.bookingUrl} offerId={offer.id}>
-            Book {offer.name}
+            {offer.cta}
           </OfferLink>
         ) : (
           <OfferLink className={styles.book} href={FREE_CALL_URL} offerId={offer.id} free>

@@ -41,3 +41,24 @@
   font-size: 1.3125rem;
   color: var(--ink);
 }
+
+.quote {
+  margin: 1rem 0 0;
+  padding: 0;
+  border: none;
+  max-width: var(--measure);
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.quote p {
+  margin: 0 0 0.35rem;
+}
+
+.cite {
+  display: block;
+  font-style: normal;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
