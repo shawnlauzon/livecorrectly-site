@@ -545,6 +545,12 @@ export function buildLiquidContext(
     // Every shadow name, for `{% if shadows contains "Overcompensating" %}`
     shadows: chart.shadows,
 
+    // Function names by center status, for the editor's Chart Definition
+    // condition: `{% if defined_functions contains "Willpower" %}`
+    defined_functions: chart.definedFunctions,
+    undefined_functions: chart.undefinedFunctions,
+    open_functions: chart.openFunctions,
+
     // Boolean flags
     isBuilder: chart.isGenerator,
     isClassicBuilder: chart.isPureGenerator,
