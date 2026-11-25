@@ -6,8 +6,8 @@ import type { ChartRecord } from '@/lib/types/chart';
 import {
   parseCondition,
   composeCondition,
-  CHART_DEFINITION_FIELD,
-  CHART_DEFINITION_OPERATORS,
+  DEFINITION_FIELD,
+  DEFINITION_OPERATORS,
 } from '@/app/admin/newsletters/[id]/[number]/condition-syntax';
 import { FUNCTION_NAMES } from '@/app/admin/newsletters/[id]/[number]/email-fields';
 import shawnsChartData from './fixtures/shawns-chart.json';
@@ -31,39 +31,39 @@ describe('chart definition by function', () => {
   });
 
   it('has defined matches only a defined function', async () => {
-    expect(await render(composeCondition(CHART_DEFINITION_FIELD, 'has defined', 'Energy Resource'))).toBe('YES');
-    expect(await render(composeCondition(CHART_DEFINITION_FIELD, 'has defined', 'Willpower'))).toBe('NO');
-    expect(await render(composeCondition(CHART_DEFINITION_FIELD, 'has defined', 'Inspiration'))).toBe('NO');
+    expect(await render(composeCondition(DEFINITION_FIELD, 'has defined', 'Energy Resource'))).toBe('YES');
+    expect(await render(composeCondition(DEFINITION_FIELD, 'has defined', 'Willpower'))).toBe('NO');
+    expect(await render(composeCondition(DEFINITION_FIELD, 'has defined', 'Inspiration'))).toBe('NO');
   });
 
   it('has undefined matches any function without a channel, open ones included', async () => {
-    expect(await render(composeCondition(CHART_DEFINITION_FIELD, 'has undefined', 'Willpower'))).toBe('YES');
-    expect(await render(composeCondition(CHART_DEFINITION_FIELD, 'has undefined', 'Inspiration'))).toBe('YES');
-    expect(await render(composeCondition(CHART_DEFINITION_FIELD, 'has undefined', 'Energy Resource'))).toBe('NO');
+    expect(await render(composeCondition(DEFINITION_FIELD, 'has undefined', 'Willpower'))).toBe('YES');
+    expect(await render(composeCondition(DEFINITION_FIELD, 'has undefined', 'Inspiration'))).toBe('YES');
+    expect(await render(composeCondition(DEFINITION_FIELD, 'has undefined', 'Energy Resource'))).toBe('NO');
   });
 
   it('has open matches only a function with no gates at all', async () => {
-    expect(await render(composeCondition(CHART_DEFINITION_FIELD, 'has open', 'Inspiration'))).toBe('YES');
-    expect(await render(composeCondition(CHART_DEFINITION_FIELD, 'has open', 'Willpower'))).toBe('NO');
-    expect(await render(composeCondition(CHART_DEFINITION_FIELD, 'has open', 'Energy Resource'))).toBe('NO');
+    expect(await render(composeCondition(DEFINITION_FIELD, 'has open', 'Inspiration'))).toBe('YES');
+    expect(await render(composeCondition(DEFINITION_FIELD, 'has open', 'Willpower'))).toBe('NO');
+    expect(await render(composeCondition(DEFINITION_FIELD, 'has open', 'Energy Resource'))).toBe('NO');
   });
 });
 
 describe('chart definition condition syntax', () => {
   it('offers has defined / has undefined / has open', () => {
-    expect(CHART_DEFINITION_OPERATORS).toEqual(['has defined', 'has undefined', 'has open']);
+    expect(DEFINITION_OPERATORS).toEqual(['has defined', 'has undefined', 'has open']);
   });
 
   it('composes each operator into a Liquid array test', () => {
-    expect(composeCondition(CHART_DEFINITION_FIELD, 'has defined', 'Willpower')).toBe('defined_functions contains "Willpower"');
-    expect(composeCondition(CHART_DEFINITION_FIELD, 'has undefined', 'Willpower')).toBe('undefined_functions contains "Willpower"');
-    expect(composeCondition(CHART_DEFINITION_FIELD, 'has open', 'Willpower')).toBe('open_functions contains "Willpower"');
+    expect(composeCondition(DEFINITION_FIELD, 'has defined', 'Willpower')).toBe('defined_functions contains "Willpower"');
+    expect(composeCondition(DEFINITION_FIELD, 'has undefined', 'Willpower')).toBe('undefined_functions contains "Willpower"');
+    expect(composeCondition(DEFINITION_FIELD, 'has open', 'Willpower')).toBe('open_functions contains "Willpower"');
   });
 
-  it('round-trips through parseCondition as a Chart Definition condition', () => {
-    for (const op of CHART_DEFINITION_OPERATORS) {
-      expect(parseCondition(composeCondition(CHART_DEFINITION_FIELD, op, 'Drive & Stamina'))).toEqual({
-        type: 'chart', field: CHART_DEFINITION_FIELD, op, value: 'Drive & Stamina',
+  it('round-trips through parseCondition as a Definition condition', () => {
+    for (const op of DEFINITION_OPERATORS) {
+      expect(parseCondition(composeCondition(DEFINITION_FIELD, op, 'Drive & Stamina'))).toEqual({
+        type: 'chart', field: DEFINITION_FIELD, op, value: 'Drive & Stamina',
       });
     }
   });

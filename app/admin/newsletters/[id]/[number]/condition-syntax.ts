@@ -5,7 +5,7 @@
  * Condition kinds (the editor groups engagement + mode under "Newsletter"):
  * - chart field:  career_type == "Initiator"
  *                 shadows contains "Overcompensating"  /  not shadows contains "…"
- *                 defined_functions contains "Willpower"  (Chart Definition: has defined)
+ *                 defined_functions contains "Willpower"  (Definition: has defined)
  * - engagement:   newsletter_7.opened  /  newsletter_7.opened == false
  * - mode:         mode == "web"  (web vs email rendering context)
  */
@@ -26,17 +26,17 @@ export const ANY_VALUES: Record<string, { field: string; members: string[] }> = 
 };
 
 /**
- * "Chart Definition" is one field in the editor whose operator picks the
+ * "Definition" is one field in the editor whose operator picks the
  * center status. It isn't a Liquid variable: each operator tests one of the
  * function-name arrays in the Liquid context (buildLiquidContext).
  */
-export const CHART_DEFINITION_FIELD = 'chart_definition';
-const CHART_DEFINITION_VARIABLES: Record<string, string> = {
+export const DEFINITION_FIELD = 'definition';
+const DEFINITION_VARIABLES: Record<string, string> = {
   'has defined': 'defined_functions',
   'has undefined': 'undefined_functions',
   'has open': 'open_functions',
 };
-export const CHART_DEFINITION_OPERATORS = Object.keys(CHART_DEFINITION_VARIABLES);
+export const DEFINITION_OPERATORS = Object.keys(DEFINITION_VARIABLES);
 
 /** Engagement properties available for newsletter conditionals. */
 export const NEWSLETTER_ENGAGEMENT_PROPERTIES = ['delivered', 'opened', 'clicked'] as const;
@@ -103,11 +103,11 @@ export function parseCondition(condition: string): ParsedCondition | null {
   // Array membership: `shadows contains "X"` or `not shadows contains "X"`
   const containsMatch = condition.match(/^(not\s+)?(\w+)\s+contains\s+"(.*)"$/);
   if (containsMatch) {
-    // Chart Definition: `defined_functions contains "X"` → has defined X
+    // Definition: `defined_functions contains "X"` → has defined X
     const definitionOp = !containsMatch[1]
-      && CHART_DEFINITION_OPERATORS.find(o => CHART_DEFINITION_VARIABLES[o] === containsMatch[2]);
+      && DEFINITION_OPERATORS.find(o => DEFINITION_VARIABLES[o] === containsMatch[2]);
     if (definitionOp) {
-      return { type: 'chart', field: CHART_DEFINITION_FIELD, op: definitionOp, value: containsMatch[3] };
+      return { type: 'chart', field: DEFINITION_FIELD, op: definitionOp, value: containsMatch[3] };
     }
     const op = containsMatch[1] ? 'not contains' : 'contains';
     return { type: 'chart', field: containsMatch[2], op, value: containsMatch[3] };
@@ -132,8 +132,8 @@ export function parseCondition(condition: string): ParsedCondition | null {
  * (`not` binds looser than `contains` in liquidjs, so it negates the whole test).
  */
 export function composeCondition(field: string, op: string, value: string): string {
-  if (field === CHART_DEFINITION_FIELD) {
-    const variable = CHART_DEFINITION_VARIABLES[op] ?? CHART_DEFINITION_VARIABLES[CHART_DEFINITION_OPERATORS[0]];
+  if (field === DEFINITION_FIELD) {
+    const variable = DEFINITION_VARIABLES[op] ?? DEFINITION_VARIABLES[DEFINITION_OPERATORS[0]];
     return `${variable} contains "${value}"`;
   }
   if (op === 'contains') return `${field} contains "${value}"`;

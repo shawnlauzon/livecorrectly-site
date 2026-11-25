@@ -20,8 +20,8 @@ import {
   composeCondition,
   composeNewsletterCondition,
   composeModeCondition,
-  CHART_DEFINITION_FIELD,
-  CHART_DEFINITION_OPERATORS,
+  DEFINITION_FIELD,
+  DEFINITION_OPERATORS,
 } from './condition-syntax';
 import type { NewsletterEngagementProperty } from './condition-syntax';
 import { getAdminPassword } from '@/lib/admin-client-auth';
@@ -45,7 +45,7 @@ interface ConditionField {
  * (same names used by the Variable node and buildLiquidContext) with
  * `shadows` (every shadow name on the chart) and `qualities` (the conscious
  * and unconscious quality names), both tested with `contains` and
- * conditional-only, as is Chart Definition (whether a function is defined,
+ * conditional-only, as is Definition (whether a function is defined,
  * undefined or open). `mode` is not a chart field — it lives under Newsletter.
  *
  * `career_type` = BG5 career design, `type` = traditional HD type.
@@ -55,7 +55,7 @@ const CONDITION_FIELDS: ConditionField[] = [
   ...EMAIL_FIELDS.map(f => ({ key: f.key, label: f.label, values: f.values })),
   { key: 'shadows', label: 'Shadows', values: SHADOW_NAMES, operators: ['contains', 'not contains'] },
   { key: 'qualities', label: 'Qualities', values: QUALITY_NAMES, operators: ['contains', 'not contains'] },
-  { key: CHART_DEFINITION_FIELD, label: 'Chart Definition', values: FUNCTION_NAMES, operators: CHART_DEFINITION_OPERATORS },
+  { key: DEFINITION_FIELD, label: 'Definition', values: FUNCTION_NAMES, operators: DEFINITION_OPERATORS },
 ];
 
 const FIELD_BY_KEY = new Map(CONDITION_FIELDS.map(f => [f.key, f]));
