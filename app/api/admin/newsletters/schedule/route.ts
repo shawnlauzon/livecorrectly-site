@@ -765,6 +765,7 @@ async function scheduleDirectSends(
         preview: issue.preview,
         note,
         library: { subscriberId: subscriber.id, newsletterNumber },
+        share: { slug: issue.slug, newsletterNumber },
       }),
     });
   }

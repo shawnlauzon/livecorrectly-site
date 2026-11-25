@@ -119,6 +119,7 @@ async function renderForWeb(
     lastName,
     subscriberId,
     newsletterNumber: raw.number,
+    slug: raw.slug,
     engagement,
   });
 

@@ -22,6 +22,7 @@ import { VariableNode, VariableEditForm, VARIABLE } from './variable-node';
 import { ConditionalBlockNode, ConditionalBranchNode, ConditionalKeymap, IF_THEN_ELSE, DEFAULT_CONDITION } from './conditional-node';
 import { LiquidClipboard } from './liquid-paste-extension';
 import { NEWSLETTER_LIBRARY } from './library-block-command';
+import { SHARE_LINK } from './share-link-command';
 import { ContentBlockNode } from './content-block-node';
 import { ContentBlockTrigger, filterSlashItems } from './content-block-trigger';
 import { orderForSlashMenu } from './slash-menu-order';
@@ -177,7 +178,7 @@ function injectRelativeAttrs(html: string, json: JSONContent): string {
 }
 
 const slashCommandItems = orderForSlashMenu([
-  ...defaultSlashCommands, imageSlashCommand, VARIABLE, IF_THEN_ELSE, NEWSLETTER_LIBRARY,
+  ...defaultSlashCommands, imageSlashCommand, VARIABLE, IF_THEN_ELSE, NEWSLETTER_LIBRARY, SHARE_LINK,
 ]);
 
 
@@ -518,11 +519,14 @@ function PreviewPane({
   previewTrigger,
   postscripts,
   num,
+  slug,
 }: {
   editorRef: React.RefObject<EditorHandle | null>;
   previewTrigger: number;
   postscripts: string[];
   num: number;
+  /** The slug as typed (may be unsaved): the share line shows only with one */
+  slug: string;
 }) {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
@@ -582,7 +586,7 @@ function PreviewPane({
             'Content-Type': 'application/json',
             ...(pwd ? { Authorization: `Bearer ${pwd}` } : {}),
           },
-          body: JSON.stringify({ html, subscriberId: subscriber.id, newsletterNumber: num, postscripts }),
+          body: JSON.stringify({ html, subscriberId: subscriber.id, newsletterNumber: num, postscripts, slug }),
         });
         if (cancelled) return;
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -598,7 +602,7 @@ function PreviewPane({
     }, 500);
 
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [previewTrigger, selectedId, subscribers, editorRef, postscripts, num]);
+  }, [previewTrigger, selectedId, subscribers, editorRef, postscripts, num, slug]);
 
   const selectedChart = subscribers.find(s => s.id === selectedId)?.chart?.chart ?? null;
 
@@ -952,6 +956,7 @@ export default function NewsletterEditorPage() {
           <PreviewPane
             editorRef={editorRef}
             previewTrigger={previewTrigger}
+            slug={slug}
             postscripts={postscripts}
             num={num}
           />

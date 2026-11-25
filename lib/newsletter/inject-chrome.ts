@@ -34,6 +34,7 @@ import {
   footerFragment,
 } from './chrome-fragments';
 import { libraryBlockFragment, libraryBlockHtml } from './library-block';
+import { shareFragment, type SharedIssue } from './share';
 import { EMAIL_BODY_FONT, EMAIL_HEADING_FONT } from '../email/fonts';
 import { EMAIL_COLORS } from '../email/colors';
 
@@ -50,6 +51,8 @@ export interface InjectChromeOptions {
    * first h1/h2 (after the note when it has neither); omitted → no block
    */
   library?: { subscriberId: string; newsletterNumber: number };
+  /** The issue the automatic share line (below the postscripts) shares; omitted → no line */
+  share?: SharedIssue;
 }
 
 /** An <img>, optionally inside the <a> the editor wraps linked images in. */
@@ -96,7 +99,7 @@ const FIRST_HEADING_RE = /<h[12]\b/i;
  * Inject email chrome into composeReactEmail() HTML output.
  *
  * Injects the hidden preheader, logo and optional note after <body> and the
- * suffix (signature, postscripts, footer) before </body>, so chrome sits
+ * suffix (signature, postscripts, share line, footer) before </body>, so chrome sits
  * outside the table structure. The optional library block goes inside the
  * article, just before its first h1/h2 — or after the note when the article
  * has neither.
@@ -116,9 +119,12 @@ export function injectEmailChrome(
   const ps = postscriptFragments(options.postscripts);
   const footer = footerFragment(options.unsubscribeUrl);
 
-  // Assemble the suffix: signature, then postscripts (if any), then footer.
+  const share = options.share ? shareFragment(options.share) : '';
+
+  // Assemble the suffix: signature, then postscripts (if any), the share line
+  // (if the issue is on the web), then footer.
   // Wrap in a centered max-width table to match the content area width.
-  const suffixContent = [signature, ps, footer].filter(Boolean).join('\n');
+  const suffixContent = [signature, ps, share, footer].filter(Boolean).join('\n');
   const suffix = `<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;"><tr><td style="font-family:${EMAIL_BODY_FONT};font-size:16px;">${suffixContent}</td></tr></table>`;
 
   // The frame (matches the welcome emails' EmailLayout): ground-colored page,
