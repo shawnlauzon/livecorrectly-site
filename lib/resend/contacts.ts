@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 import contactProperties, { buildContactPropertyValues } from '@/lib/newsletter/resolve';
 import { upsertContactSyncState } from '@/lib/db';
+import { paceResendClient } from './rate-limit';
 
 /**
  * Resend contact management — separate from lib/email/send.ts (the sole
@@ -16,7 +17,8 @@ export function getResendClient(): Resend {
     if (!process.env.RESEND_API_KEY) {
       throw new Error('RESEND_API_KEY environment variable is not set');
     }
-    resend = new Resend(process.env.RESEND_API_KEY);
+    // Paced and retried on 429: a schedule makes several calls per subscriber
+    resend = paceResendClient(new Resend(process.env.RESEND_API_KEY));
   }
   return resend;
 }

@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { paceResendClient } from '../resend/rate-limit';
 import { render } from 'react-email';
 import { getActiveSubscriberByEmail } from '../db';
 import type { Subscriber } from '../types/subscriber';
@@ -28,7 +29,8 @@ function getResend(): Resend {
     if (!process.env.RESEND_API_KEY) {
       throw new Error('RESEND_API_KEY environment variable is not set');
     }
-    resend = new Resend(process.env.RESEND_API_KEY);
+    // Shares the account's rate limit with the contacts/broadcasts client
+    resend = paceResendClient(new Resend(process.env.RESEND_API_KEY));
   }
   return resend;
 }

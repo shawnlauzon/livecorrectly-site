@@ -5,6 +5,8 @@ const { sendMock } = vi.hoisted(() => ({ sendMock: vi.fn() }));
 vi.mock('resend', () => ({
   Resend: class {
     emails = { send: sendMock };
+    // The real client has this; send.ts paces it (lib/resend/rate-limit.ts)
+    fetchRequest = vi.fn();
   },
 }));
 vi.mock('react-email', () => ({ render: vi.fn() }));
