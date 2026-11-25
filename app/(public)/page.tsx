@@ -25,10 +25,10 @@ export default async function Home() {
         <PullQuote />
         <hr className="rule" />
         <SectionTracker name="how_it_helps"><HowItHelps /></SectionTracker>
+        <SectionTracker name="testimonial"><Testimonial /></SectionTracker>
         <SectionTracker name="starter_offer"><StarterOffer subscriberId={subscriberId} /></SectionTracker>
         <SectionTracker name="work_with_me_teaser"><WorkWithMeTeaser /></SectionTracker>
         <SectionTracker name="method"><Method /></SectionTracker>
-        <SectionTracker name="testimonial"><Testimonial /></SectionTracker>
         <SectionTracker name="about"><About /></SectionTracker>
         <SectionTracker name="closing_cta"><ClosingCta chartHref={chartHref} /></SectionTracker>
       </main>

@@ -26,11 +26,10 @@ export default function About() {
               beat myself up even more!
             </p>
             <p className={styles.prose}>
-              Now as a certified Human Design for Business (BG5) consultant, I
-              teach you strategies to move from frustrated, bitter, and angry to
-              successful, satisfied, and at peace. I focus on practical tools
-              which you can use immediately, rather than giving you a bunch of
-              theory which you&rsquo;ll immediately forget.
+              Now I&rsquo;m a certified Human Design for Business (BG5)
+              consultant. You tell me what you&rsquo;re dealing with, and I show
+              you what your design says about it, in a form you can use the same
+              day. No pile of theory you&rsquo;ll forget.
             </p>
           </div>
         </div>

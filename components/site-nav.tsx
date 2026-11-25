@@ -41,7 +41,10 @@ export default async function SiteNav({
             </TrackedLink>
           )}
           {!hideNewsletterLink && (
-            <Link className={styles.link} href="/newsletter">
+            <Link
+              className={subscriberId ? styles.link : `${styles.link} ${styles.hideNarrow}`}
+              href="/newsletter"
+            >
               {subscriberId ? "Your newsletters" : "Newsletter"}
             </Link>
           )}

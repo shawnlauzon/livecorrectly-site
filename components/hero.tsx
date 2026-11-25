@@ -50,9 +50,10 @@ export default function Hero({ chartHref }: { chartHref?: string }) {
           </h1>
 
           <p className={styles.lede}>
-            You&apos;ve spent enough time listening to what everyone else
-            thinks. You&apos;re ready to try something different. Learn how
-            you&mdash;specifically YOU&mdash;are designed for success.
+            That advice works for the people it was built for. If it never
+            worked for you, you haven&apos;t been short on discipline.
+            You&apos;re built differently. Enter your birth details and see
+            how.
           </p>
 
           <div className={styles.ctaGroup}>

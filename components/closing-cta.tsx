@@ -14,7 +14,7 @@ export default function ClosingCta({ chartHref }: { chartHref?: string }) {
 
         <div className={styles.cta}>
           <h2 className={styles.h2}>
-            {chartHref ? "Ready to go further?" : "Start with your own chart."}
+            {chartHref ? "Ready to go further?" : "Start with your own design."}
           </h2>
           <CtaPair chartHref={chartHref} location="closing_cta" subClassName={styles.ctaSub} />
         </div>

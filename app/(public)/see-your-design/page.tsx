@@ -8,7 +8,7 @@ import styles from './page.module.css';
 export const metadata: Metadata = {
   title: 'See how you\u2019re designed \u2014 Live Correctly',
   description:
-    'Get your Human Design chart, then learn how to actually use it.',
+    'See how you\u2019re designed, free, then learn how to use it.',
 };
 
 // Re-read the newsletter send day from the DB at most hourly
@@ -35,13 +35,14 @@ export default async function SeeYourDesign() {
             href="/"
             style={{
               fontFamily: 'var(--display)',
-              fontWeight: 700,
-              fontSize: '1.24rem',
+              fontWeight: 600,
+              fontSize: '1.28rem',
+              color: 'var(--ink)',
               letterSpacing: '-0.02em',
               textDecoration: 'none',
             }}
           >
-            Live <span style={{ color: 'var(--grape)' }}>Correctly</span>
+            Live <em style={{ color: 'var(--plum)' }}>Correctly</em>
           </Link>
           <Link
             href="/"
@@ -59,17 +60,16 @@ export default async function SeeYourDesign() {
 
       <main className={`${styles.wrap} ${styles.main}`}>
         <p className={styles.eyebrow}>Human Design</p>
-        <h1 className={styles.h1}>See what living correctly looks like for you.</h1>
+        <h1 className={styles.h1}>See how you&rsquo;re designed.</h1>
         <p className={styles.lead}>
-          Enter your birth details and see your chart right away. I&rsquo;ll
-          also send you a short series on how you&rsquo;re specifically designed
-          and how to use it&mdash;because a bunch of terms without explanation
-          is annoying.
+          Enter your birth details and see your design right away. It comes
+          with a lot of terms, and terms without explanation are annoying, so
+          over the next few days I&rsquo;ll email you what yours mean and how to
+          use them.
         </p>
         <p className={styles.lead}>
-          After that, you&rsquo;ll receive a weekly newsletter
-          {sendDay ? ` every ${sendDay}` : ''}&mdash;personalized to your
-          unique design.
+          After that, a weekly letter{sendDay ? ` every ${sendDay}` : ''},
+          written for your design. Unsubscribe any time.
         </p>
 
         <ChartForm />

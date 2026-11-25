@@ -15,6 +15,8 @@ export type Offer = {
   /** Anchor id on /work-with-me, e.g. /work-with-me#guided */
   id: string;
   name: string;
+  /** Button label, e.g. "Book one conversation". */
+  cta: string;
   price: number;
   /** What it helps with, first. Plain language, no Human Design terms. */
   description: string;
@@ -31,6 +33,10 @@ export type Offer = {
 export type OfferGroup = {
   id: string;
   heading: string;
+  /** The situation this group is for, in the visitor's words. */
+  problem: string;
+  /** A client's own words, shown under the heading. */
+  quote?: { text: string; name: string };
   offers: Offer[];
   /** Cycle offers depend on the person's dates; the page adds a line about that. */
   dateDependent?: boolean;
@@ -40,13 +46,19 @@ export const OFFER_GROUPS: OfferGroup[] = [
   {
     id: "who-you-are",
     heading: "Who you are",
+    problem: "When the way you work doesn’t fit you.",
+    quote: {
+      text: "…he explained the aspects of what my results uncovered and answered all of my questions so I could get a practical understanding.",
+      name: "Jessica",
+    },
     offers: [
       {
         id: "guided",
         name: "Guided",
+        cta: "Book one conversation",
         price: 97,
         description:
-          "Bring what you’re wrestling with. I’ll tell you what your design says about it.",
+          "One thing that’s stuck: a decision, a way of working, something that keeps wearing you out. You leave knowing what your design says to do about it.",
         details: "One 90-minute conversation.",
         guides: 1,
         includesFollowUp: false,
@@ -55,6 +67,7 @@ export const OFFER_GROUPS: OfferGroup[] = [
       {
         id: "deep-dive",
         name: "Deep Dive",
+        cta: "Book the Deep Dive",
         price: 497,
         description:
           "For when one conversation isn’t enough. We go much further into how you decide, how you work, and where you keep getting pulled off course.",
@@ -69,10 +82,12 @@ export const OFFER_GROUPS: OfferGroup[] = [
   {
     id: "where-you-are",
     heading: "Where you are",
+    problem: "When what used to work has stopped working.",
     offers: [
       {
         id: "year-ahead",
         name: "Your year ahead",
+        cta: "Book your year ahead",
         price: 197,
         description:
           "Each birthday starts a new yearly cycle. What the coming one holds for you, applied to what you’re dealing with now.",
@@ -84,6 +99,7 @@ export const OFFER_GROUPS: OfferGroup[] = [
       {
         id: "next-ten-years",
         name: "Your next ten years",
+        cta: "Book your next ten years",
         price: 297,
         description:
           "Every decade or so a bigger cycle turns over, and what used to work stops working. What’s changing for you, and what to do with it.",
@@ -99,13 +115,20 @@ export const OFFER_GROUPS: OfferGroup[] = [
   {
     id: "who-youre-with",
     heading: "Who you’re with",
+    problem: "When you can’t get through to someone.",
+    quote: {
+      text: "I didn’t know how to speak with him. I was like, are you from another planet?",
+      name: "Andrea",
+    },
     offers: [
       {
         id: "partnership",
         name: "Partnership",
+        cta: "Book a Partnership conversation",
         price: 497,
         description:
           "Understand the person you keep clashing with — a partner, a parent, a co-founder — and what to do differently.",
+        details: "One two-hour conversation with both of you. I’ll need birth details for each of you.",
         guides: 2,
         includesFollowUp: true,
         bookingUrl: process.env.NEXT_PUBLIC_BOOKING_URL_PARTNERSHIP,
