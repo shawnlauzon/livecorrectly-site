@@ -7,6 +7,7 @@ import {
   deleteEmailSendsForResendEmails,
 } from '@/lib/db';
 import { getResendClient } from '@/lib/resend/contacts';
+import { removeEveryoneSegment } from '@/lib/newsletter/segments';
 
 /**
  * POST /api/admin/newsletters/cancel
@@ -20,7 +21,8 @@ import { getResendClient } from '@/lib/resend/contacts';
  * Pipeline:
  * 1. Find the pending schedules for this newsletter (a one-off sent to several
  *    segments has one per segment)
- * 2. For each: cancel the broadcast (or each scheduled email) in Resend
+ * 2. For each: cancel the broadcast (or each scheduled email) in Resend, and
+ *    remove the temporary segment of a send to everyone
  * 3. Delete the email_sends records for it
  * 4. Delete the schedule rows
  */
@@ -72,6 +74,10 @@ export async function POST(request: NextRequest) {
           );
         }
         await deleteEmailSendsForBroadcast(schedule.broadcast_id);
+      }
+      // A send to everyone holds a temporary segment that nothing else uses
+      if (schedule.kind === 'everyone' && schedule.segment_id) {
+        await removeEveryoneSegment(schedule.segment_id);
       }
 
       await deleteNewsletterSchedule(schedule.id);

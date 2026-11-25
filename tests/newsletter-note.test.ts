@@ -59,7 +59,7 @@ describe('injectEmailChrome', () => {
     expect(content).toBeGreaterThan(note);
   });
 
-  it('places the library block after the note, before the body content', () => {
+  it('places the library block after the note, before the body content, when the body has no h1 or h2', () => {
     const html = injectEmailChrome(DOC, {
       appUrl: 'https://example.com',
       unsubscribeUrl: '#',
@@ -78,7 +78,7 @@ describe('injectEmailChrome', () => {
     expect(html).toContain('utm_campaign=newsletter_10');
   });
 
-  it('places the library block right after the logo when there is no note', () => {
+  it('places the library block right after the logo when there is no note and no h1 or h2', () => {
     const html = injectEmailChrome(DOC, {
       appUrl: 'https://example.com',
       unsubscribeUrl: '#',
@@ -89,6 +89,58 @@ describe('injectEmailChrome', () => {
     const library = html.indexOf(LIBRARY_BLOCK_COPY.heading);
     expect(library).toBeGreaterThan(logo);
     expect(html.indexOf('BODY CONTENT')).toBeGreaterThan(library);
+  });
+
+  const withBody = (body: string) =>
+    `<html><head></head><body style="x"><table><tr><td>${body}</td></tr></table></body></html>`;
+  const libraryOptions = {
+    appUrl: 'https://example.com',
+    unsubscribeUrl: '#',
+    postscripts: [],
+    note: 'NOTE TEXT',
+    library: { subscriberId: 'sub-123', newsletterNumber: 10 },
+  };
+
+  it('places the library block just before the first h2 in the article', () => {
+    const html = injectEmailChrome(
+      withBody('<p>INTRO</p><h2 style="margin:0">FIRST HEADING</h2><p>MIDDLE</p><h2 style="margin:0">SECOND HEADING</h2>'),
+      libraryOptions,
+    );
+    const library = html.indexOf(LIBRARY_BLOCK_COPY.heading);
+    expect(library).toBeGreaterThan(html.indexOf('INTRO'));
+    expect(library).toBeLessThan(html.indexOf('FIRST HEADING'));
+    expect(html.split(LIBRARY_BLOCK_COPY.heading)).toHaveLength(2);
+    expect(html).toContain('/newsletter?s=sub-123&');
+    // Directly before the heading tag, with nothing in between
+    expect(html).toMatch(/<\/table><h2\b[^>]*>FIRST HEADING/);
+  });
+
+  it('places the library block just before an h1 that comes first', () => {
+    const html = injectEmailChrome(
+      withBody('<p>INTRO</p><h1 style="margin:0">TITLE</h1><h2 style="margin:0">SUBHEAD</h2>'),
+      libraryOptions,
+    );
+    const library = html.indexOf(LIBRARY_BLOCK_COPY.heading);
+    expect(library).toBeGreaterThan(html.indexOf('INTRO'));
+    expect(library).toBeLessThan(html.indexOf('TITLE'));
+  });
+
+  it('does not count an h3 as the first heading', () => {
+    const html = injectEmailChrome(
+      withBody('<p>INTRO</p><h3 style="margin:0">SMALL</h3><p>MORE</p><h2 style="margin:0">BIG</h2>'),
+      libraryOptions,
+    );
+    const library = html.indexOf(LIBRARY_BLOCK_COPY.heading);
+    expect(library).toBeGreaterThan(html.indexOf('MORE'));
+    expect(library).toBeLessThan(html.indexOf('BIG'));
+  });
+
+  it('leaves the article untouched when there is no library block', () => {
+    const html = injectEmailChrome(withBody('<p>INTRO</p><h2 style="margin:0">FIRST HEADING</h2>'), {
+      appUrl: 'https://example.com', unsubscribeUrl: '#', postscripts: [],
+    });
+    expect(html).not.toContain(LIBRARY_BLOCK_COPY.heading);
+    expect(html).toMatch(/<p>INTRO<\/p><h2\b/);
   });
 
   it('injects neither when omitted', () => {

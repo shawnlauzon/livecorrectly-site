@@ -76,3 +76,20 @@ export async function removeNewsletterSegment(segment: NewsletterSegment): Promi
     `[segments] Deleted audience segment "${segment.name}" (DB: ${segment.id}, Resend: ${segment.resendSegmentId})`,
   );
 }
+
+/** Name prefix of the temporary segment a one-off sent to everyone goes to. */
+export const EVERYONE_SEGMENT_PREFIX = 'everyone_';
+
+/**
+ * Remove the temporary Resend segment of a send to everyone, freeing its place
+ * in Resend's segment limit. Returns whether Resend removed it.
+ */
+export async function removeEveryoneSegment(resendSegmentId: string): Promise<boolean> {
+  const { error } = await getResendClient().segments.remove(resendSegmentId);
+  if (error) {
+    console.error(`[segments] Failed to delete temporary everyone segment ${resendSegmentId}:`, error);
+    return false;
+  }
+  console.log(`[segments] Deleted temporary everyone segment ${resendSegmentId}`);
+  return true;
+}

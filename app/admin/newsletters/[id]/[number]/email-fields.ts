@@ -47,6 +47,9 @@ export const QUALITY_NAMES = Object.values(profileLineNames);
 /** The six quality (profile line) numbers, as the strings conditions compare against. */
 const QUALITY_NUMBERS = Object.keys(profileLineNames);
 
+/** The nine center functions (the bridging trait has no center), in priority order. */
+export const FUNCTION_NAMES = Object.keys(functionToCenterIndex).filter(fn => functionToCenterIndex[fn] != null);
+
 export interface EmailField {
   key: string;
   label: string;
@@ -70,7 +73,7 @@ export const EMAIL_FIELDS: EmailField[] = [
   { key: 'top_shadow', label: 'Top Shadow', values: TOP_SHADOW_VALUES },
   { key: 'top_shadow_description', label: 'Top Shadow Description', values: unique(Object.values(shadowDescriptions)) },
   { key: 'top_shadow_verb', label: 'Top Shadow (verb)', values: unique([...Object.values(shadowVerbs), ...Object.values(bridgeShadowVariants).map(v => v.verb)]) },
-  { key: 'top_shadow_function', label: 'Top Shadow Function', values: Object.keys(functionToCenterIndex).filter(fn => functionToCenterIndex[fn] != null) },
+  { key: 'top_shadow_function', label: 'Top Shadow Function', values: FUNCTION_NAMES },
   { key: 'quality_conscious_name', label: 'Conscious Quality', values: QUALITY_NAMES },
   { key: 'quality_conscious', label: 'Conscious Quality (number)', values: QUALITY_NUMBERS },
   { key: 'quality_unconscious_name', label: 'Unconscious Quality', values: QUALITY_NAMES },

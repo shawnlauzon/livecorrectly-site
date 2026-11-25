@@ -90,6 +90,7 @@ export async function POST(
       preview: newsletter.preview,
       note,
       library: { subscriberId: subscriber.id, newsletterNumber: step },
+      share: { slug: newsletter.slug, newsletterNumber: step },
     });
 
     const { broadcastId } = await sendPrerenderedBroadcast({

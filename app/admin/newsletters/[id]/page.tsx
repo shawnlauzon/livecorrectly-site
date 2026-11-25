@@ -39,9 +39,12 @@ interface ScheduleProgress {
   done: boolean;
 }
 
+/** Audience name for a one-off sent to every subscriber. */
+const EVERYONE_LABEL = 'Everyone';
+
 interface NewsletterSchedule {
   id: number;
-  kind: 'broadcast' | 'direct';
+  kind: 'broadcast' | 'direct' | 'everyone';
   broadcastId: string | null;
   scheduledAt: string;
   subscriberCount: number;
@@ -64,8 +67,10 @@ interface NewsletterInfo {
   number: number;
   subject: string;
   slug: string | null;
-  /** Sent once to a chosen segment, outside the series (see lib/newsletter/one-off.ts) */
+  /** Sent once to everyone or to chosen segments, outside the series (see lib/newsletter/one-off.ts) */
   oneOff: boolean;
+  /** A one-off that was sent or scheduled to every subscriber */
+  everyone: boolean;
 
   /** People actually sent this issue */
   receivedCount: number;
@@ -214,9 +219,10 @@ export default function AdminNewsletterDetailPage() {
   const id = params.id as string;
   const [newsletters, setNewsletters] = useState<NewsletterInfo[]>([]);
   const [allSegments, setAllSegments] = useState<SegmentInfo[]>([]);
-  /** The segment picked for the one-off being scheduled */
   /** Segments a one-off is being scheduled to: one broadcast each, at the same time */
   const [oneOffSegmentIds, setOneOffSegmentIds] = useState<number[]>([]);
+  /** The one-off being scheduled goes to every subscriber instead of chosen segments */
+  const [oneOffEveryone, setOneOffEveryone] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -410,7 +416,7 @@ export default function AdminNewsletterDetailPage() {
   const handleSchedule = async (
     newsletterNumber: number,
     sendAt?: string | null,
-    options?: { test?: boolean; confirmMerge?: boolean; segmentIds?: number[] },
+    options?: { test?: boolean; confirmMerge?: boolean; segmentIds?: number[]; everyone?: boolean },
   ): Promise<void> => {
     const pwd = getAdminPassword();
     if (!pwd) return;
@@ -443,6 +449,7 @@ export default function AdminNewsletterDetailPage() {
           ...(isTest && { test: true }),
           ...(options?.confirmMerge && { confirmMerge: true }),
           ...(!isTest && options?.segmentIds !== undefined && { segmentIds: options.segmentIds }),
+          ...(!isTest && options?.everyone && { everyone: true }),
         }),
       });
 
@@ -764,9 +771,20 @@ export default function AdminNewsletterDetailPage() {
     return nl.oneOff ? nl.segments : nl.segments.slice(0, 1);
   }
 
-  /** The segments a one-off went to, for the Next column. */
+  /** Who a one-off went to, for the Next column. */
   function segmentNames(nl: NewsletterInfo): string {
-    return nl.segments.map(seg => seg.name).join(', ');
+    return [...(nl.everyone ? [EVERYONE_LABEL] : []), ...nl.segments.map(seg => seg.name)].join(', ');
+  }
+
+  /** The audience chosen for the one-off being scheduled (nothing for a series issue). */
+  function audienceOptions(nl: NewsletterInfo): { segmentIds?: number[]; everyone?: boolean } {
+    if (!nl.oneOff) return {};
+    return oneOffEveryone ? { everyone: true } : { segmentIds: oneOffSegmentIds };
+  }
+
+  /** A one-off can't be scheduled until it has an audience. */
+  function audienceMissing(nl: NewsletterInfo): boolean {
+    return nl.oneOff && !oneOffEveryone && oneOffSegmentIds.length === 0;
   }
 
   /** "Newsletter #12" or "One-off 1", for messages. */
@@ -1565,7 +1583,7 @@ export default function AdminNewsletterDetailPage() {
         <button
           onClick={() => handleCreateIssue(true)}
           disabled={actionLoading}
-          title="Sent once to a segment you choose; not part of the series and never posted"
+          title="Sent once to everyone or to segments you choose; not part of the series"
           style={{
             fontFamily: 'var(--body)',
             fontSize: '0.75rem',
@@ -1614,7 +1632,7 @@ export default function AdminNewsletterDetailPage() {
                   renderMoveButton(nl.number, 'up')
                 )}
                 {nl.oneOff ? (
-                  <div title="One-off: sent once to the segments you choose, outside the series">
+                  <div title="One-off: sent once to everyone or to the segments you choose, outside the series">
                     <div style={{ fontSize: '0.625rem', fontWeight: 600, color: 'var(--grape)', textTransform: 'uppercase' }}>
                       One-off
                     </div>
@@ -1659,7 +1677,14 @@ export default function AdminNewsletterDetailPage() {
                 )}
               </td>
               <td style={{ textAlign: 'center' }}>
-                {nl.segments.length > 0 ? (
+                {nl.everyone && nl.segments.length === 0 ? (
+                  <span
+                    title={`${EVERYONE_LABEL}: sent or scheduled to ${nl.dueCount}`}
+                    style={{ fontFamily: 'var(--body)', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap' }}
+                  >
+                    {EVERYONE_LABEL} ({nl.dueCount})
+                  </span>
+                ) : nl.segments.length > 0 ? (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1789,12 +1814,26 @@ export default function AdminNewsletterDetailPage() {
                           >
                             {nl.oneOff ? (
                               <>
-                                <div style={{ marginBottom: '0.25rem' }}>Send to (one broadcast per segment):</div>
+                                <div style={{ marginBottom: '0.25rem' }}>Send to (everyone, or one broadcast per segment):</div>
                                 <div
                                   role="group"
-                                  aria-label="Segments to send this one-off to"
+                                  aria-label="Who to send this one-off to"
                                   style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}
                                 >
+                                  <label
+                                    title="One broadcast to every subscriber who can receive newsletters, through a temporary segment that is removed once it has sent"
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--ink)', cursor: 'pointer' }}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={oneOffEveryone}
+                                      onChange={() => {
+                                        setOneOffEveryone(prev => !prev);
+                                        setOneOffSegmentIds([]);
+                                      }}
+                                    />
+                                    {EVERYONE_LABEL}
+                                  </label>
                                   {allSegments.map(seg => {
                                     const checked = oneOffSegmentIds.includes(seg.id);
                                     const contacts = segmentContacts[seg.id];
@@ -1806,6 +1845,7 @@ export default function AdminNewsletterDetailPage() {
                                         <input
                                           type="checkbox"
                                           checked={checked}
+                                          disabled={oneOffEveryone}
                                           onChange={() => {
                                             setOneOffSegmentIds(prev => (
                                               checked ? prev.filter(id => id !== seg.id) : [...prev, seg.id]
@@ -1861,8 +1901,8 @@ export default function AdminNewsletterDetailPage() {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                               <div style={{ display: 'flex', gap: '0.375rem' }}>
                                 <button
-                                  onClick={() => handleSchedule(nl.number, nextRegularSendAt, { segmentIds: nl.oneOff ? oneOffSegmentIds : undefined })}
-                                  disabled={actionLoading || !nextRegularSendAt || (nl.oneOff && oneOffSegmentIds.length === 0)}
+                                  onClick={() => handleSchedule(nl.number, nextRegularSendAt, audienceOptions(nl))}
+                                  disabled={actionLoading || !nextRegularSendAt || audienceMissing(nl)}
                                   style={{
                                     fontFamily: 'var(--body)',
                                     fontSize: '0.75rem',
@@ -1953,8 +1993,8 @@ export default function AdminNewsletterDetailPage() {
                               </select>
                               <div style={{ display: 'flex', gap: '0.375rem' }}>
                                 <button
-                                  onClick={() => handleSchedule(nl.number, localToUtcIso(customSendAt, customTimezone), { segmentIds: nl.oneOff ? oneOffSegmentIds : undefined })}
-                                  disabled={actionLoading || !customSendAt || (nl.oneOff && oneOffSegmentIds.length === 0)}
+                                  onClick={() => handleSchedule(nl.number, localToUtcIso(customSendAt, customTimezone), audienceOptions(nl))}
+                                  disabled={actionLoading || !customSendAt || audienceMissing(nl)}
                                   style={{
                                     fontFamily: 'var(--body)',
                                     fontSize: '0.75rem',
@@ -1995,22 +2035,21 @@ export default function AdminNewsletterDetailPage() {
                             setConfirmSchedule(nl.number);
                             setScheduleMode('choose');
                             setOneOffSegmentIds([]);
+                            setOneOffEveryone(false);
                             setActionMessage(null);
                           }}
-                          disabled={nl.oneOff ? allSegments.length === 0 : nl.dueCount === 0}
-                          title={nl.oneOff
-                            ? (allSegments.length === 0 ? 'No segments to send to' : undefined)
-                            : (nl.dueCount === 0 ? 'No subscribers ready for this issue' : undefined)}
+                          disabled={!nl.oneOff && nl.dueCount === 0}
+                          title={!nl.oneOff && nl.dueCount === 0 ? 'No subscribers ready for this issue' : undefined}
                           style={{
                             fontFamily: 'var(--body)',
                             fontSize: '0.75rem',
                             fontWeight: 600,
                             padding: '4px 12px',
-                            background: (nl.oneOff ? allSegments.length === 0 : nl.dueCount === 0) ? 'var(--line)' : 'var(--grape)',
-                            color: (nl.oneOff ? allSegments.length === 0 : nl.dueCount === 0) ? 'var(--muted)' : '#fff',
+                            background: (!nl.oneOff && nl.dueCount === 0) ? 'var(--line)' : 'var(--grape)',
+                            color: (!nl.oneOff && nl.dueCount === 0) ? 'var(--muted)' : '#fff',
                             border: 'none',
                             borderRadius: '4px',
-                            cursor: (nl.oneOff ? allSegments.length === 0 : nl.dueCount === 0) ? 'default' : 'pointer',
+                            cursor: (!nl.oneOff && nl.dueCount === 0) ? 'default' : 'pointer',
                           }}
                         >
                           Schedule

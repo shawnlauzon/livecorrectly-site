@@ -44,7 +44,11 @@ function libraryUrl(
   return subscriberId ? `${base}?s=${subscriberId}&${utm}` : `${base}?${utm}`;
 }
 
-function libraryBlockHtml(
+/**
+ * The library block itself, for placing inside the issue body (which already
+ * sets the body font). `subscriberId` may be a Resend placeholder.
+ */
+export function libraryBlockHtml(
   subscriberId: string,
   newsletterNumber: number,
   margin = "24px 0",
@@ -105,7 +109,7 @@ export function replaceLibraryUrl(
 
 /**
  * The library block as standalone email chrome, for injectEmailChrome() to
- * place above the issue body. Wrapped in the same centered max-width table as
+ * place above an issue body that has no h1/h2 to put it before. Wrapped in the same centered max-width table as
  * the other chrome fragments; the wrapper sets the body font, since chrome sits
  * outside the editor's content cell.
  */

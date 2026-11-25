@@ -19,7 +19,11 @@ import {
   shadowVerbs,
   shadowDescriptions,
   bridgeShadowVariants,
-  profileLineNames
+  profileLineNames,
+  centerIndexToFunction,
+  isCenterDefined,
+  isCenterOpen,
+  type CenterStatus
 } from './constants';
 import hdChart from './index';
 import { hangingGateDescriptions } from '../../emails/content';
@@ -71,6 +75,12 @@ export interface EmailChartData {
   qualityUnconscious: number | null;
   /** Name of the unconscious quality (e.g. "Leader"), null if the chart has no profile */
   qualityUnconsciousName: string | null;
+  /** Functions (centers) with a complete channel, in center order */
+  definedFunctions: string[];
+  /** Functions with no complete channel, open ones included */
+  undefinedFunctions: string[];
+  /** Undefined functions with no gates at all */
+  openFunctions: string[];
   /** True when the #1 bridge is a channel+gate far bridge (not a simple hanging gate) */
   hasChannelBridge: boolean;
   bridgeDescriptions: Array<{
@@ -122,6 +132,12 @@ export function parseChartForEmail(chart: Chart): EmailChartData {
   const qualityConscious = profileDigits ? Number(profileDigits[0]) : null;
   const qualityUnconscious = profileDigits ? Number(profileDigits[1]) : null;
 
+  // Each center's function, grouped by the center's status
+  const functionsWhere = (matches: (status: CenterStatus) => boolean) =>
+    (chart.centers ?? []).flatMap((status, index) =>
+      matches(status as CenterStatus) ? [centerIndexToFunction[index]] : [],
+    );
+
   // Override bridge descriptions with richer prose from hangingGateDescriptions.
   // Uses getAllBridgesSorted() to include both near + far + channel bridges, ranked by priority.
   const rawBridges = hd.getAllBridgesSorted();
@@ -170,6 +186,9 @@ export function parseChartForEmail(chart: Chart): EmailChartData {
     qualityConsciousName: qualityConscious !== null ? profileLineNames[qualityConscious] ?? null : null,
     qualityUnconscious,
     qualityUnconsciousName: qualityUnconscious !== null ? profileLineNames[qualityUnconscious] ?? null : null,
+    definedFunctions: functionsWhere(isCenterDefined),
+    undefinedFunctions: functionsWhere(status => !isCenterDefined(status)),
+    openFunctions: functionsWhere(isCenterOpen),
     hasChannelBridge: !chart.bridges?.bridgingGates?.length
       && !!chart.bridges?.bridgingChannels?.length,
     bridgeDescriptions

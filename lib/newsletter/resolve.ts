@@ -3,6 +3,7 @@ import type { EmailChartData } from '@/lib/hd-chart/parse-for-email';
 import { functionToCenterIndex } from '@/lib/hd-chart/constants';
 import type { LiquidSectionMap } from './loader';
 import { LIBRARY_URL_VAR, replaceLibraryBlock, replaceLibraryUrl } from './library-block';
+import { SHARE_URL_VAR, replaceShareUrl } from './share';
 import type { NewsletterEngagementFlags } from '@/lib/db';
 
 // =============================================================================
@@ -228,7 +229,7 @@ const RESEND_IDENTITY_MAP: Record<string, string> = {
  * Template variables handled by replaceVars() in the rendering pipeline.
  * These must NOT be converted to Resend contact property syntax.
  */
-const TEMPLATE_VARS = new Set(['firstName', 'appUrl', 'chartUrl', LIBRARY_URL_VAR]);
+const TEMPLATE_VARS = new Set(['firstName', 'appUrl', 'chartUrl', LIBRARY_URL_VAR, SHARE_URL_VAR]);
 
 /** Known contact property keys from the registry. */
 const KNOWN_CONTACT_KEYS = new Set(Object.keys(contactProperties));
@@ -545,6 +546,12 @@ export function buildLiquidContext(
     // Every shadow name, for `{% if shadows contains "Overcompensating" %}`
     shadows: chart.shadows,
 
+    // Function names by center status, for the editor's Definition
+    // condition: `{% if defined_functions contains "Willpower" %}`
+    defined_functions: chart.definedFunctions,
+    undefined_functions: chart.undefinedFunctions,
+    open_functions: chart.openFunctions,
+
     // Boolean flags
     isBuilder: chart.isGenerator,
     isClassicBuilder: chart.isPureGenerator,
@@ -834,7 +841,7 @@ export function resolveRelativeLinks(
  * Resolve newsletter HTML through the full pipeline:
  * 1. Resolve Liquid conditionals and output tags
  * 2. Resolve {{{contact.key}}} variables
- * 3. Resolve data-relative links, {{library_url}} and the library block
+ * 3. Resolve data-relative links, {{library_url}}, {{share_url}} and the library block
  *
  * This replaces the duplicated 3-step pipeline in web.ts and preview/route.ts.
  */
@@ -847,6 +854,8 @@ export async function resolveNewsletterHtml(
     email?: string;
     subscriberId?: string;
     newsletterNumber?: number;
+    /** The issue's web slug, for {{share_url}} (absent → shares the newsletter index) */
+    slug?: string | null;
     mode?: 'web' | 'email';
     engagement?: EngagementData | null;
     highlightChartValues?: boolean;
@@ -876,6 +885,11 @@ export async function resolveNewsletterHtml(
     options.newsletterNumber ?? 0,
     options.mode ?? 'email',
   );
+
+  result = replaceShareUrl(result, {
+    slug: options.slug ?? null,
+    newsletterNumber: options.newsletterNumber ?? 0,
+  });
 
   result = replaceLibraryBlock(
     result,

@@ -1,6 +1,7 @@
 import { loadNewsletterIssue } from '@/lib/newsletter/loader';
 import { hasLiquidConditionals, hasLiquidOutputTags } from '@/lib/newsletter/resolve';
 import { injectEmailChrome } from './inject-chrome';
+import type { SharedIssue } from './share';
 
 interface RenderNewsletterEmailOptions {
   bodyHtml: string;
@@ -11,10 +12,15 @@ interface RenderNewsletterEmailOptions {
   /** Shared note shown above the issue body */
   note?: string;
   /**
-   * Who the newsletter library block (after the logo and note) links for.
+   * Who the newsletter library block (before the article's first h1/h2) links for.
    * Required so every send path decides; null leaves the block out.
    */
   library: { subscriberId: string; newsletterNumber: number } | null;
+  /**
+   * The issue the automatic share line shares (shown only when it has a slug).
+   * Required so every send path decides; null leaves the line out.
+   */
+  share: SharedIssue | null;
 }
 
 /**
@@ -64,6 +70,7 @@ export function renderNewsletterEmail({
   preview,
   note,
   library,
+  share,
 }: RenderNewsletterEmailOptions): string {
   return injectEmailChrome(rewriteBlobUrls(bodyHtml), {
     unsubscribeUrl,
@@ -71,5 +78,6 @@ export function renderNewsletterEmail({
     preheader: preview,
     note,
     library: library ?? undefined,
+    share: share ?? undefined,
   });
 }

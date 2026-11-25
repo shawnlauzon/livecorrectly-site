@@ -3,6 +3,7 @@ import { checkAdminPassword } from '@/lib/admin-auth';
 import {
   getNewsletterDueSubscribers,
   getNewsletterSubscribersByEmails,
+  getAllNewsletterSubscribers,
   getNewsletterSegments,
   getSubscriberByEmail,
   recordEmailSend,
@@ -37,7 +38,13 @@ import { nextRegularSendAt, zonedDateString } from '@/lib/newsletter/cadence';
 import { getNoteForSend } from '@/lib/newsletter/notes';
 import { planAudience, autoSegmentName } from '@/lib/newsletter/audience';
 import type { AudiencePlan } from '@/lib/newsletter/audience';
-import { addEmailsToSegment, removeNewsletterSegment, listSegmentContacts } from '@/lib/newsletter/segments';
+import {
+  addEmailsToSegment,
+  removeNewsletterSegment,
+  listSegmentContacts,
+  removeEveryoneSegment,
+  EVERYONE_SEGMENT_PREFIX,
+} from '@/lib/newsletter/segments';
 import { issueLabel } from '@/lib/newsletter/one-off';
 import { getNewsletterIssue, resolveSubscriberLinks } from '@/lib/newsletter/email-loader';
 import { renderNewsletterEmail } from '@/lib/newsletter/email-template';
@@ -54,7 +61,7 @@ const DEFAULT_NEWSLETTER_TEST_EMAIL = 'shawn.lauzon@gmail.com';
  * Schedule a newsletter issue for the regular cadence time (or `sendAt`).
  * Returns an NDJSON stream with real-time progress events.
  *
- * Body: { newsletterNumber: number, sendAt?: string, test?: boolean, confirmMerge?: boolean, segmentIds?: number[] }
+ * Body: { newsletterNumber: number, sendAt?: string, test?: boolean, confirmMerge?: boolean, segmentIds?: number[], everyone?: boolean }
  *
  * If a note is dated on the send day (publication timezone), it's rendered
  * above the issue body. Test sends use the next regular send day's note, so
@@ -66,12 +73,17 @@ const DEFAULT_NEWSLETTER_TEST_EMAIL = 'shawn.lauzon@gmail.com';
  * with `needsMergeConfirmation`), a new persistent date-named segment, or — for
  * small cohorts — individual scheduled emails with no segment.
  *
- * A one-off issue (lib/newsletter/one-off.ts) instead goes to the persistent
- * segments `segmentIds` (required for one-offs, refused for series issues): each
- * segment's contacts who can receive newsletters, as one broadcast per segment,
- * all at the same send time, each with its own schedule row. No segment is
- * created. One-off numbers are never a next_step or a segment's next_issue, so
- * the send never advances anyone.
+ * A one-off issue (lib/newsletter/one-off.ts) instead takes exactly one of
+ * `segmentIds` or `everyone: true` (both refused for series issues):
+ * - `segmentIds`: the persistent segments to send to — each segment's contacts
+ *   who can receive newsletters, as one broadcast per segment, all at the same
+ *   send time, each with its own schedule row. No segment is created.
+ * - `everyone`: every subscriber who can receive newsletters, as one broadcast
+ *   to a temporary segment (schedule kind 'everyone'). The segment is removed
+ *   when the send is finalized or cancelled, because Resend limits segments;
+ *   until then it holds one of them.
+ * One-off numbers are never a next_step or a segment's next_issue, so the send
+ * never advances anyone.
  *
  * Completion (status → sent, segment → next issue) happens later in
  * finalizeDueSchedules(), once Resend reports the send done.
@@ -100,6 +112,7 @@ export async function POST(request: NextRequest) {
     test?: boolean;
     confirmMerge?: boolean;
     segmentIds?: unknown;
+    everyone?: unknown;
   };
   try {
     body = await request.json();
@@ -138,9 +151,11 @@ export async function POST(request: NextRequest) {
   if (!issue) {
     return NextResponse.json({ error: `Newsletter #${newsletterNumber} not found` }, { status: 404 });
   }
-  if (!isTest && !issue.oneOff && body.segmentIds !== undefined) {
+  // One-off to every subscriber, through a temporary segment
+  const sendToEveryone = !isTest && issue.oneOff && body.everyone === true;
+  if (!isTest && !issue.oneOff && (body.segmentIds !== undefined || body.everyone !== undefined)) {
     return NextResponse.json(
-      { error: 'Series issues go to the subscribers due for them; only one-offs take a segment' },
+      { error: 'Series issues go to the subscribers due for them; only one-offs take a segment or everyone' },
       { status: 400 },
     );
   }
@@ -167,7 +182,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (issue.oneOff) {
+    if (sendToEveryone) {
+      if (body.segmentIds !== undefined) {
+        return NextResponse.json({ error: 'Choose everyone or segments, not both' }, { status: 400 });
+      }
+      dueSubscribers = await getAllNewsletterSubscribers();
+      if (dueSubscribers.length === 0) {
+        return NextResponse.json({ error: 'No one can receive newsletters' }, { status: 422 });
+      }
+    } else if (issue.oneOff) {
       const segmentIds = body.segmentIds;
       if (
         !Array.isArray(segmentIds)
@@ -245,6 +268,10 @@ export async function POST(request: NextRequest) {
 
   const encoder = new TextEncoder();
   let currentStep: ScheduleStepId | undefined;
+
+  // The temporary segment of a send to everyone, until its schedule row exists
+  // (from then on finalize or cancel removes it)
+  let unrecordedEveryoneSegmentId: string | null = null;
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -459,6 +486,18 @@ export async function POST(request: NextRequest) {
           }
           targets.push({ segmentId: segmentData.id, newsletterSegmentId: null, subscribers });
           emit({ step: 'segment', status: 'done', label: 'Creating test segment', detail: segmentName });
+        } else if (sendToEveryone) {
+          emit({ step: 'segment', status: 'start', label: 'Creating temporary segment' });
+          // Leftover test segments would take the place this one needs
+          await removeEphemeralSegments();
+          const segmentName = `${EVERYONE_SEGMENT_PREFIX}${newsletterNumber}_${Date.now()}`;
+          const { data: segmentData, error: segmentError } = await client.segments.create({ name: segmentName });
+          if (segmentError || !segmentData) {
+            throw new Error(`Failed to create segment: ${JSON.stringify(segmentError)}`);
+          }
+          unrecordedEveryoneSegmentId = segmentData.id;
+          targets.push({ segmentId: segmentData.id, newsletterSegmentId: null, subscribers });
+          emit({ step: 'segment', status: 'done', label: 'Creating temporary segment', detail: 'Everyone' });
         } else if (oneOffAudiences.length > 0) {
           for (const { segment, subscribers: segmentSubscribers } of oneOffAudiences) {
             targets.push({
@@ -584,7 +623,7 @@ export async function POST(request: NextRequest) {
             }
             const schedule = await insertNewsletterSchedule({
               newsletterNum: newsletterNumber,
-              kind: 'broadcast',
+              kind: sendToEveryone ? 'everyone' : 'broadcast',
               broadcastId,
               segmentId: target.segmentId,
               newsletterSegmentId: target.newsletterSegmentId,
@@ -593,6 +632,7 @@ export async function POST(request: NextRequest) {
               subscriberCount: targetCount,
             });
             scheduleIds.push(schedule.id);
+            unrecordedEveryoneSegmentId = null;
           }
         }
         emit({ step: 'broadcast', status: 'done', label: broadcastLabel, detail: broadcastIds.join(', ') });
@@ -616,7 +656,7 @@ export async function POST(request: NextRequest) {
           step: 'complete',
           result: {
             scheduleIds,
-            kind: 'broadcast',
+            kind: sendToEveryone ? 'everyone' : 'broadcast',
             broadcastIds,
             contactCount,
             scheduledAt: (scheduledDate ?? new Date()).toISOString(),
@@ -624,6 +664,11 @@ export async function POST(request: NextRequest) {
         });
       } catch (error) {
         console.error('[admin/newsletters/schedule] Error:', error);
+        // Nothing was scheduled, so don't leave the temporary segment holding
+        // one of Resend's few segments
+        if (unrecordedEveryoneSegmentId) {
+          await removeEveryoneSegment(unrecordedEveryoneSegmentId);
+        }
         emit({
           step: 'error',
           error: error instanceof Error ? error.message : 'Internal server error',
@@ -720,6 +765,7 @@ async function scheduleDirectSends(
         preview: issue.preview,
         note,
         library: { subscriberId: subscriber.id, newsletterNumber },
+        share: { slug: issue.slug, newsletterNumber },
       }),
     });
   }

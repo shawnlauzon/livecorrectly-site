@@ -3,6 +3,7 @@ import type { NewsletterSchedule } from '../lib/db';
 
 const broadcastsGet = vi.fn();
 const emailsGet = vi.fn();
+const segmentsRemove = vi.fn();
 
 vi.mock('../lib/db', () => ({
   getDueUnfinalizedSchedules: vi.fn(),
@@ -12,6 +13,7 @@ vi.mock('../lib/resend/contacts', () => ({
   getResendClient: () => ({
     broadcasts: { get: broadcastsGet },
     emails: { get: emailsGet },
+    segments: { remove: segmentsRemove },
   }),
 }));
 
@@ -115,5 +117,45 @@ describe('finalizeDueSchedules', () => {
     expect(result.finalized).toEqual([2]);
     expect(consoleError).toHaveBeenCalled();
     consoleError.mockRestore();
+  });
+});
+
+describe('finalizing a send to everyone', () => {
+  const everyone = () => schedule({ kind: 'everyone', segment_id: 'resend-everyone', newsletter_segment_id: null });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(finalizeNewsletterSchedule).mockResolvedValue({ finalized: true, segmentAdvanced: false });
+    segmentsRemove.mockResolvedValue({ data: {}, error: null });
+  });
+
+  it('removes the temporary segment once Resend reports the broadcast sent', async () => {
+    vi.mocked(getDueUnfinalizedSchedules).mockResolvedValue([everyone()]);
+    broadcastsGet.mockResolvedValue({ data: { status: 'sent' }, error: null });
+    const result = await finalizeDueSchedules();
+    expect(result.finalized).toEqual([8]);
+    expect(segmentsRemove).toHaveBeenCalledWith('resend-everyone');
+  });
+
+  it('keeps the temporary segment while the broadcast has not been sent', async () => {
+    vi.mocked(getDueUnfinalizedSchedules).mockResolvedValue([everyone()]);
+    broadcastsGet.mockResolvedValue({ data: { status: 'queued' }, error: null });
+    await finalizeDueSchedules();
+    expect(segmentsRemove).not.toHaveBeenCalled();
+  });
+
+  it('leaves the segment alone when another caller already finalized the schedule', async () => {
+    vi.mocked(getDueUnfinalizedSchedules).mockResolvedValue([everyone()]);
+    vi.mocked(finalizeNewsletterSchedule).mockResolvedValue({ finalized: false, segmentAdvanced: false });
+    broadcastsGet.mockResolvedValue({ data: { status: 'sent' }, error: null });
+    await finalizeDueSchedules();
+    expect(segmentsRemove).not.toHaveBeenCalled();
+  });
+
+  it('never removes the segment of an ordinary broadcast', async () => {
+    vi.mocked(getDueUnfinalizedSchedules).mockResolvedValue([schedule({})]);
+    broadcastsGet.mockResolvedValue({ data: { status: 'sent' }, error: null });
+    await finalizeDueSchedules();
+    expect(segmentsRemove).not.toHaveBeenCalled();
   });
 });

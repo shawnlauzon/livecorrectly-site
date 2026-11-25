@@ -5,6 +5,8 @@ import type { NewsletterSegment } from '../lib/db';
 
 const broadcastsCreate = vi.fn();
 const segmentsCreate = vi.fn();
+const segmentsList = vi.fn();
+const segmentsRemove = vi.fn();
 
 vi.mock('../lib/admin-auth', () => ({
   checkAdminPassword: vi.fn((pwd: string) => pwd === 'secret'),
@@ -12,6 +14,7 @@ vi.mock('../lib/admin-auth', () => ({
 vi.mock('../lib/db', () => ({
   getNewsletterDueSubscribers: vi.fn(),
   getNewsletterSubscribersByEmails: vi.fn(),
+  getAllNewsletterSubscribers: vi.fn(),
   getSubscriberByEmail: vi.fn(),
   recordEmailSend: vi.fn(),
   insertNewsletterSchedule: vi.fn(),
@@ -35,13 +38,14 @@ vi.mock('../lib/resend/broadcasts', () => ({
 vi.mock('../lib/resend/contacts', () => ({
   getResendClient: () => ({
     broadcasts: { create: broadcastsCreate },
-    segments: { create: segmentsCreate, list: vi.fn(async () => ({ data: { data: [] }, error: null })) },
+    segments: { create: segmentsCreate, list: segmentsList, remove: segmentsRemove },
     contacts: { update: vi.fn() },
   }),
   createPropertyIfMissing: vi.fn(),
   deleteNewsletterProperties: vi.fn(),
 }));
-vi.mock('../lib/newsletter/segments', () => ({
+vi.mock('../lib/newsletter/segments', async importOriginal => ({
+  ...(await importOriginal<typeof import('../lib/newsletter/segments')>()),
   addEmailsToSegment: vi.fn(),
   removeNewsletterSegment: vi.fn(),
   listSegmentContacts: vi.fn(),
@@ -53,6 +57,7 @@ vi.mock('../lib/newsletter/notes', () => ({
 import {
   getNewsletterSegments,
   getNewsletterSubscribersByEmails,
+  getAllNewsletterSubscribers,
   getNewsletterDueSubscribers,
   getNewsletterSegmentsForIssue,
   getScheduleForNewsletter,
@@ -134,6 +139,8 @@ beforeEach(() => {
   vi.mocked(getNewsletterSubscribersByEmails).mockResolvedValue([pat, sam] as never);
   vi.mocked(insertNewsletterSchedule).mockResolvedValue({ id: 31 } as never);
   broadcastsCreate.mockResolvedValue({ data: { id: 'bc-1' }, error: null });
+  segmentsList.mockResolvedValue({ data: { data: [] }, error: null });
+  segmentsRemove.mockResolvedValue({ data: {}, error: null });
 });
 
 describe('scheduling a one-off issue', () => {
@@ -279,5 +286,88 @@ describe('scheduling a series issue', () => {
     const res = await POST(scheduleRequest({ newsletterNumber: 6, sendAt, segmentIds: [7] }));
     expect(res.status).toBe(400);
     expect(broadcastsCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe('scheduling a one-off issue to everyone', () => {
+  beforeEach(() => {
+    vi.mocked(loadNewsletterIssue).mockResolvedValue(issue({}));
+    vi.mocked(getAllNewsletterSubscribers).mockResolvedValue([pat, sam, kim] as never);
+    vi.mocked(addEmailsToSegment).mockResolvedValue(3);
+    segmentsCreate.mockResolvedValue({ data: { id: 'resend-everyone' }, error: null });
+  });
+
+  it('broadcasts once to a temporary segment holding every subscriber who can receive newsletters', async () => {
+    const res = await POST(scheduleRequest({ newsletterNumber: 10001, sendAt, everyone: true }));
+    const events = await readEvents(res);
+    expect(events.at(-1)).toMatchObject({ step: 'complete', result: { kind: 'everyone', contactCount: 3 } });
+
+    expect(segmentsCreate).toHaveBeenCalledTimes(1);
+    expect(segmentsCreate.mock.calls[0][0].name).toMatch(/^everyone_10001_/);
+    expect(addEmailsToSegment).toHaveBeenCalledWith(
+      'resend-everyone',
+      ['pat@example.com', 'sam@example.com', 'kim@example.com'],
+      expect.any(Function),
+    );
+    expect(broadcastsCreate).toHaveBeenCalledTimes(1);
+    expect(broadcastsCreate.mock.calls[0][0]).toMatchObject({ segmentId: 'resend-everyone', scheduledAt: sendAt });
+  });
+
+  it('records the schedule as an everyone send with no persistent segment', async () => {
+    await readEvents(await POST(scheduleRequest({ newsletterNumber: 10001, sendAt, everyone: true })));
+    expect(insertNewsletterSchedule).toHaveBeenCalledTimes(1);
+    expect(insertNewsletterSchedule).toHaveBeenCalledWith(expect.objectContaining({
+      kind: 'everyone',
+      broadcastId: 'bc-1',
+      segmentId: 'resend-everyone',
+      newsletterSegmentId: null,
+      subscriberCount: 3,
+    }));
+    expect(recordEmailSend).toHaveBeenCalledTimes(3);
+    expect(insertNewsletterSegment).not.toHaveBeenCalled();
+  });
+
+  it('does not look at the persistent segments', async () => {
+    await readEvents(await POST(scheduleRequest({ newsletterNumber: 10001, sendAt, everyone: true })));
+    expect(listSegmentContacts).not.toHaveBeenCalled();
+  });
+
+  it('clears leftover test segments first so the temporary segment fits the Resend limit', async () => {
+    segmentsList.mockResolvedValue({
+      data: { data: [{ id: 'old-test', name: 'newsletter_10_test_1' }, { id: 'ogs', name: 'segment_OGs' }] },
+      error: null,
+    });
+    await readEvents(await POST(scheduleRequest({ newsletterNumber: 10001, sendAt, everyone: true })));
+    expect(segmentsRemove).toHaveBeenCalledWith('old-test');
+    expect(segmentsRemove).not.toHaveBeenCalledWith('ogs');
+    expect(segmentsRemove.mock.invocationCallOrder[0]).toBeLessThan(segmentsCreate.mock.invocationCallOrder[0]);
+  });
+
+  it('removes the temporary segment again if the broadcast cannot be created', async () => {
+    broadcastsCreate.mockResolvedValue({ data: null, error: { message: 'nope' } });
+    const events = await readEvents(await POST(scheduleRequest({ newsletterNumber: 10001, sendAt, everyone: true })));
+    expect(events.at(-1)).toMatchObject({ step: 'error' });
+    expect(segmentsRemove).toHaveBeenCalledWith('resend-everyone');
+    expect(insertNewsletterSchedule).not.toHaveBeenCalled();
+  });
+
+  it('refuses everyone combined with chosen segments', async () => {
+    const res = await POST(scheduleRequest({ newsletterNumber: 10001, sendAt, everyone: true, segmentIds: [7] }));
+    expect(res.status).toBe(400);
+    expect(broadcastsCreate).not.toHaveBeenCalled();
+  });
+
+  it('refuses everyone for a series issue', async () => {
+    vi.mocked(loadNewsletterIssue).mockResolvedValue(issue({ number: 6, oneOff: false }));
+    const res = await POST(scheduleRequest({ newsletterNumber: 6, sendAt, everyone: true }));
+    expect(res.status).toBe(400);
+    expect(broadcastsCreate).not.toHaveBeenCalled();
+  });
+
+  it('returns 422 when no one can receive newsletters', async () => {
+    vi.mocked(getAllNewsletterSubscribers).mockResolvedValue([]);
+    const res = await POST(scheduleRequest({ newsletterNumber: 10001, sendAt, everyone: true }));
+    expect(res.status).toBe(422);
+    expect(segmentsCreate).not.toHaveBeenCalled();
   });
 });

@@ -11,7 +11,7 @@ import {
 import type { ReactNodeViewProps } from '@tiptap/react';
 import type { SlashCommandItem } from '@react-email/editor/ui';
 import { TextSelection } from '@tiptap/pm/state';
-import { EMAIL_FIELDS, SHADOW_NAMES, QUALITY_NAMES } from './email-fields';
+import { EMAIL_FIELDS, SHADOW_NAMES, QUALITY_NAMES, FUNCTION_NAMES } from './email-fields';
 import {
   NEWSLETTER_ENGAGEMENT_PROPERTIES,
   NEWSLETTER_FIELDS,
@@ -20,6 +20,8 @@ import {
   composeCondition,
   composeNewsletterCondition,
   composeModeCondition,
+  DEFINITION_FIELD,
+  DEFINITION_OPERATORS,
 } from './condition-syntax';
 import type { NewsletterEngagementProperty } from './condition-syntax';
 import { getAdminPassword } from '@/lib/admin-client-auth';
@@ -43,7 +45,8 @@ interface ConditionField {
  * (same names used by the Variable node and buildLiquidContext) with
  * `shadows` (every shadow name on the chart) and `qualities` (the conscious
  * and unconscious quality names), both tested with `contains` and
- * conditional-only. `mode` is not a chart field — it lives under Newsletter.
+ * conditional-only, as is Definition (whether a function is defined,
+ * undefined or open). `mode` is not a chart field — it lives under Newsletter.
  *
  * `career_type` = BG5 career design, `type` = traditional HD type.
  * "(any)" entries expand to an `or` of their subtypes (see ANY_VALUES).
@@ -52,6 +55,7 @@ const CONDITION_FIELDS: ConditionField[] = [
   ...EMAIL_FIELDS.map(f => ({ key: f.key, label: f.label, values: f.values })),
   { key: 'shadows', label: 'Shadows', values: SHADOW_NAMES, operators: ['contains', 'not contains'] },
   { key: 'qualities', label: 'Qualities', values: QUALITY_NAMES, operators: ['contains', 'not contains'] },
+  { key: DEFINITION_FIELD, label: 'Definition', values: FUNCTION_NAMES, operators: DEFINITION_OPERATORS },
 ];
 
 const FIELD_BY_KEY = new Map(CONDITION_FIELDS.map(f => [f.key, f]));

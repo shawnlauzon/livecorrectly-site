@@ -22,6 +22,7 @@ import { VariableNode, VariableEditForm, VARIABLE } from './variable-node';
 import { ConditionalBlockNode, ConditionalBranchNode, ConditionalKeymap, IF_THEN_ELSE, DEFAULT_CONDITION } from './conditional-node';
 import { LiquidClipboard } from './liquid-paste-extension';
 import { NEWSLETTER_LIBRARY } from './library-block-command';
+import { SHARE_LINK } from './share-link-command';
 import { ContentBlockNode } from './content-block-node';
 import { ContentBlockTrigger, filterSlashItems } from './content-block-trigger';
 import { orderForSlashMenu } from './slash-menu-order';
@@ -177,7 +178,7 @@ function injectRelativeAttrs(html: string, json: JSONContent): string {
 }
 
 const slashCommandItems = orderForSlashMenu([
-  ...defaultSlashCommands, imageSlashCommand, VARIABLE, IF_THEN_ELSE, NEWSLETTER_LIBRARY,
+  ...defaultSlashCommands, imageSlashCommand, VARIABLE, IF_THEN_ELSE, NEWSLETTER_LIBRARY, SHARE_LINK,
 ]);
 
 
@@ -518,11 +519,14 @@ function PreviewPane({
   previewTrigger,
   postscripts,
   num,
+  slug,
 }: {
   editorRef: React.RefObject<EditorHandle | null>;
   previewTrigger: number;
   postscripts: string[];
   num: number;
+  /** The slug as typed (may be unsaved): the share line shows only with one */
+  slug: string;
 }) {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
@@ -582,7 +586,7 @@ function PreviewPane({
             'Content-Type': 'application/json',
             ...(pwd ? { Authorization: `Bearer ${pwd}` } : {}),
           },
-          body: JSON.stringify({ html, subscriberId: subscriber.id, newsletterNumber: num, postscripts }),
+          body: JSON.stringify({ html, subscriberId: subscriber.id, newsletterNumber: num, postscripts, slug }),
         });
         if (cancelled) return;
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -598,7 +602,7 @@ function PreviewPane({
     }, 500);
 
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [previewTrigger, selectedId, subscribers, editorRef, postscripts, num]);
+  }, [previewTrigger, selectedId, subscribers, editorRef, postscripts, num, slug]);
 
   const selectedChart = subscribers.find(s => s.id === selectedId)?.chart?.chart ?? null;
 
@@ -858,37 +862,32 @@ export default function NewsletterEditorPage() {
               disabled={dirty || changingKind}
               title={dirty
                 ? 'Save your changes first'
-                : 'A one-off is sent once to a segment you choose; it is not part of the series and never posted'}
+                : 'A one-off is sent once to everyone or to segments you choose; it is not part of the series. Give it a slug to post it on the web'}
               className={styles.fieldInput}
             >
               <option value="series">Series issue</option>
               <option value="one-off">One-off</option>
             </select>
           </label>
-          {/* One-offs are never posted, so they have no web slug or description */}
-          {!oneOff && (
-            <>
-              <label className={styles.fieldLabel}>
-                Slug
-                <input
-                  type="text"
-                  value={slug}
-                  onChange={(e) => { setSlug(e.target.value); setDirty(true); }}
-                  className={styles.fieldInput}
-                  placeholder="url-safe-slug"
-                />
-              </label>
-              <label className={styles.fieldLabel}>
-                Description
-                <input
-                  type="text"
-                  value={description}
-                  onChange={(e) => { setDescription(e.target.value); setDirty(true); }}
-                  className={styles.fieldInput}
-                />
-              </label>
-            </>
-          )}
+          <label className={styles.fieldLabel}>
+            Slug
+            <input
+              type="text"
+              value={slug}
+              onChange={(e) => { setSlug(e.target.value); setDirty(true); }}
+              className={styles.fieldInput}
+              placeholder="url-safe-slug"
+            />
+          </label>
+          <label className={styles.fieldLabel}>
+            Description
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => { setDescription(e.target.value); setDirty(true); }}
+              className={styles.fieldInput}
+            />
+          </label>
         </div>
       </div>
 
@@ -957,6 +956,7 @@ export default function NewsletterEditorPage() {
           <PreviewPane
             editorRef={editorRef}
             previewTrigger={previewTrigger}
+            slug={slug}
             postscripts={postscripts}
             num={num}
           />

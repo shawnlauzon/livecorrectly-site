@@ -13,7 +13,10 @@ import { getUpcomingNote } from '@/lib/newsletter/notes';
  * Resolve Liquid tags in editor HTML for a specific subscriber.
  * Used by the admin newsletter editor's live preview pane.
  *
- * Body: { html: string, subscriberId: string, newsletterNumber?: number, postscripts?: string[] }
+ * Body: { html: string, subscriberId: string, newsletterNumber?: number, postscripts?: string[], slug?: string }
+ *
+ * `slug` is the slug as typed in the editor: with one, the preview shows the
+ * automatic share line and {{share_url}} shares the issue's web page.
  * Returns: { html: string, noteDate: string | null }
  *
  * The earliest note dated today or later is shown above the body (an issue being
@@ -32,12 +35,15 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { html, subscriberId, newsletterNumber, postscripts } = body as {
+  const { html, subscriberId, newsletterNumber, postscripts, slug } = body as {
     html?: string;
     subscriberId?: string;
     newsletterNumber?: number;
     postscripts?: string[];
+    /** The slug as typed in the editor (may be unsaved); decides the share link */
+    slug?: string | null;
   };
+  const share = { slug: slug?.trim() || null, newsletterNumber: newsletterNumber ?? 0 };
 
   if (!html || !subscriberId) {
     return NextResponse.json(
@@ -66,6 +72,7 @@ export async function POST(request: NextRequest) {
     email: subscriber.email,
     subscriberId,
     newsletterNumber: newsletterNumber ?? 0,
+    slug: share.slug,
     engagement,
   });
 
@@ -78,6 +85,7 @@ export async function POST(request: NextRequest) {
     ps: postscripts?.filter(Boolean) ?? [],
     note: note?.body,
     library: { subscriberId, newsletterNumber: newsletterNumber ?? 0 },
+    share,
   });
 
   return NextResponse.json({ html: chromed, noteDate: note?.sendDate ?? null });

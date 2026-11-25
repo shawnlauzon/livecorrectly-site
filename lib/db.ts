@@ -397,6 +397,21 @@ export async function getNewsletterDueSubscribers(
 }
 
 /**
+ * Every subscriber a newsletter can go to (same statuses as
+ * getNewsletterDueSubscribers), wherever they are in the welcome series or the
+ * newsletter series. Used to send a one-off issue to everyone.
+ */
+export async function getAllNewsletterSubscribers(): Promise<Subscriber[]> {
+  const db = getDb();
+  const result = await db`
+    SELECT * FROM subscribers
+    WHERE email_status IN ('active', 'failed')
+    ORDER BY created_at ASC
+  `;
+  return (result as Subscriber[]).map(normalizeSubscriber);
+}
+
+/**
  * Subscribers a newsletter can go to (same statuses as getNewsletterDueSubscribers)
  * among these emails, matched ignoring case. Used to send a one-off issue to the
  * contacts of a chosen segment.
@@ -949,12 +964,19 @@ export async function getNewsletterEngagementBatch(
 
 // --- Newsletter schedules ---
 
+export type NewsletterScheduleKind = 'broadcast' | 'direct' | 'everyone';
+
 /** A scheduled newsletter send tracked in newsletter_schedules. */
 export interface NewsletterSchedule {
   id: number;
   newsletter_num: number;
-  /** 'broadcast' = Resend broadcast to a segment; 'direct' = per-subscriber scheduled emails */
-  kind: 'broadcast' | 'direct';
+  /**
+   * 'broadcast' = Resend broadcast to a persistent segment; 'direct' =
+   * per-subscriber scheduled emails; 'everyone' = Resend broadcast to a
+   * temporary segment of every subscriber (`segment_id`), which is removed
+   * from Resend once the send completes or is cancelled
+   */
+  kind: NewsletterScheduleKind;
   broadcast_id: string | null;
   segment_id: string | null;
   /** The persistent newsletter_segments row this send targeted (broadcast only) */
@@ -972,7 +994,7 @@ export interface NewsletterSchedule {
  */
 export async function insertNewsletterSchedule(data: {
   newsletterNum: number;
-  kind: 'broadcast' | 'direct';
+  kind: NewsletterScheduleKind;
   broadcastId: string | null;
   segmentId: string | null;
   newsletterSegmentId: number | null;

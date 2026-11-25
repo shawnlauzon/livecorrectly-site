@@ -69,16 +69,50 @@ describe('one-off issues', () => {
     vi.mocked(getNewsletterEngagement).mockResolvedValue(new Map());
   });
 
-  it('are left out of the library even when sent and given a slug', async () => {
+  it('with a slug are listed in the library by send date', async () => {
+    const later: RawNewsletterIssue = { ...issue, number: 4, slug: 'issue-four', subject: 'Issue four' };
+    vi.mocked(loadAllNewsletterIssues).mockResolvedValue(new Map([[3, issue], [4, later], [10001, oneOff]]));
+    vi.mocked(getNewsletterSendDates).mockResolvedValue(new Map([
+      [3, '2026-09-30T13:00:00.000Z'],
+      [10001, '2026-10-01T13:00:00.000Z'],
+      [4, '2026-10-07T13:00:00.000Z'],
+    ]));
+    const all = await getWebNewsletters();
+    expect(all.map(n => n.number)).toEqual([4, 10001, 3]);
+  });
+
+  it('sent after every series issue are listed first', async () => {
+    const all = await getWebNewsletters();
+    expect(all.map(n => n.number)).toEqual([10001, 3]);
+  });
+
+  it('keep series issues in number order whatever their send dates', async () => {
+    const later: RawNewsletterIssue = { ...issue, number: 4, slug: 'issue-four' };
+    vi.mocked(loadAllNewsletterIssues).mockResolvedValue(new Map([[3, issue], [4, later]]));
+    vi.mocked(getNewsletterSendDates).mockResolvedValue(new Map([
+      [3, '2026-10-07T13:00:00.000Z'],
+      [4, '2026-09-30T13:00:00.000Z'],
+    ]));
+    const all = await getWebNewsletters();
+    expect(all.map(n => n.number)).toEqual([4, 3]);
+  });
+
+  it('without a slug are email-only', async () => {
+    vi.mocked(loadAllNewsletterIssues).mockResolvedValue(new Map([[3, issue], [10001, { ...oneOff, slug: null }]]));
     const all = await getWebNewsletters();
     expect(all.map(n => n.number)).toEqual([3]);
   });
 
-  it('have no web page', async () => {
+  it('with a slug have a web page once sent', async () => {
+    expect((await getWebNewsletter('one-off'))?.number).toBe(10001);
+  });
+
+  it('have no web page before they are sent', async () => {
+    vi.mocked(getNewsletterSendDates).mockResolvedValue(new Map([[3, '2026-09-30T13:00:00.000Z']]));
     expect(await getWebNewsletter('one-off')).toBeNull();
   });
 
-  it('get no slug redirects', async () => {
-    expect((await getSlugRedirects()).has('old-one-off')).toBe(false);
+  it('redirect their old slugs', async () => {
+    expect((await getSlugRedirects()).get('old-one-off')).toBe('one-off');
   });
 });
