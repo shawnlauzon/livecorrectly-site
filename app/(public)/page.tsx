@@ -14,13 +14,13 @@ import { getRememberedSubscriberId } from "@/lib/subscriber-cookie-server";
 
 export default async function Home() {
   const subscriberId = await getRememberedSubscriberId();
-  const chartHref = subscriberId ? `/see-your-design/${subscriberId}` : undefined;
+  const subscriber = Boolean(subscriberId);
 
   return (
     <>
       <SiteNav />
       <main>
-        <Hero chartHref={chartHref} />
+        <Hero subscriber={subscriber} />
         <hr className="rule" />
         <PullQuote />
         <hr className="rule" />
@@ -30,7 +30,7 @@ export default async function Home() {
         <SectionTracker name="work_with_me_teaser"><WorkWithMeTeaser /></SectionTracker>
         <SectionTracker name="method"><Method /></SectionTracker>
         <SectionTracker name="about"><About /></SectionTracker>
-        <SectionTracker name="closing_cta"><ClosingCta chartHref={chartHref} /></SectionTracker>
+        <SectionTracker name="closing_cta"><ClosingCta subscriber={subscriber} /></SectionTracker>
       </main>
       <SiteFooter />
     </>

@@ -44,9 +44,12 @@ export default function StarterOffer({ subscriberId }: { subscriberId?: string |
           >
             Get your guide
           </a>
-          <p className={styles.note}>
-            After you pay, I&rsquo;ll ask for your birth details.
-          </p>
+          {/* Known subscribers' birth details are on file; /guide/thanks won't ask again. */}
+          {!subscriberId && (
+            <p className={styles.note}>
+              After you pay, I&rsquo;ll ask for your birth details.
+            </p>
+          )}
           {guided && (
             <p className={styles.note}>
               Want to talk it through?{' '}

@@ -7,8 +7,20 @@
  * falls back to the free 15-minute call, so the page never shows a dead button.
  */
 
-/** Free 15-minute call. Reuses the existing site-wide booking link. */
-export const FREE_CALL_URL = process.env.NEXT_PUBLIC_BOOKING_URL;
+/**
+ * Free 15-minute call. Reuses the existing site-wide booking link (set in the
+ * checked-in .env). Several pages link to it with no fallback, so a missing
+ * value stops the build rather than shipping links that go nowhere.
+ */
+export const FREE_CALL_URL = requireUrl(
+  'NEXT_PUBLIC_BOOKING_URL',
+  process.env.NEXT_PUBLIC_BOOKING_URL,
+);
+
+function requireUrl(name: string, value: string | undefined): string {
+  if (!value) throw new Error(`${name} is not set: the free 15-minute call links would go nowhere.`);
+  return value;
+}
 
 
 export type Offer = {

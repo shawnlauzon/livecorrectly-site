@@ -8,8 +8,8 @@ import styles from './hero.module.css';
 
 let hasAnimated = false;
 
-/** `chartHref` is set for returning subscribers (remembered id) — they get "Work with me", with their design as the small link. */
-export default function Hero({ chartHref }: { chartHref?: string }) {
+/** `subscriber` is set for returning subscribers (remembered id) — they get "Work with me", with the free 15-minute conversation as the small link. */
+export default function Hero({ subscriber = false }: { subscriber?: boolean }) {
   const [skipAnimation] = useState(() => {
     // Track only in the browser: the page is server-rendered per request, and a
     // flag flipped on the server would persist across requests and mismatch hydration.
@@ -57,7 +57,7 @@ export default function Hero({ chartHref }: { chartHref?: string }) {
           </p>
 
           <div className={styles.ctaGroup}>
-            <CtaPair chartHref={chartHref} location="hero" subClassName={styles.ctaSub} />
+            <CtaPair subscriber={subscriber} location="hero" subClassName={styles.ctaSub} />
           </div>
         </div>
 

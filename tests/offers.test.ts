@@ -37,3 +37,16 @@ describe("guideBuyUrl", () => {
     expect(guideBuyUrl(null)).toBe("https://buy.stripe.com/test_abc");
   });
 });
+
+describe("free 15-minute call link", () => {
+  it("stops the build instead of rendering a dead link when it isn't set", async () => {
+    vi.stubEnv("NEXT_PUBLIC_BOOKING_URL", "");
+    vi.resetModules();
+    try {
+      await expect(import("@/lib/offers")).rejects.toThrow(/NEXT_PUBLIC_BOOKING_URL/);
+    } finally {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
+  });
+});

@@ -1,7 +1,8 @@
 .section {
   background: var(--plum-soft);
   padding-top: clamp(3.5rem, 8vh, 5.5rem);
-  padding-bottom: clamp(3.5rem, 8vh, 5.5rem);
+  /* Short: the Work with me paragraph (work-with-me-teaser) continues this band */
+  padding-bottom: 2rem;
 }
 
 .inner {
