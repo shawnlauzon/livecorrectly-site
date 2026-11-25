@@ -3,9 +3,9 @@ import SiteNav from "@/components/site-nav";
 import SiteFooter from "@/components/site-footer";
 import ChartForm from "@/components/chart-form";
 import RememberSubscriber from "@/components/remember-subscriber";
-import GuidePurchase from "@/components/guide-purchase";
+import PurchaseReport from "@/components/purchase-report";
 import { getSubscriberById } from "@/lib/db";
-import { isCheckoutSessionId } from "@/lib/offers";
+import { isCheckoutSessionId, STARTER } from "@/lib/offers";
 import { isSubscriberId } from "@/lib/subscriber-cookie";
 import { getGuideBuyerId, getRememberedSubscriberId } from "@/lib/subscriber-cookie-server";
 import styles from "./page.module.css";
@@ -40,7 +40,13 @@ export default async function GuideThanksPage({
   return (
     <>
       {fromLink && <RememberSubscriber id={fromLink.id} />}
-      {sessionId && <GuidePurchase sessionId={sessionId} subscriberId={subscriber?.id} />}
+      {sessionId && (
+        <PurchaseReport
+          sessionId={sessionId}
+          item={{ id: STARTER.id, name: STARTER.name, price: STARTER.price }}
+          subscriberId={subscriber?.id}
+        />
+      )}
       <SiteNav subscriberId={subscriber?.id} />
       <main className={styles.page}>
         <p className="eyebrow">Thank you</p>
@@ -59,7 +65,7 @@ export default async function GuideThanksPage({
               To write your guide I need your birth details. It&rsquo;ll be in
               your inbox within 24 hours of sending them.
             </p>
-            <ChartForm guidePurchase={{ sessionId }} />
+            <ChartForm purchase={{ sessionId }} />
           </>
         )}
       </main>

@@ -82,7 +82,7 @@ export const OFFER_GROUPS: OfferGroup[] = [
         description:
           "One thing that’s stuck: a decision, a way of working, something that keeps wearing you out. You leave knowing what your design says to do about it.",
         details:
-          "One 90-minute conversation. Pay now and book whenever it suits you. Your guide arrives within 24 hours of booking.",
+          "One 90-minute conversation. Pay now and book whenever it suits you. Your guide arrives within 24 hours.",
         guides: 1,
         includesFollowUp: false,
         bookingUrl: process.env.NEXT_PUBLIC_BOOKING_URL_GUIDED,
@@ -229,6 +229,21 @@ export function guideBuyUrl(subscriberId?: string | null): string | undefined {
 export function guideBuyPath(subscriberId: string): string | undefined {
   if (!STARTER.buyUrl) return undefined;
   return `/guide/buy?s=${subscriberId}`;
+}
+
+/**
+ * Thank-you page for a pay-first offer, carrying the Stripe session and (once
+ * their details are on file) the subscriber's id.
+ */
+export function offerThanksPath(
+  offerId: string,
+  sessionId: string | null,
+  subscriberId?: string,
+): string {
+  const params = new URLSearchParams({ offer: offerId });
+  if (sessionId) params.set("session_id", sessionId);
+  if (subscriberId) params.set("s", subscriberId);
+  return `/work-with-me/thanks?${params}`;
 }
 
 /** Stripe Checkout Session id, as Stripe puts it in the redirect URL. */

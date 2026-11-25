@@ -5,18 +5,34 @@ import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { getWelcomeSubject } from '@/lib/email/subjects';
 import { getWelcomeEmail } from '@/lib/email/welcome';
 import { syncContactToResend } from '@/lib/resend/contacts';
-import { isCheckoutSessionId } from '@/lib/offers';
-import { confirmGuidePurchase } from '@/lib/email/guide-purchase';
+import { isCheckoutSessionId, findOffer, isPayFirst } from '@/lib/offers';
+import { confirmPurchase } from '@/lib/email/purchase';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
     const { email, first_name, last_name, birth_input, chart } = body;
-    // Sent by the form on /guide/thanks (after buying the guide on Stripe)
-    const guidePurchase = body.guide_purchase
-      ? { sessionId: isCheckoutSessionId(body.guide_purchase.session_id) ? body.guide_purchase.session_id : null }
-      : undefined;
+    // Sent by the post-purchase form (the guide's thank-you page, or a pay-first offer's).
+    // offer_id says which pay-first offer was bought; without it, it's the guide.
+    let guidePurchase: { sessionId: string | null; offerId?: string; offerName?: string } | undefined;
+    if (body.guide_purchase) {
+      guidePurchase = {
+        sessionId: isCheckoutSessionId(body.guide_purchase.session_id) ? body.guide_purchase.session_id : null,
+      };
+      const rawOfferId = body.guide_purchase.offer_id;
+      if (rawOfferId !== undefined) {
+        const offer = typeof rawOfferId === 'string' ? findOffer(rawOfferId) : undefined;
+        if (offer && isPayFirst(offer)) {
+          guidePurchase.offerId = offer.id;
+          guidePurchase.offerName = offer.name;
+        } else {
+          // Still sign the person up, but don't confirm a purchase we can't identify
+          console.error(`[subscribe] Unknown or not pay-first offer_id ${JSON.stringify(rawOfferId)}; treating as a plain signup`);
+          guidePurchase = undefined;
+        }
+      }
+    }
 
     if (!email || !first_name || !birth_input || chart == null) {
       return NextResponse.json(
@@ -114,17 +130,23 @@ export async function POST(request: NextRequest) {
 
     // Admin notification — fire-and-forget, failure must never block registration
     if (isFresh && process.env.RESEND_API_KEY) {
-      sendAdminNotification(subscriber, chartData.type, false, guidePurchase).catch((err) => {
+      sendAdminNotification(
+        subscriber,
+        chartData.type,
+        false,
+        guidePurchase && { sessionId: guidePurchase.sessionId, offerName: guidePurchase.offerName },
+      ).catch((err) => {
         console.error(`[subscribe] Failed to send admin notification for ${subscriber.email}:`, err);
       });
     }
 
     // Tell a guide buyer it's on the way. The admin notice above already covers Shawn.
     if (guidePurchase?.sessionId && process.env.RESEND_API_KEY) {
-      await confirmGuidePurchase({
+      await confirmPurchase({
         subscriber,
         sessionId: guidePurchase.sessionId,
         notifyAdmin: !isFresh,
+        ...(guidePurchase.offerId && { offerId: guidePurchase.offerId }),
       }).catch((err) => {
         console.error(`[subscribe] Failed to confirm guide purchase for ${subscriber.email}:`, err);
       });

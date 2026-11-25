@@ -2,9 +2,14 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import SiteNav from "@/components/site-nav";
 import SiteFooter from "@/components/site-footer";
-import OfferPurchase from "@/components/offer-purchase";
+import ChartForm from "@/components/chart-form";
+import RememberSubscriber from "@/components/remember-subscriber";
+import PurchaseReport from "@/components/purchase-report";
 import TrackedLink from "@/components/tracked-link";
+import { getSubscriberById } from "@/lib/db";
 import { findOffer, isCheckoutSessionId, isPayFirst } from "@/lib/offers";
+import { isSubscriberId } from "@/lib/subscriber-cookie";
+import { getRememberedSubscriberId } from "@/lib/subscriber-cookie-server";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
@@ -16,7 +21,8 @@ export const metadata: Metadata = {
  * Where Stripe sends people after they pay for a pay-first offer
  * (redirect set on the Payment Link:
  * /work-with-me/thanks?offer=<id>&session_id={CHECKOUT_SESSION_ID}).
- * They pick a time on the offer's unpaid Google Calendar schedule.
+ * Known subscriber: they pick a time on the offer's unpaid Google Calendar
+ * schedule. Anyone else gives birth details first (the guide needs them).
  */
 export default async function OfferThanksPage({
   searchParams,
@@ -41,46 +47,71 @@ export default async function OfferThanksPage({
         <SiteNav />
         <main className={styles.page}>
           <p className="eyebrow">Thank you</p>
-          <h1 className={styles.h1}>Thanks for booking.</h1>
-          <p className={styles.lede}>I&rsquo;ll email you a link to pick your time.</p>
+          <h1 className={styles.h1}>Thank you for your payment.</h1>
+          <p className={styles.lede}>
+            I&rsquo;ll email you about next steps, including a link to pick a time for our
+            conversation.
+          </p>
         </main>
         <SiteFooter />
       </>
     );
   }
 
+  // An email link's ?s= wins (checked against the database); then the remember-me cookie.
+  const subscriberParam = isSubscriberId(params.s) ? params.s : null;
+  const fromLink = subscriberParam ? await getSubscriberById(subscriberParam) : null;
+  const rememberedId = fromLink ? null : await getRememberedSubscriberId();
+  const subscriber = fromLink ?? (rememberedId ? await getSubscriberById(rememberedId) : null);
+
   return (
     <>
+      {fromLink && <RememberSubscriber id={fromLink.id} />}
       {sessionId && (
-        <OfferPurchase
+        <PurchaseReport
           sessionId={sessionId}
-          offer={{ id: offer.id, name: offer.name, price: offer.price }}
+          item={{ id: offer.id, name: offer.name, price: offer.price }}
+          subscriberId={subscriber?.id}
+          offerId={subscriber ? offer.id : undefined}
         />
       )}
-      <SiteNav />
+      <SiteNav subscriberId={subscriber?.id} />
       <main className={styles.page}>
         <p className="eyebrow">Thank you</p>
-        <h1 className={styles.h1}>Now pick your time.</h1>
-        <p className={styles.lede}>
-          Choose a time for our conversation. You&rsquo;ll get a calendar invite as soon as you book.
-        </p>
-        <TrackedLink
-          href={scheduleUrl}
-          event="schedule_click"
-          params={{ offer: offer.id }}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn"
-        >
-          Pick your time
-        </TrackedLink>
-        <p className={styles.note}>
-          If you lose this page before booking, email{" "}
-          <a className="link" href="mailto:shawn@livecorrectly.com">
-            shawn@livecorrectly.com
-          </a>{" "}
-          and I&rsquo;ll send you the link.
-        </p>
+        {subscriber ? (
+          <>
+            <h1 className={styles.h1}>Now pick a time for our conversation.</h1>
+            <p className={styles.lede}>
+              Your personalized guide will be in your inbox within 24 hours. Book our
+              conversation whenever it suits you.
+            </p>
+            <TrackedLink
+              href={scheduleUrl}
+              event="schedule_click"
+              params={{ offer: offer.id }}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn"
+            >
+              Pick your time
+            </TrackedLink>
+            {/* The link email goes out with the purchase report, which needs a session. */}
+            {sessionId && (
+              <p className={styles.note}>
+                I&rsquo;ve also emailed you this link, so you can book later.
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <h1 className={styles.h1}>One more step.</h1>
+            <p className={styles.lede}>
+              To write your personalized guide, I need your birth details. Then you can pick a
+              time for our conversation.
+            </p>
+            <ChartForm purchase={{ sessionId, offer: { id: offer.id, scheduleUrl } }} />
+          </>
+        )}
       </main>
       <SiteFooter />
     </>

@@ -314,6 +314,42 @@ export async function forwardInboundReply(
   return { success: true, id: data?.id };
 }
 
+/** Subject and body lines (before the admin link) of the admin notification. */
+export function adminNotificationContent(
+  subscriber: Subscriber,
+  chartType: string,
+  isRestart: boolean,
+  purchase?: { sessionId: string | null; existingSubscriber?: boolean; offerName?: string }
+): { subject: string; lines: string[] } {
+  const purchaseName = purchase?.offerName ?? 'Guide';
+  const subject = purchase
+    ? `${purchaseName} purchase: ${subscriber.first_name} (${chartType})`
+    : isRestart
+      ? `Series restarted: ${subscriber.first_name} (${chartType})`
+      : `New signup: ${subscriber.first_name} (${chartType})`;
+
+  const bodyPrefix = isRestart
+    ? `Series restarted: ${subscriber.first_name} (${subscriber.email})`
+    : purchase?.existingSubscriber
+      ? `Existing subscriber: ${subscriber.first_name} (${subscriber.email})`
+      : `New subscriber: ${subscriber.first_name} (${subscriber.email})`;
+
+  return {
+    subject,
+    lines: [
+      bodyPrefix,
+      `Type: ${chartType}`,
+      ...(purchase
+        ? [
+            `Bought ${purchase.offerName ?? 'the personalized guide'}. Stripe checkout session: ${
+              purchase.sessionId ?? 'none in the link (check Stripe before writing the guide)'
+            }`,
+          ]
+        : []),
+    ],
+  };
+}
+
 /**
  * Send a plain-text admin notification when a new subscriber signs up (including
  * after buying the guide) or restarts the series.
@@ -327,10 +363,11 @@ export async function sendAdminNotification(
   chartType: string,
   isRestart = false,
   /**
-   * Set for a guide purchase. `existingSubscriber` marks a buyer whose birth
-   * details were already on file (no new signup happened).
+   * Set for a purchase (the guide, or an offer when `offerName` is given).
+   * `existingSubscriber` marks a buyer whose birth details were already on file
+   * (no new signup happened).
    */
-  guidePurchase?: { sessionId: string | null; existingSubscriber?: boolean }
+  purchase?: { sessionId: string | null; existingSubscriber?: boolean; offerName?: string }
 ): Promise<void> {
   const from = TRANSACTIONAL_DOMAIN
     ? `Shawn Lauzon <shawn@${TRANSACTIONAL_DOMAIN}>`
@@ -342,17 +379,7 @@ export async function sendAdminNotification(
   const appUrl = process.env.APP_URL ?? 'https://www.livecorrectly.com';
   const adminUrl = `${appUrl}/admin/${subscriber.id}`;
 
-  const subject = guidePurchase
-    ? `Guide purchase: ${subscriber.first_name} (${chartType})`
-    : isRestart
-      ? `Series restarted: ${subscriber.first_name} (${chartType})`
-      : `New signup: ${subscriber.first_name} (${chartType})`;
-
-  const bodyPrefix = isRestart
-    ? `Series restarted: ${subscriber.first_name} (${subscriber.email})`
-    : guidePurchase?.existingSubscriber
-      ? `Existing subscriber: ${subscriber.first_name} (${subscriber.email})`
-      : `New subscriber: ${subscriber.first_name} (${subscriber.email})`;
+  const { subject, lines } = adminNotificationContent(subscriber, chartType, isRestart, purchase);
 
   const adminEmail = process.env.ADMIN_EMAIL;
   if (!adminEmail) {
@@ -365,19 +392,7 @@ export async function sendAdminNotification(
     from,
     to: adminEmail,
     subject,
-    text: [
-      bodyPrefix,
-      `Type: ${chartType}`,
-      ...(guidePurchase
-        ? [
-            `Bought the personalized guide. Stripe checkout session: ${
-              guidePurchase.sessionId ?? 'none in the link (check Stripe before writing the guide)'
-            }`,
-          ]
-        : []),
-      ``,
-      `Admin: ${adminUrl}`,
-    ].join('\n'),
+    text: [...lines, ``, `Admin: ${adminUrl}`].join('\n'),
     ...(replyTo && { replyTo }),
   });
 

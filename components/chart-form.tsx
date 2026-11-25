@@ -9,6 +9,8 @@ import hdChart from "@/lib/hd-chart";
 import { generateChart as generateChartAPI, BirthDetails } from "@/lib/generate-chart";
 import { track } from "@/lib/analytics";
 import ChartLinkRequest from "@/components/chart-link-request";
+import TrackedLink from "@/components/tracked-link";
+import { offerThanksPath, STARTER } from "@/lib/offers";
 
 /** Shape returned by the Maia Mechanics places API: { [timezone]: city[] } */
 interface TimeZoneCities {
@@ -32,14 +34,16 @@ async function generateChart(details: BirthDetails): Promise<ChartRecord> {
 }
 
 /**
- * `guidePurchase` is set on /guide/thanks, after the visitor bought the guide:
- * the signup is flagged as a purchase, and an email that already has a chart
- * on file is fine (the details are already there) rather than an error.
+ * `purchase` is set on a thank-you page, after the visitor paid: the signup is
+ * flagged as a purchase, and an email that already has a chart on file is fine
+ * (the details are already there) rather than an error. Without `offer` it's
+ * the guide (/guide/thanks); with one it's a pay-first offer: the buyer is
+ * offered the offer's schedule and, once saved, sent on to its thank-you page.
  */
 export default function ChartForm({
-  guidePurchase,
+  purchase,
 }: {
-  guidePurchase?: { sessionId: string | null };
+  purchase?: { sessionId: string | null; offer?: { id: string; scheduleUrl: string } };
 } = {}) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -228,15 +232,19 @@ export default function ChartForm({
       );
       if (checkRes.ok) {
         const { exists } = (await checkRes.json()) as { exists: boolean };
-        if (exists && guidePurchase) {
-          track('guide_details_on_file');
+        if (exists && purchase) {
+          track('purchase_details_on_file', { product: purchase.offer?.id ?? STARTER.id });
           // They skip the signup that would notify Shawn, so report the purchase here.
-          if (guidePurchase.sessionId) {
+          if (purchase.sessionId) {
             fetch('/api/guide/purchase', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ session_id: guidePurchase.sessionId, email }),
-            }).catch((err) => console.error('Failed to report guide purchase:', err));
+              body: JSON.stringify({
+                session_id: purchase.sessionId,
+                email,
+                ...(purchase.offer && { offer_id: purchase.offer.id }),
+              }),
+            }).catch((err) => console.error('Failed to report purchase:', err));
           }
           setEmailTaken(email);
           setSubmitting(false);
@@ -282,8 +290,11 @@ export default function ChartForm({
           last_name: lastName || null,
           birth_input: birthInput,
           chart: result,
-          ...(guidePurchase && {
-            guide_purchase: { session_id: guidePurchase.sessionId },
+          ...(purchase && {
+            guide_purchase: {
+              session_id: purchase.sessionId,
+              ...(purchase.offer && { offer_id: purchase.offer.id }),
+            },
           }),
         }),
       });
@@ -303,7 +314,11 @@ export default function ChartForm({
         time_unknown: birthInput.timeUnknown,
       });
 
-      router.push(`/see-your-design/${id}?from=form`);
+      router.push(
+        purchase?.offer
+          ? offerThanksPath(purchase.offer.id, purchase.sessionId, id)
+          : `/see-your-design/${id}?from=form`,
+      );
     } catch (err) {
       console.error("Chart generation/save error:", err);
       const errorType = err instanceof Error && err.message.includes('Save failed')
@@ -525,12 +540,12 @@ export default function ChartForm({
         <button className={styles.btn} type="submit" disabled={submitting}>
           {submitting
             ? "Reading your design\u2026"
-            : guidePurchase
+            : purchase
               ? "Send my details"
               : "See my design"}
         </button>
 
-        {!guidePurchase && (
+        {!purchase && (
           <p
             style={{
               color: "var(--ink-soft)",
@@ -543,21 +558,38 @@ export default function ChartForm({
           </p>
         )}
 
-        {emailTaken && guidePurchase && (
-          <p
-            style={{
-              color: "var(--ink)",
-              fontSize: "0.98rem",
-              marginTop: 14,
-              textAlign: "center",
-            }}
-          >
-            I already have your birth details for this email. Your guide will be
-            in your inbox within 24 hours.
-          </p>
+        {emailTaken && purchase && (
+          <>
+            <p
+              style={{
+                color: "var(--ink)",
+                fontSize: "0.98rem",
+                marginTop: 14,
+                textAlign: "center",
+              }}
+            >
+              {purchase.offer
+                ? "I already have your birth details for this email. Your personalized guide will be in your inbox within 24 hours."
+                : "I already have your birth details for this email. Your guide will be in your inbox within 24 hours."}
+            </p>
+            {purchase.offer && (
+              <p style={{ marginTop: 14, textAlign: "center" }}>
+                <TrackedLink
+                  href={purchase.offer.scheduleUrl}
+                  event="schedule_click"
+                  params={{ offer: purchase.offer.id }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn"
+                >
+                  Pick your time
+                </TrackedLink>
+              </p>
+            )}
+          </>
         )}
 
-        {emailTaken && !guidePurchase && (
+        {emailTaken && !purchase && (
           <p
             style={{
               color: "var(--coral)",

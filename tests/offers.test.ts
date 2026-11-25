@@ -101,3 +101,17 @@ describe("free 15-minute call link", () => {
     }
   });
 });
+
+describe("offerThanksPath", () => {
+  it("builds the thank-you path with optional session and subscriber", async () => {
+    const { offerThanksPath } = await import("@/lib/offers");
+    const s = "11111111-1111-4111-8111-111111111111";
+    expect(offerThanksPath("guided", "cs_test_abc", s)).toBe(
+      `/work-with-me/thanks?offer=guided&session_id=cs_test_abc&s=${s}`,
+    );
+    expect(offerThanksPath("guided", null)).toBe("/work-with-me/thanks?offer=guided");
+    expect(offerThanksPath("guided", "cs_test_abc")).toBe(
+      "/work-with-me/thanks?offer=guided&session_id=cs_test_abc",
+    );
+  });
+});
