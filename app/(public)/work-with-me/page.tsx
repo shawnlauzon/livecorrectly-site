@@ -10,6 +10,8 @@ import {
   FREE_CALL_URL,
   GUIDE_VALUE,
   OFFER_GROUPS,
+  isPayFirst,
+  offerBuyUrl,
   type Offer,
 } from "@/lib/offers";
 import OfferLink from "./OfferLink";
@@ -61,6 +63,7 @@ export default async function WorkWithMePage({
                 <OfferItem
                   key={offer.id}
                   offer={offer}
+                  subscriberId={subscriberId}
                 />
               ))}
             </ul>
@@ -109,7 +112,7 @@ export default async function WorkWithMePage({
   );
 }
 
-function OfferItem({ offer }: { offer: Offer }) {
+function OfferItem({ offer, subscriberId }: { offer: Offer; subscriberId: string | null }) {
   const includes = [
     offer.guides === 1 &&
       `Includes your personalized guide to living correctly ($${GUIDE_VALUE} value)`,
@@ -136,7 +139,16 @@ function OfferItem({ offer }: { offer: Offer }) {
         </ul>
       )}
       <div className={styles.actions}>
-        {offer.bookingUrl ? (
+        {isPayFirst(offer) ? (
+          <OfferLink
+            className={styles.book}
+            href={offerBuyUrl(offer, subscriberId)}
+            offerId={offer.id}
+            checkout={{ name: offer.name, price: offer.price }}
+          >
+            {offer.cta}
+          </OfferLink>
+        ) : offer.bookingUrl ? (
           <OfferLink className={styles.book} href={offer.bookingUrl} offerId={offer.id}>
             {offer.cta}
           </OfferLink>
@@ -145,7 +157,7 @@ function OfferItem({ offer }: { offer: Offer }) {
             Ask me about this
           </OfferLink>
         )}
-        {offer.offerFreeCall && offer.bookingUrl && (
+        {offer.offerFreeCall && (offer.bookingUrl || isPayFirst(offer)) && (
           <OfferLink className="link" href={FREE_CALL_URL} offerId={offer.id} free>
             Or book a free 15-minute call first
           </OfferLink>

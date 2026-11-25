@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { track } from '@/lib/analytics';
+import { firstTimeThisSession } from '@/lib/once-per-session';
 import { STARTER } from '@/lib/offers';
 
 /**
@@ -19,13 +20,7 @@ export default function GuidePurchase({
   subscriberId?: string;
 }) {
   useEffect(() => {
-    const key = `guide_purchase_${sessionId}`;
-    try {
-      if (window.sessionStorage.getItem(key)) return;
-      window.sessionStorage.setItem(key, '1');
-    } catch {
-      // Storage unavailable: carry on, GA4 dedupes on transaction_id and the server on the subscriber.
-    }
+    if (!firstTimeThisSession(`guide_purchase_${sessionId}`)) return;
 
     track('purchase', {
       transaction_id: sessionId,

@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { OFFER_GROUPS } from "@/lib/offers";
 
 describe("offers", () => {
@@ -35,6 +35,57 @@ describe("guideBuyUrl", () => {
   it("leaves the link alone for a new visitor", async () => {
     const { guideBuyUrl } = await import("@/lib/offers");
     expect(guideBuyUrl(null)).toBe("https://buy.stripe.com/test_abc");
+  });
+});
+
+describe("pay-first offers", () => {
+  const SUBSCRIBER = "11111111-1111-4111-8111-111111111111";
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  async function load(buy: string, schedule: string) {
+    vi.stubEnv("NEXT_PUBLIC_BUY_URL_GUIDED", buy);
+    vi.stubEnv("NEXT_PUBLIC_SCHEDULE_URL_GUIDED", schedule);
+    vi.resetModules();
+    return import("@/lib/offers");
+  }
+
+  it("is pay-first when both the buy link and the schedule are set", async () => {
+    const { findOffer, isPayFirst, offerBuyUrl } = await load(
+      "https://buy.stripe.com/test_guided",
+      "https://calendar.google.com/schedule"
+    );
+    const guided = findOffer("guided")!;
+    expect(isPayFirst(guided)).toBe(true);
+    expect(offerBuyUrl(guided, null)).toBe("https://buy.stripe.com/test_guided");
+    expect(offerBuyUrl(guided, SUBSCRIBER)).toBe(
+      `https://buy.stripe.com/test_guided?client_reference_id=${SUBSCRIBER}`
+    );
+  });
+
+  it("is not pay-first with only the buy link", async () => {
+    const { findOffer, isPayFirst, offerBuyUrl } = await load("https://buy.stripe.com/test_guided", "");
+    const guided = findOffer("guided")!;
+    expect(isPayFirst(guided)).toBe(false);
+    expect(offerBuyUrl(guided, SUBSCRIBER)).toBeUndefined();
+  });
+
+  it("is not pay-first with only the schedule", async () => {
+    const { findOffer, isPayFirst } = await load("", "https://calendar.google.com/schedule");
+    expect(isPayFirst(findOffer("guided")!)).toBe(false);
+  });
+
+  it("leaves every other offer as it was", async () => {
+    const { findOffer, isPayFirst } = await load(
+      "https://buy.stripe.com/test_guided",
+      "https://calendar.google.com/schedule"
+    );
+    for (const id of ["deep-dive", "year-ahead", "next-ten-years", "partnership"]) {
+      expect(isPayFirst(findOffer(id)!)).toBe(false);
+    }
   });
 });
 

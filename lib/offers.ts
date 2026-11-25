@@ -5,6 +5,9 @@
  * Booking links come from env vars (one Google Calendar appointment schedule
  * per offer, each with its own Stripe price). An offer whose link isn't set
  * falls back to the free 15-minute call, so the page never shows a dead button.
+ *
+ * A pay-first offer (see isPayFirst) is paid for on Stripe first, then booked on
+ * an unpaid Google Calendar schedule.
  */
 
 /**
@@ -38,6 +41,13 @@ export type Offer = {
   guides: number;
   includesFollowUp: boolean;
   bookingUrl?: string;
+  /**
+   * Stripe Payment Link for a pay-first offer. In Stripe, set it to redirect
+   * after payment to /work-with-me/thanks?offer=<id>&session_id={CHECKOUT_SESSION_ID}.
+   */
+  buyUrl?: string;
+  /** Unpaid Google Calendar schedule shown on the thank-you page after paying. */
+  scheduleUrl?: string;
   /** Show the free-call link beside this offer (bigger decisions). */
   offerFreeCall?: boolean;
 };
@@ -75,6 +85,8 @@ export const OFFER_GROUPS: OfferGroup[] = [
         guides: 1,
         includesFollowUp: false,
         bookingUrl: process.env.NEXT_PUBLIC_BOOKING_URL_GUIDED,
+        buyUrl: process.env.NEXT_PUBLIC_BUY_URL_GUIDED,
+        scheduleUrl: process.env.NEXT_PUBLIC_SCHEDULE_URL_GUIDED,
       },
       {
         id: "deep-dive",
@@ -158,6 +170,27 @@ export function findOffer(id: string): Offer | undefined {
   return undefined;
 }
 
+/** True only when both the Stripe link and the unpaid schedule are set. */
+export function isPayFirst(offer: Offer): boolean {
+  return Boolean(offer.buyUrl && offer.scheduleUrl);
+}
+
+/**
+ * Stripe link for a pay-first offer, carrying the subscriber's id (if known) as
+ * client_reference_id. Undefined unless the offer is pay-first.
+ */
+export function offerBuyUrl(offer: Offer, subscriberId?: string | null): string | undefined {
+  if (!isPayFirst(offer) || !offer.buyUrl) return undefined;
+  return withClientReference(offer.buyUrl, subscriberId);
+}
+
+function withClientReference(buyUrl: string, subscriberId?: string | null): string {
+  if (!subscriberId) return buyUrl;
+  const url = new URL(buyUrl);
+  url.searchParams.set("client_reference_id", subscriberId);
+  return url.toString();
+}
+
 /**
  * The personalized guide on its own. Not "working with me", so it isn't on
  * /work-with-me: it's sold from the homepage, bought outright through a Stripe
@@ -183,10 +216,7 @@ export const GUIDE_VALUE = STARTER.price;
  */
 export function guideBuyUrl(subscriberId?: string | null): string | undefined {
   if (!STARTER.buyUrl) return undefined;
-  if (!subscriberId) return STARTER.buyUrl;
-  const url = new URL(STARTER.buyUrl);
-  url.searchParams.set("client_reference_id", subscriberId);
-  return url.toString();
+  return withClientReference(STARTER.buyUrl, subscriberId);
 }
 
 /**
