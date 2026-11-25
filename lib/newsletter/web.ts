@@ -95,8 +95,7 @@ async function renderForWeb(
   reader: WebReader = {},
   useSampleChart = false,
 ): Promise<WebNewsletter | null> {
-  // One-offs go to a single segment once and are never posted
-  if (!raw.slug || raw.oneOff) return null;
+  if (!raw.slug) return null;
   const { chart, subscriberId, firstName, lastName } = reader;
 
   // Extract thumbnail from original editor HTML (before style stripping)
@@ -149,7 +148,7 @@ export interface WebReader {
 
 /**
  * Load all newsletters that have a `slug` and have been sent (recorded in the DB),
- * sorted newest-first. In development, also includes unsent newsletters with
+ * sorted newest-first (one-offs are placed among the series issues by send date). In development, also includes unsent newsletters with
  * `published: false` so they can be previewed during authoring.
  */
 export async function getWebNewsletters(): Promise<WebNewsletter[]> {
@@ -157,7 +156,8 @@ export async function getWebNewsletters(): Promise<WebNewsletter[]> {
   const isDev = process.env.NODE_ENV === 'development';
   const all = await loadAllNewsletterIssues();
 
-  const results: WebNewsletter[] = [];
+  const series: WebNewsletter[] = [];
+  const oneOffs: WebNewsletter[] = [];
   for (const [num, raw] of all) {
     const sentAt = sendDates.get(num);
 
@@ -166,7 +166,7 @@ export async function getWebNewsletters(): Promise<WebNewsletter[]> {
     try {
       const publishedAt = sentAt ?? new Date().toISOString();
       const parsed = await renderForWeb(raw, publishedAt, !!sentAt);
-      if (parsed) results.push(parsed);
+      if (parsed) (raw.oneOff ? oneOffs : series).push(parsed);
     } catch (error) {
       console.error(
         `Failed to render newsletter #${num} (${raw.slug ?? 'no-slug'}):`,
@@ -176,8 +176,17 @@ export async function getWebNewsletters(): Promise<WebNewsletter[]> {
     }
   }
 
-  // Newest first
-  results.sort((a, b) => b.number - a.number);
+  // Series issues newest first, by number
+  series.sort((a, b) => b.number - a.number);
+
+  // A one-off has no place in the series, so it sits by its send date: above
+  // the newest series issue published on or before it
+  const results = [...series];
+  oneOffs.sort((a, b) => a.publishedAt.localeCompare(b.publishedAt));
+  for (const oneOff of oneOffs) {
+    const at = results.findIndex(n => n.publishedAt <= oneOff.publishedAt);
+    results.splice(at === -1 ? results.length : at, 0, oneOff);
+  }
   return results;
 }
 
@@ -228,7 +237,7 @@ export async function getSlugRedirects(): Promise<Map<string, string>> {
   const all = await loadAllNewsletterIssues();
   const redirects = new Map<string, string>();
   for (const [, raw] of all) {
-    if (!raw.slug || raw.oneOff) continue;
+    if (!raw.slug) continue;
     for (const old of raw.oldSlugs) {
       redirects.set(old, raw.slug);
     }

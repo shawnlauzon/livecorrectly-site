@@ -27,8 +27,8 @@ import { nextRegularSendAt } from '@/lib/newsletter/cadence';
  * - segments: persistent segments whose next issue is this one
  *
  * A one-off has no cohort due for it, so instead `segments` are the segments
- * its schedules (pending or sent) targeted, and dueCount is how many they
- * went to in total.
+ * its schedules (pending or sent) targeted, `everyone` is whether one of them
+ * went to every subscriber, and dueCount is how many they went to in total.
  * - schedule: the pending send, if one is scheduled
  *
  * Finalizes completed sends first (see finalizeDueSchedules).
@@ -75,6 +75,7 @@ export async function GET(request: NextRequest) {
         subject: raw?.subject ?? '',
         slug: raw?.slug ?? null,
         oneOff: raw?.oneOff ?? false,
+        everyone: oneOffSchedules.some(s => s.kind === 'everyone'),
 
         receivedCount: stats?.receivedCount ?? 0,
         lastSentAt: stats?.lastSentAt ?? null,

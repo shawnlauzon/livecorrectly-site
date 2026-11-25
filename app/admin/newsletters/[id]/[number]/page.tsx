@@ -858,37 +858,32 @@ export default function NewsletterEditorPage() {
               disabled={dirty || changingKind}
               title={dirty
                 ? 'Save your changes first'
-                : 'A one-off is sent once to a segment you choose; it is not part of the series and never posted'}
+                : 'A one-off is sent once to everyone or to segments you choose; it is not part of the series. Give it a slug to post it on the web'}
               className={styles.fieldInput}
             >
               <option value="series">Series issue</option>
               <option value="one-off">One-off</option>
             </select>
           </label>
-          {/* One-offs are never posted, so they have no web slug or description */}
-          {!oneOff && (
-            <>
-              <label className={styles.fieldLabel}>
-                Slug
-                <input
-                  type="text"
-                  value={slug}
-                  onChange={(e) => { setSlug(e.target.value); setDirty(true); }}
-                  className={styles.fieldInput}
-                  placeholder="url-safe-slug"
-                />
-              </label>
-              <label className={styles.fieldLabel}>
-                Description
-                <input
-                  type="text"
-                  value={description}
-                  onChange={(e) => { setDescription(e.target.value); setDirty(true); }}
-                  className={styles.fieldInput}
-                />
-              </label>
-            </>
-          )}
+          <label className={styles.fieldLabel}>
+            Slug
+            <input
+              type="text"
+              value={slug}
+              onChange={(e) => { setSlug(e.target.value); setDirty(true); }}
+              className={styles.fieldInput}
+              placeholder="url-safe-slug"
+            />
+          </label>
+          <label className={styles.fieldLabel}>
+            Description
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => { setDescription(e.target.value); setDirty(true); }}
+              className={styles.fieldInput}
+            />
+          </label>
         </div>
       </div>
 

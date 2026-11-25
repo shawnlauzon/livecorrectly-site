@@ -30,7 +30,7 @@ export interface ScheduleCompleteEvent {
   result: {
     /** One per broadcast (a one-off to several segments has several); empty for a test send */
     scheduleIds: number[];
-    kind: 'broadcast' | 'direct';
+    kind: 'broadcast' | 'direct' | 'everyone';
     /** One per segment sent to; empty for direct sends */
     broadcastIds: string[];
     contactCount: number;

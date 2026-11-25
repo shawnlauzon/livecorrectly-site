@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 
 const broadcastsRemove = vi.fn();
 const emailsCancel = vi.fn();
+const segmentsRemove = vi.fn();
 
 vi.mock('../lib/admin-auth', () => ({
   checkAdminPassword: vi.fn((pwd: string) => pwd === 'secret'),
@@ -17,6 +18,7 @@ vi.mock('../lib/resend/contacts', () => ({
   getResendClient: () => ({
     broadcasts: { remove: broadcastsRemove },
     emails: { cancel: emailsCancel },
+    segments: { remove: segmentsRemove },
   }),
 }));
 
@@ -46,6 +48,7 @@ function broadcastSchedule(id: number, broadcastId: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   broadcastsRemove.mockResolvedValue({ data: {}, error: null });
+  segmentsRemove.mockResolvedValue({ data: {}, error: null });
 });
 
 describe('POST /api/admin/newsletters/cancel', () => {
@@ -71,5 +74,25 @@ describe('POST /api/admin/newsletters/cancel', () => {
     expect(deleteEmailSendsForBroadcast).toHaveBeenCalledWith('bc-8');
     expect(deleteNewsletterSchedule).toHaveBeenCalledWith(31);
     expect(deleteNewsletterSchedule).toHaveBeenCalledWith(32);
+  });
+});
+
+describe('cancelling a send to everyone', () => {
+  it('removes the broadcast, the temporary segment and the schedule', async () => {
+    vi.mocked(getPendingSchedulesForNewsletter).mockResolvedValue([
+      { ...broadcastSchedule(40, 'bc-all'), kind: 'everyone', segment_id: 'resend-everyone', newsletter_segment_id: null },
+    ] as never);
+    const res = await POST(cancelRequest({ newsletterNumber: 10001 }));
+    expect(res.status).toBe(200);
+    expect(broadcastsRemove).toHaveBeenCalledWith('bc-all');
+    expect(segmentsRemove).toHaveBeenCalledWith('resend-everyone');
+    expect(deleteEmailSendsForBroadcast).toHaveBeenCalledWith('bc-all');
+    expect(deleteNewsletterSchedule).toHaveBeenCalledWith(40);
+  });
+
+  it('keeps the segment of an ordinary broadcast', async () => {
+    vi.mocked(getPendingSchedulesForNewsletter).mockResolvedValue([broadcastSchedule(41, 'bc-seg')] as never);
+    await POST(cancelRequest({ newsletterNumber: 10001 }));
+    expect(segmentsRemove).not.toHaveBeenCalled();
   });
 });

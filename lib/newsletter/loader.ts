@@ -26,8 +26,9 @@ export interface RawNewsletterIssue {
   /** Stable key assignments for Liquid dynamic sections (null if no Liquid) */
   liquidSectionMap: LiquidSectionMap | null;
   /**
-   * Sent once to a chosen segment, outside the series: never advances anyone
-   * and never appears on the web. See lib/newsletter/one-off.ts.
+   * Sent once to everyone or to chosen segments, outside the series: never
+   * advances anyone. Like a series issue, it is on the web only when it has a
+   * slug. See lib/newsletter/one-off.ts.
    */
   oneOff: boolean;
   /** Last-modified timestamp (ISO 8601) for optimistic locking */

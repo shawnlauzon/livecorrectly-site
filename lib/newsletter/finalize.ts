@@ -1,6 +1,7 @@
 import { getDueUnfinalizedSchedules, finalizeNewsletterSchedule } from '@/lib/db';
 import type { NewsletterSchedule } from '@/lib/db';
 import { getResendClient } from '@/lib/resend/contacts';
+import { removeEveryoneSegment } from './segments';
 
 /** Resend states in which a single scheduled email has not gone out yet. */
 const PENDING_EMAIL_EVENTS = new Set(['scheduled', 'queued']);
@@ -38,7 +39,8 @@ async function isSendComplete(schedule: NewsletterSchedule): Promise<boolean> {
 
 /**
  * Finalize every schedule whose send time has passed and whose send Resend
- * reports as complete: mark it 'sent' and move its segment to the next issue.
+ * reports as complete: mark it 'sent' and move its segment to the next issue
+ * (or, for a send to everyone, remove its temporary segment).
  *
  * Safe to call concurrently and repeatedly (see finalizeNewsletterSchedule).
  * Called when the admin newsletter list loads and from the daily cron. Not
@@ -52,6 +54,11 @@ export async function finalizeDueSchedules(): Promise<{ finalized: number[] }> {
       const result = await finalizeNewsletterSchedule(schedule.id);
       if (result.finalized) {
         finalized.push(schedule.id);
+        // A send to everyone used a temporary segment; only the caller that
+        // finalized the schedule removes it
+        if (schedule.kind === 'everyone' && schedule.segment_id) {
+          await removeEveryoneSegment(schedule.segment_id);
+        }
         console.log(
           `[finalize] Newsletter #${schedule.newsletter_num} schedule ${schedule.id} → sent` +
             (result.segmentAdvanced
