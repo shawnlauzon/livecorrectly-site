@@ -466,3 +466,14 @@
     animation: none;
   }
 }
+
+/* Guide offer on the design page, under the unexplained terms */
+.guideOffer {
+  margin: 8px 0 24px;
+  padding: 20px;
+  background: var(--plum-soft);
+  border-radius: 2px;
+}
+.guideOffer .resultP {
+  color: var(--ink);
+}

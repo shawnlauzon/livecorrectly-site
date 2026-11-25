@@ -3,6 +3,8 @@ import { parseChartForEmail } from '@/lib/hd-chart/parse-for-email';
 import { Welcome1 } from '@/emails/welcome1';
 import { Welcome2 } from '@/emails/welcome2';
 import { Welcome3 } from '@/emails/welcome3';
+import { guideBuyPath } from '@/lib/offers';
+import { PRODUCTION_URL } from '@/lib/site-url';
 import React from 'react';
 
 export const WELCOME_SERIES_LENGTH = 3;
@@ -32,8 +34,14 @@ export function getWelcomeEmail(
     case 2:
       return React.createElement(Welcome2, props);
     case 3:
-      return React.createElement(Welcome3, props);
+      return React.createElement(Welcome3, { ...props, guideUrl: guideEmailUrl(subscriber.id) });
     default:
       return null;
   }
+}
+
+/** Absolute buy link for an email, or undefined until the Stripe link is set. */
+function guideEmailUrl(subscriberId: string): string | undefined {
+  const path = guideBuyPath(subscriberId);
+  return path ? `${process.env.APP_URL ?? PRODUCTION_URL}${path}` : undefined;
 }

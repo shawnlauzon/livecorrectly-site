@@ -83,6 +83,12 @@ export default function PrivacyPage() {
               <code>cookie-consent</code> — Your cookie preference, stored in
               localStorage (not a cookie). No expiration.
             </li>
+            <li>
+              <code>lc_guide_buyer</code> — Set when you buy the personalized
+              guide from a link we sent you, so we don&apos;t ask for your birth
+              details again after you pay. Not used for analytics. Expires
+              after 2 hours.
+            </li>
           </ul>
 
           <h2 className={styles.h2}>Your rights</h2>

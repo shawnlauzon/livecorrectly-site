@@ -6,6 +6,7 @@ import ChartHero from './chart-hero';
 import styles from './chart-form.module.css';
 import type { PublicSubscriber } from '@/lib/types/subscriber';
 import { track } from '@/lib/analytics';
+import { STARTER, guideBuyPath } from '@/lib/offers';
 
 interface ChartViewProps {
   subscriberId: string;
@@ -40,6 +41,7 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
   }
 
   const isPreview = searchParams.get('preview') === 'true';
+  const buyUrl = guideBuyPath(subscriberId);
 
   useEffect(() => {
     async function fetchSubscriber() {
@@ -117,6 +119,33 @@ export default function ChartView({ subscriberId }: ChartViewProps) {
           that&rsquo;s expected: these are terms without the description behind
           them.
         </p>
+        {buyUrl && (
+          <div className={styles.guideOffer}>
+            <p className={styles.resultP}>
+              The guide is the description. About 30 pages on how you make
+              decisions, how you work best, and what wears you out, made to read
+              on your phone. I put each one together myself, so it can take up
+              to 24 hours to send it.
+            </p>
+            <a
+              className={styles.btn}
+              style={{ width: 'auto', marginTop: 4 }}
+              href={buyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() =>
+                track('begin_checkout', {
+                  currency: 'USD',
+                  value: STARTER.price,
+                  items: [{ item_id: STARTER.id, item_name: STARTER.name, price: STARTER.price }],
+                  location: 'design_page',
+                })
+              }
+            >
+              Get your guide for ${STARTER.price}
+            </a>
+          </div>
+        )}
         {isFromForm && (
           <p className={styles.resultP}>
             Check your inbox, I&rsquo;ve sent you the first email. Gmail sometimes

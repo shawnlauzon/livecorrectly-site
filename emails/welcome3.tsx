@@ -1,8 +1,10 @@
 import * as React from 'react';
-import { Text } from 'react-email';
+import { Link, Text } from 'react-email';
 import { EmailLayout } from './components/email-layout';
 import { EmailChartData } from '../lib/hd-chart/parse-for-email';
 import { formatOftenPrompt } from './content';
+import { EMAIL_COLORS } from '../lib/email/colors';
+import { STARTER } from '../lib/offers';
 
 export const subject = 'Are you in the flow?';
 export const preview = 'A test you can run in ten seconds.';
@@ -11,6 +13,8 @@ interface Welcome3Props {
   firstName: string;
   chart: EmailChartData;
   unsubscribeUrl: string;
+  /** Buy link for the personalized guide; the offer is left out when unset. */
+  guideUrl?: string;
 }
 
 /**
@@ -20,6 +24,7 @@ export const Welcome3 = ({
   firstName,
   chart,
   unsubscribeUrl,
+  guideUrl,
 }: Welcome3Props) => {
   return (
     <EmailLayout
@@ -30,6 +35,19 @@ export const Welcome3 = ({
           {formatOftenPrompt(`feel ${chart.notSelfThemeAdjective}`, chart)} Hit
           reply and let me know.
         </>,
+        ...(guideUrl
+          ? [
+              <>
+                Want all of this written out for your design? The personalized
+                guide is about 30 pages on how you make decisions, how you work
+                best, and what wears you out. It&apos;s ${STARTER.price}.{' '}
+                <Link href={guideUrl} style={{ color: EMAIL_COLORS.action, textDecoration: 'underline' }}>
+                  Get your guide
+                </Link>
+                .
+              </>,
+            ]
+          : []),
       ]}
     >
       <Text className="mb-[16px] text-[16px] leading-[24px]">

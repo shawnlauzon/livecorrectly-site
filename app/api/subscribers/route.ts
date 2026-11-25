@@ -6,6 +6,7 @@ import { getWelcomeSubject } from '@/lib/email/subjects';
 import { getWelcomeEmail } from '@/lib/email/welcome';
 import { syncContactToResend } from '@/lib/resend/contacts';
 import { isCheckoutSessionId } from '@/lib/offers';
+import { confirmGuidePurchase } from '@/lib/email/guide-purchase';
 
 export async function POST(request: NextRequest) {
   try {
@@ -115,6 +116,17 @@ export async function POST(request: NextRequest) {
     if (isFresh && process.env.RESEND_API_KEY) {
       sendAdminNotification(subscriber, chartData.type, false, guidePurchase).catch((err) => {
         console.error(`[subscribe] Failed to send admin notification for ${subscriber.email}:`, err);
+      });
+    }
+
+    // Tell a guide buyer it's on the way. The admin notice above already covers Shawn.
+    if (guidePurchase?.sessionId && process.env.RESEND_API_KEY) {
+      await confirmGuidePurchase({
+        subscriber,
+        sessionId: guidePurchase.sessionId,
+        notifyAdmin: !isFresh,
+      }).catch((err) => {
+        console.error(`[subscribe] Failed to confirm guide purchase for ${subscriber.email}:`, err);
       });
     }
 
