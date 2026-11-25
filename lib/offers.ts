@@ -81,7 +81,8 @@ export const OFFER_GROUPS: OfferGroup[] = [
         price: 97,
         description:
           "One thing that’s stuck: a decision, a way of working, something that keeps wearing you out. You leave knowing what your design says to do about it.",
-        details: "One 90-minute conversation.",
+        details:
+          "One 90-minute conversation. Pay now and book whenever it suits you. Your guide arrives within 24 hours of booking.",
         guides: 1,
         includesFollowUp: false,
         bookingUrl: process.env.NEXT_PUBLIC_BOOKING_URL_GUIDED,
