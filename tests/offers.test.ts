@@ -50,3 +50,12 @@ describe("free 15-minute call link", () => {
     }
   });
 });
+
+describe("Black Friday", () => {
+  it("the sale offer exists and is cheaper than its normal price", async () => {
+    const { BLACK_FRIDAY, findOffer } = await import("@/lib/offers");
+    const offer = findOffer(BLACK_FRIDAY.offerId);
+    expect(offer).toBeDefined();
+    expect(BLACK_FRIDAY.price).toBeLessThan(offer!.price);
+  });
+});

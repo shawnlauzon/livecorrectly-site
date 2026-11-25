@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Wrap from './wrap';
 import { track } from '@/lib/analytics';
-import { STARTER, findOffer, guideBuyUrl } from '@/lib/offers';
+import { BLACK_FRIDAY, STARTER, findOffer, guideBuyUrl } from '@/lib/offers';
 import styles from './starter-offer.module.css';
 
 /**
@@ -13,6 +13,8 @@ import styles from './starter-offer.module.css';
 export default function StarterOffer({ subscriberId }: { subscriberId?: string | null }) {
   const buyUrl = guideBuyUrl(subscriberId);
   const guided = findOffer('guided');
+  // Black Friday (everyone): Guided costs the same as the guide alone
+  const salePrice = guided?.id === BLACK_FRIDAY.offerId ? BLACK_FRIDAY.price : null;
 
   return (
     <section className={styles.section}>
@@ -50,7 +52,22 @@ export default function StarterOffer({ subscriberId }: { subscriberId?: string |
               After you pay, I&rsquo;ll ask for your birth details.
             </p>
           )}
-          {guided && (
+          {guided && salePrice != null && (
+            <Link
+              className={styles.sale}
+              href={`/work-with-me#${guided.id}`}
+              onClick={() => track('work_with_me_click', { location: 'home_starter_sale' })}
+            >
+              <span className={styles.saleTag}>Black Friday sale</span>
+              <span className={styles.salePrice}>
+                <s className={styles.saleWas}>${guided.price}</s> ${salePrice}
+              </span>
+              <span className={styles.saleText}>
+                One conversation includes the guide, for the same price. Through {BLACK_FRIDAY.endsOn} &rarr;
+              </span>
+            </Link>
+          )}
+          {guided && salePrice == null && (
             <p className={styles.note}>
               Want to talk it through?{' '}
               <Link

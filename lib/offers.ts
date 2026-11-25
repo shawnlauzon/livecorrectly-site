@@ -1,6 +1,6 @@
 /**
  * Single source of truth for offers: names, prices,
- * descriptions and booking links.
+ * descriptions, booking links, and the Black Friday sale.
  *
  * Booking links come from env vars (one Google Calendar appointment schedule
  * per offer, each with its own Stripe price). An offer whose link isn't set
@@ -149,6 +149,19 @@ export const OFFER_GROUPS: OfferGroup[] = [
     ],
   },
 ];
+
+/**
+ * Black Friday: Guided at a lower price for everyone. Lives on its own
+ * branch: it's on the site exactly while this code is deployed. Shawn changes
+ * the price on the Guided booking link to match; this only drives what the
+ * site shows.
+ */
+export const BLACK_FRIDAY = {
+  offerId: "guided",
+  price: 47,
+  /** Last day of the sale, as shown on the site: "through Cyber Monday" */
+  endsOn: "Cyber Monday",
+} as const;
 
 export function findOffer(id: string): Offer | undefined {
   for (const group of OFFER_GROUPS) {

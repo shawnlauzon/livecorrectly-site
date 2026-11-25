@@ -7,6 +7,7 @@ import { getSubscriberById } from "@/lib/db";
 import { isSubscriberId } from "@/lib/subscriber-cookie";
 import { getRememberedSubscriberId } from "@/lib/subscriber-cookie-server";
 import {
+  BLACK_FRIDAY,
   FREE_CALL_URL,
   GUIDE_VALUE,
   OFFER_GROUPS,
@@ -61,6 +62,11 @@ export default async function WorkWithMePage({
                 <OfferItem
                   key={offer.id}
                   offer={offer}
+                  salePrice={
+                    offer.id === BLACK_FRIDAY.offerId
+                      ? BLACK_FRIDAY.price
+                      : undefined
+                  }
                 />
               ))}
             </ul>
@@ -109,7 +115,7 @@ export default async function WorkWithMePage({
   );
 }
 
-function OfferItem({ offer }: { offer: Offer }) {
+function OfferItem({ offer, salePrice }: { offer: Offer; salePrice?: number }) {
   const includes = [
     offer.guides === 1 &&
       `Includes your personalized guide to living correctly ($${GUIDE_VALUE} value)`,
@@ -123,7 +129,14 @@ function OfferItem({ offer }: { offer: Offer }) {
       <div className={styles.offerHead}>
         <h3 className={styles.h3}>{offer.name}</h3>
         <p className={styles.price}>
-          ${offer.price}
+          {salePrice != null ? (
+            <>
+              <s className={styles.oldPrice}>${offer.price}</s> ${salePrice}
+              <span className={styles.saleNote}> through {BLACK_FRIDAY.endsOn}</span>
+            </>
+          ) : (
+            <>${offer.price}</>
+          )}
         </p>
       </div>
       <p className={styles.description}>{offer.description}</p>
