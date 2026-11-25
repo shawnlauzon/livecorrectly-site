@@ -11,7 +11,7 @@ interface RenderNewsletterEmailOptions {
   /** Shared note shown above the issue body */
   note?: string;
   /**
-   * Who the newsletter library block (after the logo and note) links for.
+   * Who the newsletter library block (before the article's first h1/h2) links for.
    * Required so every send path decides; null leaves the block out.
    */
   library: { subscriberId: string; newsletterNumber: number } | null;
