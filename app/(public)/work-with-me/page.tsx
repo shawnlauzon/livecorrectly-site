@@ -7,6 +7,8 @@ import { getSubscriberById } from "@/lib/db";
 import { isSubscriberId } from "@/lib/subscriber-cookie";
 import { getRememberedSubscriberId } from "@/lib/subscriber-cookie-server";
 import {
+  BLACK_FRIDAY,
+  currentPrice,
   FREE_CALL_URL,
   GUIDE_VALUE,
   OFFER_GROUPS,
@@ -64,6 +66,11 @@ export default async function WorkWithMePage({
                   key={offer.id}
                   offer={offer}
                   subscriberId={subscriberId}
+                  salePrice={
+                    offer.id === BLACK_FRIDAY.offerId
+                      ? BLACK_FRIDAY.price
+                      : undefined
+                  }
                 />
               ))}
             </ul>
@@ -112,7 +119,15 @@ export default async function WorkWithMePage({
   );
 }
 
-function OfferItem({ offer, subscriberId }: { offer: Offer; subscriberId: string | null }) {
+function OfferItem({
+  offer,
+  subscriberId,
+  salePrice,
+}: {
+  offer: Offer;
+  subscriberId: string | null;
+  salePrice?: number;
+}) {
   const includes = [
     offer.guides === 1 &&
       `Includes your personalized guide to living correctly ($${GUIDE_VALUE} value)`,
@@ -126,7 +141,14 @@ function OfferItem({ offer, subscriberId }: { offer: Offer; subscriberId: string
       <div className={styles.offerHead}>
         <h3 className={styles.h3}>{offer.name}</h3>
         <p className={styles.price}>
-          ${offer.price}
+          {salePrice != null ? (
+            <>
+              <s className={styles.oldPrice}>${offer.price}</s> ${salePrice}
+              <span className={styles.saleNote}> through {BLACK_FRIDAY.endsOn}</span>
+            </>
+          ) : (
+            <>${offer.price}</>
+          )}
         </p>
       </div>
       <p className={styles.description}>{offer.description}</p>
@@ -144,7 +166,7 @@ function OfferItem({ offer, subscriberId }: { offer: Offer; subscriberId: string
             className={styles.book}
             href={offerBuyUrl(offer, subscriberId)}
             offerId={offer.id}
-            checkout={{ name: offer.name, price: offer.price }}
+            checkout={{ name: offer.name, price: currentPrice(offer) }}
           >
             {offer.cta}
           </OfferLink>

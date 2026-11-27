@@ -115,3 +115,21 @@ describe("offerThanksPath", () => {
     );
   });
 });
+
+describe("Black Friday", () => {
+  it("the sale offer exists and is cheaper than its normal price", async () => {
+    const { BLACK_FRIDAY, findOffer } = await import("@/lib/offers");
+    const offer = findOffer(BLACK_FRIDAY.offerId);
+    expect(offer).toBeDefined();
+    expect(BLACK_FRIDAY.price).toBeLessThan(offer!.price);
+  });
+});
+
+describe("currentPrice", () => {
+  it("reports the sale price for the sale offer and the normal price for the rest", async () => {
+    const { BLACK_FRIDAY, currentPrice, findOffer } = await import("@/lib/offers");
+    expect(currentPrice(findOffer(BLACK_FRIDAY.offerId)!)).toBe(BLACK_FRIDAY.price);
+    const other = findOffer("deep-dive")!;
+    expect(currentPrice(other)).toBe(other.price);
+  });
+});

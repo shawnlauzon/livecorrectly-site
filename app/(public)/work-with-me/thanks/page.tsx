@@ -7,7 +7,7 @@ import RememberSubscriber from "@/components/remember-subscriber";
 import PurchaseReport from "@/components/purchase-report";
 import TrackedLink from "@/components/tracked-link";
 import { getSubscriberById } from "@/lib/db";
-import { findOffer, isCheckoutSessionId, isPayFirst } from "@/lib/offers";
+import { currentPrice, findOffer, isCheckoutSessionId, isPayFirst } from "@/lib/offers";
 import { isSubscriberId } from "@/lib/subscriber-cookie";
 import { getRememberedSubscriberId } from "@/lib/subscriber-cookie-server";
 import styles from "./page.module.css";
@@ -70,7 +70,7 @@ export default async function OfferThanksPage({
       {sessionId && (
         <PurchaseReport
           sessionId={sessionId}
-          item={{ id: offer.id, name: offer.name, price: offer.price }}
+          item={{ id: offer.id, name: offer.name, price: currentPrice(offer) }}
           subscriberId={subscriber?.id}
           offerId={subscriber ? offer.id : undefined}
         />
