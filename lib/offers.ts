@@ -178,8 +178,8 @@ export const BLACK_FRIDAY = {
   price: 47,
   /** Stripe promotion code (customer-facing code, not the coupon id). */
   promoCode: "BLACKFRIDAY",
-  /** Last day of the sale, as shown on the site: "through Cyber Monday" */
-  endsOn: "Cyber Monday",
+  /** Last day of the sale, as shown on the site: "through Monday" */
+  endsOn: "Monday",
 } as const;
 
 /** What an offer costs right now: the sale price while it's on sale. */

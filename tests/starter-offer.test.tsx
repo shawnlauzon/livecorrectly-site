@@ -31,7 +31,7 @@ describe('StarterOffer during Black Friday', () => {
     expect(html).toContain('Black Friday sale');
     expect(html).toContain('One conversation includes the guide, for the same price.');
     expect(html).toContain(BLACK_FRIDAY.promoCode);
-    expect(html).toMatch(/Through (<!-- -->)?Cyber Monday/);
+    expect(html).toMatch(new RegExp(`Through (<!-- -->)?${BLACK_FRIDAY.endsOn}`));
     // The normal price is struck through next to the sale price
     expect(html).toMatch(
       new RegExp(`<s[^>]*>\\$${findOffer('guided')!.price}</s> \\$${BLACK_FRIDAY.price}`),
