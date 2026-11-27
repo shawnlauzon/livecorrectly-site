@@ -60,8 +60,15 @@ describe("pay-first offers", () => {
     );
     const guided = findOffer("guided")!;
     expect(isPayFirst(guided)).toBe(true);
-    expect(offerBuyUrl(guided, null)).toBe("https://buy.stripe.com/test_guided");
-    expect(offerBuyUrl(guided, SUBSCRIBER)).toBe(
+    // During Black Friday the Guided link also carries the promotion code
+    // (tested separately); compare everything else.
+    const withoutPromo = (u?: string) => {
+      const url = new URL(u!);
+      url.searchParams.delete("prefilled_promo_code");
+      return url.toString();
+    };
+    expect(withoutPromo(offerBuyUrl(guided, null))).toBe("https://buy.stripe.com/test_guided");
+    expect(withoutPromo(offerBuyUrl(guided, SUBSCRIBER))).toBe(
       `https://buy.stripe.com/test_guided?client_reference_id=${SUBSCRIBER}`
     );
   });
@@ -133,3 +140,22 @@ describe("currentPrice", () => {
     expect(currentPrice(other)).toBe(other.price);
   });
 });
+
+describe("Black Friday promotion code", () => {
+  it("prefills the code on the sale offer's Stripe link, and only there", async () => {
+    vi.stubEnv("NEXT_PUBLIC_BUY_URL_GUIDED", "https://buy.stripe.com/test_guided");
+    vi.stubEnv("NEXT_PUBLIC_SCHEDULE_URL_GUIDED", "https://calendar.app.google/test");
+    vi.resetModules();
+    try {
+      const { BLACK_FRIDAY, findOffer, offerBuyUrl } = await import("@/lib/offers");
+      const id = "11111111-1111-4111-8111-111111111111";
+      const url = new URL(offerBuyUrl(findOffer(BLACK_FRIDAY.offerId)!, id)!);
+      expect(url.searchParams.get("prefilled_promo_code")).toBe(BLACK_FRIDAY.promoCode);
+      expect(url.searchParams.get("client_reference_id")).toBe(id);
+    } finally {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
+  });
+});
+

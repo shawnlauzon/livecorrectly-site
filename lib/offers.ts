@@ -165,13 +165,19 @@ export const OFFER_GROUPS: OfferGroup[] = [
 
 /**
  * Black Friday: Guided at a lower price for everyone. Lives on its own
- * branch: it's on the site exactly while this code is deployed. Guided is paid
- * on Stripe first, so the Guided Stripe Payment Link (NEXT_PUBLIC_BUY_URL_GUIDED)
- * must charge this price; this only drives what the site shows and reports.
+ * branch: it's on the site exactly while this code is deployed.
+ *
+ * The Guided Stripe Payment Link keeps its normal price. The discount is a
+ * Stripe promotion code, prefilled by the site's Guided buy links, so the
+ * Payment Link must have "Allow promotion codes" on, and the code must take
+ * the price down to `price`. The code's own expiry in Stripe ends the
+ * discount even if this branch is still deployed.
  */
 export const BLACK_FRIDAY = {
   offerId: "guided",
   price: 47,
+  /** Stripe promotion code (customer-facing code, not the coupon id). */
+  promoCode: "BLACKFRIDAY",
   /** Last day of the sale, as shown on the site: "through Cyber Monday" */
   endsOn: "Cyber Monday",
 } as const;
@@ -200,7 +206,11 @@ export function isPayFirst(offer: Offer): boolean {
  */
 export function offerBuyUrl(offer: Offer, subscriberId?: string | null): string | undefined {
   if (!isPayFirst(offer) || !offer.buyUrl) return undefined;
-  return withClientReference(offer.buyUrl, subscriberId);
+  const url = withClientReference(offer.buyUrl, subscriberId);
+  if (offer.id !== BLACK_FRIDAY.offerId) return url;
+  const withPromo = new URL(url);
+  withPromo.searchParams.set("prefilled_promo_code", BLACK_FRIDAY.promoCode);
+  return withPromo.toString();
 }
 
 function withClientReference(buyUrl: string, subscriberId?: string | null): string {
