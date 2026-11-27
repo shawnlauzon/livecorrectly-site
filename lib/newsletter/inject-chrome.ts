@@ -46,6 +46,8 @@ export interface InjectChromeOptions {
   preheader?: string;
   /** Shared note shown between the logo and the issue body */
   note?: string;
+  /** The Permission Slip masthead above the note; omitted when false. Default: shown */
+  masthead?: boolean;
   /**
    * Personalizes the newsletter library block, shown just before the article's
    * first h1/h2 (after the note when it has neither); omitted → no block
@@ -114,7 +116,8 @@ export function injectEmailChrome(
   const appUrl = options.appUrl ?? process.env.APP_URL ?? 'https://www.livecorrectly.com';
 
   // Build fragment strings (prefix is finished below, once the body is known)
-  const prefixParts = [logoFragment(appUrl), noteFragment(options.note ?? '')];
+  const masthead = options.masthead === false ? '' : logoFragment(appUrl);
+  const prefixParts = [masthead, noteFragment(options.note ?? '')];
   const signature = signatureFragment(appUrl);
   const ps = postscriptFragments(options.postscripts);
   const footer = footerFragment(options.unsubscribeUrl);

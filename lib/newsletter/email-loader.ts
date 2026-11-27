@@ -27,6 +27,8 @@ export interface NewsletterIssue {
   bodyHtml: string;
   /** Postscripts rendered after the signature (plain text) */
   ps: string[];
+  /** Sent outside the series (see lib/newsletter/one-off.ts) */
+  oneOff: boolean;
 }
 
 /**
@@ -41,6 +43,7 @@ function renderForEmail(raw: RawNewsletterIssue): NewsletterIssue {
     slug: raw.slug,
     bodyHtml: raw.bodyHtml,
     ps: raw.rawPs.map(p => p.trim()),
+    oneOff: raw.oneOff,
   };
 }
 
@@ -128,6 +131,7 @@ export async function getNewsletterIssue(
       slug: raw.slug,
       bodyHtml: resolvedHtml,
       ps,
+      oneOff: raw.oneOff,
     };
 
     return replaceNewsletterVariables(newsletter, firstName, subscriberId);

@@ -520,6 +520,7 @@ function PreviewPane({
   postscripts,
   num,
   slug,
+  oneOff,
 }: {
   editorRef: React.RefObject<EditorHandle | null>;
   previewTrigger: number;
@@ -527,6 +528,8 @@ function PreviewPane({
   num: number;
   /** The slug as typed (may be unsaved): the share line shows only with one */
   slug: string;
+  /** The "Send as" setting: a one-off has no Permission Slip masthead or library block */
+  oneOff: boolean;
 }) {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
@@ -586,7 +589,7 @@ function PreviewPane({
             'Content-Type': 'application/json',
             ...(pwd ? { Authorization: `Bearer ${pwd}` } : {}),
           },
-          body: JSON.stringify({ html, subscriberId: subscriber.id, newsletterNumber: num, postscripts, slug }),
+          body: JSON.stringify({ html, subscriberId: subscriber.id, newsletterNumber: num, postscripts, slug, oneOff }),
         });
         if (cancelled) return;
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -602,7 +605,7 @@ function PreviewPane({
     }, 500);
 
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [previewTrigger, selectedId, subscribers, editorRef, postscripts, num, slug]);
+  }, [previewTrigger, selectedId, subscribers, editorRef, postscripts, num, slug, oneOff]);
 
   const selectedChart = subscribers.find(s => s.id === selectedId)?.chart?.chart ?? null;
 
@@ -957,6 +960,7 @@ export default function NewsletterEditorPage() {
             editorRef={editorRef}
             previewTrigger={previewTrigger}
             slug={slug}
+            oneOff={oneOff}
             postscripts={postscripts}
             num={num}
           />

@@ -89,6 +89,7 @@ export async function POST(
       ps: newsletter.ps,
       preview: newsletter.preview,
       note,
+      oneOff: newsletter.oneOff,
       library: { subscriberId: subscriber.id, newsletterNumber: step },
       share: { slug: newsletter.slug, newsletterNumber: step },
     });

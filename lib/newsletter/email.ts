@@ -29,6 +29,7 @@ export async function getNewsletterHtml(
     unsubscribeUrl,
     ps: newsletter.ps,
     preview: newsletter.preview,
+    oneOff: newsletter.oneOff,
     library: { subscriberId: subscriber.id, newsletterNumber: step },
     share: { slug: newsletter.slug, newsletterNumber: step },
   });
