@@ -19,7 +19,10 @@ export default function BlackFridayBanner() {
           {offer.name} session <s className={styles.was}>${offer.price}</s>{" "}
           <strong className={styles.now}>${BLACK_FRIDAY.price}</strong>
         </span>
-        <span className={styles.until}>through {BLACK_FRIDAY.endsOn} &rarr;</span>
+        <span className={styles.code}>
+          Code <strong className={styles.codeValue}>{BLACK_FRIDAY.promoCode}</strong>
+        </span>
+        <span className={styles.until}>through {BLACK_FRIDAY.endsOn}{" "}&rarr;</span>
       </TrackedLink>
     </div>
   );

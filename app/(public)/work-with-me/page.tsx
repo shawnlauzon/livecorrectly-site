@@ -151,6 +151,12 @@ function OfferItem({
           )}
         </p>
       </div>
+      {salePrice != null && (
+        <p className={styles.saleCode}>
+          Use code <strong className={styles.saleCodeValue}>{BLACK_FRIDAY.promoCode}</strong>
+          {" "}at checkout. It&rsquo;s filled in for you.
+        </p>
+      )}
       <p className={styles.description}>{offer.description}</p>
       {offer.details && <p className={styles.details}>{offer.details}</p>}
       {includes.length > 0 && (

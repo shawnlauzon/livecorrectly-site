@@ -176,3 +176,19 @@
     gap: 0.25rem;
   }
 }
+
+/* Black Friday: the promotion code under the Guided price */
+.saleCode {
+  display: inline-block;
+  margin: 0 0 1rem;
+  padding: 0.35rem 0.7rem;
+  border: 2px dashed var(--plum);
+  border-radius: 2px;
+  color: var(--plum);
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+.saleCodeValue {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}

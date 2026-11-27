@@ -64,3 +64,51 @@
     font-size: 1.5rem;
   }
 }
+
+/* The promotion code, styled as a coupon: dashed edge, letters spaced to read out */
+.code {
+  white-space: nowrap;
+  border: 2px dashed var(--ground);
+  border-radius: 2px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.9375rem;
+}
+.codeValue {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 640px) {
+  .code {
+    font-size: 0.875rem;
+    padding: 0.15rem 0.5rem;
+  }
+}
+
+/* Phones: three lines, not four. Sale tag and code share the first line,
+   then the price, then the end date. */
+@media (max-width: 640px) {
+  .link {
+    gap: 0.35rem 0.5rem;
+  }
+  .tag {
+    order: 1;
+  }
+  .code {
+    order: 2;
+  }
+  .deal {
+    order: 3;
+    flex-basis: 100%;
+  }
+  .until {
+    order: 4;
+    flex-basis: 100%;
+  }
+}
+@media (max-width: 360px) {
+  .tag,
+  .code {
+    font-size: 0.75rem;
+  }
+}

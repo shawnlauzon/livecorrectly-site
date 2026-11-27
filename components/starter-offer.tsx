@@ -62,8 +62,12 @@ export default function StarterOffer({ subscriberId }: { subscriberId?: string |
               <span className={styles.salePrice}>
                 <s className={styles.saleWas}>${guided.price}</s> ${salePrice}
               </span>
+              <span className={styles.saleCode}>
+                Use code <strong className={styles.saleCodeValue}>{BLACK_FRIDAY.promoCode}</strong>{' '}
+                at checkout
+              </span>
               <span className={styles.saleText}>
-                One conversation includes the guide, for the same price. Through {BLACK_FRIDAY.endsOn} &rarr;
+                One conversation includes the guide, for the same price. Through {BLACK_FRIDAY.endsOn}{' '}&rarr;
               </span>
             </Link>
           )}

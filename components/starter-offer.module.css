@@ -115,3 +115,15 @@
 .sale:hover .saleText {
   text-decoration: underline;
 }
+
+.saleCode {
+  align-self: flex-start;
+  border: 2px dashed var(--ground);
+  border-radius: 2px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.9375rem;
+}
+.saleCodeValue {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
