@@ -182,6 +182,7 @@ describe('broadcast rendering', () => {
       slug: null,
       bodyHtml: DOC,
       ps: [],
+      oneOff: false,
     });
     vi.mocked(loadNewsletterIssue).mockResolvedValue({
       number: 9,

@@ -12,8 +12,14 @@ interface RenderNewsletterEmailOptions {
   /** Shared note shown above the issue body */
   note?: string;
   /**
+   * A one-off isn't an issue of the series, so it goes without the Permission
+   * Slip masthead and the automatic newsletter library block.
+   * Required so every send path decides.
+   */
+  oneOff: boolean;
+  /**
    * Who the newsletter library block (before the article's first h1/h2) links for.
-   * Required so every send path decides; null leaves the block out.
+   * Required so every send path decides; null leaves the block out, as does `oneOff`.
    */
   library: { subscriberId: string; newsletterNumber: number } | null;
   /**
@@ -69,6 +75,7 @@ export function renderNewsletterEmail({
   ps,
   preview,
   note,
+  oneOff,
   library,
   share,
 }: RenderNewsletterEmailOptions): string {
@@ -77,7 +84,8 @@ export function renderNewsletterEmail({
     postscripts: ps,
     preheader: preview,
     note,
-    library: library ?? undefined,
+    masthead: !oneOff,
+    library: oneOff ? undefined : library ?? undefined,
     share: share ?? undefined,
   });
 }

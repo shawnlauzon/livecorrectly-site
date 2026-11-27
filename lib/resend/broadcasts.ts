@@ -254,6 +254,7 @@ export async function renderNewsletterForBroadcast(
     ps: newsletter.ps,
     preview: newsletter.preview,
     note: options?.note,
+    oneOff: newsletter.oneOff,
     library: { subscriberId: resendSubscriberId, newsletterNumber },
     share: { slug: newsletter.slug, newsletterNumber },
   });
@@ -319,6 +320,7 @@ export async function renderNewsletterForBroadcastWithHtml(
     ps,
     preview,
     note: options?.note,
+    oneOff: raw.oneOff,
     library: { subscriberId: resendSubscriberId, newsletterNumber },
     share: { slug: raw.slug, newsletterNumber },
   });

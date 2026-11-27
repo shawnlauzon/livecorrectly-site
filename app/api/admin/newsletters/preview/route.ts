@@ -13,10 +13,12 @@ import { getUpcomingNote } from '@/lib/newsletter/notes';
  * Resolve Liquid tags in editor HTML for a specific subscriber.
  * Used by the admin newsletter editor's live preview pane.
  *
- * Body: { html: string, subscriberId: string, newsletterNumber?: number, postscripts?: string[], slug?: string }
+ * Body: { html: string, subscriberId: string, newsletterNumber?: number, postscripts?: string[], slug?: string, oneOff?: boolean }
  *
  * `slug` is the slug as typed in the editor: with one, the preview shows the
  * automatic share line and {{share_url}} shares the issue's web page.
+ * `oneOff` is the editor's "Send as" setting: a one-off is previewed, as it is
+ * sent, without the Permission Slip masthead or the automatic library block.
  * Returns: { html: string, noteDate: string | null }
  *
  * The earliest note dated today or later is shown above the body (an issue being
@@ -35,13 +37,14 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { html, subscriberId, newsletterNumber, postscripts, slug } = body as {
+  const { html, subscriberId, newsletterNumber, postscripts, slug, oneOff } = body as {
     html?: string;
     subscriberId?: string;
     newsletterNumber?: number;
     postscripts?: string[];
     /** The slug as typed in the editor (may be unsaved); decides the share link */
     slug?: string | null;
+    oneOff?: boolean;
   };
   const share = { slug: slug?.trim() || null, newsletterNumber: newsletterNumber ?? 0 };
 
@@ -84,6 +87,7 @@ export async function POST(request: NextRequest) {
     unsubscribeUrl: '#',
     ps: postscripts?.filter(Boolean) ?? [],
     note: note?.body,
+    oneOff: oneOff === true,
     library: { subscriberId, newsletterNumber: newsletterNumber ?? 0 },
     share,
   });

@@ -764,6 +764,7 @@ async function scheduleDirectSends(
         ps: issue.ps,
         preview: issue.preview,
         note,
+        oneOff: issue.oneOff,
         library: { subscriberId: subscriber.id, newsletterNumber },
         share: { slug: issue.slug, newsletterNumber },
       }),
